@@ -1,0 +1,3 @@
+en:
+  greetings:
+    hello_name: "Hello there {name}! nice to meet you" 
