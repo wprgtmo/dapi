@@ -7,9 +7,9 @@ from typing import Optional
 class UserBase(BaseModel):
     username: str
     fullname: str
-    dni: str
     email: str
     phone: str
+    pais_id: int
 
 class UserLogin(BaseModel):
     username: str

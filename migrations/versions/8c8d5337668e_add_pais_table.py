@@ -1,7 +1,7 @@
 """add pais table
 
 Revision ID: 8c8d5337668e
-Revises: 39c0ae854749
+Revises: 89e989fe5513
 Create Date: 2023-01-10 19:01:01.365133
 
 """
@@ -11,7 +11,8 @@ import sqlalchemy as sa
 
 # revision identifiers, used by Alembic.
 revision = '8c8d5337668e'
-down_revision = '39c0ae854749'
+down_revision = 'a316b43a4588'
+
 branch_labels = None
 depends_on = None
 

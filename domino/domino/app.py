@@ -77,6 +77,6 @@ app.include_router(ciudad_route, prefix="/api")
 @app.get("/hello/{name}")
 def hello_name(request: Request, name: str):
     print(request.headers["accept-language"].split(",")[0].split("-")[0]);
-    locale = request.headers["accept-language"].split(",")[0].split("-")[0];
+    locale = "en" #request.headers["accept-language"].split(",")[0].split("-")[0];
     # locale: str = get_user_locale(name)
     return {"greeting": _(locale, "greetings.hello_name", name=name)}

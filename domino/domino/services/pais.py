@@ -4,13 +4,16 @@ from unicodedata import name
 from fastapi import HTTPException
 from domino.models.pais import Pais
 from domino.schemas.pais import PaisBase, PaisSchema
+from domino.schemas.result_object import ResultObject
 from sqlalchemy.orm import Session
 from sqlalchemy.exc import SQLAlchemyError, IntegrityError
 from passlib.context import CryptContext
 from domino.auth_bearer import decodeJWT
-from typing import List
+from domino.functions_jwt import get_current_user
             
 def get_all(page: int, per_page: int, criteria_key: str, criteria_value: str, db: Session):  
+    
+    result = ResultObject(page=page, per_page=per_page)  
         
     str_where = "WHERE is_active=True " 
     str_count = "Select count(*) FROM configuracion.pais "
@@ -27,20 +30,24 @@ def get_all(page: int, per_page: int, criteria_key: str, criteria_value: str, db
     str_count += str_where 
     str_query += str_where
     
-    total = db.execute(str_count).scalar()
-    total_pages=total/per_page if (total % per_page == 0) else math.trunc(total / per_page) + 1
+    result.total = db.execute(str_count).scalar()
+    result.total_pages=result.total/result.per_page if (result.total % result.per_page == 0) else math.trunc(result.total / result.per_page) + 1
     
     str_query += " ORDER BY nombre LIMIT " + str(per_page) + " OFFSET " + str(page*per_page-per_page)
      
     lst_data = db.execute(str_query)
-    data = []
+    result.data = []
     for item in lst_data:
-        data.append({'id': item['id'], 'nombre' : item['nombre'], 'selected': False})
+        result.data.append({'id': item['id'], 'nombre' : item['nombre'], 'selected': False})
     
-    return {"page": page, "per_page": per_page, "total": total, "total_pages": total_pages, "data": data}
-        
+    return result
+ 
+def get_one(pais_id: str, db: Session):  
+    return db.query(Pais).filter(Pais.id == pais_id).first()
+       
 def new(request, db: Session, pais: PaisBase):
     
+    result = ResultObject() 
     # currentUser = get_current_user(request)
     
     db_pais = Pais(nombre=pais.nombre)
@@ -49,23 +56,24 @@ def new(request, db: Session, pais: PaisBase):
         db.add(db_pais)
         db.commit()
         db.refresh(db_pais)
-        return True
+        return result
     except (Exception, SQLAlchemyError, IntegrityError) as e:
         print(e)
         msg = 'Ha ocurrido un error al crear el pais'               
         raise HTTPException(status_code=403, detail=msg)
-    
-def get_one(pais_id: str, db: Session):  
-    return db.query(Pais).filter(Pais.id == pais_id).first()
-
+ 
 def delete(pais_id: str, db: Session):
+    
+    result = ResultObject()
+    # currentUser = get_current_user(request)
+    
     try:
         db_pais = db.query(Pais).filter(Pais.id == pais_id).first()
         if db_pais:
             db_pais.is_active = False
             # db.delete(db_pais)
             db.commit()
-            return True
+            return result
         else:
             raise HTTPException(status_code=404, detail="No encontrado")
         
@@ -74,6 +82,9 @@ def delete(pais_id: str, db: Session):
         raise HTTPException(status_code=404, detail="No es posible eliminar")
     
 def update(pais_id: str, pais: PaisBase, db: Session):
+    
+    result = ResultObject()
+    currentUser = get_current_user(request) 
        
     db_pais = db.query(Pais).filter(Pais.id == pais_id).first()
     
@@ -85,7 +96,7 @@ def update(pais_id: str, pais: PaisBase, db: Session):
             db.add(db_pais)
             db.commit()
             db.refresh(db_pais)
-            return True
+            return result
         except (Exception, SQLAlchemyError) as e:
             print(e.code)
             if e.code == "gkpj":

@@ -1,7 +1,7 @@
 """add ciudad table
 
 Revision ID: 89e989fe5513
-Revises: 8c8d5337668e
+Revises: 
 Create Date: 2023-01-10 19:53:40.198371
 
 """

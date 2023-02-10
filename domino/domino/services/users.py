@@ -55,12 +55,13 @@ def get_all(page: int, per_page: int, criteria_key: str, criteria_value: str, db
       
     str_where = "WHERE is_active=True " 
     str_count = "Select count(*) FROM enterprise.users "
-    str_query = "Select id, username, fullname, dni, email, phone, password FROM enterprise.users "
-    
+    str_query = "Select use.id, username, fullname, email, phone, password, use.is_active, pais_id, pa.nombre as pais" \
+        "FROM enterprise.users use left join configuracion.pais pa ON pa.id = use.pais_id"
+
     dict_query = {'username': " AND username ilike '%" + criteria_value + "%'",
                   'fullname': " AND fullname ilike '%" + criteria_value + "%'",
-                  'id': " AND id = '" + criteria_value + "' ",
-                  'dni': " AND dni ilike '%" + criteria_value + "%'"}
+                  'pais': " AND pa.nombre ilike '%" + criteria_value + "%'",
+                  'id': " AND id = '" + criteria_value + "' "}
     
     if criteria_key and criteria_key not in dict_query:
         raise HTTPException(status_code=404, detail="Parametro no válido")
@@ -77,8 +78,9 @@ def get_all(page: int, per_page: int, criteria_key: str, criteria_value: str, db
     lst_data = db.execute(str_query)
     data = []
     for item in lst_data:
-        data.append({'id': item['id'], 'username' : item['username'], 'fullname': item['fullname'], 'dni': item['dni'], 
-            'email': item['email'], 'phone': item['phone'], 'password': item['password'], 'selected': False})
+        data.append({'id': item['id'], 'username' : item['username'], 'fullname': item['fullname'],  
+            'email': item['email'], 'phone': item['phone'], 'password': item['password'], 
+            'pais_id': item['pais_id'], 'pais': item['pais'], 'selected': False})
     
     return {"page": page, "per_page": per_page, "total": total, "total_pages": total_pages, "data": data}
         
@@ -89,7 +91,7 @@ def new(request, db: Session, user: UserCreate):
         raise HTTPException(status_code=404, detail="Error en los datos, " + pass_check['message'])             
     
     user.password = pwd_context.hash(user.password)  
-    db_user = Users(username=user.username, fullname=user.fullname, dni=user.dni,  
+    db_user = Users(username=user.username, fullname=user.fullname, pais_id=user.pais_id,  
                     email=user.email, phone=user.phone, password=user.password)
         
     try:
@@ -130,7 +132,7 @@ def update(user_id: str, user: UserBase, db: Session):
     db_user = db.query(Users).filter(Users.id == user_id).first()
     db_user.username = user.username
     db_user.fullname = user.fullname
-    db_user.dni = user.dni
+    db_user.pais_id = user.pais_id
     db_user.email = user.email
     db_user.phone = user.phone
 
