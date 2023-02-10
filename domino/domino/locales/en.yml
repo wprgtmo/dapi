@@ -1,3 +1,9 @@
 en:
-  greetings:
-    hello_name: "Hello there {name}! nice to meet you" 
+  bearer: 
+    scheme: "Invalid authentication scheme."
+    token: "Invalid token or expired token."
+    credential: "Invalid authorization code."
+  auth:
+    me: 'Get information for the auth user'
+    not_found: "User not found"
+    wrong_password: "Wrong Password"        

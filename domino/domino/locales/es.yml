@@ -1,3 +1,11 @@
 es:
   greetings:
     hello_name: "Hola {name}, un gusto conocerte" 
+  bearer:    
+    scheme: "Esquema de autentificación incorrecto"
+    token: "Token erróneo o vencido"
+    credential: "Código de autorización erróneo."
+  auth:
+    me: 'Obtiene información del usuario autentificado'    
+    not_found: "Usuario no encontrado"
+    wrong_password: "Contraseña incorrecta"    
