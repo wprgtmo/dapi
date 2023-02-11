@@ -10,26 +10,27 @@ from domino.services.users import get_all, new, get_one, delete, update, change_
 from starlette import status
 from domino.auth_bearer import JWTBearer
 import uuid
-  
+
 user_route = APIRouter(
     tags=["Usuarios"],
-    # dependencies=[Depends(JWTBearer())]   
+    # dependencies=[Depends(JWTBearer())]
 )
 
 @user_route.get("/users", response_model=ResultObject, summary="Obtener lista de Usuarios")
 def get_users(
-    page: int = 1, 
-    per_page: int = 6, 
+    request: Request,
+    page: int = 1,
+    per_page: int = 6,
     criteria_key: str = "",
     criteria_value: str = "",
     db: Session = Depends(get_db)
 ):
-    return get_all(page=page, per_page=per_page, criteria_key=criteria_key, criteria_value=criteria_value, db=db)
+    return get_all(request=request, page=page, per_page=per_page, criteria_key=criteria_key, criteria_value=criteria_value, db=db)
 
 @user_route.get("/users/{id}", response_model=ResultObject, summary="Obtener un Usuario por su ID")
 def get_user_by_id(id: str, db: Session = Depends(get_db)):
     return get_one(user_id=id, db=db)
- 
+
 @user_route.post("/users", response_model=ResultObject, summary="Crear un Usuario")
 def create_user(request:Request, user: UserCreate, db: Session = Depends(get_db)):    
     return new(request=request, user=user, db=db)
@@ -46,11 +47,10 @@ def delete_user(request:Request, id: uuid.UUID, db: Session = Depends(get_db)):
 def update_user(request:Request, id: uuid.UUID, user: UserCreate, db: Session = Depends(get_db)):
     return update(request=request, db=db, user_id=str(id), user=user)
 
-@user_route.post("/users/password", summary="Cambiar passwoord a un Usuario")
+@user_route.post("/users/password", response_model=ResultObject, summary="Cambiar passwoord a un Usuario")
 def reset_password(
-    request:Request,
+    request: Request,
     password: ChagePasswordSchema,
     db: Session = Depends(get_db)
 ):
-    return change_password(
-        request=request, db=db, password=password)
+    return change_password(request=request, db=db, password=password)

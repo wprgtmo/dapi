@@ -1,9 +1,12 @@
 
 import math
+
+from fastapi import HTTPException, Request
 from unicodedata import name
 from fastapi import HTTPException
 from domino.models.ciudad import Ciudad
 from domino.schemas.ciudad import CiudadBase, CiudadSchema, CiudadInfo
+from domino.schemas.result_object import ResultObject
 from sqlalchemy.orm import Session
 from sqlalchemy.exc import SQLAlchemyError, IntegrityError
 from passlib.context import CryptContext
@@ -12,14 +15,10 @@ from typing import Dict, List
 
 from domino.services.pais import get_one as pais_get_one
             
-def get_all(request: List[CiudadInfo], skip: int, limit: int, db: Session):  
-    data = db.query(Ciudad).offset(skip).limit(limit).all()   
-    lst_data = []
-    for item in data: 
-        lst_data.append(create_row_ciudad(item))
-    return lst_data
-
-def get_all(page: int, per_page: int, criteria_key: str, criteria_value: str, db: Session):  
+def get_all(request:Request, page: int, per_page: int, criteria_key: str, criteria_value: str, db: Session): 
+    locale = request.headers["accept-language"].split(",")[0].split("-")[0];
+    
+    result = ResultObject(page=page, per_page=per_page) 
         
     str_where = "WHERE ciudad.is_active=True " 
     str_count = "Select count(*) "
@@ -41,31 +40,24 @@ def get_all(page: int, per_page: int, criteria_key: str, criteria_value: str, db
     str_count += str_where 
     str_query += str_where
     
-    total = db.execute(str_count).scalar()
-    total_pages=total/per_page if (total % per_page == 0) else math.trunc(total / per_page) + 1
+    result.total = db.execute(str_count).scalar()
+    result.total_pages=result.total/result.per_page if (result.total % result.per_page == 0) else math.trunc(result.total / result.per_page) + 1
     
     str_query += " ORDER BY ciudad.nombre LIMIT " + str(per_page) + " OFFSET " + str(page*per_page-per_page)
      
     lst_data = db.execute(str_query)
-    data = []
+    result.data = []
     for item in lst_data:
-        data.append({'id': item['id'], 'nombre' : item['nombre'], 
-                     'pais_id': item['pais_id'], 'pais_nombre': item['pais_nombre'],
-                     'selected': False})
+        result.data.append(
+            {'id': item['id'], 'nombre' : item['nombre'], 'pais_id': item['pais_id'], 
+             'pais_nombre': item['pais_nombre'], 'selected': False})
     
-    return {"page": page, "per_page": per_page, "total": total, "total_pages": total_pages, "data": data}
+    return result
 
-def create_row_ciudad(item):
-    
-    one_ciudad = CiudadInfo()
-    one_ciudad.id = item.id
-    one_ciudad.nombre = item.nombre
-    one_ciudad.pais_id = item.pais_id
-    one_ciudad.pais = item.pais.nombre
-    return one_ciudad
-        
 def new(request, db: Session, ciudad: CiudadSchema):
+    locale = request.headers["accept-language"].split(",")[0].split("-")[0];
     
+    result = ResultObject() 
     # currentUser = get_current_user(request)
     
     one_pais = pais_get_one(ciudad.pais_id, db=db)
@@ -78,7 +70,7 @@ def new(request, db: Session, ciudad: CiudadSchema):
         db.add(db_ciudad)
         db.commit()
         db.refresh(db_ciudad)
-        return True
+        return result
     except (Exception, SQLAlchemyError, IntegrityError) as e:
         print(e)
         msg = 'Ha ocurrido un error al crear la ciudad'               
@@ -87,17 +79,26 @@ def new(request, db: Session, ciudad: CiudadSchema):
 def get_one(ciudad_id: str, db: Session):  
     return db.query(Ciudad).filter(Ciudad.id == ciudad_id).first()
 
-def delete(ciudad_id: str, db: Session):
+def delete(request: Request, ciudad_id: str, db: Session):
+    locale = request.headers["accept-language"].split(",")[0].split("-")[0];
+    
+    result = ResultObject()
+    # currentUser = get_current_user(request)
+    
     try:
         db_ciudad = db.query(Ciudad).filter(Ciudad.id == ciudad_id).first()
         db.delete(db_ciudad)
         db.commit()
-        return True
+        return result
     except (Exception, SQLAlchemyError) as e:
         print(e)
         raise HTTPException(status_code=404, detail="No es posible eliminar")
     
-def update(ciudad_id: str, ciudad: CiudadSchema, db: Session):
+def update(request: Request, ciudad_id: str, ciudad: CiudadSchema, db: Session):
+    locale = request.headers["accept-language"].split(",")[0].split("-")[0];
+    
+    result = ResultObject()
+    # currentUser = get_current_user(request) 
        
     db_ciudad = db.query(Ciudad).filter(Ciudad.id == ciudad_id).first()
     
@@ -109,7 +110,7 @@ def update(ciudad_id: str, ciudad: CiudadSchema, db: Session):
             db.add(db_ciudad)
             db.commit()
             db.refresh(db_ciudad)
-            return db_ciudad
+            return result
         except (Exception, SQLAlchemyError) as e:
             print(e.code)
             if e.code == "gkpj":

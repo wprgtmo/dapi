@@ -68,7 +68,7 @@ async def redoc_html():
         redoc_js_url="/static/redoc.standalone.js",
     )
 
-# app.include_router(auth_routes, prefix="/api")
+app.include_router(auth_routes, prefix="/api")
 app.include_router(user_route, prefix="/api")
 app.include_router(pais_route, prefix="/api")
 app.include_router(ciudad_route, prefix="/api")
@@ -80,3 +80,4 @@ def hello_name(request: Request, name: str):
     locale = "en" #request.headers["accept-language"].split(",")[0].split("-")[0];
     # locale: str = get_user_locale(name)
     return {"greeting": _(locale, "greetings.hello_name", name=name)}
+

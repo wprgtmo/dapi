@@ -1,5 +1,6 @@
 import math
 
+from fastapi import HTTPException, Request
 from unicodedata import name
 from fastapi import HTTPException
 from domino.models.pais import Pais
@@ -11,7 +12,8 @@ from passlib.context import CryptContext
 from domino.auth_bearer import decodeJWT
 from domino.functions_jwt import get_current_user
             
-def get_all(page: int, per_page: int, criteria_key: str, criteria_value: str, db: Session):  
+def get_all(request:Request, page: int, per_page: int, criteria_key: str, criteria_value: str, db: Session):  
+    locale = request.headers["accept-language"].split(",")[0].split("-")[0];
     
     result = ResultObject(page=page, per_page=per_page)  
         
@@ -46,6 +48,7 @@ def get_one(pais_id: str, db: Session):
     return db.query(Pais).filter(Pais.id == pais_id).first()
        
 def new(request, db: Session, pais: PaisBase):
+    locale = request.headers["accept-language"].split(",")[0].split("-")[0];
     
     result = ResultObject() 
     # currentUser = get_current_user(request)
@@ -62,7 +65,8 @@ def new(request, db: Session, pais: PaisBase):
         msg = 'Ha ocurrido un error al crear el pais'               
         raise HTTPException(status_code=403, detail=msg)
  
-def delete(pais_id: str, db: Session):
+def delete(request: Request, pais_id: str, db: Session):
+    locale = request.headers["accept-language"].split(",")[0].split("-")[0];
     
     result = ResultObject()
     # currentUser = get_current_user(request)
@@ -81,7 +85,8 @@ def delete(pais_id: str, db: Session):
         print(e)
         raise HTTPException(status_code=404, detail="No es posible eliminar")
     
-def update(pais_id: str, pais: PaisBase, db: Session):
+def update(request: Request, pais_id: str, pais: PaisBase, db: Session):
+    locale = request.headers["accept-language"].split(",")[0].split("-")[0];
     
     result = ResultObject()
     currentUser = get_current_user(request) 
