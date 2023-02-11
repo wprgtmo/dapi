@@ -60,7 +60,7 @@ def get_all(request:Request, page: int, per_page: int, criteria_key: str, criter
       
     str_where = "WHERE is_active=True " 
     str_count = "Select count(*) FROM enterprise.users "
-    str_query = "Select use.id, username, fullname, email, phone, password, use.is_active, pais_id, pa.nombre as pais" \
+    str_query = "Select use.id, username, fullname, email, phone, password, use.is_active, pais_id, pa.nombre as pais " \
         "FROM enterprise.users use left join configuracion.pais pa ON pa.id = use.pais_id"
 
     dict_query = {'username': " AND username ilike '%" + criteria_value + "%'",
