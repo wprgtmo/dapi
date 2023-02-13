@@ -1,5 +1,4 @@
 poetry.lock
-pyproject.toml
 *.pyc
 .env
 alembic.ini
