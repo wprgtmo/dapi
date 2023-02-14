@@ -13,7 +13,7 @@ import uuid
 
 user_route = APIRouter(
     tags=["Usuarios"],
-    dependencies=[Depends(JWTBearer())]
+    # dependencies=[Depends(JWTBearer())]
 )
 
 @user_route.get("/users", response_model=ResultObject, summary="Obtener lista de Usuarios")

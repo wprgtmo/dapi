@@ -15,7 +15,7 @@ es:
     new_user_error: 'Error creating new user.'
     already_exist: 'Username exists.'
     not_found: 'Username not exists.'
-    imposible_delete: 'Can't delete user.'
+    imposible_delete: 'Cant delete user.'
     check_password: 'Old and new passwords do not match.'
     new_password_incorrect: 'Wrong new paswood structure.'
     change_password_error: 'Error change password.'
