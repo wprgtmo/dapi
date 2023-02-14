@@ -16,7 +16,7 @@ es:
     already_exist: 'Nombre de usuario existe'
     not_found: 'Nombre de usuario no existe'
     imposible_delete: 'No se puede desactivar al usuario'
-  check_password: 'Contraseña anterior y nueva no coinciden.'
+    check_password: 'Contraseña anterior y nueva no coinciden.'
     new_password_incorrect: 'Estructura de la nueva contraseña incorrecta.'
     change_password_error: 'Error cambiando contraseña.'
     wrong_password: 'Contraaseña incorrecta.'   
