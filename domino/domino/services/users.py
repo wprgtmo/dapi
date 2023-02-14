@@ -116,8 +116,8 @@ def new(request: Request, db: Session, user: UserCreate):
             if field_name == 'username':
                 msg = msg + _(locale, "users.already_exist")
         
-        raise HTTPException(status_code=403, detail=msg)
-    
+        raise HTTPException(status_code=403, detail=_(locale, "users.new_user_error") + msg) 
+        
 def get_one(user_id: str, db: Session):  
     return db.query(Users).filter(Users.id == user_id).first()
 
@@ -138,7 +138,7 @@ def delete(request: Request, user_id: str, db: Session):
     try:
         db_user = db.query(Users).filter(Users.id == user_id).first()
         if not db_user:
-            raise HTTPException(status_code=404, detail=_(locale, "users.user_not_exist"))
+            raise HTTPException(status_code=404, detail=_(locale, "users.not_found"))
         db_user.is_active=False
         db.commit()
         return result
@@ -196,7 +196,7 @@ def  change_password(request: Request, db: Session, password: ChagePasswordSchem
         #verificando que tenga la estructura correcta
         pass_check = password_check(password.new_password, 8, 15)   
         if not pass_check['success']:
-            raise HTTPException(status_code=404, detail=_(locale, "users.new_password") + pass_check['message']) 
+            raise HTTPException(status_code=404, detail=_(locale, "users.new_password_incorrect") + pass_check['message']) 
         
         #cambiando el paswword al usuario
         one_user.password = pwd_context.hash(password.new_password)

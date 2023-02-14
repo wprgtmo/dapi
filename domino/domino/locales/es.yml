@@ -8,4 +8,15 @@ es:
   auth:
     me: 'Obtiene información del usuario autentificado'    
     not_found: "Usuario no encontrado"
-    wrong_password: "Contraseña incorrecta"    
+    wrong_password: "Contraseña incorrecta" 
+  users:
+    invalid_param: 'Invalid query parameters.'
+    data_error: 'Wrong paswood structure.'
+    new_user_error: 'Error creating new user.'
+    already_exist: 'Username exists.'
+    not_found: 'Username not exists.'
+    imposible_delete: 'Can't delete user.'
+    check_password: 'Old and new passwords do not match.'
+    new_password_incorrect: 'Wrong new paswood structure.'
+    change_password_error: 'Error change password.'
+    wrong_password: 'Wrong password.'   
