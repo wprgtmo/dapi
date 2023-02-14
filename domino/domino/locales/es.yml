@@ -10,7 +10,7 @@ es:
     not_found: "Usuario no encontrado"
     wrong_password: "Contraseña incorrecta" 
   users:
-    invalid_param: 'Invalid query parameters. '
+    invalid_param: 'Parámetro de consultas no válidos. '
     data_error: 'Wrong paswood structure.'
     new_user_error: 'Error creating new user.'
     already_exist: 'Username exists.'
