@@ -12,7 +12,7 @@ import uuid
   
 ciudad_route = APIRouter(
     tags=["Ciudades"],
-    # dependencies=[Depends(JWTBearer())]   
+    dependencies=[Depends(JWTBearer())]   
 )
 
 @ciudad_route.get("/ciudad", response_model=ResultObject, summary="Obtener lista de Ciudades")

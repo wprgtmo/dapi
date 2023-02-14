@@ -58,10 +58,10 @@ def get_all(request:Request, page: int, per_page: int, criteria_key: str, criter
     
     result = ResultObject(page=page, per_page=per_page)
       
-    str_where = "WHERE is_active=True " 
-    str_count = "Select count(*) FROM enterprise.users "
+    str_where = "WHERE use.is_active=True " 
+    str_count = "Select count(*) FROM enterprise.users use "
     str_query = "Select use.id, username, fullname, email, phone, password, use.is_active, pais_id, pa.nombre as pais " \
-        "FROM enterprise.users use left join configuracion.pais pa ON pa.id = use.pais_id"
+        "FROM enterprise.users use left join configuracion.pais pa ON pa.id = use.pais_id "
 
     dict_query = {'username': " AND username ilike '%" + criteria_value + "%'",
                   'fullname': " AND fullname ilike '%" + criteria_value + "%'",
@@ -71,7 +71,7 @@ def get_all(request:Request, page: int, per_page: int, criteria_key: str, criter
     if criteria_key and criteria_key not in dict_query:
         raise HTTPException(status_code=404, detail=_(locale, "users.invalid_param"))
     
-    str_where = str_where + dict_query[criteria_key] if criteria_value else ""  
+    str_where = str_where + dict_query[criteria_key] if criteria_value else str_where  
     str_count += str_where 
     str_query += str_where
     
@@ -121,6 +121,11 @@ def new(request: Request, db: Session, user: UserCreate):
 def get_one(user_id: str, db: Session):  
     return db.query(Users).filter(Users.id == user_id).first()
 
+def get_one_by_id(user_id: str, db: Session): 
+    result = ResultObject() 
+    result.data = db.query(Users).filter(Users.id == user_id).first()
+    return result
+
 def get_one_by_username(username: str, db: Session):  
     return db.query(Users).filter(Users.username == username, Users.is_active == True).first()
 
@@ -132,7 +137,9 @@ def delete(request: Request, user_id: str, db: Session):
     
     try:
         db_user = db.query(Users).filter(Users.id == user_id).first()
-        db.delete(db_user)
+        if not db_user:
+            raise HTTPException(status_code=404, detail=_(locale, "users.user_not_exist"))
+        db_user.is_active=False
         db.commit()
         return result
     except (Exception, SQLAlchemyError) as e:

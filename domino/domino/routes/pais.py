@@ -12,7 +12,7 @@ import uuid
   
 pais_route = APIRouter(
     tags=["Paises"],
-    # dependencies=[Depends(JWTBearer())]   
+    dependencies=[Depends(JWTBearer())]   
 )
 
 @pais_route.get("/pais", response_model=ResultObject, summary="Obtener lista de Paises")
