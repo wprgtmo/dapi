@@ -12,6 +12,7 @@ from sqlalchemy.exc import SQLAlchemyError, IntegrityError
 from passlib.context import CryptContext
 from domino.auth_bearer import decodeJWT
 from typing import Dict, List
+from domino.app import _
 
 from domino.services.pais import get_one as pais_get_one
             
@@ -34,7 +35,7 @@ def get_all(request:Request, page: int, per_page: int, criteria_key: str, criter
                   }
     
     if criteria_key and criteria_key not in dict_query:
-        raise HTTPException(status_code=404, detail="Parametro no válido")
+        raise HTTPException(status_code=404, detail=_(locale, "commun.invalid_param"))
     
     str_where = str_where + dict_query[criteria_key] if criteria_value else str_where 
     str_count += str_where 
@@ -54,6 +55,33 @@ def get_all(request:Request, page: int, per_page: int, criteria_key: str, criter
     
     return result
 
+def get_all_data(request:Request, db: Session, pais_id: int):  
+    locale = request.headers["accept-language"].split(",")[0].split("-")[0];
+    
+    result = ResultObject(page=0, per_page=0, total=0, total_pages=0) 
+        
+    str_query = "Select ciudad.id, ciudad.nombre, pais_id, pais.nombre as pais_nombre " \
+        "FROM configuracion.ciudad ciudad INNER JOIN configuracion.pais pais ON " \
+        "pais.id = ciudad.pais_id WHERE ciudad.is_active=True " 
+        
+    if pais_id:
+        str_query += " AND pais_id = " + str(pais_id)
+    
+    lst_data = db.execute(str_query)
+    result.data = []
+    for item in lst_data:
+        result.data.append( {'id': item['id'], 'nombre' : item['nombre']})
+    
+    return result
+
+def get_one(ciudad_id: int, db: Session):  
+    return db.query(Ciudad).filter(Ciudad.id == ciudad_id).first()
+
+def get_one_by_id(ciudad_id: int, db: Session):  
+    result = ResultObject() 
+    result.data = db.query(Ciudad).filter(Ciudad.id == ciudad_id).first()
+    return result
+
 def new(request, db: Session, ciudad: CiudadSchema):
     locale = request.headers["accept-language"].split(",")[0].split("-")[0];
     
@@ -62,7 +90,7 @@ def new(request, db: Session, ciudad: CiudadSchema):
     
     one_pais = pais_get_one(ciudad.pais_id, db=db)
     if not one_pais:
-        raise HTTPException(status_code=404, detail='Pais no Existe')
+        raise HTTPException(status_code=404, detail=_(locale, "pais.not_found"))
     
     db_ciudad = Ciudad(nombre=ciudad.nombre, pais_id=one_pais.id)
     
@@ -73,12 +101,9 @@ def new(request, db: Session, ciudad: CiudadSchema):
         return result
     except (Exception, SQLAlchemyError, IntegrityError) as e:
         print(e)
-        msg = 'Ha ocurrido un error al crear la ciudad'               
+        msg = _(locale, "ciudad.error_nueva_ciudad")
         raise HTTPException(status_code=403, detail=msg)
     
-def get_one(ciudad_id: str, db: Session):  
-    return db.query(Ciudad).filter(Ciudad.id == ciudad_id).first()
-
 def delete(request: Request, ciudad_id: str, db: Session):
     locale = request.headers["accept-language"].split(",")[0].split("-")[0];
     
@@ -87,18 +112,26 @@ def delete(request: Request, ciudad_id: str, db: Session):
     
     try:
         db_ciudad = db.query(Ciudad).filter(Ciudad.id == ciudad_id).first()
-        db.delete(db_ciudad)
-        db.commit()
-        return result
+        if db_ciudad:
+            db_ciudad.is_active = False
+            db.commit()
+            return result
+        else:
+            raise HTTPException(status_code=404, detail=_(locale, "ciudad.not_found"))
+        
     except (Exception, SQLAlchemyError) as e:
         print(e)
-        raise HTTPException(status_code=404, detail="No es posible eliminar")
+        raise HTTPException(status_code=404, detail=_(locale, "ciudad.imposible_delete"))
     
 def update(request: Request, ciudad_id: str, ciudad: CiudadSchema, db: Session):
     locale = request.headers["accept-language"].split(",")[0].split("-")[0];
     
     result = ResultObject()
     # currentUser = get_current_user(request) 
+    
+    one_pais = pais_get_one(ciudad.pais_id, db=db)
+    if not one_pais:
+        raise HTTPException(status_code=404, detail=_(locale, "pais.not_found"))
        
     db_ciudad = db.query(Ciudad).filter(Ciudad.id == ciudad_id).first()
     
@@ -114,6 +147,6 @@ def update(request: Request, ciudad_id: str, ciudad: CiudadSchema, db: Session):
         except (Exception, SQLAlchemyError) as e:
             print(e.code)
             if e.code == "gkpj":
-                raise HTTPException(status_code=400, detail="Ya existe una ciudad con este Nombre")
+                raise HTTPException(status_code=400, detail=_(locale, "ciudad.already_exist"))
     else:
-        raise HTTPException(status_code=400, detail="No existe ciudad con ese ID")
+        raise HTTPException(status_code=404, detail=_(locale, "ciudad.not_found"))

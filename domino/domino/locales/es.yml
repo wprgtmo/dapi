@@ -1,29 +1,34 @@
 es:
   greetings:
-    hello_name: "Hola {name}, un gusto conocerte" 
+    hello_name: "Hola {name}, un gusto conocerte." 
   bearer:    
-    scheme: "Esquema de autentificación incorrecto"
-    token: "Token erróneo o vencido"
+    scheme: "Esquema de autentificación incorrecto."
+    token: "Token erróneo o vencido."
     credential: "Código de autorización erróneo."
   auth:
-    me: 'Obtiene información del usuario autentificado'    
-    not_found: "Usuario no encontrado"
-    wrong_password: "Contraseña incorrecta" 
+    me: 'Obtiene información del usuario autentificado.'    
+    not_found: "Usuario no encontrado."
+    wrong_password: "Contraseña incorrecta." 
   commun:
-    invalid_param: 'Parámetro de consultas no válidos. '
+    invalid_param: 'Parámetro de consultas no válidos.'
   users:
-    data_error: 'Estructura de la contraseña incorrecta'
-    new_user_error: 'Error creando nuevo usuario'
-    already_exist: 'Nombre de usuario existe'
-    not_found: 'Nombre de usuario no existe'
+    data_error: 'Estructura de la contraseña incorrecta.'
+    new_user_error: 'Error creando nuevo usuario.'
+    already_exist: 'Nombre de usuario existe.'
+    not_found: 'Nombre de usuario no existe.'
     imposible_delete: 'No se puede desactivar al usuario'
     check_password: 'Contraseña anterior y nueva no coinciden.'
     new_password_incorrect: 'Estructura de la nueva contraseña incorrecta.'
     change_password_error: 'Error cambiando contraseña.'
     wrong_password: 'Contraaseña incorrecta.'  
   pais:
-    exist_name: 'Existe pais con ese nombre'
-    error_nuevo_pais: 'Error creando el nuevo pais'
-    already_exist: 'País existe'
-    not_found: 'País no existe'
+    exist_name: 'Existe pais con ese nombre.'
+    error_nuevo_pais: 'Error creando el nuevo pais.'
+    already_exist: 'País existe.'
+    not_found: 'País no existe.'
     imposible_delete: 'No se puede desactivar país.' 
+  ciudad:
+    error_nueva_ciudad: 'Error creando nueva ciudad.'
+    not_found: 'Ciudad No Existe.'
+    imposible_delete: 'No se puede desactivar la ciudad.'
+    already_exist: 'Ciudad Existe.'

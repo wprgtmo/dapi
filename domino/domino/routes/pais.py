@@ -12,7 +12,7 @@ import uuid
   
 pais_route = APIRouter(
     tags=["Paises"],
-    # dependencies=[Depends(JWTBearer())]   
+    dependencies=[Depends(JWTBearer())]   
 )
 
 @pais_route.get("/pais", response_model=ResultObject, summary="Obtener lista de Paises con paginado")
@@ -40,12 +40,8 @@ def create_pais(request:Request, pais: PaisBase, db: Session = Depends(get_db)):
 
 @pais_route.delete("/pais/{id}", response_model=ResultObject, summary="Eliminar un Pais por su ID")
 def delete_pais(request:Request, id: int, db: Session = Depends(get_db)):
-    is_delete = delete(request=request, pais_id=str(id), db=db)
-    if is_delete:
-        raise HTTPException(status_code=200, detail="Pais Eliminado")
-    else:
-        raise HTTPException(status_code=404, detail="Pais no encontrado")
-
+    return delete(request=request, pais_id=str(id), db=db)
+    
 @pais_route.put("/pais/{id}", response_model=ResultObject, summary="Actualizar un Pais por su ID")
 def update_pais(request:Request, id: int, pais: PaisBase, db: Session = Depends(get_db)):
     return update(request=request, db=db, pais_id=str(id), pais=pais)
