@@ -66,14 +66,14 @@ def get_one_by_name(nombre: str, db: Session):
     return db.query(Pais).filter(Pais.nombre == nombre, Pais.is_active == True).first()
       
 def get_one_by_id(pais_id: str, db: Session): 
-    result = ResultObject() 
+    result = ResultObject(page=0, per_page=0, total=0, total_pages=0) 
     result.data = db.query(Pais).filter(Pais.id == pais_id).first()
     return result
  
 def new(request, db: Session, pais: PaisBase):
     locale = request.headers["accept-language"].split(",")[0].split("-")[0];
     
-    result = ResultObject() 
+    result = ResultObject(page=0, per_page=0, total=0, total_pages=0) 
     # currentUser = get_current_user(request)
     
     db_pais = get_one_by_name(pais.nombre)
@@ -100,7 +100,7 @@ def new(request, db: Session, pais: PaisBase):
 def delete(request: Request, pais_id: str, db: Session):
     locale = request.headers["accept-language"].split(",")[0].split("-")[0];
     
-    result = ResultObject()
+    result = ResultObject(page=0, per_page=0, total=0, total_pages=0) 
     # currentUser = get_current_user(request)
     
     try:
@@ -119,7 +119,7 @@ def delete(request: Request, pais_id: str, db: Session):
 def update(request: Request, pais_id: str, pais: PaisBase, db: Session):
     locale = request.headers["accept-language"].split(",")[0].split("-")[0];
     
-    result = ResultObject()
+    result = ResultObject(page=0, per_page=0, total=0, total_pages=0) 
     currentUser = get_current_user(request) 
     
     db_pais = get_one_by_name(pais.nombre)

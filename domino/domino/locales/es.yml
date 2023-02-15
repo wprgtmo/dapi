@@ -32,3 +32,8 @@ es:
     not_found: 'Ciudad No Existe.'
     imposible_delete: 'No se puede desactivar la ciudad.'
     already_exist: 'Ciudad Existe.'
+  paquete:
+    error_nuevo_paquete: 'Error creando nuevo paquete'
+    not_found: 'Paquete no existe'
+    imposible_delete: 'No se puede desactivar el paquete'
+    already_exist: 'Paquete existe'

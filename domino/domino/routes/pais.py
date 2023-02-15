@@ -8,7 +8,6 @@ from typing import List, Dict
 from domino.services.pais import get_all, get_all_data, new, get_one_by_id, delete, update
 from starlette import status
 from domino.auth_bearer import JWTBearer
-import uuid
   
 pais_route = APIRouter(
     tags=["Paises"],

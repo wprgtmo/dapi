@@ -30,3 +30,8 @@ en:
     not_found: 'Ciudad Not Exist'
     imposible_delete: 'Cant delete state'
     already_exist: 'State exist.'
+  paquete:
+    error_nuevo_paquete: 'Error new package'
+    not_found: 'package not found'
+    imposible_delete: 'Cant delete package'
+    already_exist: 'package exist.'
