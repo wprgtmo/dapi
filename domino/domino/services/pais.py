@@ -11,6 +11,7 @@ from sqlalchemy.exc import SQLAlchemyError, IntegrityError
 from passlib.context import CryptContext
 from domino.auth_bearer import decodeJWT
 from domino.functions_jwt import get_current_user
+from domino.app import _
             
 def get_all(request:Request, page: int, per_page: int, criteria_key: str, criteria_value: str, db: Session):  
     locale = request.headers["accept-language"].split(",")[0].split("-")[0];
@@ -26,8 +27,8 @@ def get_all(request:Request, page: int, per_page: int, criteria_key: str, criter
                   }
     
     if criteria_key and criteria_key not in dict_query:
-        raise HTTPException(status_code=404, detail="Parametro no válido")
-    
+        raise HTTPException(status_code=404, detail=_(locale, "commun.invalid_param"))
+        
     str_where = str_where + dict_query[criteria_key] if criteria_value else str_where 
     str_count += str_where 
     str_query += str_where
@@ -43,16 +44,42 @@ def get_all(request:Request, page: int, per_page: int, criteria_key: str, criter
         result.data.append({'id': item['id'], 'nombre' : item['nombre'], 'selected': False})
     
     return result
+
+def get_all_data(request:Request, db: Session):  
+    locale = request.headers["accept-language"].split(",")[0].split("-")[0];
+    
+    result = ResultObject(page=0, per_page=0, total=0, total_pages=0) 
+        
+    str_query = "Select id, nombre FROM configuracion.pais WHERE is_active=True "
+    
+    lst_data = db.execute(str_query)
+    result.data = []
+    for item in lst_data:
+        result.data.append({'id': item['id'], 'nombre' : item['nombre']})
+    
+    return result
  
 def get_one(pais_id: str, db: Session):  
     return db.query(Pais).filter(Pais.id == pais_id).first()
-       
+
+def get_one_by_name(nombre: str, db: Session):  
+    return db.query(Pais).filter(Pais.nombre == nombre, Pais.is_active == True).first()
+      
+def get_one_by_id(pais_id: str, db: Session): 
+    result = ResultObject() 
+    result.data = db.query(Pais).filter(Pais.id == pais_id).first()
+    return result
+ 
 def new(request, db: Session, pais: PaisBase):
     locale = request.headers["accept-language"].split(",")[0].split("-")[0];
     
     result = ResultObject() 
     # currentUser = get_current_user(request)
     
+    db_pais = get_one_by_name(pais.nombre)
+    if db_pais:
+        raise HTTPException(status_code=404, detail=_(locale, "pais.exist_name"))
+        
     db_pais = Pais(nombre=pais.nombre)
     
     try:
@@ -62,7 +89,12 @@ def new(request, db: Session, pais: PaisBase):
         return result
     except (Exception, SQLAlchemyError, IntegrityError) as e:
         print(e)
-        msg = 'Ha ocurrido un error al crear el pais'               
+        msg = _(locale, "pais.error_nuevo_pais")
+        if e.code == 'gkpj':
+            field_name = str(e.__dict__['orig']).split('"')[1].split('_')[1]
+            if field_name == 'username':
+                msg = msg + _(locale, "pais.already_exist")
+        
         raise HTTPException(status_code=403, detail=msg)
  
 def delete(request: Request, pais_id: str, db: Session):
@@ -75,21 +107,24 @@ def delete(request: Request, pais_id: str, db: Session):
         db_pais = db.query(Pais).filter(Pais.id == pais_id).first()
         if db_pais:
             db_pais.is_active = False
-            # db.delete(db_pais)
             db.commit()
             return result
         else:
-            raise HTTPException(status_code=404, detail="No encontrado")
+            raise HTTPException(status_code=404, detail=_(locale, "pais.not_found"))
         
     except (Exception, SQLAlchemyError) as e:
         print(e)
-        raise HTTPException(status_code=404, detail="No es posible eliminar")
+        raise HTTPException(status_code=404, detail=_(locale, "pais.imposible_delete"))
     
 def update(request: Request, pais_id: str, pais: PaisBase, db: Session):
     locale = request.headers["accept-language"].split(",")[0].split("-")[0];
     
     result = ResultObject()
     currentUser = get_current_user(request) 
+    
+    db_pais = get_one_by_name(pais.nombre)
+    if db_pais:
+        raise HTTPException(status_code=404, detail=_(locale, "pais.exist_name"))
        
     db_pais = db.query(Pais).filter(Pais.id == pais_id).first()
     
@@ -105,7 +140,7 @@ def update(request: Request, pais_id: str, pais: PaisBase, db: Session):
         except (Exception, SQLAlchemyError) as e:
             print(e.code)
             if e.code == "gkpj":
-                raise HTTPException(status_code=400, detail="Ya existe un pais con este Nombre")
+                raise HTTPException(status_code=400, detail=_(locale, "pais.already_exist"))
             
     else:
-        raise HTTPException(status_code=400, detail="No existe un pais con este ID")
+        raise HTTPException(status_code=404, detail=_(locale, "pais.not_found"))

@@ -9,8 +9,9 @@ es:
     me: 'Obtiene información del usuario autentificado'    
     not_found: "Usuario no encontrado"
     wrong_password: "Contraseña incorrecta" 
-  users:
+  commun:
     invalid_param: 'Parámetro de consultas no válidos. '
+  users:
     data_error: 'Estructura de la contraseña incorrecta'
     new_user_error: 'Error creando nuevo usuario'
     already_exist: 'Nombre de usuario existe'
@@ -19,4 +20,10 @@ es:
     check_password: 'Contraseña anterior y nueva no coinciden.'
     new_password_incorrect: 'Estructura de la nueva contraseña incorrecta.'
     change_password_error: 'Error cambiando contraseña.'
-    wrong_password: 'Contraaseña incorrecta.'   
+    wrong_password: 'Contraaseña incorrecta.'  
+  pais:
+    exist_name: 'Existe pais con ese nombre'
+    error_nuevo_pais: 'Error creando el nuevo pais'
+    already_exist: 'País existe'
+    not_found: 'País no existe'
+    imposible_delete: 'No se puede desactivar país.' 

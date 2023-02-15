@@ -69,7 +69,7 @@ def get_all(request:Request, page: int, per_page: int, criteria_key: str, criter
                   'id': " AND id = '" + criteria_value + "' "}
     
     if criteria_key and criteria_key not in dict_query:
-        raise HTTPException(status_code=404, detail=_(locale, "users.invalid_param"))
+        raise HTTPException(status_code=404, detail=_(locale, "commun.invalid_param"))
     
     str_where = str_where + dict_query[criteria_key] if criteria_value else str_where  
     str_count += str_where 
@@ -116,7 +116,7 @@ def new(request: Request, db: Session, user: UserCreate):
             if field_name == 'username':
                 msg = msg + _(locale, "users.already_exist")
         
-        raise HTTPException(status_code=403, detail=_(locale, "users.new_user_error") + msg) 
+        raise HTTPException(status_code=403, detail=msg) 
         
 def get_one(user_id: str, db: Session):  
     return db.query(Users).filter(Users.id == user_id).first()

@@ -7,8 +7,9 @@ en:
     me: 'Get information for the auth user'
     not_found: "User not found"
     wrong_password: "Wrong Password" 
-  users:
+  commun:
     invalid_param: 'Invalid query parameters.'
+  users:
     data_error: 'Wrong paswood structure.'
     new_user_error: 'Error creating new user.'
     already_exist: 'Username exists.'
@@ -18,3 +19,9 @@ en:
     new_password_incorrect: 'Wrong new paswood structure.'
     change_password_error: 'Error change password.'
     wrong_password: 'Wrong password.'
+  pais:
+    exist_name: 'There is a country with that name'
+    error_nuevo_pais: 'Mistake in new country'
+    already_exist: 'Country exist.'
+    not_found: 'Country not exists.'
+    imposible_delete: 'Cant delete country.'
