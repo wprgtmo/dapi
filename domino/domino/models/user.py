@@ -20,10 +20,11 @@ class Users(Base):
     first_name = Column(String(100), nullable=False)
     last_name = Column(String(100), nullable=False)
     email = Column(String(50), nullable=False)
-    phone = Column(String(8), nullable=False)
+    phone = Column(String(12), nullable=False)
     password = Column(String(255), nullable=False)
-    is_active = Column(Boolean, nullable=False, default=True)
+    is_active = Column(Boolean, nullable=False, default=False)
     pais_id = Column(Integer, ForeignKey("configuracion.pais.id"), nullable=True)
+    security_code = Column(String(5), nullable=True)
      
     def dict(self):
         return {
@@ -35,7 +36,8 @@ class Users(Base):
             "phone": self.phone,
             "password": self.password,
             "is_active": self.is_active,
-            "pais_id": self.pais_id
+            "pais_id": self.pais_id,
+            'security_code': self.security_code
         }
     
 # Base.metadata.create_all(bind=engine)

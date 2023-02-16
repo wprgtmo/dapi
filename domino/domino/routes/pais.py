@@ -5,7 +5,7 @@ from domino.schemas.result_object import ResultObject
 from sqlalchemy.orm import Session
 from domino.app import get_db
 from typing import List, Dict
-from domino.services.pais import get_all, get_all_data, new, get_one_by_id, delete, update
+from domino.services.pais import get_all_data, new, get_one_by_id, delete, update
 from starlette import status
 from domino.auth_bearer import JWTBearer
   
@@ -13,17 +13,6 @@ pais_route = APIRouter(
     tags=["Paises"],
     dependencies=[Depends(JWTBearer())]   
 )
-
-@pais_route.get("/pais", response_model=ResultObject, summary="Obtener lista de Paises con paginado")
-def get_paises(
-    request: Request,
-    page: int = 1, 
-    per_page: int = 6, 
-    criteria_key: str = "",
-    criteria_value: str = "",
-    db: Session = Depends(get_db)
-):
-    return get_all(request=request, page=page, per_page=per_page, criteria_key=criteria_key, criteria_value=criteria_value, db=db)
 
 @pais_route.get("/pais/nomencladores", response_model=ResultObject, summary="Obtener listado de Paises sin paginado")
 def get_lst_data(request: Request, db: Session = Depends(get_db)):

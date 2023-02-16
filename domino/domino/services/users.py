@@ -1,6 +1,7 @@
 # users.py
 
 import math
+import random
 
 from fastapi import HTTPException, Request
 from domino.models.user import Users
@@ -102,12 +103,16 @@ def new(request: Request, db: Session, user: UserCreate):
     
     user.password = pwd_context.hash(user.password)  
     db_user = Users(username=user.username,  first_name=user.first_name, last_name=user.last_name, pais_id=user.pais_id,  
-                    email=user.email, phone=user.phone, password=user.password)
+                    email=user.email, phone=user.phone, password=user.password, is_active=False)
+    
+    db_user.security_code = random.randint(10000, 99999)  # codigo de 5 caracteres
         
     try:
         db.add(db_user)
         db.commit()
         db.refresh(db_user)
+        result.data = {'security_code': db_user.security_code}
+        
         return result
     except (Exception, SQLAlchemyError, IntegrityError) as e:
         print(e)

@@ -5,7 +5,7 @@ from unicodedata import name
 from fastapi import HTTPException
 from domino.models.pais import Pais
 from domino.schemas.pais import PaisBase, PaisSchema
-from domino.schemas.result_object import ResultObject
+from domino.schemas.result_object import ResultObject, ResultData
 from sqlalchemy.orm import Session
 from sqlalchemy.exc import SQLAlchemyError, IntegrityError
 from passlib.context import CryptContext
@@ -16,8 +16,6 @@ from domino.app import _
 def get_all(request:Request, page: int, per_page: int, criteria_key: str, criteria_value: str, db: Session):  
     locale = request.headers["accept-language"].split(",")[0].split("-")[0];
     
-    result = ResultObject(page=page, per_page=per_page)  
-        
     str_where = "WHERE is_active=True " 
     str_count = "Select count(*) FROM configuracion.pais "
     str_query = "Select id, nombre FROM configuracion.pais "
@@ -33,22 +31,33 @@ def get_all(request:Request, page: int, per_page: int, criteria_key: str, criter
     str_count += str_where 
     str_query += str_where
     
-    result.total = db.execute(str_count).scalar()
-    result.total_pages=result.total/result.per_page if (result.total % result.per_page == 0) else math.trunc(result.total / result.per_page) + 1
+    if page != 0:
+        result = ResultData(page=page, per_page=per_page)  
+        
+        result.total = db.execute(str_count).scalar()
+        result.total_pages=result.total/result.per_page if (result.total % result.per_page == 0) else math.trunc(result.total / result.per_page) + 1
+    else:
+        result = ResultObject()
+        
+    str_query += " ORDER BY nombre "
     
-    str_query += " ORDER BY nombre LIMIT " + str(per_page) + " OFFSET " + str(page*per_page-per_page)
+    if page != 0:
+        str_query += "LIMIT " + str(per_page) + " OFFSET " + str(page*per_page-per_page)
      
     lst_data = db.execute(str_query)
     result.data = []
     for item in lst_data:
-        result.data.append({'id': item['id'], 'nombre' : item['nombre'], 'selected': False})
-    
+        if page != 0:
+            result.data.append({'id': item['id'], 'nombre' : item['nombre'], 'selected': False})
+        else:
+            result.data.append({'id': item['id'], 'nombre' : item['nombre']})
+            
     return result
 
 def get_all_data(request:Request, db: Session):  
     locale = request.headers["accept-language"].split(",")[0].split("-")[0];
     
-    result = ResultObject(page=0, per_page=0, total=0, total_pages=0) 
+    result = ResultObject() 
         
     str_query = "Select id, nombre FROM configuracion.pais WHERE is_active=True "
     
@@ -73,7 +82,7 @@ def get_one_by_id(pais_id: str, db: Session):
 def new(request, db: Session, pais: PaisBase):
     locale = request.headers["accept-language"].split(",")[0].split("-")[0];
     
-    result = ResultObject(page=0, per_page=0, total=0, total_pages=0) 
+    result = ResultObject() 
     # currentUser = get_current_user(request)
     
     db_pais = get_one_by_name(pais.nombre)
@@ -100,7 +109,7 @@ def new(request, db: Session, pais: PaisBase):
 def delete(request: Request, pais_id: str, db: Session):
     locale = request.headers["accept-language"].split(",")[0].split("-")[0];
     
-    result = ResultObject(page=0, per_page=0, total=0, total_pages=0) 
+    result = ResultObject() 
     # currentUser = get_current_user(request)
     
     try:
@@ -119,7 +128,7 @@ def delete(request: Request, pais_id: str, db: Session):
 def update(request: Request, pais_id: str, pais: PaisBase, db: Session):
     locale = request.headers["accept-language"].split(",")[0].split("-")[0];
     
-    result = ResultObject(page=0, per_page=0, total=0, total_pages=0) 
+    result = ResultObject() 
     currentUser = get_current_user(request) 
     
     db_pais = get_one_by_name(pais.nombre)
