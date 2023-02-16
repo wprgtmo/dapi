@@ -6,10 +6,11 @@ from typing import Optional
  
 class UserBase(BaseModel):
     username: str
-    fullname: str
-    email: str
-    phone: str
-    pais_id: int
+    first_name: str
+    last_name: Optional[str]
+    email: Optional[str]
+    phone: Optional[str]
+    pais_id: Optional[int]
 
 class UserLogin(BaseModel):
     username: str

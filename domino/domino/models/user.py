@@ -17,9 +17,10 @@ class Users(Base):
     
     id = Column(String, primary_key=True, default=generate_uuid)
     username = Column(String(50), nullable=False, unique=True)
-    fullname = Column(String(100), nullable=False)
-    email = Column(String(50), nullable=False, unique=True)
-    phone = Column(String(8), nullable=False, unique=True)
+    first_name = Column(String(100), nullable=False)
+    last_name = Column(String(100), nullable=False)
+    email = Column(String(50), nullable=False)
+    phone = Column(String(8), nullable=False)
     password = Column(String(255), nullable=False)
     is_active = Column(Boolean, nullable=False, default=True)
     pais_id = Column(Integer, ForeignKey("configuracion.pais.id"), nullable=True)
@@ -28,7 +29,8 @@ class Users(Base):
         return {
             "id": self.id,
             "username": self.username,
-            "fullname": self.fullname,
+            "first_name": self.first_name,
+            "last_name": self.last_name,
             "email": self.email,
             "phone": self.phone,
             "password": self.password,

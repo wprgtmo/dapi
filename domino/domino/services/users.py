@@ -60,11 +60,12 @@ def get_all(request:Request, page: int, per_page: int, criteria_key: str, criter
       
     str_where = "WHERE use.is_active=True " 
     str_count = "Select count(*) FROM enterprise.users use "
-    str_query = "Select use.id, username, fullname, email, phone, password, use.is_active, pais_id, pa.nombre as pais " \
+    str_query = "Select use.id, username, first_name, last_name, email, phone, password, use.is_active, pais_id, pa.nombre as pais " \
         "FROM enterprise.users use left join configuracion.pais pa ON pa.id = use.pais_id "
 
     dict_query = {'username': " AND username ilike '%" + criteria_value + "%'",
-                  'fullname': " AND fullname ilike '%" + criteria_value + "%'",
+                  'first_name': " AND first_name ilike '%" + criteria_value + "%'",
+                  'last_name': " AND last_name ilike '%" + criteria_value + "%'",
                   'pais': " AND pa.nombre ilike '%" + criteria_value + "%'",
                   'id': " AND id = '" + criteria_value + "' "}
     
@@ -84,9 +85,9 @@ def get_all(request:Request, page: int, per_page: int, criteria_key: str, criter
     result.data = []
     for item in lst_data:
         result.data.append(
-            {'id': item['id'], 'username' : item['username'], 'fullname': item['fullname'],  
-            'email': item['email'], 'phone': item['phone'], 'password': item['password'], 
-            'pais_id': item['pais_id'], 'pais': item['pais'], 'selected': False})
+            {'id': item['id'], 'username' : item['username'], 'first_name': item['first_name'], 
+             'last_name': item['last_name'], 'email': item['email'], 'phone': item['phone'], 
+             'password': item['password'], 'pais_id': item['pais_id'], 'pais': item['pais'], 'selected': False})
     
     return result
         
@@ -100,7 +101,7 @@ def new(request: Request, db: Session, user: UserCreate):
         raise HTTPException(status_code=404, detail=_(locale, "users.data_error") + pass_check['message'])             
     
     user.password = pwd_context.hash(user.password)  
-    db_user = Users(username=user.username, fullname=user.fullname, pais_id=user.pais_id,  
+    db_user = Users(username=user.username,  first_name=user.first_name, last_name=user.last_name, pais_id=user.pais_id,  
                     email=user.email, phone=user.phone, password=user.password)
         
     try:
@@ -154,7 +155,8 @@ def update(request: Request, user_id: str, user: UserBase, db: Session):
        
     db_user = db.query(Users).filter(Users.id == user_id).first()
     db_user.username = user.username
-    db_user.fullname = user.fullname
+    db_user.first_name = user.first_name
+    db_user.last_name = user.last_name
     db_user.pais_id = user.pais_id
     db_user.email = user.email
     db_user.phone = user.phone
