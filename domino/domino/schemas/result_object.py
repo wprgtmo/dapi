@@ -8,6 +8,8 @@ class ResultObject(BaseModel):
     status_code: str = '200'
     detail: str = 'Operación satisfactoria'
     data: Any
+    
+class ResultData(ResultObject):
     page: Optional[int] = 1
     per_page: Optional[int] = 6
     total: Optional[int] = 0

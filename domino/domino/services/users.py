@@ -5,7 +5,7 @@ import math
 from fastapi import HTTPException, Request
 from domino.models.user import Users
 from domino.schemas.user import UserCreate, UserShema, ChagePasswordSchema, UserBase
-from domino.schemas.result_object import ResultObject
+from domino.schemas.result_object import ResultObject, ResultData
 from sqlalchemy.orm import Session
 from sqlalchemy.exc import SQLAlchemyError, IntegrityError
 from passlib.context import CryptContext
@@ -56,7 +56,7 @@ def password_check(passwd, min_len, max_len):
 def get_all(request:Request, page: int, per_page: int, criteria_key: str, criteria_value: str, db: Session):    
     locale = request.headers["accept-language"].split(",")[0].split("-")[0];
     
-    result = ResultObject(page=page, per_page=per_page)
+    result = ResultData(page=page, per_page=per_page)
       
     str_where = "WHERE use.is_active=True " 
     str_count = "Select count(*) FROM enterprise.users use "

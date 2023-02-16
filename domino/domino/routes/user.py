@@ -2,21 +2,21 @@
 
 from fastapi import APIRouter, Depends, HTTPException, Request
 from domino.schemas.user import UserShema, UserCreate, UserBase, ChagePasswordSchema
-from domino.schemas.result_object import ResultObject
+from domino.schemas.result_object import ResultObject, ResultData
 from sqlalchemy.orm import Session
 from domino.app import get_db
 from typing import List, Dict
-from domino.services.users import get_all, new, get_one_by_id, delete, update, change_password
+from domino.services.users import get_all, get_one_by_id, delete, update, change_password
 from starlette import status
 from domino.auth_bearer import JWTBearer
 import uuid
 
 user_route = APIRouter(
     tags=["Usuarios"],
-    # dependencies=[Depends(JWTBearer())]
+    dependencies=[Depends(JWTBearer())]
 )
 
-@user_route.get("/users", response_model=ResultObject, summary="Obtener lista de Usuarios")
+@user_route.get("/users", response_model=ResultData, summary="Obtener lista de Usuarios")
 def get_users(
     request: Request,
     page: int = 1,
@@ -30,10 +30,6 @@ def get_users(
 @user_route.get("/users/{id}", response_model=ResultObject, summary="Obtener un Usuario por su ID")
 def get_user_by_id(id: str, db: Session = Depends(get_db)):
     return get_one_by_id(user_id=id, db=db)
-
-@user_route.post("/users", response_model=ResultObject, summary="Crear un Usuario")
-def create_user(request:Request, user: UserCreate, db: Session = Depends(get_db)):    
-    return new(request=request, user=user, db=db)
 
 @user_route.delete("/users/{id}", response_model=ResultObject, summary="Eliminar un Usuario por su ID")
 def delete_user(request:Request, id: uuid.UUID, db: Session = Depends(get_db)):

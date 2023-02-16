@@ -12,6 +12,10 @@ from domino.auth_bearer import JWTBearer
 from domino.functions_jwt import get_current_user
 from fastapi.responses import JSONResponse
 
+from domino.schemas.result_object import ResultObject
+from domino.schemas.user import UserCreate
+from domino.services.users import new
+
 from domino.app import _
 
 auth_routes = APIRouter()
@@ -24,3 +28,7 @@ def login(request:Request, user: UserLogin, db: Session = Depends(get_db)):
 async def get_me(request:Request):
     user = get_current_user(request)       
     return JSONResponse(content=user, status_code=200)
+
+@auth_routes.post("/users", response_model=ResultObject, tags=["Autentificación"], summary="Crear un Usuario")
+def create_user(request:Request, user: UserCreate, db: Session = Depends(get_db)):    
+    return new(request=request, user=user, db=db)
