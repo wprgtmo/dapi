@@ -3,8 +3,8 @@ import math
 from fastapi import HTTPException, Request
 from unicodedata import name
 from fastapi import HTTPException
-from domino.models.pais import Pais
-from domino.schemas.pais import PaisBase, PaisSchema
+from domino.models.country import Country
+from domino.schemas.country import CountryBase
 from domino.schemas.result_object import ResultObject, ResultData
 from sqlalchemy.orm import Session
 from sqlalchemy.exc import SQLAlchemyError, IntegrityError
@@ -17,10 +17,10 @@ def get_all(request:Request, page: int, per_page: int, criteria_key: str, criter
     locale = request.headers["accept-language"].split(",")[0].split("-")[0];
     
     str_where = "WHERE is_active=True " 
-    str_count = "Select count(*) FROM configuracion.pais "
-    str_query = "Select id, nombre FROM configuracion.pais "
+    str_count = "Select count(*) FROM resources.country "
+    str_query = "Select id, name FROM resources.country "
     
-    dict_query = {'nombre': " AND nombre ilike '%" + criteria_value + "%'",
+    dict_query = {'name': " AND name ilike '%" + criteria_value + "%'",
                   'is_active': " AND is_active = " + criteria_value + ""
                   }
     
@@ -39,7 +39,7 @@ def get_all(request:Request, page: int, per_page: int, criteria_key: str, criter
     else:
         result = ResultObject()
         
-    str_query += " ORDER BY nombre "
+    str_query += " ORDER BY name "
     
     if page != 0:
         str_query += "LIMIT " + str(per_page) + " OFFSET " + str(page*per_page-per_page)
@@ -48,108 +48,98 @@ def get_all(request:Request, page: int, per_page: int, criteria_key: str, criter
     result.data = []
     for item in lst_data:
         if page != 0:
-            result.data.append({'id': item['id'], 'nombre' : item['nombre'], 'selected': False})
+            result.data.append({'id': item['id'], 'name' : item['name'], 'selected': False})
         else:
-            result.data.append({'id': item['id'], 'nombre' : item['nombre']})
+            result.data.append({'id': item['id'], 'name' : item['name']})
             
     return result
 
-def get_all_data(request:Request, db: Session):  
-    locale = request.headers["accept-language"].split(",")[0].split("-")[0];
-    
-    result = ResultObject() 
-        
-    str_query = "Select id, nombre FROM configuracion.pais WHERE is_active=True "
-    
-    lst_data = db.execute(str_query)
-    result.data = []
-    for item in lst_data:
-        result.data.append({'id': item['id'], 'nombre' : item['nombre']})
-    
-    return result
- 
-def get_one(pais_id: str, db: Session):  
-    return db.query(Pais).filter(Pais.id == pais_id).first()
+def get_one(country_id: str, db: Session):  
+    return db.query(Country).filter(Country.id == country_id).first()
 
-def get_one_by_name(nombre: str, db: Session):  
-    return db.query(Pais).filter(Pais.nombre == nombre, Pais.is_active == True).first()
+def get_one_by_name(name: str, db: Session):  
+    return db.query(Country).filter(Country.name == name, Country.is_active == True).first()
       
-def get_one_by_id(pais_id: str, db: Session): 
-    result = ResultObject(page=0, per_page=0, total=0, total_pages=0) 
-    result.data = db.query(Pais).filter(Pais.id == pais_id).first()
+def get_one_by_id(request, country_id: str, db: Session): 
+    locale = request.headers["accept-language"].split(",")[0].split("-")[0];
+    result = ResultObject() 
+    result.data = db.query(Country).filter(Country.id == country_id).first()
+    if not result.data:
+        raise HTTPException(status_code=404, detail=_(locale, "country.not_found"))
+    
     return result
  
-def new(request, db: Session, pais: PaisBase):
+def new(request, db: Session, country: CountryBase):
     locale = request.headers["accept-language"].split(",")[0].split("-")[0];
     
     result = ResultObject() 
     # currentUser = get_current_user(request)
     
-    db_pais = get_one_by_name(pais.nombre)
-    if db_pais:
-        raise HTTPException(status_code=404, detail=_(locale, "pais.exist_name"))
+    db_country = get_one_by_name(country.name, db=db)
+    if db_country:
+        raise HTTPException(status_code=404, detail=_(locale, "country.exist_name"))
         
-    db_pais = Pais(nombre=pais.nombre)
+    db_country = Country(name=country.name)
     
     try:
-        db.add(db_pais)
+        db.add(db_country)
         db.commit()
-        db.refresh(db_pais)
+        db.refresh(db_country)
         return result
     except (Exception, SQLAlchemyError, IntegrityError) as e:
         print(e)
-        msg = _(locale, "pais.error_nuevo_pais")
+        msg = _(locale, "country.error_new_country")
         if e.code == 'gkpj':
             field_name = str(e.__dict__['orig']).split('"')[1].split('_')[1]
             if field_name == 'username':
-                msg = msg + _(locale, "pais.already_exist")
+                msg = msg + _(locale, "country.already_exist")
         
         raise HTTPException(status_code=403, detail=msg)
  
-def delete(request: Request, pais_id: str, db: Session):
+def delete(request: Request, country_id: str, db: Session):
     locale = request.headers["accept-language"].split(",")[0].split("-")[0];
     
     result = ResultObject() 
     # currentUser = get_current_user(request)
     
     try:
-        db_pais = db.query(Pais).filter(Pais.id == pais_id).first()
-        if db_pais:
-            db_pais.is_active = False
+        db_country = db.query(Country).filter(Country.id == country_id).first()
+        if db_country:
+            db_country.is_active = False
             db.commit()
             return result
         else:
-            raise HTTPException(status_code=404, detail=_(locale, "pais.not_found"))
+            raise HTTPException(status_code=404, detail=_(locale, "country.not_found"))
         
     except (Exception, SQLAlchemyError) as e:
         print(e)
-        raise HTTPException(status_code=404, detail=_(locale, "pais.imposible_delete"))
+        raise HTTPException(status_code=404, detail=_(locale, "country.imposible_delete"))
     
-def update(request: Request, pais_id: str, pais: PaisBase, db: Session):
+def update(request: Request, country_id: str, country: CountryBase, db: Session):
     locale = request.headers["accept-language"].split(",")[0].split("-")[0];
     
     result = ResultObject() 
     currentUser = get_current_user(request) 
     
-    db_pais = get_one_by_name(pais.nombre)
-    if db_pais:
-        raise HTTPException(status_code=404, detail=_(locale, "pais.exist_name"))
+    db_country = get_one_by_name(country.name, db=db)
+    if db_country:
+        raise HTTPException(status_code=404, detail=_(locale, "country.exist_name"))
        
-    db_pais = db.query(Pais).filter(Pais.id == pais_id).first()
+    db_country = db.query(Country).filter(Country.id == country_id).first()
     
-    if db_pais:
+    if db_country:
     
-        db_pais.nombre = pais.nombre
+        db_country.name = country.name
         
         try:
-            db.add(db_pais)
+            db.add(db_country)
             db.commit()
-            db.refresh(db_pais)
+            db.refresh(db_country)
             return result
         except (Exception, SQLAlchemyError) as e:
             print(e.code)
             if e.code == "gkpj":
-                raise HTTPException(status_code=400, detail=_(locale, "pais.already_exist"))
+                raise HTTPException(status_code=400, detail=_(locale, "country.already_exist"))
             
     else:
-        raise HTTPException(status_code=404, detail=_(locale, "pais.not_found"))
+        raise HTTPException(status_code=404, detail=_(locale, "country.not_found"))

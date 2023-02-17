@@ -14,9 +14,11 @@ from fastapi.responses import JSONResponse
 
 from domino.schemas.result_object import ResultObject, ResultData
 from domino.schemas.user import UserCreate
+from domino.schemas.country import CountryBase
 from typing import Dict
-from domino.services.users import new
-from domino.services.pais import get_all
+from domino.services.users import new as new_user
+from domino.services.country import new as new_country
+from domino.services.country import get_all
 
 from domino.app import _
 
@@ -34,13 +36,16 @@ async def get_me(request: Request):
     return JSONResponse(content=user, status_code=200)
 
 
-@auth_routes.post("/register", response_model=ResultObject, tags=["Autentificación"], summary="Registrar un usuario en la plataforma")
+@auth_routes.post("/register", response_model=ResultObject, tags=["Autentificación"], summary="Register a user on the platform")
 def create_user(request: Request, user: UserCreate, db: Session = Depends(get_db)):
-    return new(request=request, user=user, db=db)
+    return new_user(request=request, user=user, db=db)
 
+@auth_routes.post("/nomenclators", response_model=ResultObject, tags=["Nomenclators"], summary="Create a country")
+def create_country(request:Request, country: CountryBase, db: Session = Depends(get_db)):
+    return new_country(request=request, country=country, db=db)
 
-@auth_routes.get("/nomenclators", response_model=Dict, tags=["Nomenclators"], summary="Obtener lista de Paises")
-def get_paises(
+@auth_routes.get("/nomenclators", response_model=Dict, tags=["Nomenclators"], summary="Get list of Countries")
+def get_country(
     request: Request,
     page: int = 0, 
     per_page: int = 0, 

@@ -3,17 +3,17 @@
 from datetime import datetime
 from pydantic import BaseModel
 
-class CiudadBase(BaseModel):
-    nombre: str
+class CityBase(BaseModel):
+    name: str
     
-class CiudadCreate(CiudadBase):
-    pais_id: int
+class CityCreate(CityBase):
+    country_id: int
     
-class CiudadSchema(CiudadCreate):
+class CitySchema(CityCreate):
     id: int
      
     class Config:
         orm_mode = True
                 
-class CiudadInfo(object):
+class CityInfo(object):
     pass 

@@ -10,7 +10,7 @@ class UserBase(BaseModel):
     last_name: Optional[str]
     email: Optional[str]
     phone: Optional[str]
-    pais_id: Optional[int]
+    country_id: Optional[int]
 
 class UserLogin(BaseModel):
     username: str

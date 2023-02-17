@@ -21,19 +21,19 @@ es:
     new_password_incorrect: 'Estructura de la nueva contraseña incorrecta.'
     change_password_error: 'Error cambiando contraseña.'
     wrong_password: 'Contraaseña incorrecta.'  
-  pais:
+  country:
     exist_name: 'Existe pais con ese nombre.'
-    error_nuevo_pais: 'Error creando el nuevo pais.'
+    error_new_contry: 'Error creando el nuevo pais.'
     already_exist: 'País existe.'
     not_found: 'País no existe.'
     imposible_delete: 'No se puede desactivar país.' 
-  ciudad:
-    error_nueva_ciudad: 'Error creando nueva ciudad.'
+  city:
+    error_new_city: 'Error creando nueva ciudad.'
     not_found: 'Ciudad No Existe.'
     imposible_delete: 'No se puede desactivar la ciudad.'
     already_exist: 'Ciudad Existe.'
-  paquete:
-    error_nuevo_paquete: 'Error creando nuevo paquete'
+  package:
+    error_new_package: 'Error creando nuevo paquete'
     not_found: 'Paquete no existe'
     imposible_delete: 'No se puede desactivar el paquete'
     already_exist: 'Paquete existe'

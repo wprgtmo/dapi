@@ -5,13 +5,13 @@ from pydantic import BaseModel
 from typing import Optional, List
 
  
-class PaqueteBase(BaseModel):
-    nombre: str
-    tipo: str
-    cantidad_jugadores: int
-    precio: float
+class PackagesBase(BaseModel):
+    name: str
+    type: str
+    players_number: int
+    price: float
    
-class PaqueteSchema(PaqueteBase):
+class PackagesSchema(PackagesBase):
     id: Optional[int]
     is_active: bool = True
      

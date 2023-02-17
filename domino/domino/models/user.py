@@ -23,7 +23,7 @@ class Users(Base):
     phone = Column(String(12), nullable=False)
     password = Column(String(255), nullable=False)
     is_active = Column(Boolean, nullable=False, default=False)
-    pais_id = Column(Integer, ForeignKey("configuracion.pais.id"), nullable=True)
+    country_id = Column(Integer, ForeignKey("resources.country.id"))
     security_code = Column(String(5), nullable=True)
      
     def dict(self):
@@ -36,7 +36,7 @@ class Users(Base):
             "phone": self.phone,
             "password": self.password,
             "is_active": self.is_active,
-            "pais_id": self.pais_id,
+            "country_id": self.country_id,
             'security_code': self.security_code
         }
     

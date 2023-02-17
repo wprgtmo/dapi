@@ -1,4 +1,6 @@
 
-from ..models.pais import *
+from ..models.country import *
 from ..models.user import *
-from ..models.jugador import *
+from ..models.city import *
+from ..models.package import *
+

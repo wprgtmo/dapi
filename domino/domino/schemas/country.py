@@ -6,13 +6,12 @@ from typing import Optional, List
 
 # from domino.schemas.ciudad import CiudadSchema
    
-class PaisBase(BaseModel):
-    nombre: str
+class CountryBase(BaseModel):
+    name: str
    
-class PaisSchema(PaisBase):
+class CountrySchema(CountryBase):
     id: Optional[int]
     is_active: bool = True
-    # ciudades: List[CiudadSchema] = []
      
     class Config:
         orm_mode = True

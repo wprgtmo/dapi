@@ -15,6 +15,8 @@ from domino.functions_jwt import get_current_user
 from typing import List
 from domino.app import _
 
+from domino.services.country import get_one as country_get_one
+
 pwd_context = CryptContext(schemes=["bcrypt"], deprecated="auto")
 
 def password_check(passwd, min_len, max_len):
@@ -61,13 +63,13 @@ def get_all(request:Request, page: int, per_page: int, criteria_key: str, criter
       
     str_where = "WHERE use.is_active=True " 
     str_count = "Select count(*) FROM enterprise.users use "
-    str_query = "Select use.id, username, first_name, last_name, email, phone, password, use.is_active, pais_id, pa.nombre as pais " \
-        "FROM enterprise.users use left join configuracion.pais pa ON pa.id = use.pais_id "
+    str_query = "Select use.id, username, first_name, last_name, email, phone, password, use.is_active, country_id, pa.name as country " \
+        "FROM enterprise.users use left join resources.country pa ON pa.id = use.country_id "
 
     dict_query = {'username': " AND username ilike '%" + criteria_value + "%'",
                   'first_name': " AND first_name ilike '%" + criteria_value + "%'",
                   'last_name': " AND last_name ilike '%" + criteria_value + "%'",
-                  'pais': " AND pa.nombre ilike '%" + criteria_value + "%'",
+                  'country': " AND pa.name ilike '%" + criteria_value + "%'",
                   'id': " AND id = '" + criteria_value + "' "}
     
     if criteria_key and criteria_key not in dict_query:
@@ -77,18 +79,30 @@ def get_all(request:Request, page: int, per_page: int, criteria_key: str, criter
     str_count += str_where 
     str_query += str_where
     
-    result.total = db.execute(str_count).scalar()
-    result.total_pages=result.total/result.per_page if (result.total % result.per_page == 0) else math.trunc(result.total / result.per_page) + 1
+    if page != 0:
+        result = ResultData(page=page, per_page=per_page)  
+        
+        result.total = db.execute(str_count).scalar()
+        result.total_pages=result.total/result.per_page if (result.total % result.per_page == 0) else math.trunc(result.total / result.per_page) + 1
+    else:
+        result = ResultObject()
     
-    str_query += " ORDER BY username LIMIT " + str(per_page) + " OFFSET " + str(page*per_page-per_page)
-     
+    str_query += " ORDER BY username "
+    
+    if page != 0:
+        str_query += "LIMIT " + str(per_page) + " OFFSET " + str(page*per_page-per_page)
+    
     lst_data = db.execute(str_query)
     result.data = []
     for item in lst_data:
-        result.data.append(
-            {'id': item['id'], 'username' : item['username'], 'first_name': item['first_name'], 
-             'last_name': item['last_name'], 'email': item['email'], 'phone': item['phone'], 
-             'password': item['password'], 'pais_id': item['pais_id'], 'pais': item['pais'], 'selected': False})
+        new_row = {'id': item['id'], 'username' : item['username'], 'first_name': item['first_name'], 
+                   'last_name': item['last_name'], 'email': item['email'], 'phone': item['phone'], 
+                   'password': item['password'], 'country_id': item['country_id'], 'country': item['country']}
+        
+        if page != 0:
+            new_row['selected'] = False
+            
+        result.data.append(new_row)
     
     return result
         
@@ -101,8 +115,12 @@ def new(request: Request, db: Session, user: UserCreate):
     if not pass_check['success']:
         raise HTTPException(status_code=404, detail=_(locale, "users.data_error") + pass_check['message'])             
     
+    one_country = country_get_one(user.country_id, db=db)
+    if not one_country:
+        raise HTTPException(status_code=404, detail=_(locale, "country.not_found"))
+    
     user.password = pwd_context.hash(user.password)  
-    db_user = Users(username=user.username,  first_name=user.first_name, last_name=user.last_name, pais_id=user.pais_id,  
+    db_user = Users(username=user.username,  first_name=user.first_name, last_name=user.last_name, country_id=user.country_id,  
                     email=user.email, phone=user.phone, password=user.password, is_active=False)
     
     db_user.security_code = random.randint(10000, 99999)  # codigo de 5 caracteres
@@ -159,13 +177,31 @@ def update(request: Request, user_id: str, user: UserBase, db: Session):
     # currentUser = get_current_user(request)
        
     db_user = db.query(Users).filter(Users.id == user_id).first()
-    db_user.username = user.username
-    db_user.first_name = user.first_name
-    db_user.last_name = user.last_name
-    db_user.pais_id = user.pais_id
-    db_user.email = user.email
-    db_user.phone = user.phone
-
+    
+    if user.username != db_user.username:
+        one_user = get_one_by_username(user.username, db=db)
+        if one_user:
+            raise HTTPException(status_code=400, detail=_(locale, "users.already_exist"))
+        db_user.username = user.username
+    
+    if user.country_id != db_user.country_id:
+        one_country = country_get_one(user.country_id, db=db)
+        if not one_country:
+            raise HTTPException(status_code=404, detail=_(locale, "country.not_found"))
+        db_user.country_id = user.country_id
+        
+    if user.first_name != db_user.first_name:
+        db_user.first_name = user.first_name
+        
+    if user.last_name != db_user.last_name:
+        db_user.last_name = user.last_name
+        
+    if user.email != db_user.email:
+        db_user.email = user.email
+        
+    if user.phone != db_user.phone:
+        db_user.phone = user.phone
+        
     try:
         db.add(db_user)
         db.commit()
@@ -173,6 +209,7 @@ def update(request: Request, user_id: str, user: UserBase, db: Session):
         return result
     except (Exception, SQLAlchemyError) as e:
         print(e.code)
+        print('*******************')
         if e.code == "gkpj":
             raise HTTPException(status_code=400, detail=_(locale, "users.already_exist"))
 

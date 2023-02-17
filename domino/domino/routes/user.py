@@ -12,11 +12,11 @@ from domino.auth_bearer import JWTBearer
 import uuid
 
 user_route = APIRouter(
-    tags=["Usuarios"],
+    tags=["Users"],
     dependencies=[Depends(JWTBearer())]
 )
 
-@user_route.get("/users", response_model=ResultData, summary="Obtener lista de Usuarios")
+@user_route.get("/users", response_model=Dict, summary="Get list of Users.")
 def get_users(
     request: Request,
     page: int = 1,
@@ -27,7 +27,7 @@ def get_users(
 ):
     return get_all(request=request, page=page, per_page=per_page, criteria_key=criteria_key, criteria_value=criteria_value, db=db)
 
-@user_route.get("/users/{id}", response_model=ResultObject, summary="Obtener un Usuario por su ID")
+@user_route.get("/users/{id}", response_model=ResultObject, summary="Get a User by his ID")
 def get_user_by_id(id: str, db: Session = Depends(get_db)):
     return get_one_by_id(user_id=id, db=db)
 
@@ -35,11 +35,11 @@ def get_user_by_id(id: str, db: Session = Depends(get_db)):
 def delete_user(request:Request, id: uuid.UUID, db: Session = Depends(get_db)):
     return delete(request=request, user_id=str(id), db=db)
     
-@user_route.put("/users/{id}", response_model=ResultObject, summary="Actualizar un Usuario por su ID")
+@user_route.put("/users/{id}", response_model=ResultObject, summary="Update a User by his ID.")
 def update_user(request:Request, id: uuid.UUID, user: UserCreate, db: Session = Depends(get_db)):
     return update(request=request, db=db, user_id=str(id), user=user)
 
-@user_route.post("/users/password", response_model=ResultObject, summary="Cambiar passwoord a un Usuario")
+@user_route.post("/users/password", response_model=ResultObject, summary="Change password to a user.")
 def reset_password(
     request: Request,
     password: ChagePasswordSchema,
