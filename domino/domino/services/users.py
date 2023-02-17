@@ -129,8 +129,6 @@ def new(request: Request, db: Session, user: UserCreate):
         db.add(db_user)
         db.commit()
         db.refresh(db_user)
-        result.data = {'security_code': db_user.security_code}
-        
         return result
     except (Exception, SQLAlchemyError, IntegrityError) as e:
         print(e)

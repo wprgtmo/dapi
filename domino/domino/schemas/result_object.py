@@ -4,7 +4,7 @@ from typing import Optional, Any
 from pydantic import BaseModel
    
 class ResultObject(BaseModel):
-    sucess: bool = True
+    success: bool = True
     status_code: str = '200'
     detail: str = 'Operación satisfactoria'
     data: Any
