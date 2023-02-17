@@ -2,7 +2,7 @@
 
 from fastapi import APIRouter, Depends, HTTPException, Request
 from domino.schemas.user import UserShema, UserCreate, UserBase, ChagePasswordSchema
-from domino.schemas.result_object import ResultObject, ResultData
+from domino.schemas.result_object import ResultObject
 from sqlalchemy.orm import Session
 from domino.app import get_db
 from typing import List, Dict
