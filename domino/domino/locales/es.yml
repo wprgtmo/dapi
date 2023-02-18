@@ -21,6 +21,7 @@ es:
     new_password_incorrect: 'Estructura de la nueva contraseña incorrecta.'
     change_password_error: 'Error cambiando contraseña.'
     wrong_password: 'Contraaseña incorrecta.'  
+    imposible_verify: 'No es posible Verificar'
   country:
     exist_name: 'Existe pais con ese nombre.'
     error_new_contry: 'Error creando el nuevo pais.'
@@ -32,6 +33,7 @@ es:
     not_found: 'Ciudad No Existe.'
     imposible_delete: 'No se puede desactivar la ciudad.'
     already_exist: 'Ciudad Existe.'
+    country_incorrect: 'Pais incorrecto'
   package:
     error_new_package: 'Error creando nuevo paquete'
     not_found: 'Paquete no existe'

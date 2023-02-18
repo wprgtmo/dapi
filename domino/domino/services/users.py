@@ -5,7 +5,7 @@ import random
 
 from fastapi import HTTPException, Request
 from domino.models.user import Users
-from domino.schemas.user import UserCreate, UserShema, ChagePasswordSchema, UserBase
+from domino.schemas.user import UserCreate, UserShema, ChagePasswordSchema, UserBase, UserProfile
 from domino.schemas.result_object import ResultObject, ResultData
 from sqlalchemy.orm import Session
 from sqlalchemy.exc import SQLAlchemyError, IntegrityError
@@ -16,6 +16,7 @@ from typing import List
 from domino.app import _
 
 from domino.services.country import get_one as country_get_one
+from domino.services.city import get_one as city_get_one
 
 pwd_context = CryptContext(schemes=["bcrypt"], deprecated="auto")
 
@@ -151,6 +152,36 @@ def get_one_by_id(user_id: str, db: Session):
 def get_one_by_username(username: str, db: Session):  
     return db.query(Users).filter(Users.username == username, Users.is_active == True).first()
 
+def get_one_profile(request: Request, user_id: str, db: Session):
+    locale = request.headers["accept-language"].split(",")[0].split("-")[0];
+    
+    result = ResultObject() 
+    db_user = db.query(Users).filter(Users.id == user_id).first()
+    if not db_user:
+        raise HTTPException(status_code=404, detail=_(locale, "users.not_found"))
+    
+    result.data = db_user.dict()
+    
+    return result
+
+def check_security_code(request: Request, user_id: str, security_code: str, db: Session):
+    locale = request.headers["accept-language"].split(",")[0].split("-")[0];
+    
+    result = ResultObject()
+    
+    try:
+        db_user = db.query(Users).filter(Users.id == user_id).first()
+        if not db_user:
+            raise HTTPException(status_code=404, detail=_(locale, "users.not_found"))
+        
+        result.data = False if security_code != db_user.security_code else True
+        
+        return result
+
+    except (Exception, SQLAlchemyError) as e:
+        print(e)
+        raise HTTPException(status_code=404, detail=_(locale, "users.imposible_verify"))
+
 def delete(request: Request, user_id: str, db: Session):
     locale = request.headers["accept-language"].split(",")[0].split("-")[0];
     
@@ -207,10 +238,74 @@ def update(request: Request, user_id: str, user: UserBase, db: Session):
         return result
     except (Exception, SQLAlchemyError) as e:
         print(e.code)
-        print('*******************')
         if e.code == "gkpj":
             raise HTTPException(status_code=400, detail=_(locale, "users.already_exist"))
 
+def update_one_profile(request: Request, user_id: str, user: UserProfile, db: Session):
+    locale = request.headers["accept-language"].split(",")[0].split("-")[0];
+    
+    result = ResultObject()
+    # currentUser = get_current_user(request)
+       
+    db_user = db.query(Users).filter(Users.id == user_id).first()
+    
+    if user.username and user.username != db_user.username:
+        one_user = get_one_by_username(user.username, db=db)
+        if one_user:
+            raise HTTPException(status_code=400, detail=_(locale, "users.already_exist"))
+        db_user.username = user.username
+    
+    if user.country_id and user.country_id != db_user.country_id:
+        one_country = country_get_one(user.country_id, db=db)
+        if not one_country:
+            raise HTTPException(status_code=404, detail=_(locale, "country.not_found"))
+        db_user.country_id = user.country_id
+        
+    if user.first_name and user.first_name != db_user.first_name:
+        db_user.first_name = user.first_name
+        
+    if user.last_name and user.last_name != db_user.last_name:
+        db_user.last_name = user.last_name
+        
+    if user.email and user.email != db_user.email:
+        db_user.email = user.email
+        
+    if user.phone and user.phone != db_user.phone:
+        db_user.phone = user.phone
+        
+    if user.sex and user.sex != db_user.sex:
+        db_user.sex = user.sex
+        
+    if user.birthdate and user.birthdate != db_user.birthdate:
+        db_user.birthdate = user.birthdate
+        
+    if user.alias and user.alias != db_user.alias:
+        db_user.alias = user.alias
+        
+    if user.job and user.job != db_user.job:
+        db_user.job = user.job
+        
+    if user.photo and user.photo != db_user.photo:
+        db_user.photo = user.photo
+    
+    if user.city_id and user.city_id != db_user.city_id:
+        one_city = city_get_one(user.city_id, db=db)
+        if not one_city:
+            raise HTTPException(status_code=404, detail=_(locale, "city.not_found"))
+        if one_city.country_id != user.country_id:
+            raise HTTPException(status_code=404, detail=_(locale, "city.country_incorrect"))
+        db_user.city_id = user.city_id
+        
+    try:
+        db.add(db_user)
+        db.commit()
+        db.refresh(db_user)
+        return result
+    except (Exception, SQLAlchemyError) as e:
+        print(e.code)
+        if e.code == "gkpj":
+            raise HTTPException(status_code=400, detail=_(locale, "users.already_exist"))
+        
 def  change_password(request: Request, db: Session, password: ChagePasswordSchema):  
     locale = request.headers["accept-language"].split(",")[0].split("-")[0];
     

@@ -19,6 +19,7 @@ en:
     new_password_incorrect: 'Wrong new paswood structure.'
     change_password_error: 'Error change password.'
     wrong_password: 'Wrong password.'
+    imposible_verify: 'Imposible Verify'
   country:
     exist_name: 'There is a country with that name'
     error_new_contry: 'Mistake in new country'
@@ -30,6 +31,7 @@ en:
     not_found: 'Ciudad Not Exist'
     imposible_delete: 'Cant delete state'
     already_exist: 'State exist.'
+    country_incorrect: 'Country incorrect.'
   package:
     error_new_package: 'Error new package'
     not_found: 'package not found'

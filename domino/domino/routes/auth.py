@@ -15,7 +15,7 @@ from fastapi.responses import JSONResponse
 from domino.schemas.result_object import ResultObject
 from domino.schemas.user import UserCreate
 from typing import Dict
-from domino.services.users import new as new_user
+from domino.services.users import new as new_user, check_security_code
 from domino.services.country import get_all
 
 from domino.app import _
@@ -38,6 +38,15 @@ async def get_me(request: Request):
 def create_user(request: Request, user: UserCreate, db: Session = Depends(get_db)):
     return new_user(request=request, user=user, db=db)
 
+@auth_routes.post("/verify", response_model=ResultObject, tags=["Autentificación"], summary="Verify security code")
+def verify_security_code(
+    request: Request,
+    user_id: str,
+    security_code: str,
+    db: Session = Depends(get_db)
+):
+    return check_security_code(request=request, user_id=user_id, security_code=security_code, db=db)
+    
 @auth_routes.get("/countries", response_model=Dict, tags=["Autentificación"], summary="Get list of Countries")
 def get_countries(
     request: Request,
