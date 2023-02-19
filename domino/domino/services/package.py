@@ -16,16 +16,16 @@ from domino.app import _
 def get_all(request:Request, page: int, per_page: int, criteria_key: str, criteria_value: str, db: Session):  
     locale = request.headers["accept-language"].split(",")[0].split("-")[0];
     
-    result = ResultObject(page=page, per_page=per_page)  
-        
     str_where = "WHERE is_active=True " 
     str_count = "Select count(*) FROM resources.packages "
-    str_query = "Select id, name, type, players_number, price FROM resources.packages "
+    str_query = "Select id, name, price, number_individual_tourney, number_pairs_tourney, number_team_tourney " +\
+        "FROM resources.packages "
     
     dict_query = {'name': " AND name ilike '%" + criteria_value + "%'",
-                  'type': " AND tipo ilike '%" + criteria_value + "%'",
-                  'players_number': " AND players_number = " + criteria_value,
                   'price': " AND price = " + criteria_value,
+                  'number_individual_tourney': " AND number_individual_tourney = %" + criteria_value + "%",
+                  'number_pairs_tourney': " AND number_pairs_tourney = %" + criteria_value + "%",
+                  'number_team_tourney': " AND number_team_tourney = %" + criteria_value + "%",
                   'is_active': " AND is_active = " + criteria_value + ""
                   }
     
@@ -52,8 +52,10 @@ def get_all(request:Request, page: int, per_page: int, criteria_key: str, criter
     lst_data = db.execute(str_query)
     result.data = []
     for item in lst_data:
-        new_row = {'id': item['id'], 'name' : item['name'], 'type' : item['type'], 
-                   'players_number' : item['players_number'], 'price' : item['price']}
+        new_row = {'id': item['id'], 'name' : item['name'], 'price' : item['price'],
+                   'number_individual_tourney' : item['number_individual_tourney'],
+                   'number_pairs_tourney' : item['number_pairs_tourney'],
+                   'number_team_tourney' : item['number_team_tourney']}
         
         if page != 0:
             new_row['selected'] = False
@@ -74,10 +76,11 @@ def new(request, db: Session, package: PackagesBase):
     locale = request.headers["accept-language"].split(",")[0].split("-")[0];
     
     result = ResultObject() 
-    # currentUser = get_current_user(request)
+    currentUser = get_current_user(request)
     
-    db_package = Packages(name=package.name, type=package.type, 
-                         players_number=package.players_number, price=package.price)
+    db_package = Packages(name=package.name, price=package.price, number_individual_tourney=package.number_individual_tourney, 
+                          number_pairs_tourney=package.number_pairs_tourney, number_team_tourney=package.number_team_tourney,
+                          created_by=currentUser['username'])
     
     try:
         db.add(db_package)
@@ -119,9 +122,10 @@ def update(request: Request, package_id: str, package: PackagesBase, db: Session
     if db_package:
     
         db_package.name = package.name
-        db_package.type = package.type
-        db_package.players_number = package.players_number
         db_package.price = package.price
+        db_package.number_individual_tourney = package.number_individual_tourney
+        db_package.number_pairs_tourney = package.number_pairs_tourney
+        db_package.number_team_tourney = package.number_team_tourney
         
         try:
             db.add(db_package)

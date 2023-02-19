@@ -76,7 +76,7 @@ def new(request, db: Session, status: StatusBase):
         return result
     except (Exception, SQLAlchemyError, IntegrityError) as e:
         print(e)
-        msg = _(locale, "status.error_new_country")
+        msg = _(locale, "status.error_new_status")
         if e.code == 'gkpj':
             field_name = str(e.__dict__['orig']).split('"')[1].split('_')[1]
             if field_name == 'username':

@@ -37,3 +37,12 @@ en:
     not_found: 'package not found'
     imposible_delete: 'Cant delete package'
     already_exist: 'package exist.'
+  status:
+    exist_name: 'Name of status exist.'
+    error_new_status: 'Error new status.'
+    not_found: 'Status not found.'
+  post:
+    error_new_post: 'Error new post'
+    not_found: 'Post not found.'
+    imposible_delete: 'Imposible delete'
+    already_exist: ' already_exist'

@@ -38,4 +38,13 @@ es:
     error_new_package: 'Error creando nuevo paquete'
     not_found: 'Paquete no existe'
     imposible_delete: 'No se puede desactivar el paquete'
-    already_exist: 'Paquete existe'
+    already_exist: 'Paquete existe.'
+  status:
+    exist_name: 'Existe estado con ese nombre.'
+    error_new_status: 'Error creando nuevo paquete.'
+    not_found: 'Estado no existe'
+  post:
+    error_new_post: 'Error creando nuevo post'
+    not_found: 'Post no existe.'
+    imposible_delete: 'Imposible desactivar'
+    already_exist: ' Post existe'
