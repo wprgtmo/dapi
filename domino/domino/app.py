@@ -43,6 +43,7 @@ from domino.routes.user import user_route
 from domino.routes.country import country_route
 from domino.routes.city import city_route
 from domino.routes.package import packages_route
+from domino.routes.status import status_route
 
 @app.get("/docs", include_in_schema=False)
 async def custom_swagger_ui_html():
@@ -73,11 +74,12 @@ app.include_router(user_route, prefix="/api")
 app.include_router(country_route, prefix="/api")
 app.include_router(city_route, prefix="/api")
 app.include_router(packages_route, prefix="/api")
+app.include_router(status_route, prefix="/api")
 
-@app.get("/hello/{name}")
-def hello_name(request: Request, name: str):
-    print(request.headers["accept-language"].split(",")[0].split("-")[0]);
-    locale = "en" #request.headers["accept-language"].split(",")[0].split("-")[0];
-    # locale: str = get_user_locale(name)
-    return {"greeting": _(locale, "greetings.hello_name", name=name)}
+# @app.get("/hello/{name}")
+# def hello_name(request: Request, name: str):
+#     print(request.headers["accept-language"].split(",")[0].split("-")[0]);
+#     locale = "en" #request.headers["accept-language"].split(",")[0].split("-")[0];
+#     # locale: str = get_user_locale(name)
+#     return {"greeting": _(locale, "greetings.hello_name", name=name)}
 
