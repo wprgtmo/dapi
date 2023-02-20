@@ -38,7 +38,7 @@ async def get_me(request: Request):
 def create_user(request: Request, user: UserCreate, db: Session = Depends(get_db)):
     return new_user(request=request, user=user, db=db)
 
-@auth_routes.post("/verify", response_model=ResultObject, tags=["Autentificación"], summary="Verify security code")
+@auth_routes.post("/verify", response_model=ResultObject, tags=["Autentificación"], summary="Verify security code.")
 def verify_security_code(
     request: Request,
     username: str,
