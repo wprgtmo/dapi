@@ -174,7 +174,12 @@ def check_security_code(request: Request, username: str, security_code: str, db:
         if not db_user:
             raise HTTPException(status_code=404, detail=_(locale, "users.not_found"))
         
-        result.data = False if security_code != db_user.security_code else True
+        if security_code == db_user.security_code:
+            result.success = True
+            db_user.is_active = True
+            db.commit()
+        else:
+            result.success = False
         
         return result
 

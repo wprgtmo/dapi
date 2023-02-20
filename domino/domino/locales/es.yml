@@ -9,6 +9,7 @@ es:
     me: 'Obtiene información del usuario autentificado.'    
     not_found: "Usuario no encontrado."
     wrong_password: "Contraseña incorrecta." 
+    not_registered: 'Usuario con código de registro no verificado.'
   commun:
     invalid_param: 'Parámetro de consultas no válidos.'
   users:

@@ -39,6 +39,10 @@ def auth(request: Request, db: Session, user: UserLogin):
         raise HTTPException(
             status_code=404, detail=_(locale, "auth.not_found"))
 
+    if data.is_active is False:
+        raise HTTPException(
+            status_code=404, detail=_(locale, "auth.not_registered"))
+        
     if pwd_context.verify(user.password, data.password):
         db_user = db.query(Users).where(
             Users.username == user.username).first()
