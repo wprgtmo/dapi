@@ -180,6 +180,7 @@ def check_security_code(request: Request, username: str, security_code: str, db:
             db.commit()
         else:
             result.success = False
+            result.detail = _(locale, "users.incorrect_code")
         
         return result
 

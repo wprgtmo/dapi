@@ -21,6 +21,7 @@ en:
     change_password_error: 'Error change password.'
     wrong_password: 'Wrong password.'
     imposible_verify: 'Imposible Verify'
+    incorrect_code: 'Incorrect code.'
   country:
     exist_name: 'There is a country with that name'
     error_new_contry: 'Mistake in new country'

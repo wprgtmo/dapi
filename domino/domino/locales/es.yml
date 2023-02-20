@@ -9,7 +9,7 @@ es:
     me: 'Obtiene información del usuario autentificado.'    
     not_found: "Usuario no encontrado."
     wrong_password: "Contraseña incorrecta." 
-    not_registered: 'Usuario con código de registro no verificado.'
+    not_registered: 'Usuario no activado.'
   commun:
     invalid_param: 'Parámetro de consultas no válidos.'
   users:
@@ -23,6 +23,7 @@ es:
     change_password_error: 'Error cambiando contraseña.'
     wrong_password: 'Contraaseña incorrecta.'  
     imposible_verify: 'No es posible Verificar'
+    incorrect_code: 'Código incorrecto.'
   country:
     exist_name: 'Existe pais con ese nombre.'
     error_new_contry: 'Error creando el nuevo pais.'
