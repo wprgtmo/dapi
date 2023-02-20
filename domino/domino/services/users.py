@@ -122,7 +122,7 @@ def new(request: Request, db: Session, user: UserCreate):
     
     user.password = pwd_context.hash(user.password)  
     db_user = Users(username=user.username,  first_name=user.first_name, last_name=user.last_name, country_id=user.country_id,  
-                    email=user.email, phone=user.phone, password=user.password, is_active=False)
+                    email=user.email, phone=user.phone, password=user.password, is_active=True)
     
     db_user.security_code = random.randint(10000, 99999)  # codigo de 5 caracteres
         
