@@ -20,11 +20,11 @@ class Post(Base):
     image = Column(String(100), nullable=True)
     entity_type = Column(String(100), nullable=False)
     entity_id = Column(String, nullable=False)
-    created_by = Column(String, ForeignKey("enterprise.users.id"), nullable=False)
+    created_by = Column(String, ForeignKey("enterprise.users.username"), nullable=False)
     created_date = Column(Date, nullable=False)
     publication_date = Column(Date, nullable=False)
     expire_date = Column(Date, nullable=True)
-    updated_by = Column(String, ForeignKey("enterprise.users.id"), nullable=False)
+    updated_by = Column(String, ForeignKey("enterprise.users.username"), nullable=False)
     updated_date = Column(Date, nullable=False)
     status_id  = Column(Integer, ForeignKey("resources.entities_status.id"), nullable=False)
     

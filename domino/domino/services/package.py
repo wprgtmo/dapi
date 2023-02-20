@@ -1,5 +1,6 @@
 import math
 
+import datetime
 from fastapi import HTTPException, Request
 from unicodedata import name
 from fastapi import HTTPException
@@ -96,12 +97,14 @@ def delete(request: Request, package_id: str, db: Session):
     locale = request.headers["accept-language"].split(",")[0].split("-")[0];
     
     result = ResultObject() 
-    # currentUser = get_current_user(request)
+    currentUser = get_current_user(request)
     
     try:
         db_package = db.query(Packages).filter(Packages.id == package_id).first()
         if db_package:
             db_package.is_active = False
+            db_package.updated_by = currentUser['username']
+            db_package.updated_date = datetime.today()
             db.commit()
             return result
         else:
@@ -127,6 +130,9 @@ def update(request: Request, package_id: str, package: PackagesBase, db: Session
         db_package.number_pairs_tourney = package.number_pairs_tourney
         db_package.number_team_tourney = package.number_team_tourney
         
+        db_package.updated_by = currentUser['username']
+        db_package.updated_date = datetime.today()
+            
         try:
             db.add(db_package)
             db.commit()

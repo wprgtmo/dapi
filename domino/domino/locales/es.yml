@@ -50,3 +50,14 @@ es:
     not_found: 'Post no existe.'
     imposible_delete: 'Imposible desactivar'
     already_exist: ' Post existe'
+    dates_incorrect: 'Datos de Fecha incorrectas.'
+    start_date_incorrect: 'Fecha de Inicio Incorrecta.'
+  event:
+    error_new_event: 'Error creando nuevo evento.'
+    not_found: 'Evento no existe.'
+    imposible_delete: 'Imposible desactivar'
+    already_exist: ' Evento existe'
+    dates_incorrect: 'Datos de Fecha incorrectas.'
+    start_date_incorrect: 'Fecha de Inicio Incorrecta.'
+    registration_date_incorrect: 'Fecha de inscripción incorrecta.'
+    

@@ -48,3 +48,12 @@ en:
     not_found: 'Post not found.'
     imposible_delete: 'Imposible delete'
     already_exist: ' already_exist'
+    dates_incorrect: 'Dates incorrect.'
+event:
+    error_new_post: 'Error new post'
+    not_found: 'Post not found.'
+    imposible_delete: 'Imposible delete'
+    already_exist: ' already_exist'
+    dates_incorrect: 'Dates incorrect.'
+    start_date_incorrect: 'Start Date Incorrect'
+    registration_date_incorrect: 'Registration Date Incorrect.'

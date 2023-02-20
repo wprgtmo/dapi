@@ -19,7 +19,7 @@ class Packages(Base):
     number_pairs_tourney = Column(Integer, default=0)
     number_team_tourney = Column(Integer, default=0)
     is_active = Column(Boolean, nullable=False, default=True)
-    created_by = Column(String(50), nullable=False, default='foo')
+    created_by = Column(String, ForeignKey("enterprise.users.username"), nullable=False)
     created_date = Column(Date, nullable=False, default=datetime.today())
     
     def dict(self):

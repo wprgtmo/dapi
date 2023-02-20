@@ -2,6 +2,7 @@
 """coding=utf-8."""
 
 import uuid
+from datetime import date
 from sqlalchemy import Column, ForeignKey
 from sqlalchemy.sql.sqltypes import String, Boolean, Integer, Date, Text, Float
 from ..config.db import Base
@@ -24,13 +25,13 @@ class Event(Base):
     registration_price  = Column(Float, nullable=True)
     city_id = Column(Integer, ForeignKey("resources.city.id"), nullable=False)
     main_location = Column(String(255), nullable=True)
-    comments = Column(Text, nullable=True)
+    summary = Column(Text, nullable=True)
     image = Column(String(100), nullable=True)
     status_id  = Column(Integer, ForeignKey("resources.entities_status.id"), nullable=False)
-    created_by = Column(String, ForeignKey("enterprise.users.id"), nullable=False)
-    created_date = Column(Date, nullable=False)
-    updated_by = Column(String, ForeignKey("enterprise.users.id"), nullable=False)
-    updated_date = Column(Date, nullable=False)
+    created_by = Column(String, ForeignKey("enterprise.users.username"), nullable=False)
+    created_date = Column(Date, nullable=False, default=date.today())
+    updated_by = Column(String, ForeignKey("enterprise.users.username"), nullable=False)
+    updated_date = Column(Date, nullable=False, default=date.today())
     
     def dict(self):
         return {
@@ -43,7 +44,7 @@ class Event(Base):
             "registration_price": self.registration_price,
             "city_id": self.city_id,
             "main_location": self.main_location,
-            "comments": self.comments,
+            "summary": self.comments,
             "image": self.image,
             "status_id": self.status,
             "photo": self.photo,

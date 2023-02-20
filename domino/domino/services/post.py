@@ -1,5 +1,6 @@
 import math
 
+from datetime import datetime
 from fastapi import HTTPException, Request
 from unicodedata import name
 from fastapi import HTTPException
@@ -75,10 +76,13 @@ def new(request, db: Session, post: PostBase):
     result = ResultObject() 
     currentUser = get_current_user(request)
     
-    one_status = get_one_by_name('CREATED')
+    one_status = get_one_by_name('CREATED', db=db)
     if not one_status:
         raise HTTPException(status_code=404, detail=_(locale, "status.not_found"))
     
+    if (post.publication_date and post.expire_date) and (post.publication_date > post.expire_date):
+        raise HTTPException(status_code=404, detail=_(locale, "post.dates_incorrect"))
+      
     db_post = Post(title=post.title, summary=post.summary, entity_type=post.entity_type, 
                    entity_id=post.entity_id, image=post.image, publication_date=post.publication_date,
                    expire_date=post.expire_date, status_id=one_status.id,
@@ -93,14 +97,14 @@ def new(request, db: Session, post: PostBase):
         print(e)
         msg = _(locale, "post.error_new_post")               
         raise HTTPException(status_code=403, detail=msg)
- 
+
 def delete(request: Request, post_id: str, db: Session):
     locale = request.headers["accept-language"].split(",")[0].split("-")[0];
     
     result = ResultObject() 
     currentUser = get_current_user(request)
     
-    one_status = get_one_by_name('CANCELLED')
+    one_status = get_one_by_name('CANCELLED', db=db)
     if not one_status:
         raise HTTPException(status_code=404, detail=_(locale, "status.not_found"))
     
@@ -108,6 +112,8 @@ def delete(request: Request, post_id: str, db: Session):
         db_post = db.query(Post).filter(Post.id == post_id).first()
         if db_post:
             db_post.status_id = one_status.id
+            db_post.updated_by = currentUser['username']
+            db_post.updated_date = datetime.now()
             db.commit()
             return result
         else:
@@ -148,7 +154,10 @@ def update(request: Request, post_id: str, post: PostBase, db: Session):
             
         if db_post.status_id != post.status_id:    
             db_post.status_id = one_status.status.id
-            
+        
+        db_post.updated_by = currentUser['username']
+        db_post.updated_date = datetime.now()
+                
         try:
             db.add(db_post)
             db.commit()
@@ -160,4 +169,4 @@ def update(request: Request, post_id: str, post: PostBase, db: Session):
                 raise HTTPException(status_code=400, detail=_(locale, "post.already_exist"))
             
     else:
-        raise HTTPException(status_code=404, detail=_(locale, "package.not_found"))
+        raise HTTPException(status_code=404, detail=_(locale, "post.not_found"))
