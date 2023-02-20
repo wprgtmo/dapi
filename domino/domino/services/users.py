@@ -164,13 +164,13 @@ def get_one_profile(request: Request, user_id: str, db: Session):
     
     return result
 
-def check_security_code(request: Request, user_id: str, security_code: str, db: Session):
+def check_security_code(request: Request, username: str, security_code: str, db: Session):
     locale = request.headers["accept-language"].split(",")[0].split("-")[0];
     
     result = ResultObject()
     
     try:
-        db_user = db.query(Users).filter(Users.id == user_id).first()
+        db_user = db.query(Users).filter(Users.username == username).first()
         if not db_user:
             raise HTTPException(status_code=404, detail=_(locale, "users.not_found"))
         

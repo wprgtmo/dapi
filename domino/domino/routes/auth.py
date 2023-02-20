@@ -41,11 +41,11 @@ def create_user(request: Request, user: UserCreate, db: Session = Depends(get_db
 @auth_routes.post("/verify", response_model=ResultObject, tags=["Autentificación"], summary="Verify security code")
 def verify_security_code(
     request: Request,
-    user_id: str,
+    username: str,
     security_code: str,
     db: Session = Depends(get_db)
 ):
-    return check_security_code(request=request, user_id=user_id, security_code=security_code, db=db)
+    return check_security_code(request=request, userusername_name=username, security_code=security_code, db=db)
     
 @auth_routes.get("/countries", response_model=Dict, tags=["Autentificación"], summary="Get list of Countries")
 def get_countries(
