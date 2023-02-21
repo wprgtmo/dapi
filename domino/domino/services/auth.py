@@ -20,8 +20,7 @@ def expire_date(minutes: int):
 
 
 def write_token(data: dict):
-    token = encode(payload={**data, "exp": expire_date(minutes=30)},
-                   key="SECRET_KEY", algorithm="HS256")
+    token = encode(payload={**data, "exp": expire_date(minutes=1440)}, key="SECRET_KEY", algorithm="HS256")
     return token
 
 
@@ -49,8 +48,6 @@ def auth(request: Request, db: Session, user: UserLogin):
 
         token_data = {"username": data.username, "user_id": data.id}
 
-        return JSONResponse(content={"token": write_token(data=token_data), "token_type": "Bearer", "first_name": db_user.first_name, 
-                                     "last_name": db_user.last_name, "user_id": db_user.id}, status_code=200)
+        return JSONResponse(content={"token": write_token(data=token_data), "token_type": "Bearer", "first_name": db_user.first_name, "last_name": db_user.last_name, "user_id": db_user.id}, status_code=200)
     else:
-        raise HTTPException(status_code=404, detail=_(
-            locale, "auth.wrong_password"))
+        raise HTTPException(status_code=404, detail=_(locale, "auth.wrong_password"))
