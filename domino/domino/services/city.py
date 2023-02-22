@@ -5,7 +5,7 @@ from fastapi import HTTPException, Request
 from unicodedata import name
 from fastapi import HTTPException
 from domino.models.city import City
-from domino.schemas.city import CityBase, CitySchema, CityCreate
+from domino.schemas.city import CitySchema, CityCreate
 from domino.schemas.result_object import ResultObject, ResultData
 from sqlalchemy.orm import Session
 from sqlalchemy.exc import SQLAlchemyError, IntegrityError
