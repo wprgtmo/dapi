@@ -31,7 +31,7 @@ def get_all(request:Request, page: int, per_page: int, criteria_key: str, criter
     str_query += str_from
     
     dict_query = {'name': " AND city.name ilike '%" + criteria_value + "%'",
-                  'country_id': " AND city.country_id = '%" + criteria_value + "%'",
+                  'country_id': " AND city.country_id = " + criteria_value,
                   'country_name': " AND country.name ilike '%" + criteria_value + "%'",
                   }
     
