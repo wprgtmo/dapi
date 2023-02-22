@@ -11,7 +11,6 @@ from sqlalchemy.orm import Session
 from sqlalchemy.exc import SQLAlchemyError, IntegrityError
 from passlib.context import CryptContext
 from domino.auth_bearer import decodeJWT
-from typing import Dict, List
 from domino.app import _
 
 from domino.services.country import get_one as country_get_one
