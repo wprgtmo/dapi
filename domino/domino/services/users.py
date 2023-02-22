@@ -316,17 +316,14 @@ def  change_password(request: Request, db: Session, password: ChagePasswordSchem
     locale = request.headers["accept-language"].split(",")[0].split("-")[0];
     
     result = ResultObject()
-    # currentUser = get_current_user(request)
     
-    # if el user_name viene vacio cojo el usario logueado
-    if not password.username:
+    # if el id viene vacio cojo el usario logueado
+    if not password.id:
         currentUser = get_current_user(request)
-        username = currentUser['username'] 
+        one_user = get_one_by_username(username=currentUser['username'], db=db)
     else:
-        username = password.username
-    
-    # verificar que existe ese usuario con ese password
-    one_user = get_one_by_username(username=username, db=db)
+        one_user = get_one(user_id=password.id, db=db)
+        
     if not one_user:
         raise HTTPException(status_code=404, detail=_(locale, "users.not_found"))
     

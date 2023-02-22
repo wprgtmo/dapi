@@ -47,7 +47,7 @@ class UserShema(UserCreate):
         orm_mode = True
     
 class ChagePasswordSchema(BaseModel):
-    username: Optional[str]
+    id: Optional[str]
     current_password: str
     new_password: str
     renew_password: str
