@@ -48,6 +48,6 @@ def auth(request: Request, db: Session, user: UserLogin):
 
         token_data = {"username": data.username, "user_id": data.id}
 
-        return JSONResponse(content={"token": write_token(data=token_data), "token_type": "Bearer", "first_name": db_user.first_name, "last_name": db_user.last_name, "user_id": db_user.id}, status_code=200)
+        return JSONResponse(content={"token": write_token(data=token_data), "token_type": "Bearer", "first_name": db_user.first_name, "last_name": db_user.last_name, "photo": db_user.photo, "user_id": db_user.id}, status_code=200)
     else:
         raise HTTPException(status_code=404, detail=_(locale, "auth.wrong_password"))
