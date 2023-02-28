@@ -1,6 +1,7 @@
 """coding=utf-8."""
 
 import uuid
+from datetime import datetime
 from sqlalchemy import Column, ForeignKey
 from sqlalchemy.sql.sqltypes import String, Boolean, Integer, Date, Text, Float
 from ..config.db import Base
@@ -19,13 +20,13 @@ class Post(Base):
     summary = Column(Text, nullable=True)
     image = Column(String(100), nullable=True)
     entity_type = Column(String(100), nullable=False)
-    entity_id = Column(String, nullable=False)
+    entity_id = Column(String, nullable=True)
     created_by = Column(String, ForeignKey("enterprise.users.username"), nullable=False)
-    created_date = Column(Date, nullable=False)
-    publication_date = Column(Date, nullable=False)
+    created_date = Column(Date, nullable=False, default=datetime.today())
+    publication_date = Column(Date, nullable=False, default=datetime.today())
     expire_date = Column(Date, nullable=True)
     updated_by = Column(String, ForeignKey("enterprise.users.username"), nullable=False)
-    updated_date = Column(Date, nullable=False)
+    updated_date = Column(Date, nullable=False, default=datetime.today())
     status_id  = Column(Integer, ForeignKey("resources.entities_status.id"), nullable=False)
     
     def dict(self):

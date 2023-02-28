@@ -6,4 +6,5 @@ from ..models.package import *
 from ..models.status import *
 from ..models.events import *
 from ..models.post import *
+from ..models.tourney import *
 

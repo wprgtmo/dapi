@@ -11,7 +11,7 @@ class PostBase(BaseModel):
     entity_type: Optional[str]
     entity_id: Optional[str]
     publication_date: Optional[datetime] = datetime.today()
-    expite_date: Optional[datetime] = datetime.today()
+    expire_date: Optional[datetime] = datetime.today()
    
     @validator('title')
     def title_not_empty(cls, title):
