@@ -123,8 +123,8 @@ class Pairs(Base):
     
     id = Column(String, primary_key=True, default=generate_uuid)
     tourney_id = Column(String, ForeignKey("events.tourney.id"))
-    one_player = Column(String, ForeignKey("enterprise.users.name"), nullable=False)
-    two_player = Column(String, ForeignKey("enterprise.users.name"), nullable=False)
+    one_player = Column(String, ForeignKey("enterprise.users.username"), nullable=False)
+    two_player = Column(String, ForeignKey("enterprise.users.username"), nullable=False)
     name = Column(String(100), nullable=True)
     
     

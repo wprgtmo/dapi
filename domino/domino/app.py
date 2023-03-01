@@ -44,6 +44,7 @@ from domino.routes.country import country_route
 from domino.routes.city import city_route
 from domino.routes.package import packages_route
 from domino.routes.status import status_route
+from domino.routes.posttype import posttype_route
 from domino.routes.post import post_route
 from domino.routes.event import event_route
 
@@ -77,6 +78,7 @@ app.include_router(country_route, prefix="/api")
 app.include_router(city_route, prefix="/api")
 app.include_router(packages_route, prefix="/api")
 app.include_router(status_route, prefix="/api")
+app.include_router(posttype_route, prefix="/api")
 app.include_router(post_route, prefix="/api")
 app.include_router(event_route, prefix="/api")
 

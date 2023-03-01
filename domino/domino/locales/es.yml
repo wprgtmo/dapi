@@ -45,6 +45,11 @@ es:
     exist_name: 'Existe estado con ese nombre.'
     error_new_status: 'Error creando nuevo paquete.'
     not_found: 'Estado no existe'
+  posttype:
+    exist_name: 'Nombre de Tipo de Post ya esta registrado'
+    error_new_post_type: 'Error creando un nuevo tipo de post.'
+    already_exist: 'Tipo de Post Exist'
+    not_found: 'Tipo de Post no Exist'
   post:
     error_new_post: 'Error creando nuevo post'
     not_found: 'Post no existe.'
