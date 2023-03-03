@@ -4,8 +4,9 @@ from datetime import datetime
 from fastapi import HTTPException, Request
 from unicodedata import name
 from fastapi import HTTPException
-from domino.models.post import Post, PostLikes, PostComments, PostShares, PostSharesUsers
-from domino.schemas.post import PostBase, PostLikeCreate, PostCommentCreate, PostShareCreate
+from domino.models.post import Post, PostLikes, PostComments, PostShares, PostSharesUsers, PostImages
+from domino.schemas.post import PostBase
+from domino.schemas.postelement import PostImageCreate, PostLikeCreate, PostCommentCreate, PostShareCreate
 from domino.schemas.result_object import ResultObject, ResultData
 from sqlalchemy.orm import Session
 from sqlalchemy.exc import SQLAlchemyError, IntegrityError
@@ -112,10 +113,16 @@ def new(request, db: Session, post: PostBase):
         raise HTTPException(status_code=404, detail=_(locale, "post.dates_incorrect"))
       
     db_post = Post(title=post.title, summary=post.summary, post_type=posttype.name, 
-                   entity_id=post.entity_id, image=post.image, publication_date=post.publication_date,
+                   entity_id=post.entity_id, publication_date=post.publication_date,
                    expire_date=post.expire_date, status_id=one_status.id,
                    created_by=currentUser['username'], updated_by=currentUser['username'])
     
+    if post.images:
+        for item_image in post.images:
+            post_image = PostImages(image=item_image.image, created_by=currentUser['username'])
+            db_post.images.append(post_image)
+            # post_image = PostImages(post_id=db_post.id, image=item.image, created_by=currentUser['username'])
+            
     try:
         db.add(db_post)
         db.commit()
@@ -171,9 +178,6 @@ def update(request: Request, post_id: str, post: PostBase, db: Session):
         if db_post.summary != post.summary:    
             db_post.summary = post.summary
             
-        if db_post.image != post.image:    
-            db_post.image = post.image
-            
         if db_post.publication_date != post.publication_date:    
             db_post.publication_date = post.publication_date
             
@@ -199,6 +203,47 @@ def update(request: Request, post_id: str, post: PostBase, db: Session):
     else:
         raise HTTPException(status_code=404, detail=_(locale, "post.not_found"))
 
+def add_one_image(request, db: Session, postimage: PostImageCreate):
+    locale = request.headers["accept-language"].split(",")[0].split("-")[0];
+    
+    result = ResultObject() 
+    currentUser = get_current_user(request)
+    
+    one_post = get_one(postimage.post_id, db=db)
+    if not one_post:
+        raise HTTPException(status_code=404, detail=_(locale, "post.not_found"))
+    
+    db_postimage = PostImages(post_id=postimage.post_id, image=postimage.image, created_by=currentUser['username'])
+    
+    try:
+        db.add(db_postimage)
+        db.commit()
+        db.refresh(db_postimage)
+        return result
+    except (Exception, SQLAlchemyError, IntegrityError) as e:
+        print(e)
+        msg = _(locale, "post.error_new_postimage")               
+        raise HTTPException(status_code=403, detail=msg)
+    
+def remove_one_image(request: Request, db: Session, postimage_id: str):
+    locale = request.headers["accept-language"].split(",")[0].split("-")[0];
+    
+    result = ResultObject() 
+    currentUser = get_current_user(request)
+    
+    db_post_image = db.query(PostImages).filter(PostImages.id == postimage_id).first()
+    if not db_post_image:
+        raise HTTPException(status_code=404, detail=_(locale, "post.image_not_found"))
+    
+    try:
+        db.delete(db_post_image)
+        db.commit()
+        return result
+    except (Exception, SQLAlchemyError, IntegrityError) as e:
+        print(e)
+        msg = _(locale, "post.error_remove_postimage")               
+        raise HTTPException(status_code=403, detail=msg)
+    
 def add_one_likes(request, db: Session, postlike: PostLikeCreate):
     locale = request.headers["accept-language"].split(",")[0].split("-")[0];
     

@@ -1,10 +1,12 @@
 from fastapi import APIRouter, Depends, HTTPException, Request
-from domino.schemas.post import PostBase, PostLikeCreate, PostCommentCreate, PostShareCreate
+from domino.schemas.post import PostBase
+from domino.schemas.postelement import PostLikeCreate, PostCommentCreate, PostShareCreate, PostImageCreate
 from domino.schemas.result_object import ResultObject, ResultData
 from sqlalchemy.orm import Session
 from domino.app import get_db
 from typing import List, Dict
-from domino.services.post import get_all, new, get_one_by_id, delete, update, add_one_likes, add_one_comment, add_one_share
+from domino.services.post import get_all, new, get_one_by_id, delete, update, add_one_likes, add_one_comment, \
+    add_one_share, add_one_image, remove_one_image
 from starlette import status
 from domino.auth_bearer import JWTBearer
   
@@ -51,3 +53,11 @@ def add_comment(request:Request, postcomment: PostCommentCreate, db: Session = D
 @post_route.post("/postshare", response_model=ResultObject, summary="Share Post.")
 def add_share(request:Request, postshare: PostShareCreate, db: Session = Depends(get_db)):
     return add_one_share(request=request, postshare=postshare, db=db)
+
+@post_route.post("/postimage", response_model=ResultObject, summary="Add Image at Post.")
+def add_image(request:Request, postimage: PostImageCreate, db: Session = Depends(get_db)):
+    return add_one_image(request=request, postimage=postimage, db=db)
+
+@post_route.delete("/postimage/{id}", response_model=ResultObject, summary="Remove Image of Post by its ID.")
+def delete_post_image(request:Request, id: str, db: Session = Depends(get_db)):
+    return remove_one_image(request=request, db=db, postimage_id=str(id))

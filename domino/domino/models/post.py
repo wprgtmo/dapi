@@ -5,6 +5,7 @@ from datetime import datetime
 from sqlalchemy import Column, ForeignKey
 from sqlalchemy.sql.sqltypes import String, Boolean, Integer, Date, Text, Float, DateTime
 from ..config.db import Base
+from sqlalchemy.orm import relationship
 
 def generate_uuid():
     return str(uuid.uuid4())
@@ -39,7 +40,6 @@ class Post(Base):
     id = Column(String, primary_key=True, default=generate_uuid)
     title = Column(Text, nullable=False)
     summary = Column(Text, nullable=True)
-    image = Column(Text, nullable=True)
     post_type = Column(String(100), ForeignKey("post.post_type.name"), nullable=False)
     entity_id = Column(String, nullable=True)
     created_by = Column(String, ForeignKey("enterprise.users.username"), nullable=False)
@@ -49,6 +49,9 @@ class Post(Base):
     updated_by = Column(String, ForeignKey("enterprise.users.username"), nullable=True)
     updated_date = Column(Date, nullable=False, default=datetime.today())
     status_id  = Column(Integer, ForeignKey("resources.entities_status.id"), nullable=False)
+    
+    images = relationship("PostImages")
+    # images = relationship("PostImages", back_populates="post")
     
     def dict(self):
         return {
@@ -62,7 +65,27 @@ class Post(Base):
             "expire_date": self.expite_date,
             "status_id": self.status_id
         }
-                
+
+class PostImages(Base):
+    """PostImages Class contains standard information for images of Post."""
+ 
+    __tablename__ = "post_images"
+    __table_args__ = {'schema' : 'post'}
+    
+    id = Column(String, primary_key=True, default=generate_uuid)
+    post_id = Column(String, ForeignKey("post.post.id"), nullable=False)
+    image = Column(Text, nullable=True)
+    created_by = Column(String, ForeignKey("enterprise.users.username"), nullable=False)
+    created_date = Column(Date, nullable=False, default=datetime.today())
+    
+    def dict(self):
+        return {
+            "id": self.id,
+            "post_id": self.post_id,
+            "image": self.image,
+            "created_by": self.created_by,
+            "created_date": self.created_date
+        }                
 class PostLikes(Base):
     """PostLikes Class contains standard information for likes of Post."""
  
