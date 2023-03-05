@@ -53,26 +53,26 @@ def get_all(request:Request, page: int, per_page: int, criteria_key: str, criter
      
     lst_data = db.execute(str_query)
     result.data = []
-    
     current_date = datetime.now()
-    
     for item in lst_data:
-        
-        amount_like, amount_comments, amount_shares = get_amount_element_of_post(item['id'], db=db)
-        new_row = {'id': item['id'], 'name' : item['title'] if item['title'] else "", 
-                   'avatar': item['photo'] if item['photo'] else "", 'summary': item['summary'] if item['summary'] else "",
-                   'elapsed': calculate_time(current_date, item['created_date']), 
-                   'amount_like': amount_like, 'amount_comments': amount_comments, 'amount_shares': amount_shares,
-                   'comments': get_comments_of_post(item['id'], current_date, db=db),
-                   'photos': get_images_of_post(item['id'], db=db)
-                   }
-        
+        new_row = create_dict_row(item, current_date, db=db)
         if page != 0:
             new_row['selected'] = False
             
         result.data.append(new_row)
     
     return result
+
+def create_dict_row(item, current_date, db: Session):
+    
+    amount_like, amount_comments, amount_shares = get_amount_element_of_post(item['id'], db=db)
+    return {'id': item['id'], 'name' : item['title'] if item['title'] else "", 
+            'avatar': item['photo'] if item['photo'] else "", 'summary': item['summary'] if item['summary'] else "",
+            'elapsed': calculate_time(current_date, item['created_date']), 
+            'amount_like': amount_like, 'amount_comments': amount_comments, 'amount_shares': amount_shares,
+            'comments': get_comments_of_post(item['id'], current_date, db=db),
+            'photos': get_images_of_post(item['id'], db=db)
+            }
 
 def calculate_time(current_date, star_date):
     
