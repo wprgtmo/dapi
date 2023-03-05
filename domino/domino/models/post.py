@@ -43,7 +43,7 @@ class Post(Base):
     post_type = Column(String(100), ForeignKey("post.post_type.name"), nullable=False)
     entity_id = Column(String, nullable=True)
     created_by = Column(String, ForeignKey("enterprise.users.username"), nullable=False)
-    created_date = Column(Date, nullable=False, default=datetime.today())
+    created_date = Column(DateTime, nullable=False, default=datetime.now())
     publication_date = Column(Date, nullable=False, default=datetime.today())
     expire_date = Column(Date, nullable=True)
     updated_by = Column(String, ForeignKey("enterprise.users.username"), nullable=True)
@@ -76,7 +76,7 @@ class PostImages(Base):
     post_id = Column(String, ForeignKey("post.post.id"), nullable=False)
     image = Column(Text, nullable=True)
     created_by = Column(String, ForeignKey("enterprise.users.username"), nullable=False)
-    created_date = Column(Date, nullable=False, default=datetime.today())
+    created_date = Column(DateTime, nullable=False, default=datetime.now())
     
     def dict(self):
         return {
@@ -95,7 +95,7 @@ class PostLikes(Base):
     id = Column(String, primary_key=True, default=generate_uuid)
     post_id = Column(String, ForeignKey("post.post.id"), nullable=False)
     created_by = Column(String, ForeignKey("enterprise.users.username"), nullable=False)
-    created_date = Column(Date, nullable=False, default=datetime.today())
+    created_date = Column(DateTime, nullable=False, default=datetime.now())
     
     def dict(self):
         return {
@@ -115,7 +115,7 @@ class PostComments(Base):
     post_id = Column(String, ForeignKey("post.post.id"), nullable=False)
     summary = Column(Text, nullable=True)
     created_by = Column(String, ForeignKey("enterprise.users.username"), nullable=False)
-    created_date = Column(Date, nullable=False, default=datetime.today())
+    created_date = Column(DateTime, nullable=False, default=datetime.now())
     
     def dict(self):
         return {
@@ -136,7 +136,7 @@ class PostShares(Base):
     post_id = Column(String, ForeignKey("post.post.id"), nullable=False)
     summary = Column(Text, nullable=True)
     created_by = Column(String, ForeignKey("enterprise.users.username"), nullable=False)
-    created_date = Column(Date, nullable=False, default=datetime.today())
+    created_date = Column(DateTime, nullable=False, default=datetime.now())
     
     def dict(self):
         return {

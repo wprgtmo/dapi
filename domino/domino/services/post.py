@@ -1,6 +1,7 @@
 import math
+import time
 
-from datetime import datetime
+from datetime import datetime, timedelta
 from fastapi import HTTPException, Request
 from unicodedata import name
 from fastapi import HTTPException
@@ -20,10 +21,11 @@ from domino.app import _
 def get_all(request:Request, page: int, per_page: int, criteria_key: str, criteria_value: str, db: Session):  
     locale = request.headers["accept-language"].split(",")[0].split("-")[0];
     
-    str_count = "Select count(*) FROM post.post "
-    str_query = "Select id, title, summary, image, post_type, entity_id, publication_date, expire_date, status_id " +\
-        "FROM post.post "
-    
+    str_count = "Select count(*) FROM post.post po LEFT JOIN enterprise.users us ON po.created_by = us.username "
+    str_query = "Select po.id, title, summary, post_type, entity_id, publication_date, expire_date, status_id, " +\
+        "us.first_name || ' ' || us.last_name as full_name, po.created_date, us.photo " +\
+        "FROM post.post po LEFT JOIN enterprise.users us ON po.created_by = us.username "
+
     dict_query = {'title': " WHERE title ilike '%" + criteria_value + "%'",
                   'summary': " WHERE summary ilike '%" + criteria_value + "%'",
                   'post_type': " WHERE post_type ilike '%" + criteria_value + "%'",
@@ -44,21 +46,26 @@ def get_all(request:Request, page: int, per_page: int, criteria_key: str, criter
     else:
         result = ResultObject()
     
-    str_query += " ORDER BY publication_date " 
+    str_query += " ORDER BY created_date DESC " 
     
     if page != 0:
         str_query += "LIMIT " + str(per_page) + " OFFSET " + str(page*per_page-per_page)
      
     lst_data = db.execute(str_query)
     result.data = []
+    
+    current_date = datetime.now()
+    
     for item in lst_data:
-        # buscar me gusta, likes y compartidos
+        
         amount_like, amount_comments, amount_shares = get_amount_element_of_post(item['id'], db=db)
-        new_row = {'id': item['id'], 'title' : item['title'], 'summary' : item['summary'],
-                   'image' : item['image'], 'post_type' : item['post_type'],
-                   'entity_id' : item['entity_id'], 'publication_date' : item['publication_date'], 
-                   'expire_date' : item['expire_date'], 'status_id' : item['status_id'],
-                   'amount_like': amount_like, 'amount_comments': amount_comments, 'amount_shares': amount_shares}
+        new_row = {'id': item['id'], 'name' : item['title'] if item['title'] else "", 
+                   'avatar': item['photo'] if item['photo'] else "", 'summary': item['summary'] if item['summary'] else "",
+                   'elapsed': calculate_time(current_date, item['created_date']), 
+                   'amount_like': amount_like, 'amount_comments': amount_comments, 'amount_shares': amount_shares,
+                   'comments': get_comments_of_post(item['id'], current_date, db=db),
+                   'photos': get_images_of_post(item['id'], db=db)
+                   }
         
         if page != 0:
             new_row['selected'] = False
@@ -67,6 +74,24 @@ def get_all(request:Request, page: int, per_page: int, criteria_key: str, criter
     
     return result
 
+def calculate_time(current_date, star_date):
+    
+    diferencia = current_date - star_date
+    days = diferencia.days
+    
+    if diferencia.days > 0:
+        return str(days) + ' d'
+    else:
+        hours = diferencia.seconds // 3600
+        if hours > 0:
+            return str(hours) + ' h'
+        else:
+            minutes = diferencia.seconds // 60
+            if minutes > 0:
+                return str(minutes) + ' m'
+            else:
+                return str(diferencia.seconds) + ' s'
+ 
 def get_amount_element_of_post(post_id, db: Session):
     
     str_count = "SELECT count(*) FROM "
@@ -80,9 +105,35 @@ def get_amount_element_of_post(post_id, db: Session):
     amount_comments = db.execute(str_comments).scalar()
     amount_shares = db.execute(str_shares).scalar()
    
-    print(str_likes)
-    print(amount_like)
     return amount_like, amount_comments, amount_shares
+
+def get_comments_of_post(post_id: str, current_date: datetime, db: Session):
+    
+    str_comments = "SELECT po.id, us.first_name || ' ' || us.last_name as full_name, us.photo, summary, " +\
+        "po.created_date FROM post.post_comments po " +\
+        "LEFT JOIN enterprise.users us ON po.created_by = us.username " +\
+        "WHERE post_id = '" + post_id + "' ORDER BY created_date LIMIT 3"
+    lst_comments = db.execute(str_comments)
+ 
+    lst_result = []
+    for item_comment in lst_comments:
+        lst_result.append({'id': item_comment['id'], 'name': item_comment['full_name'], 
+                           'avatar': item_comment['photo'] if item_comment['photo'] else "", 
+                           'comment': item_comment['summary'] if item_comment['summary'] else "", 
+                           'elapsed': calculate_time(current_date, item_comment['created_date'])})
+    
+    return lst_result
+
+def get_images_of_post(post_id: str, db: Session):
+    
+    str_images = "SELECT image FROM post.post_images WHERE post_id = '" + post_id + "' ORDER BY created_date "
+    lst_images = db.execute(str_images)
+ 
+    lst_result = []
+    for item_image in lst_images:
+        lst_result.append({'path': item_image['image']})
+    
+    return lst_result
 
 def get_one(post_id: str, db: Session):  
     return db.query(Post).filter(Post.id == post_id).first()

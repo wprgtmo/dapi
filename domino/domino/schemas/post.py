@@ -37,7 +37,7 @@ class PostSchema(PostBase):
     
     status_id: int
     created_by: str
-    created_date: datetime = datetime.today()
+    created_date: datetime = datetime.now()
     updated_by: str
     updated_date: datetime = datetime.today()
     class Config:
