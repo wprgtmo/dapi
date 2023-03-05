@@ -17,6 +17,7 @@ from domino.functions_jwt import get_current_user
 from domino.services.status import get_one_by_name, get_one as get_one_status
 from domino.services.posttype import get_one_by_name as get_posttype_by_name
 from domino.app import _
+from domino.services.utils import get_result_count
             
 def get_all(request:Request, page: int, per_page: int, criteria_key: str, criteria_value: str, db: Session):  
     locale = request.headers["accept-language"].split(",")[0].split("-")[0];
@@ -35,16 +36,13 @@ def get_all(request:Request, page: int, per_page: int, criteria_key: str, criter
     if criteria_key and criteria_key not in dict_query:
         raise HTTPException(status_code=404, detail=_(locale, "commun.invalid_param"))
     
+    if page and page > 0 and not per_page:
+        raise HTTPException(status_code=404, detail=_(locale, "commun.invalid_param"))
+    
     str_count += dict_query[criteria_key] if criteria_value else "" 
     str_query += dict_query[criteria_key] if criteria_value else "" 
     
-    if page != 0:
-        result = ResultData(page=page, per_page=per_page)  
-        
-        result.total = db.execute(str_count).scalar()
-        result.total_pages=result.total/result.per_page if (result.total % result.per_page == 0) else math.trunc(result.total / result.per_page) + 1
-    else:
-        result = ResultObject()
+    result = get_result_count(page=page, per_page=per_page, str_count=str_count, db=db)
     
     str_query += " ORDER BY created_date DESC " 
     
