@@ -52,14 +52,8 @@ def get_all(request:Request, page: int, per_page: int, criteria_key: str, criter
         str_query += "LIMIT " + str(per_page) + " OFFSET " + str(page*per_page-per_page)
      
     lst_data = db.execute(str_query)
-    result.data = []
     current_date = datetime.now()
-    for item in lst_data:
-        new_row = create_dict_row(item, current_date, db=db)
-        if page != 0:
-            new_row['selected'] = False
-            
-        result.data.append(new_row)
+    result.data = [create_dict_row(item, current_date, db=db) for item in lst_data]
     
     return result
 
