@@ -1,6 +1,7 @@
 """coding=utf-8."""
  
 from pydantic import BaseModel, ValidationError, validator 
+from datetime import datetime
 from uuid import UUID
 from datetime import date
 from typing import Optional
@@ -45,7 +46,7 @@ class UserShema(UserCreate):
     
     class Config:
         orm_mode = True
-    
+      
 class ChagePasswordSchema(BaseModel):
     id: Optional[str]
     current_password: str
@@ -86,3 +87,16 @@ class UserRankin(BaseModel):
     elo: int
     ranking: str
  
+ 
+class UserFollowerBase(BaseModel):
+    user_follow: str
+    
+class UserFollowerCreate(UserFollowerBase):
+    username: str
+    
+class UserFollowerShema(UserFollowerCreate):
+    is_active: bool = True
+    created_date: datetime = datetime.now()
+    
+    class Config:
+        orm_mode = True

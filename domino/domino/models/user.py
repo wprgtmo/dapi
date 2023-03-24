@@ -2,9 +2,12 @@
 """coding=utf-8."""
 
 import uuid
+
+from datetime import datetime
 from sqlalchemy import Column, ForeignKey
-from sqlalchemy.sql.sqltypes import String, Boolean, Integer, Date
+from sqlalchemy.sql.sqltypes import String, Boolean, Integer, Date, DateTime
 from ..config.db import Base
+
 
 def generate_uuid():
     return str(uuid.uuid4())
@@ -54,4 +57,24 @@ class Users(Base):
             "job": self.job,
             "photo": self.photo,
             "city_id": self.city_id
+        }
+
+
+class UserFollowers(Base):
+    """UserFollowers Class contains standard information for Followers of User"""
+ 
+    __tablename__ = "user_followers"
+    __table_args__ = {'schema' : 'enterprise'}
+    
+    username = Column(String(50), primary_key=True)
+    user_follow = Column(String(50), primary_key=True)
+    created_date = Column(DateTime, nullable=False, default=datetime.now())
+    is_active = Column(Boolean, nullable=False, default=False)
+    
+    def dict(self):
+        return {
+            "username": self.username,
+            "user_follow": self.user_follow,
+            "created_date": self.created_date,
+            "is_active": self.is_active
         }

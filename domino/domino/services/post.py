@@ -5,17 +5,15 @@ from datetime import datetime, timedelta
 from fastapi import HTTPException, Request
 from unicodedata import name
 from fastapi import HTTPException
-from domino.models.post import Post, PostLikes, PostComments, PostShares, PostSharesUsers, PostImages
-from domino.schemas.post import PostBase
-from domino.schemas.postelement import PostImageCreate, PostLikeCreate, PostCommentCreate, PostShareCreate
+from domino.models.post import Post, PostLikes, PostComments, PostFiles, CommentComments, CommentLikes
+from domino.schemas.post import PostBase, PostUpdated
+from domino.schemas.postelement import PostFileCreate, PostLikeCreate, PostCommentCreate, CommentCommentCreate, CommentLikeCreate
 from domino.schemas.result_object import ResultObject, ResultData
 from sqlalchemy.orm import Session
 from sqlalchemy.exc import SQLAlchemyError, IntegrityError
 from passlib.context import CryptContext
 from domino.auth_bearer import decodeJWT
 from domino.functions_jwt import get_current_user
-from domino.services.status import get_one_by_name, get_one as get_one_status
-from domino.services.posttype import get_one_by_name as get_posttype_by_name
 from domino.app import _
 from domino.services.utils import get_result_count
             
@@ -23,14 +21,11 @@ def get_all(request:Request, page: int, per_page: int, criteria_key: str, criter
     locale = request.headers["accept-language"].split(",")[0].split("-")[0];
     
     str_count = "Select count(*) FROM post.post po LEFT JOIN enterprise.users us ON po.created_by = us.username "
-    str_query = "Select po.id, title, summary, post_type, entity_id, publication_date, expire_date, status_id, " +\
-        "us.first_name || ' ' || us.last_name as full_name, po.created_date, us.photo " +\
+    str_query = "Select po.id, summary, us.first_name || ' ' || us.last_name as full_name, po.created_date, us.photo " +\
         "FROM post.post po LEFT JOIN enterprise.users us ON po.created_by = us.username "
 
-    dict_query = {'title': " WHERE title ilike '%" + criteria_value + "%'",
-                  'summary': " WHERE summary ilike '%" + criteria_value + "%'",
-                  'post_type': " WHERE post_type ilike '%" + criteria_value + "%'",
-                  'publication_date': " WHERE publication_date >= '%" + criteria_value + "%'",
+    dict_query = {'summary': " WHERE summary ilike '%" + criteria_value + "%'",
+                  'created_by': " WHERE created_by = '" + criteria_value + "'"
                   }
     
     if criteria_key and criteria_key not in dict_query:
@@ -43,7 +38,7 @@ def get_all(request:Request, page: int, per_page: int, criteria_key: str, criter
     str_query += dict_query[criteria_key] if criteria_value else "" 
     
     result = get_result_count(page=page, per_page=per_page, str_count=str_count, db=db)
-    
+    print(str_query)
     str_query += " ORDER BY created_date DESC " 
     
     if page != 0:
@@ -55,15 +50,36 @@ def get_all(request:Request, page: int, per_page: int, criteria_key: str, criter
     
     return result
 
+def get_list_post(request:Request, db: Session):  
+    locale = request.headers["accept-language"].split(",")[0].split("-")[0];
+    
+    result = ResultObject() 
+    current_date = datetime.now()
+    date_find = datetime.now() #- datetime
+    currentUser = get_current_user(request)
+    
+    str_query = "Select po.id, summary, us.first_name || ' ' || us.last_name as full_name, po.created_date, us.photo " +\
+        "FROM post.post po JOIN enterprise.users us ON po.created_by = us.username " +\
+        "LEFT JOIN enterprise.user_followers usf ON usf.user_follow = po.created_by " +\
+        "WHERE po.is_active=True AND po.updated_date >= '" + date_find.strftime('%Y-%m-%d') + "' " +\
+        "AND (usf.username = '" + currentUser['username'] + "' or po.created_by = 'domino' or po.created_by = '" + currentUser['username'] + "')"
+    
+    str_query += " ORDER BY created_date DESC " 
+    
+    lst_data = db.execute(str_query)
+    result.data = [create_dict_row(item, current_date, db=db) for item in lst_data]
+    
+    return result
+
 def create_dict_row(item, current_date, db: Session):
     
-    amount_like, amount_comments, amount_shares = get_amount_element_of_post(item['id'], db=db)
-    return {'id': item['id'], 'name' : item['title'] if item['title'] else "", 
-            'avatar': item['photo'] if item['photo'] else "", 'summary': item['summary'] if item['summary'] else "",
+    amount_like, amount_comments = get_amount_element_of_post(item['id'], db=db)
+    return {'id': item['id'], 'avatar': item['photo'] if item['photo'] else "", 
+            'summary': item['summary'] if item['summary'] else "",
             'elapsed': calculate_time(current_date, item['created_date']), 
-            'amount_like': amount_like, 'amount_comments': amount_comments, 'amount_shares': amount_shares,
+            'amount_like': amount_like, 'amount_comments': amount_comments, 
             'comments': get_comments_of_post(item['id'], current_date, db=db),
-            'photos': get_images_of_post(item['id'], db=db)
+            'photos': get_files_of_post(item['id'], db=db)
             }
 
 def calculate_time(current_date, star_date):
@@ -91,13 +107,11 @@ def get_amount_element_of_post(post_id, db: Session):
     
     str_likes = str_count + "post.post_likes " + str_where 
     str_comments = str_count + "post.post_comments " + str_where 
-    str_shares = str_count + "post.post_shares " + str_where
     
     amount_like = db.execute(str_likes).scalar()
     amount_comments = db.execute(str_comments).scalar()
-    amount_shares = db.execute(str_shares).scalar()
-   
-    return amount_like, amount_comments, amount_shares
+    
+    return amount_like, amount_comments
 
 def get_comments_of_post(post_id: str, current_date: datetime, db: Session):
     
@@ -116,19 +130,22 @@ def get_comments_of_post(post_id: str, current_date: datetime, db: Session):
     
     return lst_result
 
-def get_images_of_post(post_id: str, db: Session):
+def get_files_of_post(post_id: str, db: Session):
     
-    str_images = "SELECT image FROM post.post_images WHERE post_id = '" + post_id + "' ORDER BY created_date "
-    lst_images = db.execute(str_images)
+    str_files = "SELECT path FROM post.post_files WHERE post_id = '" + post_id + "' "
+    lst_files = db.execute(str_files)
  
     lst_result = []
-    for item_image in lst_images:
-        lst_result.append({'path': item_image['image']})
+    for item_file in lst_files:
+        lst_result.append({'path': item_file['path']})
     
     return lst_result
 
 def get_one(post_id: str, db: Session):  
     return db.query(Post).filter(Post.id == post_id).first()
+
+def get_one_postcomment(comment_id: str, db: Session):  
+    return db.query(PostComments).filter(PostComments.id == comment_id).first()
 
 def get_one_by_id(post_id: str, db: Session): 
     result = ResultObject()  
@@ -141,30 +158,13 @@ def new(request, db: Session, post: PostBase):
     result = ResultObject() 
     currentUser = get_current_user(request)
     
-    one_status = get_one_by_name('CREATED', db=db)
-    if not one_status:
-        raise HTTPException(status_code=404, detail=_(locale, "status.not_found"))
+    db_post = Post(summary=post.summary, created_by=currentUser['username'], updated_by=currentUser['username'],
+                   is_active=True)
     
-    if not post.entity_id:  # no esta sobre ninguna entidad
-        posttype = get_posttype_by_name('APP', db=db)
-    else:
-        posttype = get_posttype_by_name(post.post_type, db=db)
-    if not posttype:
-        raise HTTPException(status_code=404, detail=_(locale, "posttype.not_found"))
-    
-    if (post.publication_date and post.expire_date) and (post.publication_date > post.expire_date):
-        raise HTTPException(status_code=404, detail=_(locale, "post.dates_incorrect"))
-      
-    db_post = Post(title=post.title, summary=post.summary, post_type=posttype.name, 
-                   entity_id=post.entity_id, publication_date=post.publication_date,
-                   expire_date=post.expire_date, status_id=one_status.id,
-                   created_by=currentUser['username'], updated_by=currentUser['username'])
-    
-    if post.images:
-        for item_image in post.images:
-            post_image = PostImages(image=item_image.image, created_by=currentUser['username'])
-            db_post.images.append(post_image)
-            # post_image = PostImages(post_id=db_post.id, image=item.image, created_by=currentUser['username'])
+    if post.files:
+        for item_file in post.files:
+            post_file = PostFiles(path=item_file)
+            db_post.files.append(post_file)
             
     try:
         db.add(db_post)
@@ -182,14 +182,10 @@ def delete(request: Request, post_id: str, db: Session):
     result = ResultObject() 
     currentUser = get_current_user(request)
     
-    one_status = get_one_by_name('CANCELLED', db=db)
-    if not one_status:
-        raise HTTPException(status_code=404, detail=_(locale, "status.not_found"))
-    
     try:
         db_post = db.query(Post).filter(Post.id == post_id).first()
         if db_post:
-            db_post.status_id = one_status.id
+            db_post.is_active = False
             db_post.updated_by = currentUser['username']
             db_post.updated_date = datetime.now()
             db.commit()
@@ -201,7 +197,7 @@ def delete(request: Request, post_id: str, db: Session):
         print(e)
         raise HTTPException(status_code=404, detail=_(locale, "post.imposible_delete"))
     
-def update(request: Request, post_id: str, post: PostBase, db: Session):
+def update(request: Request, post_id: str, post: PostUpdated, db: Session):
     locale = request.headers["accept-language"].split(",")[0].split("-")[0];
     
     result = ResultObject() 
@@ -211,24 +207,8 @@ def update(request: Request, post_id: str, post: PostBase, db: Session):
     
     if db_post:
     
-        one_status = get_one_status(post.status_id, db=db)
-        if not one_status:
-            raise HTTPException(status_code=404, detail=_(locale, "status.not_found"))
-    
-        if db_post.title != post.title:
-            db_post.title = post.title
-        
         if db_post.summary != post.summary:    
             db_post.summary = post.summary
-            
-        if db_post.publication_date != post.publication_date:    
-            db_post.publication_date = post.publication_date
-            
-        if db_post.expire_date != post.expire_date:    
-            db_post.expire_date = post.expire_date
-            
-        if db_post.status_id != post.status_id:    
-            db_post.status_id = one_status.status.id
         
         db_post.updated_by = currentUser['username']
         db_post.updated_date = datetime.now()
@@ -246,45 +226,45 @@ def update(request: Request, post_id: str, post: PostBase, db: Session):
     else:
         raise HTTPException(status_code=404, detail=_(locale, "post.not_found"))
 
-def add_one_image(request, db: Session, postimage: PostImageCreate):
+def add_one_file(request, db: Session, postfile: PostFileCreate):
     locale = request.headers["accept-language"].split(",")[0].split("-")[0];
     
     result = ResultObject() 
     currentUser = get_current_user(request)
     
-    one_post = get_one(postimage.post_id, db=db)
+    one_post = get_one(postfile.post_id, db=db)
     if not one_post:
         raise HTTPException(status_code=404, detail=_(locale, "post.not_found"))
     
-    db_postimage = PostImages(post_id=postimage.post_id, image=postimage.image, created_by=currentUser['username'])
+    db_postfile = PostFiles(post_id=postfile.post_id, path=postfile.path, created_by=currentUser['username'])
     
     try:
-        db.add(db_postimage)
+        db.add(db_postfile)
         db.commit()
-        db.refresh(db_postimage)
+        db.refresh(db_postfile)
         return result
     except (Exception, SQLAlchemyError, IntegrityError) as e:
         print(e)
         msg = _(locale, "post.error_new_postimage")               
         raise HTTPException(status_code=403, detail=msg)
     
-def remove_one_image(request: Request, db: Session, postimage_id: str):
+def remove_one_file(request: Request, db: Session, postfile_id: str):
     locale = request.headers["accept-language"].split(",")[0].split("-")[0];
     
     result = ResultObject() 
     currentUser = get_current_user(request)
     
-    db_post_image = db.query(PostImages).filter(PostImages.id == postimage_id).first()
-    if not db_post_image:
-        raise HTTPException(status_code=404, detail=_(locale, "post.image_not_found"))
+    db_post_file = db.query(PostFiles).filter(PostFiles.id == postfile_id).first()
+    if not db_post_file:
+        raise HTTPException(status_code=404, detail=_(locale, "post.file_not_found"))
     
     try:
-        db.delete(db_post_image)
+        db.delete(db_post_file)
         db.commit()
         return result
     except (Exception, SQLAlchemyError, IntegrityError) as e:
         print(e)
-        msg = _(locale, "post.error_remove_postimage")               
+        msg = _(locale, "post.error_remove_postfile")               
         raise HTTPException(status_code=403, detail=msg)
     
 def add_one_likes(request, db: Session, postlike: PostLikeCreate):
@@ -331,24 +311,47 @@ def add_one_comment(request, db: Session, postcomment: PostCommentCreate):
         msg = _(locale, "post.error_new_postcomment")               
         raise HTTPException(status_code=403, detail=msg)
     
-def add_one_share(request, db: Session, postshare: PostShareCreate):
+def add_one_likes_at_comment(request, db: Session, commentlike: CommentLikeCreate):
     locale = request.headers["accept-language"].split(",")[0].split("-")[0];
     
     result = ResultObject() 
     currentUser = get_current_user(request)
     
-    one_post = get_one(postshare.post_id, db=db)
-    if not one_post:
-        raise HTTPException(status_code=404, detail=_(locale, "post.not_found"))
+    one_comment = get_one_postcomment(commentlike.comment_id, db=db)
+    if not one_comment:
+        raise HTTPException(status_code=404, detail=_(locale, "post.comment_not_found"))
     
-    db_postshare = PostShares(post_id=postshare.post_id, summary=postshare.summary, created_by=currentUser['username'])
+    db_commentlike = CommentLikes(comment_id=commentlike.comment_id, created_by=currentUser['username'])
     
     try:
-        db.add(db_postshare)
+        db.add(db_commentlike)
         db.commit()
-        db.refresh(db_postshare)
+        db.refresh(db_commentlike)
         return result
     except (Exception, SQLAlchemyError, IntegrityError) as e:
         print(e)
-        msg = _(locale, "post.error_new_postshare")               
+        msg = _(locale, "post.error_new_commentlike")               
         raise HTTPException(status_code=403, detail=msg)
+    
+def add_one_comment_at_comment(request, db: Session, commentcomment: CommentCommentCreate):
+    locale = request.headers["accept-language"].split(",")[0].split("-")[0];
+    
+    result = ResultObject() 
+    currentUser = get_current_user(request)
+    
+    one_post = get_one_postcomment(commentcomment.comment_id, db=db)
+    if not one_post:
+        raise HTTPException(status_code=404, detail=_(locale, "post.comment_not_found"))
+    
+    db_comment_comment = CommentComments(post_id=commentcomment.post_id, summary=commentcomment.summary, created_by=currentUser['username'])
+    
+    try:
+        db.add(db_comment_comment)
+        db.commit()
+        db.refresh(db_comment_comment)
+        return result
+    except (Exception, SQLAlchemyError, IntegrityError) as e:
+        print(e)
+        msg = _(locale, "post.error_new_commentcomment")               
+        raise HTTPException(status_code=403, detail=msg)
+    

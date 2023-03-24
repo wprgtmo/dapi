@@ -3,9 +3,10 @@
 import math
 import random
 
+from datetime import datetime
 from fastapi import HTTPException, Request
-from domino.models.user import Users
-from domino.schemas.user import UserCreate, UserShema, ChagePasswordSchema, UserBase, UserProfile
+from domino.models.user import Users, UserFollowers
+from domino.schemas.user import UserCreate, UserShema, ChagePasswordSchema, UserBase, UserProfile, UserFollowerBase
 from domino.schemas.result_object import ResultObject, ResultData
 from sqlalchemy.orm import Session
 from sqlalchemy.exc import SQLAlchemyError, IntegrityError
@@ -147,6 +148,12 @@ def get_one_by_id(user_id: str, db: Session):
 
 def get_one_by_username(username: str, db: Session):  
     return db.query(Users).filter(Users.username == username, Users.is_active == True).first()
+
+def get_one_follower(username: str, user_follower: str, db: Session):  
+    return db.query(UserFollowers).filter(UserFollowers.username == username, UserFollowers.user_follow == user_follower).first()
+
+def get_all_follower_by_user(username: str, db: Session):  
+    return db.query(UserFollowers).filter(UserFollowers.username == username, UserFollowers.is_active == True).all()
 
 def get_one_profile(request: Request, user_id: str, db: Session):
     locale = request.headers["accept-language"].split(",")[0].split("-")[0];
@@ -308,7 +315,7 @@ def update_one_profile(request: Request, user_id: str, user: UserProfile, db: Se
         if e.code == "gkpj":
             raise HTTPException(status_code=400, detail=_(locale, "users.already_exist"))
         
-def  change_password(request: Request, db: Session, password: ChagePasswordSchema):  
+def change_password(request: Request, db: Session, password: ChagePasswordSchema):  
     locale = request.headers["accept-language"].split(",")[0].split("-")[0];
     
     result = ResultObject()
@@ -349,3 +356,108 @@ def  change_password(request: Request, db: Session, password: ChagePasswordSchem
         
     else:
         raise HTTPException(status_code=405, detail=_(locale, "users.wrong_password"))
+
+def add_one_followers(request: Request, db: Session, userfollower: UserFollowerBase):  
+    locale = request.headers["accept-language"].split(",")[0].split("-")[0];
+    
+    currentUser = get_current_user(request)
+    result = ResultObject()
+    
+    one_user = get_one_by_username(username=currentUser['username'], db=db)
+        
+    if not one_user:
+        raise HTTPException(status_code=404, detail=_(locale, "users.not_found"))
+    
+    user_followers = get_one_by_username(username=userfollower.user_follow, db=db)
+    if not user_followers:
+        raise HTTPException(status_code=404, detail=_(locale, "users.not_found"))
+    
+    # verificar si no existe y ya esta desactivado
+    db_user_follower = get_one_follower(one_user.username, userfollower.user_follow, db=db)
+    if db_user_follower:
+        if db_user_follower.is_active == False:
+            db_user_follower.created_date=datetime.datetime.now()
+            db_user_follower.is_active = True
+    else:
+        db_user_follower = UserFollowers(username=one_user.username, user_follow=userfollower.user_follow, 
+                                         created_date=datetime.now(), is_active=True)
+        
+    try:
+        db.add(db_user_follower)
+        db.commit()
+        db.refresh(db_user_follower)
+        return result
+    except (Exception, SQLAlchemyError, IntegrityError) as e:
+        print(e)
+        msg = _(locale, "users.new_user_error")
+        if e.code == 'gkpj':
+            field_name = str(e.__dict__['orig']).split('"')[1].split('_')[1]
+            if field_name == 'username':
+                msg = msg + _(locale, "users.already_exist")
+        
+        raise HTTPException(status_code=403, detail=msg) 
+    
+def remove_one_followers(request: Request, db: Session, user_follower: str):  
+    locale = request.headers["accept-language"].split(",")[0].split("-")[0];
+    
+    currentUser = get_current_user(request)
+    result = ResultObject()
+    
+    db_user_follower = get_one_follower(currentUser['username'], user_follower, db=db)
+    if not db_user_follower:
+        raise HTTPException(status_code=404, detail=_(locale, "users.folowers_not_found"))
+    
+    db_user_follower.created_date=datetime.now()
+    db_user_follower.is_active = False
+        
+    try:
+        db.add(db_user_follower)
+        db.commit()
+        db.refresh(db_user_follower)
+        return result
+    except (Exception, SQLAlchemyError, IntegrityError) as e:
+        print(e)
+        msg = _(locale, "users.new_user_error")
+        if e.code == 'gkpj':
+            field_name = str(e.__dict__['orig']).split('"')[1].split('_')[1]
+            if field_name == 'username':
+                msg = msg + _(locale, "users.already_exist")
+        
+        raise HTTPException(status_code=403, detail=msg) 
+    
+    
+def get_all_followers(request: Request, db: Session):
+    locale = request.headers["accept-language"].split(",")[0].split("-")[0];
+    
+    currentUser = get_current_user(request)
+    result = ResultObject()
+    
+    str_query = "Select us.username, us.first_name || ' ' || us.last_name as full_name, us.photo " +\
+        "FROM enterprise.user_followers usf JOIN enterprise.users us ON usf.user_follow = us.username " +\
+        "WHERE usf.is_active = True and usf.username = '" + currentUser['username'] + "' ORDER BY created_date DESC "
+    
+    lst_data = db.execute(str_query)
+    result.data = [create_dict_row_follower(item) for item in lst_data]
+    
+    return result
+
+def get_all_not_followers(request: Request, db: Session):
+    locale = request.headers["accept-language"].split(",")[0].split("-")[0];
+    
+    currentUser = get_current_user(request)
+    result = ResultObject()
+    
+    str_query = "Select us.username, us.first_name || ' ' || us.last_name as full_name, us.photo " +\
+        "FROM enterprise.users us WHERE us.is_active = TRUE " +\
+        "AND username != '" + currentUser['username'] + "' AND username != 'domino' " +\
+        "AND us.username NOT IN (Select user_follow FROM enterprise.user_followers usf WHERE username = '" + currentUser['username'] + "') " +\
+        "LIMIT 5 "
+
+    lst_data = db.execute(str_query)
+    result.data = [create_dict_row_follower(item) for item in lst_data]
+    
+    return result
+
+def create_dict_row_follower(item):
+    
+    return {'username' : item['username'], 'full_name': item['full_name'], 'photo': item['photo'] if item['photo'] else ""}

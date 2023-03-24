@@ -1,12 +1,14 @@
 # Routes user.py
 
 from fastapi import APIRouter, Depends, HTTPException, Request
-from domino.schemas.user import UserShema, UserCreate, UserBase, ChagePasswordSchema, UserProfile
+from domino.schemas.user import UserShema, UserCreate, UserBase, ChagePasswordSchema, UserProfile, UserFollowerBase
 from domino.schemas.result_object import ResultObject
 from sqlalchemy.orm import Session
 from domino.app import get_db
 from typing import List, Dict
-from domino.services.users import get_all, get_one_by_id, delete, update, change_password, get_one_profile, update_one_profile
+from domino.services.users import get_all, get_one_by_id, delete, update, change_password, get_one_profile, update_one_profile, \
+    add_one_followers, remove_one_followers, get_all_followers, get_all_not_followers
+
 from starlette import status
 from domino.auth_bearer import JWTBearer
 import uuid
@@ -54,3 +56,25 @@ def reset_password(
     db: Session = Depends(get_db)
 ):
     return change_password(request=request, db=db, password=password)
+
+@user_route.post("/users/followers", response_model=ResultObject, summary="Add Followers at User")
+def add_followers(request:Request, userfollower: UserFollowerBase, db: Session = Depends(get_db)):
+    return add_one_followers(request=request, db=db, userfollower=userfollower)
+
+@user_route.delete("/users/followers/{user_name_follower}", response_model=ResultObject, summary="Remove Followers at User")
+def delete_followers(request:Request, user_name_follower: str, db: Session = Depends(get_db)):
+    return remove_one_followers(request=request, db=db, user_follower=user_name_follower)
+
+@user_route.get("/users/followers/", response_model=Dict, summary="Get list of Followers.")
+def get_followers(
+    request: Request,
+    db: Session = Depends(get_db)
+):
+    return get_all_followers(request=request, db=db)
+
+@user_route.get("/users/not_followers/", response_model=Dict, summary="Get list of followers suggestion.")
+def get_followers_suggestion(
+    request: Request,
+    db: Session = Depends(get_db)
+):
+    return get_all_not_followers(request=request, db=db)

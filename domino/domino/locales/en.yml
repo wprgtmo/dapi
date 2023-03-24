@@ -43,11 +43,6 @@ en:
     exist_name: 'Name of status exist.'
     error_new_status: 'Error new status.'
     not_found: 'Status not found.'
-  posttype:
-    exist_name: 'Name of status exist.'
-    error_new_post_type: 'Error new post type.'
-    already_exist: 'Exist Type of Post'
-    not_found: 'Status not found.'
   post:
     error_new_post: 'Error new post'
     not_found: 'Post not found.'
