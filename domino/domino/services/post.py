@@ -38,7 +38,6 @@ def get_all(request:Request, page: int, per_page: int, criteria_key: str, criter
     str_query += dict_query[criteria_key] if criteria_value else "" 
     
     result = get_result_count(page=page, per_page=per_page, str_count=str_count, db=db)
-    print(str_query)
     str_query += " ORDER BY created_date DESC " 
     
     if page != 0:
@@ -66,19 +65,22 @@ def get_list_post(request:Request, db: Session):
     
     str_query += " ORDER BY created_date DESC " 
     lst_data = db.execute(str_query)
-    result.data = [create_dict_row(item, current_date, db=db) for item in lst_data]
+    result.data = [create_dict_row(item, current_date, currentUser, db=db) for item in lst_data]
     
     return result
 
-def create_dict_row(item, current_date, db: Session):
+def create_dict_row(item, current_date, currentUser, db: Session):
     
     amount_like, amount_comments = get_amount_element_of_post(item['id'], db=db)
-    return {'id': item['id'], 'avatar': item['photo'] if item['photo'] else "", 
-            'summary': item['summary'] if item['summary'] else "",
+    return {'id': item['id'], 
+            'name': item['full_name'],
+            'avatar': item['photo'] if item['photo'] else "", 
             'elapsed': calculate_time(current_date, item['created_date']), 
-            'amount_like': amount_like, 'amount_comments': amount_comments, 
+            'comment': item['summary'] if item['summary'] else "",
+            'amountLike': amount_like, 'amountComment': amount_comments, 
             'comments': get_comments_of_post(item['id'], current_date, db=db),
-            'photos': get_files_of_post(item['id'], db=db)
+            'photos': get_files_of_post(item['id'], db=db),
+            'like': verify_likes(str(item['id']), currentUser['username'], db=db)
             }
 
 def calculate_time(current_date, star_date):
@@ -98,6 +100,14 @@ def calculate_time(current_date, star_date):
                 return str(minutes) + ' m'
             else:
                 return str(diferencia.seconds) + ' s'
+
+def verify_likes(post_id, username, db: Session):
+    
+    str_count = "SELECT count(id) FROM post.post_likes Where post_id = '" +\
+        post_id + "' and created_by = '" + username + "'"
+    
+    exist_like = db.execute(str_count).scalar()    
+    return True if exist_like else False
  
 def get_amount_element_of_post(post_id, db: Session):
     
