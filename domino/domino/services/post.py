@@ -55,7 +55,7 @@ def get_list_post(request:Request, db: Session):
     
     result = ResultObject() 
     current_date = datetime.now()
-    date_find = datetime.now() #- datetime
+    date_find = datetime.now() - timedelta(days=4)
     currentUser = get_current_user(request)
     
     str_query = "Select po.id, summary, us.first_name || ' ' || us.last_name as full_name, po.created_date, us.photo " +\
@@ -65,7 +65,7 @@ def get_list_post(request:Request, db: Session):
         "AND (usf.username = '" + currentUser['username'] + "' or po.created_by = 'domino' or po.created_by = '" + currentUser['username'] + "')"
     
     str_query += " ORDER BY created_date DESC " 
-    
+    print(str_query)
     lst_data = db.execute(str_query)
     result.data = [create_dict_row(item, current_date, db=db) for item in lst_data]
     
