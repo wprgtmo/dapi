@@ -24,7 +24,7 @@ class Post(Base):
     updated_date = Column(DateTime, nullable=False, default=datetime.now())
     is_active = Column(Boolean, nullable=False, default=True)
     
-    files = relationship("PostFiles")
+    paths = relationship("PostFiles")
     
     def dict(self):
         return {

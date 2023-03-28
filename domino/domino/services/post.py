@@ -170,10 +170,10 @@ def new(request, db: Session, post: PostBase):
     db_post = Post(summary=post.summary, created_by=currentUser['username'], updated_by=currentUser['username'],
                    is_active=True)
     
-    if post.files:
-        for item_file in post.files:
+    if post.paths:
+        for item_file in post.paths:
             post_file = PostFiles(path=item_file)
-            db_post.files.append(post_file)
+            db_post.paths.append(post_file)
             
     try:
         db.add(db_post)
