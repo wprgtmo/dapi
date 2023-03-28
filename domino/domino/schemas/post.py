@@ -6,7 +6,8 @@ from typing import Optional, List
 
 class PostBase(BaseModel):
     summary: Optional[str]
-    
+    files: List[str]
+   
     @validator('summary')
     def summary_not_empty(cls, summary):
         if not summary:

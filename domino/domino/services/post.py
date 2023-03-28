@@ -7,7 +7,7 @@ from unicodedata import name
 from fastapi import HTTPException
 from domino.models.post import Post, PostLikes, PostComments, PostFiles, CommentComments, CommentLikes
 from domino.schemas.post import PostBase, PostUpdated
-from domino.schemas.postelement import PostFileCreate, PostLikeCreate, PostCommentCreate, CommentCommentCreate, CommentLikeCreate, PostPathsCreate
+from domino.schemas.postelement import PostFileCreate, PostLikeCreate, PostCommentCreate, CommentCommentCreate, CommentLikeCreate
 from domino.schemas.result_object import ResultObject, ResultData
 from sqlalchemy.orm import Session
 from sqlalchemy.exc import SQLAlchemyError, IntegrityError
@@ -174,6 +174,12 @@ def new(request, db: Session, post: PostBase):
         db.add(db_post)
         db.commit()
         db.refresh(db_post)
+        if post.files:
+            for item_file in post.files:
+                post_file = PostFiles(path="/post/" + str(db_post.id) + "/" + str(item_file))
+                db_post.files.append(post_file)
+            db.add(db_post)
+            db.commit()    
         result.data = {'post_id': db_post.id}
         return result
     except (Exception, SQLAlchemyError, IntegrityError) as e:
@@ -231,22 +237,22 @@ def update(request: Request, post_id: str, post: PostUpdated, db: Session):
     else:
         raise HTTPException(status_code=404, detail=_(locale, "post.not_found"))
 
-def add_paths_at_post(request, db: Session, postpaths: PostPathsCreate):
+def add_one_file(request, db: Session, postfile: PostFileCreate):
     locale = request.headers["accept-language"].split(",")[0].split("-")[0];
     
     result = ResultObject() 
     currentUser = get_current_user(request)
     
-    one_post = get_one(postpaths.post_id, db=db)
+    one_post = get_one(postfile.post_id, db=db)
     if not one_post:
         raise HTTPException(status_code=404, detail=_(locale, "post.not_found"))
     
-    for item_path in postpaths.paths:
-        db_postfile = PostFiles(post_id=one_post.id, path=item_path)
-        db.add(db_postfile)
-        
+    db_postfile = PostFiles(post_id=postfile.post_id, path=postfile.path, created_by=currentUser['username'])
+    
     try:
+        db.add(db_postfile)
         db.commit()
+        db.refresh(db_postfile)
         return result
     except (Exception, SQLAlchemyError, IntegrityError) as e:
         print(e)
