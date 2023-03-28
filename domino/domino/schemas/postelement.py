@@ -12,7 +12,10 @@ class PosFileSchema(PostFileCreate):
     id: Optional[str]
     class Config:
         orm_mode = True
-                
+
+class PostPathsCreate(BaseModel):  
+    post_id: str
+    paths: List[str]            
 class PostLikeCreate(BaseModel):
     post_id: str
        

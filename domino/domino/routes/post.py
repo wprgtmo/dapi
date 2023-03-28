@@ -1,12 +1,12 @@
 from fastapi import APIRouter, Depends, HTTPException, Request
 from domino.schemas.post import PostBase, PostUpdated
-from domino.schemas.postelement import PostLikeCreate, PostCommentCreate, PostFileCreate, CommentCommentCreate, CommentLikeCreate
+from domino.schemas.postelement import PostLikeCreate, PostCommentCreate, PostFileCreate, CommentCommentCreate, CommentLikeCreate, PostPathsCreate
 from domino.schemas.result_object import ResultObject, ResultData
 from sqlalchemy.orm import Session
 from domino.app import get_db
 from typing import List, Dict
 from domino.services.post import get_all, new, get_one_by_id, delete, update, add_one_likes, add_one_comment, \
-    add_one_file, remove_one_file, add_one_likes_at_comment, add_one_comment_at_comment, get_list_post
+    add_paths_at_post, remove_one_file, add_one_likes_at_comment, add_one_comment_at_comment, get_list_post
 from starlette import status
 from domino.auth_bearer import JWTBearer
   
@@ -58,8 +58,8 @@ def add_comment(request:Request, postcomment: PostCommentCreate, db: Session = D
     return add_one_comment(request=request, postcomment=postcomment, db=db)
 
 @post_route.post("/postimage", response_model=ResultObject, summary="Add Path of File at Post.")
-def add_file(request:Request, postfile: PostFileCreate, db: Session = Depends(get_db)):
-    return add_one_file(request=request, postfile=postfile, db=db)
+def add_file(request:Request, postpath: PostPathsCreate, db: Session = Depends(get_db)):
+    return add_paths_at_post(request=request, postpaths=postpath, db=db)
 
 @post_route.delete("/postimage/{id}", response_model=ResultObject, summary="Remove File asociate at Post by its ID.")
 def delete_post_image(request:Request, id: str, db: Session = Depends(get_db)):
