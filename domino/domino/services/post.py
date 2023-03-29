@@ -146,7 +146,7 @@ def get_files_of_post(post_id: str, db: Session):
  
     lst_result = []
     for item_file in lst_files:
-        lst_result.append({'path': item_file['path']})
+        lst_result.append({'path': item_file['path'], 'type': get_ext_type(item_file['path'])})
     
     return lst_result
 
@@ -366,3 +366,14 @@ def add_one_comment_at_comment(request, db: Session, commentcomment: CommentComm
         msg = _(locale, "post.error_new_commentcomment")               
         raise HTTPException(status_code=403, detail=msg)
     
+def get_ext_type(path: str):
+    
+    dict_ext = {'bmp': 'image', 'gif': 'image', 'jpg': 'image', 'jpeg': 'image', 'png': 'image', 'tif': 'image', 'tiff': 'image',
+                'mp4': 'video', 'mov': 'video', 'wmv': 'video', 'avi': 'video', 'mkv': 'video', 'flv': 'video', 'webm': 'video', 'html5': 'video'} 
+    
+    pos_ext = path.rfind('.')
+   
+    ext = dict_ext[path[pos_ext+1:]] if pos_ext > 0 else 'no type'
+
+    return ext
+
