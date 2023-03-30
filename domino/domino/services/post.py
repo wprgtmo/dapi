@@ -57,13 +57,13 @@ def get_list_post(request:Request, db: Session):
     date_find = datetime.now() - timedelta(days=4)
     currentUser = get_current_user(request)
     
-    str_query = "Select po.id, summary, us.first_name || ' ' || us.last_name as full_name, po.created_date, us.photo " +\
+    str_query = "Select po.id, summary, us.first_name || ' ' || us.last_name as full_name, po.updated_date, us.photo " +\
         "FROM post.post po JOIN enterprise.users us ON po.created_by = us.username " +\
         "LEFT JOIN enterprise.user_followers usf ON usf.user_follow = po.created_by " +\
         "WHERE po.is_active=True AND po.updated_date >= '" + date_find.strftime('%Y-%m-%d') + "' " +\
         "AND (usf.username = '" + currentUser['username'] + "' or po.created_by = 'domino' or po.created_by = '" + currentUser['username'] + "')"
     
-    str_query += " ORDER BY created_date DESC " 
+    str_query += " ORDER BY updated_date DESC " 
     lst_data = db.execute(str_query)
     result.data = [create_dict_row(item, current_date, currentUser, db=db) for item in lst_data]
     
@@ -75,7 +75,7 @@ def create_dict_row(item, current_date, currentUser, db: Session):
     return {'id': item['id'], 
             'name': item['full_name'],
             'avatar': item['photo'] if item['photo'] else "", 
-            'elapsed': calculate_time(current_date, item['created_date']), 
+            'elapsed': calculate_time(current_date, item['updated_date']), 
             'comment': item['summary'] if item['summary'] else "",
             'amountLike': amount_like, 'amountComment': amount_comments, 
             'comments': get_comments_of_post(item['id'], current_date, db=db),
@@ -86,10 +86,8 @@ def create_dict_row(item, current_date, currentUser, db: Session):
 def calculate_time(current_date, star_date):
     
     diferencia = current_date - star_date
-    days = diferencia.days
-    
     if diferencia.days > 0:
-        return str(days) + ' d'
+        return str(diferencia.days) + ' d'
     else:
         hours = diferencia.seconds // 3600
         if hours > 0:
@@ -155,6 +153,9 @@ def get_one(post_id: str, db: Session):
 
 def get_one_postcomment(comment_id: str, db: Session):  
     return db.query(PostComments).filter(PostComments.id == comment_id).first()
+
+def get_one_like_by_user(post_id: str, user_name:str, db: Session): 
+    return db.query(PostLikes).filter(PostLikes.post_id == post_id, PostLikes.created_by == user_name).first()
 
 def get_one_by_id(post_id: str, db: Session): 
     result = ResultObject()  
@@ -250,6 +251,9 @@ def add_one_file(request, db: Session, postfile: PostFileCreate):
     db_postfile = PostFiles(post_id=postfile.post_id, path=postfile.path, created_by=currentUser['username'])
     
     try:
+        one_post.updated_by = currentUser['username']
+        one_post.updated_date = datetime.now()
+        
         db.add(db_postfile)
         db.commit()
         db.refresh(db_postfile)
@@ -281,6 +285,7 @@ def remove_one_file(request: Request, db: Session, postfile_id: str):
 def add_one_likes(request, db: Session, postlike: PostLikeCreate):
     locale = request.headers["accept-language"].split(",")[0].split("-")[0];
     
+    # verifico si tiene, si es positivo se lo quito, sino tiene se lo pongo.
     result = ResultObject() 
     currentUser = get_current_user(request)
     
@@ -288,13 +293,20 @@ def add_one_likes(request, db: Session, postlike: PostLikeCreate):
     if not one_post:
         raise HTTPException(status_code=404, detail=_(locale, "post.not_found"))
     
-    db_postlike = PostLikes(post_id=postlike.post_id, created_by=currentUser['username'])
-    
+    db_postlike = get_one_like_by_user(postlike.post_id, currentUser['username'], db=db)
     try:
-        db.add(db_postlike)
-        db.commit()
-        db.refresh(db_postlike)
+        one_post.updated_by = currentUser['username']
+        one_post.updated_date = datetime.now()
+        
+        if db_postlike:
+            db.delete(db_postlike)
+        else:
+            db_postlike = PostLikes(post_id=postlike.post_id, created_by=currentUser['username'])
+            db.add(db_postlike)
+            
+        db.commit()    
         return result
+    
     except (Exception, SQLAlchemyError, IntegrityError) as e:
         print(e)
         msg = _(locale, "post.error_new_postlike")               
@@ -310,6 +322,9 @@ def add_one_comment(request, db: Session, postcomment: PostCommentCreate):
     if not one_post:
         raise HTTPException(status_code=404, detail=_(locale, "post.not_found"))
     
+    one_post.updated_by = currentUser['username']
+    one_post.updated_date = datetime.now()
+        
     db_postcomment = PostComments(post_id=postcomment.post_id, summary=postcomment.summary, created_by=currentUser['username'])
     
     try:
@@ -332,6 +347,13 @@ def add_one_likes_at_comment(request, db: Session, commentlike: CommentLikeCreat
     if not one_comment:
         raise HTTPException(status_code=404, detail=_(locale, "post.comment_not_found"))
     
+    one_post = get_one(one_comment.post_id, db=db)
+    if not one_post:
+        raise HTTPException(status_code=404, detail=_(locale, "post.not_found"))
+    
+    one_post.updated_by = currentUser['username']
+    one_post.updated_date = datetime.now()
+        
     db_commentlike = CommentLikes(comment_id=commentlike.comment_id, created_by=currentUser['username'])
     
     try:
@@ -350,9 +372,16 @@ def add_one_comment_at_comment(request, db: Session, commentcomment: CommentComm
     result = ResultObject() 
     currentUser = get_current_user(request)
     
-    one_post = get_one_postcomment(commentcomment.comment_id, db=db)
-    if not one_post:
+    one_comment = get_one_postcomment(commentcomment.comment_id, db=db)
+    if not one_comment:
         raise HTTPException(status_code=404, detail=_(locale, "post.comment_not_found"))
+    
+    one_post = get_one(one_comment.post_id, db=db)
+    if not one_post:
+        raise HTTPException(status_code=404, detail=_(locale, "post.not_found"))
+    
+    one_post.updated_by = currentUser['username']
+    one_post.updated_date = datetime.now()
     
     db_comment_comment = CommentComments(post_id=commentcomment.post_id, summary=commentcomment.summary, created_by=currentUser['username'])
     
