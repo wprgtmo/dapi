@@ -21,8 +21,8 @@ def get_all(request:Request, page: int, per_page: int, criteria_key: str, criter
     locale = request.headers["accept-language"].split(",")[0].split("-")[0];
     
     str_count = "Select count(*) FROM post.post po LEFT JOIN enterprise.users us ON po.created_by = us.username "
-    str_query = "Select po.id, summary, us.first_name || ' ' || us.last_name as full_name, po.created_date, us.photo " +\
-        "FROM post.post po LEFT JOIN enterprise.users us ON po.created_by = us.username "
+    str_query = "Select po.id, summary, us.first_name || ' ' || us.last_name as full_name, po.created_date, us.photo, " +\
+        "us.id as user_id FROM post.post po LEFT JOIN enterprise.users us ON po.created_by = us.username "
 
     dict_query = {'summary': " WHERE summary ilike '%" + criteria_value + "%'",
                   'created_by': " WHERE created_by = '" + criteria_value + "'"
@@ -57,8 +57,8 @@ def get_list_post(request:Request, db: Session):
     date_find = datetime.now() - timedelta(days=4)
     currentUser = get_current_user(request)
     
-    str_query = "Select po.id, summary, us.first_name || ' ' || us.last_name as full_name, po.updated_date, us.photo " +\
-        "FROM post.post po JOIN enterprise.users us ON po.created_by = us.username " +\
+    str_query = "Select po.id, summary, us.first_name || ' ' || us.last_name as full_name, po.updated_date, us.photo, " +\
+        "us.id as user_id FROM post.post po JOIN enterprise.users us ON po.created_by = us.username " +\
         "LEFT JOIN enterprise.user_followers usf ON usf.user_follow = po.created_by " +\
         "WHERE po.is_active=True AND po.updated_date >= '" + date_find.strftime('%Y-%m-%d') + "' " +\
         "AND (usf.username = '" + currentUser['username'] + "' or po.created_by = 'domino' or po.created_by = '" + currentUser['username'] + "')"
@@ -73,6 +73,7 @@ def create_dict_row(item, current_date, currentUser, db: Session):
     
     amount_like, amount_comments = get_amount_element_of_post(item['id'], db=db)
     return {'id': item['id'], 
+            'user_id': item['user_id'],
             'name': item['full_name'],
             'avatar': item['photo'] if item['photo'] else "", 
             'elapsed': calculate_time(current_date, item['updated_date']), 
@@ -123,14 +124,15 @@ def get_amount_element_of_post(post_id, db: Session):
 def get_comments_of_post(post_id: str, current_date: datetime, db: Session):
     
     str_comments = "SELECT po.id, us.first_name || ' ' || us.last_name as full_name, us.photo, summary, " +\
-        "po.created_date FROM post.post_comments po " +\
+        "po.created_date, us.id as user_id FROM post.post_comments po " +\
         "LEFT JOIN enterprise.users us ON po.created_by = us.username " +\
-        "WHERE post_id = '" + post_id + "' ORDER BY created_date LIMIT 3"
+        "WHERE post_id = '" + post_id + "' ORDER BY po.created_date LIMIT 3 "
     lst_comments = db.execute(str_comments)
  
     lst_result = []
     for item_comment in lst_comments:
         lst_result.append({'id': item_comment['id'], 'name': item_comment['full_name'], 
+                           'user_id': item_comment['user_id'],
                            'avatar': item_comment['photo'] if item_comment['photo'] else "", 
                            'comment': item_comment['summary'] if item_comment['summary'] else "", 
                            'elapsed': calculate_time(current_date, item_comment['created_date'])})
