@@ -23,6 +23,8 @@ class Post(Base):
     updated_by = Column(String, ForeignKey("enterprise.users.username"), nullable=True)
     updated_date = Column(DateTime, nullable=False, default=datetime.now())
     is_active = Column(Boolean, nullable=False, default=True)
+    allow_comment = Column(Boolean, nullable=False, default=True)
+    show_count_like = Column(Boolean, nullable=False, default=True)
     
     files = relationship("PostFiles")
     
@@ -31,7 +33,9 @@ class Post(Base):
             "id": self.id,
             "summary": self.summary,
             'created_by': self.created_by,
-            "is_active": self.is_active
+            "is_active": self.is_active,
+            "allow_comment": self.allow_comment,
+            "show_count_like": self.show_count_like
             }
 
 class PostFiles(Base):

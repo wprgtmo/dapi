@@ -22,7 +22,8 @@ def get_all(request:Request, page: int, per_page: int, criteria_key: str, criter
     
     str_count = "Select count(*) FROM post.post po LEFT JOIN enterprise.users us ON po.created_by = us.username "
     str_query = "Select po.id, summary, us.first_name || ' ' || us.last_name as full_name, po.created_date, us.photo, " +\
-        "us.id as user_id FROM post.post po LEFT JOIN enterprise.users us ON po.created_by = us.username "
+        "us.id as user_id, po.allow_comment, po.show_count_like " +\
+        "FROM post.post po LEFT JOIN enterprise.users us ON po.created_by = us.username "
 
     dict_query = {'summary': " WHERE summary ilike '%" + criteria_value + "%'",
                   'created_by': " WHERE created_by = '" + criteria_value + "'"
@@ -58,7 +59,8 @@ def get_list_post(request:Request, db: Session):
     currentUser = get_current_user(request)
     
     str_query = "Select po.id, summary, us.first_name || ' ' || us.last_name as full_name, po.updated_date, us.photo, " +\
-        "us.id as user_id FROM post.post po JOIN enterprise.users us ON po.created_by = us.username " +\
+        "us.id as user_id , po.allow_comment, po.show_count_like " +\
+        "FROM post.post po JOIN enterprise.users us ON po.created_by = us.username " +\
         "LEFT JOIN enterprise.user_followers usf ON usf.user_follow = po.created_by " +\
         "WHERE po.is_active=True AND po.updated_date >= '" + date_find.strftime('%Y-%m-%d') + "' " +\
         "AND (usf.username = '" + currentUser['username'] + "' or po.created_by = 'domino' or po.created_by = '" + currentUser['username'] + "')"
@@ -81,7 +83,8 @@ def create_dict_row(item, current_date, currentUser, db: Session):
             'amountLike': amount_like, 'amountComment': amount_comments, 
             'comments': get_comments_of_post(item['id'], current_date, db=db),
             'photos': get_files_of_post(item['id'], db=db),
-            'like': verify_likes(str(item['id']), currentUser['username'], db=db)
+            'like': verify_likes(str(item['id']), currentUser['username'], db=db),
+            "allowComment": item['allow_comment'], "showCountLike": item['show_count_like']
             }
 
 def calculate_time(current_date, star_date):
@@ -171,7 +174,7 @@ def new(request, db: Session, post: PostBase):
     currentUser = get_current_user(request)
     
     db_post = Post(summary=post.summary, created_by=currentUser['username'], updated_by=currentUser['username'],
-                   is_active=True)
+                   is_active=True, allow_comment=post.allow_comment, show_count_like=post.show_count_like)
     
     try:
         db.add(db_post)
@@ -223,6 +226,9 @@ def update(request: Request, post_id: str, post: PostUpdated, db: Session):
     
         if db_post.summary != post.summary:    
             db_post.summary = post.summary
+        
+        db_post.allow_comment = post.allow_comment
+        db_post.show_count_like = post.show_count_like
         
         db_post.updated_by = currentUser['username']
         db_post.updated_date = datetime.now()
@@ -313,7 +319,59 @@ def add_one_likes(request, db: Session, postlike: PostLikeCreate):
         print(e)
         msg = _(locale, "post.error_new_postlike")               
         raise HTTPException(status_code=403, detail=msg)
+
+def update_one_allow_comment(request, db: Session, postlike: PostLikeCreate):
+    locale = request.headers["accept-language"].split(",")[0].split("-")[0];
     
+    # verifico si tiene, si es positivo se lo quito, sino tiene se lo pongo.
+    result = ResultObject() 
+    currentUser = get_current_user(request)
+    
+    one_post = get_one(postlike.post_id, db=db)
+    if not one_post:
+        raise HTTPException(status_code=404, detail=_(locale, "post.not_found"))
+    
+    try:
+        
+        one_post.allow_comment = False if one_post.allow_comment else True
+        
+        one_post.updated_by = currentUser['username']
+        one_post.updated_date = datetime.now()
+        
+        db.commit()    
+        return result
+    
+    except (Exception, SQLAlchemyError, IntegrityError) as e:
+        print(e)
+        msg = _(locale, "post.error_new_postallow_comment")               
+        raise HTTPException(status_code=403, detail=msg)
+    
+def update_one_show_count_like(request, db: Session, postlike: PostLikeCreate):
+    locale = request.headers["accept-language"].split(",")[0].split("-")[0];
+    
+    # verifico si tiene, si es positivo se lo quito, sino tiene se lo pongo.
+    result = ResultObject() 
+    currentUser = get_current_user(request)
+    
+    one_post = get_one(postlike.post_id, db=db)
+    if not one_post:
+        raise HTTPException(status_code=404, detail=_(locale, "post.not_found"))
+    
+    try:
+        
+        one_post.show_count_like = False if one_post.show_count_like else True
+        
+        one_post.updated_by = currentUser['username']
+        one_post.updated_date = datetime.now()
+        
+        db.commit()    
+        return result
+    
+    except (Exception, SQLAlchemyError, IntegrityError) as e:
+        print(e)
+        msg = _(locale, "post.error_new_postallow_comment")               
+        raise HTTPException(status_code=403, detail=msg)
+        
 def add_one_comment(request, db: Session, postcomment: PostCommentCreate):
     locale = request.headers["accept-language"].split(",")[0].split("-")[0];
     
@@ -385,12 +443,13 @@ def add_one_comment_at_comment(request, db: Session, commentcomment: CommentComm
     one_post.updated_by = currentUser['username']
     one_post.updated_date = datetime.now()
     
-    db_comment_comment = CommentComments(post_id=commentcomment.post_id, summary=commentcomment.summary, created_by=currentUser['username'])
+    db_comment_comment = CommentComments(comment_id=commentcomment.comment_id, summary=commentcomment.summary, created_by=currentUser['username'])
     
     try:
         db.add(db_comment_comment)
         db.commit()
         db.refresh(db_comment_comment)
+        result.data = db_comment_comment.dict()
         return result
     except (Exception, SQLAlchemyError, IntegrityError) as e:
         print(e)

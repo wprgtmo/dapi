@@ -6,7 +6,8 @@ from sqlalchemy.orm import Session
 from domino.app import get_db
 from typing import List, Dict
 from domino.services.post import get_all, new, get_one_by_id, delete, update, add_one_likes, add_one_comment, \
-    add_one_file, remove_one_file, add_one_likes_at_comment, add_one_comment_at_comment, get_list_post
+    add_one_file, remove_one_file, add_one_likes_at_comment, add_one_comment_at_comment, get_list_post, \
+    update_one_allow_comment, update_one_show_count_like
 from starlette import status
 from domino.auth_bearer import JWTBearer
   
@@ -52,6 +53,14 @@ def update_post(request:Request, id: str, post: PostUpdated, db: Session = Depen
 @post_route.post("/postlike", response_model=ResultObject, summary="Create a like at Post.")
 def add_like(request:Request, postlike: PostLikeCreate, db: Session = Depends(get_db)):
     return add_one_likes(request=request, postlike=postlike, db=db)
+
+@post_route.post("/allow_comment", response_model=ResultObject, summary="Update allow_comment property")
+def update_allow_comment(request:Request, postlike: PostLikeCreate, db: Session = Depends(get_db)):
+    return update_one_allow_comment(request=request, postlike=postlike, db=db)
+
+@post_route.post("/show_count_like", response_model=ResultObject, summary="Update show_count_like property")
+def update_show_count_like(request:Request, postlike: PostLikeCreate, db: Session = Depends(get_db)):
+    return update_one_show_count_like(request=request, postlike=postlike, db=db)
 
 @post_route.post("/postcomment", response_model=ResultObject, summary="Create a comment at Post.")
 def add_comment(request:Request, postcomment: PostCommentCreate, db: Session = Depends(get_db)):

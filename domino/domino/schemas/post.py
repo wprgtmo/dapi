@@ -6,6 +6,8 @@ from typing import Optional, List
 
 class PostBase(BaseModel):
     summary: Optional[str]
+    allow_comment: Optional[bool]
+    show_count_like: Optional[bool]
     files: List[str]
    
     @validator('summary')
@@ -27,6 +29,8 @@ class PostSchema(PostBase):
 
 class PostUpdated(BaseModel):
     summary: Optional[str]
+    allow_comment: Optional[bool]
+    show_count_like: Optional[bool]
     
     @validator('summary')
     def summary_not_empty(cls, summary):
