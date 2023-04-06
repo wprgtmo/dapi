@@ -391,6 +391,7 @@ def add_one_comment(request, db: Session, postcomment: PostCommentCreate):
         db.add(db_postcomment)
         db.commit()
         db.refresh(db_postcomment)
+        result.data = db_postcomment.dict()
         return result
     except (Exception, SQLAlchemyError, IntegrityError) as e:
         print(e)
