@@ -127,17 +127,19 @@ def get_amount_element_of_post(post_id, db: Session):
 def get_comments_of_post(post_id: str, current_date: datetime, db: Session):
     
     str_comments = "SELECT po.id, us.first_name || ' ' || us.last_name as full_name, us.photo, summary, " +\
-        "po.created_date, us.id as user_id FROM post.post_comments po " +\
+        "po.created_date, us.id as user_id, us.username FROM post.post_comments po " +\
         "LEFT JOIN enterprise.users us ON po.created_by = us.username " +\
         "WHERE post_id = '" + post_id + "' ORDER BY po.created_date DESC LIMIT 3 "
     lst_comments = db.execute(str_comments)
  
     lst_result = []
     for item_comment in lst_comments:
+        one_like_comment = get_one_like_at_comment(item_comment['id'], item_comment['username'], db=db)
         lst_result.append({'id': item_comment['id'], 'name': item_comment['full_name'], 
                            'user_id': item_comment['user_id'],
                            'avatar': item_comment['photo'] if item_comment['photo'] else "", 
                            'comment': item_comment['summary'] if item_comment['summary'] else "", 
+                           'like': True if one_like_comment else False,
                            'elapsed': calculate_time(current_date, item_comment['created_date'])})
     
     return lst_result
@@ -161,6 +163,9 @@ def get_one_postcomment(comment_id: str, db: Session):
 
 def get_one_like_by_user(post_id: str, user_name:str, db: Session): 
     return db.query(PostLikes).filter(PostLikes.post_id == post_id, PostLikes.created_by == user_name).first()
+
+def get_one_like_at_comment(post_comment_id: str, user_name:str, db: Session): 
+    return db.query(CommentLikes).filter(CommentLikes.comment_id == post_comment_id, CommentLikes.created_by == user_name).first()
 
 def get_one_by_id(post_id: str, db: Session): 
     result = ResultObject()  
