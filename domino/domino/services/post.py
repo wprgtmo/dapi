@@ -129,7 +129,7 @@ def get_comments_of_post(post_id: str, current_date: datetime, db: Session):
     str_comments = "SELECT po.id, us.first_name || ' ' || us.last_name as full_name, us.photo, summary, " +\
         "po.created_date, us.id as user_id FROM post.post_comments po " +\
         "LEFT JOIN enterprise.users us ON po.created_by = us.username " +\
-        "WHERE post_id = '" + post_id + "' ORDER BY po.created_date LIMIT 3 "
+        "WHERE post_id = '" + post_id + "' ORDER BY po.created_date DESC LIMIT 3 "
     lst_comments = db.execute(str_comments)
  
     lst_result = []
@@ -391,7 +391,7 @@ def add_one_comment(request, db: Session, postcomment: PostCommentCreate):
         db.add(db_postcomment)
         db.commit()
         db.refresh(db_postcomment)
-        result.data = db_postcomment.dict()
+        result.data = get_comments_of_post(postcomment.post_id, datetime.now(), db=db)
         return result
     except (Exception, SQLAlchemyError, IntegrityError) as e:
         print(e)
