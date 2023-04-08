@@ -139,6 +139,27 @@ def get_comments_of_post(post_id: str, current_date: datetime, db: Session):
                            'user_id': item_comment['user_id'],
                            'avatar': item_comment['photo'] if item_comment['photo'] else "", 
                            'comment': item_comment['summary'] if item_comment['summary'] else "", 
+                           'comments': get_comments_of_comment(item_comment['id'], current_date, db=db),
+                           'like': True if one_like_comment else False,
+                           'elapsed': calculate_time(current_date, item_comment['created_date'])})
+    
+    return lst_result
+
+def get_comments_of_comment(comment_id: str, current_date: datetime, db: Session):
+    
+    str_comments = "SELECT co.id, us.first_name || ' ' || us.last_name as full_name, us.photo, summary,co.created_by, " +\
+        "co.created_date, us.id as user_id, us.username FROM post.comment_comments co " +\
+        "LEFT JOIN enterprise.users us ON co.created_by = us.username " +\
+        "WHERE comment_id = '" + comment_id + "' ORDER BY co.created_date DESC LIMIT 3 "
+    lst_comments = db.execute(str_comments)
+ 
+    lst_result = []
+    for item_comment in lst_comments:
+        one_like_comment = get_one_like_at_comment(item_comment['id'], item_comment['username'], db=db)
+        lst_result.append({'id': item_comment['id'], 'name': item_comment['full_name'], 
+                           'user_id': item_comment['user_id'],
+                           'avatar': item_comment['photo'] if item_comment['photo'] else "", 
+                           'comment': item_comment['summary'] if item_comment['summary'] else "", 
                            'like': True if one_like_comment else False,
                            'elapsed': calculate_time(current_date, item_comment['created_date'])})
     
