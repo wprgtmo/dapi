@@ -6,8 +6,7 @@ from sqlalchemy.orm import Session
 from domino.app import get_db
 from typing import List, Dict
 from domino.services.post import get_all, new, get_one_by_id, delete, update, add_one_likes, add_one_comment, \
-    add_one_file, remove_one_file, add_one_likes_at_comment, add_one_comment_at_comment, get_list_post, \
-    update_one_allow_comment, update_one_show_count_like
+    add_one_file, remove_one_file, get_list_post, update_one_allow_comment, update_one_show_count_like
 from starlette import status
 from domino.auth_bearer import JWTBearer
   
@@ -73,11 +72,3 @@ def add_file(request:Request, postfile: PostFileCreate, db: Session = Depends(ge
 @post_route.delete("/postimage/{id}", response_model=ResultObject, summary="Remove File asociate at Post by its ID.")
 def delete_post_image(request:Request, id: str, db: Session = Depends(get_db)):
     return remove_one_file(request=request, db=db, postimage_id=str(id))
-
-@post_route.post("/commentlike", response_model=ResultObject, summary="Create a like at Comment.")
-def add_like_at_comment(request:Request, commentlike: CommentLikeCreate, db: Session = Depends(get_db)):
-    return add_one_likes_at_comment(request=request, commentlike=commentlike, db=db)
-
-@post_route.post("/commentcomment", response_model=ResultObject, summary="Create a comment at Comment")
-def add_comment_at_comment(request:Request, commentcomment: CommentCommentCreate, db: Session = Depends(get_db)):
-    return add_one_comment_at_comment(request=request, commentcomment=commentcomment, db=db)

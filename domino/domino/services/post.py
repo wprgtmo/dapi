@@ -438,19 +438,27 @@ def add_one_likes_at_comment(request, db: Session, commentlike: CommentLikeCreat
     if not one_post:
         raise HTTPException(status_code=404, detail=_(locale, "post.not_found"))
     
-    one_post.updated_by = currentUser['username']
-    one_post.updated_date = datetime.now()
-        
-    db_commentlike = CommentLikes(comment_id=commentlike.comment_id, created_by=currentUser['username'])
+    db_commentlike = get_one_like_at_comment(commentlike.comment_id, currentUser['username'], db=db)
     
     try:
-        db.add(db_commentlike)
-        db.commit()
-        db.refresh(db_commentlike)
+        one_post.updated_by = currentUser['username']
+        one_post.updated_date = datetime.now()
+        
+        one_comment.updated_by = currentUser['username']
+        one_comment.updated_date = datetime.now()
+        
+        if db_commentlike:
+            db.delete(db_commentlike)
+        else:
+            db_commentlike = CommentLikes(comment_id=commentlike.comment_id, created_by=currentUser['username'])
+            db.add(db_commentlike)
+            
+        db.commit()    
         return result
+    
     except (Exception, SQLAlchemyError, IntegrityError) as e:
         print(e)
-        msg = _(locale, "post.error_new_commentlike")               
+        msg = _(locale, "post.error_new_postlike")               
         raise HTTPException(status_code=403, detail=msg)
     
 def add_one_comment_at_comment(request, db: Session, commentcomment: CommentCommentCreate):
