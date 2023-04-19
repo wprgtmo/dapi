@@ -33,9 +33,9 @@ def create_event(request:Request, event: EventBase, db: Session = Depends(get_db
     return new(request=request, event=event, db=db)
 
 @event_route.delete("/event/{id}", response_model=ResultObject, summary="Deactivate a Event by its ID.")
-def delete_event(request:Request, id: int, db: Session = Depends(get_db)):
+def delete_event(request:Request, id: str, db: Session = Depends(get_db)):
     return delete(request=request, event_id=str(id), db=db)
     
 @event_route.put("/event/{id}", response_model=ResultObject, summary="Update a Event by its ID")
-def update_event(request:Request, id: int, event: EventBase, db: Session = Depends(get_db)):
+def update_event(request:Request, id: str, event: EventBase, db: Session = Depends(get_db)):
     return update(request=request, db=db, event_id=str(id), event=event)

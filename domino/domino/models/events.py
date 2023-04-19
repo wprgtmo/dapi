@@ -18,7 +18,6 @@ class Event(Base):
     
     id = Column(String, primary_key=True, default=generate_uuid)
     name = Column(String(100), nullable=False)
-    package_id = Column(Integer, ForeignKey("resources.packages.id"), nullable=False)
     start_date = Column(Date, nullable=False)
     close_date = Column(Date, nullable=False)
     registration_date  = Column(Date, nullable=False)
@@ -37,7 +36,6 @@ class Event(Base):
         return {
             "id": self.id,
             "name": self.name,
-            "package_id": self.package_id,
             "start_date": self.start_date,
             "close_date": self.close_date,
             "registration_date": self.registration_date,
@@ -47,6 +45,5 @@ class Event(Base):
             "summary": self.comments,
             "image": self.image,
             "status_id": self.status,
-            "photo": self.photo,
-            "city_id": self.city_id
+            "photo": self.photo
         }
