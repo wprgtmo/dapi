@@ -25,7 +25,7 @@ class Event(Base):
     city_id = Column(Integer, ForeignKey("resources.city.id"), nullable=False)
     main_location = Column(String(255), nullable=True)
     summary = Column(Text, nullable=True)
-    image = Column(String(100), nullable=True)
+    image = Column(Text, nullable=True)
     status_id  = Column(Integer, ForeignKey("resources.entities_status.id"), nullable=False)
     created_by = Column(String, ForeignKey("enterprise.users.username"), nullable=False)
     created_date = Column(Date, nullable=False, default=date.today())
