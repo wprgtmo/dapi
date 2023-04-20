@@ -88,7 +88,7 @@ def new(request, db: Session, event: EventBase):
     if not one_status:
         raise HTTPException(status_code=404, detail=_(locale, "status.not_found"))
     
-    verify_dates(event.start_date, event.close_date, event.registration_date, locale)
+    verify_dates(event.start_date, event.close_date, locale)
     
     db_event = Event(name=event.name, summary=event.summary, start_date=event.start_date, 
                      image=event.image, close_date=event.close_date,
@@ -106,13 +106,13 @@ def new(request, db: Session, event: EventBase):
         msg = _(locale, "event.error_new_event")               
         raise HTTPException(status_code=403, detail=msg)
 
-def verify_dates(start_date, close_date, registration_date, locale):
+def verify_dates(start_date, close_date, locale):
     
     if start_date > close_date:
         raise HTTPException(status_code=404, detail=_(locale, "event.start_date_incorrect"))
     
-    if registration_date > start_date:
-        raise HTTPException(status_code=404, detail=_(locale, "event.registration_date_incorrect"))
+    # if registration_date > start_date:
+    #     raise HTTPException(status_code=404, detail=_(locale, "event.registration_date_incorrect"))
     
     return True
  
