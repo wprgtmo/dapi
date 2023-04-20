@@ -92,7 +92,7 @@ def new(request, db: Session, event: EventBase):
     
     db_event = Event(name=event.name, summary=event.summary, start_date=event.start_date, 
                      image=event.image, close_date=event.close_date,
-                     registration_date=event.registration_date, registration_price=event.registration_price,
+                     registration_date=event.start_date, registration_price=float(0.00), # event.registration_price,
                      city_id=event.city_id, main_location=event.main_location, status_id=one_status.id,
                      created_by=currentUser['username'], updated_by=currentUser['username'])
     
@@ -169,11 +169,11 @@ def update(request: Request, event_id: str, event: EventBase, db: Session):
         if event.close_date and db_event.close_date != event.close_date:    
             db_event.close_date = event.close_date
             
-        if event.registration_date and db_event.registration_date != event.registration_date:    
-            db_event.registration_date = event.registration_date
+        # if event.registration_date and db_event.registration_date != event.registration_date:    
+        #     db_event.registration_date = event.registration_date
             
-        if event.registration_price and db_event.registration_price != event.registration_price:    
-            db_event.registration_price = event.registration_price
+        # if event.registration_price and db_event.registration_price != event.registration_price:    
+        #     db_event.registration_price = event.registration_price
             
         if event.city_id and db_event.city_id != event.city_id:    
             db_event.city_id = event.city_id

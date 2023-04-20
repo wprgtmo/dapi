@@ -12,9 +12,9 @@ class EventBase(BaseModel):
     
     start_date: Optional[date] = date.today()
     close_date: Optional[date] = date.today()
-    registration_date: Optional[date] = date.today()
+    # registration_date: Optional[date] = date.today()
     
-    registration_price: Optional[float] = float(0.00)
+    # registration_price: Optional[float] = float(0.00)
     image: Optional[str]
   
     @validator('name')
