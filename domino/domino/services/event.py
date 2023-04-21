@@ -1,4 +1,5 @@
 import math
+import uuid
 
 from datetime import datetime
 from fastapi import HTTPException, Request
@@ -90,9 +91,12 @@ def new(request, db: Session, event: EventBase):
     
     verify_dates(event.start_date, event.close_date, locale)
     
-    db_event = Event(name=event.name, summary=event.summary, start_date=event.start_date, 
+    id = str(uuid.uuid4())
+    image = "/events/" + str(currentUser['user_id']) + "/" + str(id) + "/" + str(event.image)
+    
+    db_event = Event(id=id, name=event.name, summary=event.summary, start_date=event.start_date, 
                      close_date=event.close_date, registration_date=event.start_date, 
-                     registration_price=float(0.00), # event.registration_price,
+                     image=image, registration_price=float(0.00), # event.registration_price,
                      city_id=event.city_id, main_location=event.main_location, status_id=one_status.id,
                      created_by=currentUser['username'], updated_by=currentUser['username'])
     
@@ -100,23 +104,9 @@ def new(request, db: Session, event: EventBase):
         db.add(db_event)
         db.commit()
         db.refresh(db_event)
-        if event.image:
-            db_event.imagen = "/events/" + str(currentUser['user_id']) + "/" + str(db_event.id) + "/" + str(event.image)
-            print('imagen')
-            print(db_event.imagen)
-            db.add(db_event)
-            db.commit()   
-            db.refresh(db_event) 
-            print('imagen2')
-            print(db_event.imagen)
-            print({'id': db_event.id})
-            one_event = get_one(db_event.id, db=db)
-            print('imagen3')
-            print(one_event.imagen)
-            print('aqui')
-            print(len(one_event.imagen))
-            result.data = {'id': db_event.id}
-            return result
+        result.data = {'id': id}
+        return result
+        
     except (Exception, SQLAlchemyError, IntegrityError) as e:
         print(e)
         msg = _(locale, "event.error_new_event")               
