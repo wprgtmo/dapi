@@ -1,35 +1,48 @@
 """coding=utf-8."""
- 
-from datetime import datetime
+
+from datetime import datetime, date
 from pydantic import BaseModel, validator
 from typing import Optional, List
 
  
 class TourneyBase(BaseModel):
     name: str
-    price: float
-    number_individual_tourney: Optional[int]
-    number_pairs_tourney: Optional[int]
-    number_team_tourney: Optional[int]
+    event_id: str
+    modality: str
+    summary: Optional[str]
+    
+    start_date: Optional[date] = date.today()
+    close_date: Optional[date] = date.today()
+    
+    image: Optional[str]
+    manage_id: Optional[str]
    
     @validator('name')
     def name_not_empty(cls, name):
         if not name:
-            raise ValueError('Nombre de Paquete es Requerido')
+            raise ValueError('Nombre de Torneo es Requerido')
         return name
     
-    @validator('price')
-    def price_not_empty(cls, price):
-        if price and price < 0:
-            raise ValueError('Precio del Paquete es Requerido')
-        return price
+    @validator('event_id')
+    def event_id_not_empty(cls, event_id):
+        if not event_id:
+            raise ValueError('Id del Evento es Requerida')
+        return event_id
     
+    @validator('modality')
+    def modality_not_empty(cls, modality):
+        if not modality:
+            raise ValueError('Modalidad del torneo es Requerida')
+        return modality
     
 class TourneySchema(TourneyBase):
     id: Optional[int]
-    is_active: bool = True
-    created_date: datetime = datetime.today()
+    
+    status_id: int
     created_by: str
+    created_date: datetime = datetime.today()
+    updated_by: str
+    updated_date: datetime = datetime.today()
     
     class Config:
         orm_mode = True
