@@ -2,6 +2,7 @@
 """coding=utf-8."""
 
 import uuid
+from datetime import date
 from sqlalchemy import Column, ForeignKey
 from sqlalchemy.sql.sqltypes import String, Boolean, Integer, Date, Text, Float
 from ..config.db import Base
@@ -19,20 +20,16 @@ class Tourney(Base):
     event_id = Column(String, ForeignKey("events.events.id"), nullable=False)
     modality = Column(String(30), nullable=False)
     name = Column(String(100), nullable=True)
-    comments = Column(Text, nullable=True)
+    summary = Column(Text, nullable=True)
     start_date = Column(Date, nullable=False)
     close_date = Column(Date, nullable=False)
     status_id  = Column(Integer, ForeignKey("resources.entities_status.id"), nullable=False)
-    image = Column(String(100), nullable=True)
-    manage_id = Column(String, ForeignKey("enterprise.users.id"), nullable=False)
-    players_number = Column(Integer, default=4)  # jugadores guardar para las estadísticas
-    referees_number = Column(Integer, default=0)  # arbitros
-    tables_number = Column(Integer, default=0)
-    round_number = Column(Integer, default=0)
-    created_by = Column(String, ForeignKey("enterprise.users.id"), nullable=False)
-    created_date = Column(Date, nullable=False)
-    updated_date = Column(Date, nullable=False)
-    updated_by = Column(String, ForeignKey("enterprise.users.id"), nullable=False)
+    image = Column(Text, nullable=True)
+    manage_id = Column(String, ForeignKey("enterprise.users.username"), nullable=False)
+    created_by = Column(String, ForeignKey("enterprise.users.username"), nullable=False)
+    created_date = Column(Date, nullable=False, default=date.today())
+    updated_date = Column(Date, nullable=False, default=date.today())
+    updated_by = Column(String, ForeignKey("enterprise.users.username"), nullable=False)
     
     def dict(self):
         return {
@@ -40,12 +37,11 @@ class Tourney(Base):
             "event_id": self.event_id,
             "modality": self.modality,
             "name": self.name,
-            "comments": self.comments,
+            "summary": self.summary,
             "start_date": self.start_date,
             "close_date": self.close_date,
             "status_id": self.status_id,
             "image": self.image,
-            "image": self.birthdate,
             "manage_id": self.manage_id
         }
     
