@@ -22,11 +22,12 @@ def get_all(request:Request, page: int, per_page: int, criteria_key: str, criter
     
     str_from = "FROM events.events eve " +\
         "JOIN resources.entities_status sta ON sta.id = eve.status_id " +\
-        "JOIN resources.city city ON city.id = eve.city_id"
+        "JOIN resources.city city ON city.id = eve.city_id " +\
+        "JOIN resources.country country ON country.id = city.country_id "
         
     str_count = "Select count(*) " + str_from
     str_query = "Select eve.id, eve.name, start_date, close_date, registration_date, registration_price, city.name as city_name, " +\
-        "main_location, summary, image, eve.status_id, sta.name as status_name " + str_from
+        "main_location, summary, image, eve.status_id, sta.name as status_name, country.id as country_id, city.id  as city_id " + str_from
     
     str_where = " WHERE sta.name != 'CANCELLED' "  
     
@@ -51,7 +52,7 @@ def get_all(request:Request, page: int, per_page: int, criteria_key: str, criter
     result = get_result_count(page=page, per_page=per_page, str_count=str_count, db=db)
     
     str_query += " ORDER BY start_date " 
-    
+    print(str_query)
     if page != 0:
         str_query += "LIMIT " + str(per_page) + " OFFSET " + str(page*per_page-per_page)
      
@@ -64,7 +65,8 @@ def create_dict_row(item, page, db: Session):
     
     new_row = {'id': item['id'], 'name': item['name'], 
                'startDate': item['start_date'], 'endDate': item['close_date'], 
-               'city': item['city_name'], 'campus': item['main_location'], 
+               'country': item['country_id'], 'city': item['city_id'],
+               'city_name': item['city_name'], 'campus': item['main_location'], 
                'summary' : item['summary'],
                'photo' : item['image']}
     if page != 0:
