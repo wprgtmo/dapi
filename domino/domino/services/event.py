@@ -106,7 +106,7 @@ def new(request, db: Session, event: EventBase):
         db.refresh(db_event)
         result.data = {'id': id}
         return result
-        
+       
     except (Exception, SQLAlchemyError, IntegrityError) as e:
         print(e)
         msg = _(locale, "event.error_new_event")               

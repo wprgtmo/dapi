@@ -1,5 +1,6 @@
 import math
 import time
+import uuid
 
 from datetime import datetime, timedelta
 from fastapi import HTTPException, Request
@@ -199,20 +200,21 @@ def new(request, db: Session, post: PostBase):
     result = ResultObject() 
     currentUser = get_current_user(request)
     
-    db_post = Post(summary=post.summary, created_by=currentUser['username'], updated_by=currentUser['username'],
+    id = str(uuid.uuid4())
+    
+    db_post = Post(id=id, summary=post.summary, created_by=currentUser['username'], updated_by=currentUser['username'],
                    is_active=True, allow_comment=post.allow_comment, show_count_like=post.show_count_like)
     
+    if post.files:
+        for item_file in post.files:
+            post_file = PostFiles(path="/post/" + str(id) + "/" + str(item_file))
+            db_post.files.append(post_file)
+            
     try:
         db.add(db_post)
         db.commit()
         db.refresh(db_post)
-        if post.files:
-            for item_file in post.files:
-                post_file = PostFiles(path="/post/" + str(db_post.id) + "/" + str(item_file))
-                db_post.files.append(post_file)
-            db.add(db_post)
-            db.commit()    
-        result.data = {'post_id': db_post.id}
+        result.data = {'post_id': id}
         return result
     except (Exception, SQLAlchemyError, IntegrityError) as e:
         print(e)
