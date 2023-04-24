@@ -52,7 +52,6 @@ def get_all(request:Request, page: int, per_page: int, criteria_key: str, criter
     result = get_result_count(page=page, per_page=per_page, str_count=str_count, db=db)
     
     str_query += " ORDER BY start_date " 
-    print(str_query)
     if page != 0:
         str_query += "LIMIT " + str(per_page) + " OFFSET " + str(page*per_page-per_page)
      
@@ -168,8 +167,10 @@ def update(request: Request, event_id: str, event: EventBase, db: Session):
         if event.summary and db_event.summary != event.summary:    
             db_event.summary = event.summary
             
-        if event.image and db_event.image != event.image:    
-            db_event.image = event.image
+        if event.image:
+            image = "/events/" + str(currentUser['user_id']) + "/" + str(db_event.id) + "/" + str(event.image)
+            if db_event.image != event.image:   
+                db_event.image = image
             
         if event.start_date and db_event.start_date != event.start_date:    
             db_event.start_date = event.start_date
