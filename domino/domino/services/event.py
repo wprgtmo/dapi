@@ -169,7 +169,7 @@ def update(request: Request, event_id: str, event: EventBase, db: Session):
             
         if event.image:
             image = "/events/" + str(currentUser['user_id']) + "/" + str(db_event.id) + "/" + str(event.image)
-            if db_event.image != event.image:   
+            if db_event.image != image:   
                 db_event.image = image
             
         if event.start_date and db_event.start_date != event.start_date:    
