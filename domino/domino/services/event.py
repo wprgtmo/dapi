@@ -70,6 +70,7 @@ def create_dict_row(item, page, db: Session):
                'photo' : item['image']}
     if page != 0:
         new_row['selected'] = False
+        
     return new_row
 
 def get_one(event_id: str, db: Session):  

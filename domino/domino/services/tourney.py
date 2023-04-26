@@ -16,7 +16,7 @@ from domino.functions_jwt import get_current_user
 from domino.services.status import get_one_by_name, get_one as get_one_status
 from domino.app import _
 from domino.services.utils import get_result_count
-from domino.services.event import get_one as get_one_event
+from domino.services.event import get_one as get_one_event, get_all as get_all_event
             
 def get_all(request:Request, page: int, per_page: int, criteria_key: str, criteria_value: str, db: Session):  
     locale = request.headers["accept-language"].split(",")[0].split("-")[0];
@@ -94,7 +94,6 @@ def get_all_by_event_id(event_id: str, db: Session):
         "tou.status_id, tou.image, tou.manage_id,sta.name as status_name, us.first_name || ' ' || us.last_name as full_name " + str_from
     
     str_query += " WHERE sta.name != 'CANCELLED' and event_id = '" + str(event_id) + "' ORDER BY start_date "  
-    print (str_query)
     lst_data = db.execute(str_query)
     result.data = [create_dict_row(item, 0, db=db) for item in lst_data]
     
@@ -220,3 +219,29 @@ def update(request: Request, tourney_id: str, tourney: TourneyBase, db: Session)
             
     else:
         raise HTTPException(status_code=404, detail=_(locale, "tourney.not_found"))
+
+def get_all_data_event(request:Request, page: int, per_page: int, criteria_key: str, criteria_value: str, db: Session):  
+    
+    dict_result = get_all_event(request, page, per_page, criteria_key, criteria_value, db)
+    for item in dict_result.data:
+        item['tourney'] = get_lst_tourney_by_event_id(item['id'], db=db)
+    
+    return dict_result
+
+def get_lst_tourney_by_event_id(event_id: str, db: Session): 
+    
+    lst_return = []
+    
+    str_from = "FROM events.tourney tou " +\
+        "JOIN events.events eve ON eve.id = tou.event_id " +\
+        "JOIN resources.entities_status sta ON sta.id = tou.status_id " +\
+        "LEFT JOIN enterprise.users us ON us.username = tou.manage_id "
+    
+    str_query = "Select tou.id, event_id, eve.name as event_name, tou.modality, tou.name, tou.summary, tou.start_date, tou.close_date, " +\
+        "tou.status_id, tou.image, tou.manage_id,sta.name as status_name, us.first_name || ' ' || us.last_name as full_name " + str_from
+    
+    str_query += " WHERE sta.name != 'CANCELLED' and event_id = '" + str(event_id) + "' ORDER BY start_date "  
+    lst_data = db.execute(str_query)
+    lst_return = [create_dict_row(item, 0, db=db) for item in lst_data]
+    
+    return lst_return

@@ -4,7 +4,7 @@ from domino.schemas.result_object import ResultObject
 from sqlalchemy.orm import Session
 from domino.app import get_db
 from typing import List, Dict
-from domino.services.tourney import get_all, new, get_one_by_id, delete, update, get_all_by_event_id
+from domino.services.tourney import get_all, new, get_one_by_id, delete, update, get_all_by_event_id, get_all_data_event
 from starlette import status
 from domino.auth_bearer import JWTBearer
   
@@ -13,8 +13,8 @@ tourney_route = APIRouter(
     dependencies=[Depends(JWTBearer())]   
 )
 
-@tourney_route.get("/tourney", response_model=Dict, summary="Obtain a list of Tourney.")
-def get_post(
+@tourney_route.get("/tourney/", response_model=Dict, summary="Obtain a list of Tourney.")
+def get_tourney(
     request: Request,
     page: int = 1, 
     per_page: int = 6, 
@@ -23,6 +23,18 @@ def get_post(
     db: Session = Depends(get_db)
 ):
     return get_all(request=request, page=page, per_page=per_page, criteria_key=criteria_key, criteria_value=criteria_value, db=db)
+
+@tourney_route.get("/event/", response_model=Dict, summary="Obtain a list of Eventos with tourney.")
+def get_all_event(
+    request: Request,
+    page: int = 1, 
+    per_page: int = 6, 
+    criteria_key: str = "",
+    criteria_value: str = "",
+    db: Session = Depends(get_db)
+):
+    return get_all_data_event(request=request, page=page, per_page=per_page, criteria_key=criteria_key, criteria_value=criteria_value, db=db)
+
 
 @tourney_route.get("/tourney/event/{event_id}", response_model=ResultObject, summary="Get List of Tourney for Event.")
 def get_by_event(event_id: str, db: Session = Depends(get_db)):
