@@ -56,20 +56,23 @@ def get_all(request:Request, page: int, per_page: int, criteria_key: str, criter
         str_query += "LIMIT " + str(per_page) + " OFFSET " + str(page*per_page-per_page)
      
     lst_data = db.execute(str_query)
-    result.data = [create_dict_row(item, page, db=db) for item in lst_data]
+    result.data = [create_dict_row(item, page, db=db, incluye_tourney=True) for item in lst_data]
     
     return result
 
-def create_dict_row(item, page, db: Session):
+def create_dict_row(item, page, db: Session, incluye_tourney=False):
     
     new_row = {'id': item['id'], 'name': item['name'], 
                'startDate': item['start_date'], 'endDate': item['close_date'], 
                'country': item['country_id'], 'city': item['city_id'],
                'city_name': item['city_name'], 'campus': item['main_location'], 
                'summary' : item['summary'],
-               'photo' : item['image']}
+               'photo' : item['image'], 'tourney':[]}
     if page != 0:
         new_row['selected'] = False
+    
+    if incluye_tourney:
+        new_row['tourney'] = get_lst_tourney_by_event_id(item['id'], db=db)
         
     return new_row
 
@@ -206,3 +209,31 @@ def update(request: Request, event_id: str, event: EventBase, db: Session):
             
     else:
         raise HTTPException(status_code=404, detail=_(locale, "event.not_found"))
+
+def get_lst_tourney_by_event_id(event_id: str, db: Session): 
+    
+    lst_return = []
+    
+    str_from = "FROM events.tourney tou " +\
+        "JOIN events.events eve ON eve.id = tou.event_id " +\
+        "JOIN resources.entities_status sta ON sta.id = tou.status_id " +\
+        "LEFT JOIN enterprise.users us ON us.username = tou.manage_id "
+    
+    str_query = "Select tou.id, event_id, eve.name as event_name, tou.modality, tou.name, tou.summary, tou.start_date, tou.close_date, " +\
+        "tou.status_id, tou.image, tou.manage_id,sta.name as status_name, us.first_name || ' ' || us.last_name as full_name " + str_from
+    
+    str_query += " WHERE sta.name != 'CANCELLED' and event_id = '" + str(event_id) + "' ORDER BY start_date "  
+    lst_data = db.execute(str_query)
+    lst_return = [create_dict_row_tourney(item) for item in lst_data]
+    
+    return lst_return
+
+def create_dict_row_tourney(item):
+    
+    new_row = {'id': item['id'], 'event_id': item['event_id'], 'event_name': item['event_name'], 'name': item['name'], 
+               'modality': item['modality'], 'summary' : item['summary'], 'photo' : item['image'],
+               'startDate': item['start_date'], 'endDate': item['close_date'], 
+               'manage_user': item['full_name'] 
+               }
+       
+    return new_row
