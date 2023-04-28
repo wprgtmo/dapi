@@ -23,12 +23,11 @@ def get_all(request:Request, page: int, per_page: int, criteria_key: str, criter
     
     str_from = "FROM events.tourney tou " +\
         "JOIN events.events eve ON eve.id = tou.event_id " +\
-        "JOIN resources.entities_status sta ON sta.id = tou.status_id " +\
-        "JOIN enterprise.users us ON us.id = tou.manage_id "
+        "JOIN resources.entities_status sta ON sta.id = tou.status_id " 
     
     str_count = "Select count(*) " + str_from
-    str_query = "Select tou.id, event_id, eve.name as event_name, tou.modality, tou.name, tou.summary, tou.start_date, tou.close_date, " +\
-        "tou.status_id, tou.image, tou.manage_id,sta.name as status_name, us.first_name || ' ' || us.last_name as full_name " + str_from
+    str_query = "Select tou.id, event_id, eve.name as event_name, tou.modality, tou.name, tou.summary, tou.start_date, " +\
+        "tou.status_id, sta.name as status_name " + str_from
     
     str_where = " WHERE sta.name != 'CANCELLED' "  
     
@@ -65,9 +64,7 @@ def get_all(request:Request, page: int, per_page: int, criteria_key: str, criter
 def create_dict_row(item, page, db: Session):
     
     new_row = {'id': item['id'], 'event_id': item['event_id'], 'event_name': item['event_name'], 'name': item['name'], 
-               'modality': item['modality'], 'summary' : item['summary'], 'photo' : item['image'],
-               'startDate': item['start_date'], 'endDate': item['close_date'], 
-               'manage_user': item['full_name'] 
+               'modality': item['modality'], 'summary' : item['summary'], 'startDate': item['start_date'] 
                }
        
     if page != 0:
@@ -87,11 +84,10 @@ def get_all_by_event_id(event_id: str, db: Session):
     
     str_from = "FROM events.tourney tou " +\
         "JOIN events.events eve ON eve.id = tou.event_id " +\
-        "JOIN resources.entities_status sta ON sta.id = tou.status_id " +\
-        "LEFT JOIN enterprise.users us ON us.username = tou.manage_id "
+        "JOIN resources.entities_status sta ON sta.id = tou.status_id "
     
-    str_query = "Select tou.id, event_id, eve.name as event_name, tou.modality, tou.name, tou.summary, tou.start_date, tou.close_date, " +\
-        "tou.status_id, tou.image, tou.manage_id,sta.name as status_name, us.first_name || ' ' || us.last_name as full_name " + str_from
+    str_query = "Select tou.id, event_id, eve.name as event_name, tou.modality, tou.name, tou.summary, tou.start_date, " +\
+        "tou.status_id, sta.name as status_name " + str_from
     
     str_query += " WHERE sta.name != 'CANCELLED' and event_id = '" + str(event_id) + "' ORDER BY start_date "  
     lst_data = db.execute(str_query)
@@ -109,20 +105,14 @@ def new(request, db: Session, tourney: TourneyBase):
     if not one_status:
         raise HTTPException(status_code=404, detail=_(locale, "status.not_found"))
     
-    verify_dates(tourney.start_date, tourney.close_date, locale)
-    
     id = str(uuid.uuid4())
-    image = "/events/tourney/" + str(currentUser['user_id']) + "/" + str(id) + "/" + str(tourney.image)
     
     one_event = get_one_event(tourney.event_id, db=db)
     if one_event.status_id != one_status.id:
         raise HTTPException(status_code=404, detail=_(locale, "event.event_closed"))
     
-    manage_id = tourney.manage_id if tourney.manage_id else currentUser['username']
-    
     db_tourney = Tourney(id=id, event_id=tourney.event_id, modality=tourney.modality, name=tourney.name, 
                          summary=tourney.summary, start_date=tourney.start_date, 
-                         close_date=tourney.close_date, image=image, manage_id=manage_id, 
                          status_id=one_status.id, created_by=currentUser['username'], 
                          updated_by=currentUser['username'])
     
@@ -138,13 +128,6 @@ def new(request, db: Session, tourney: TourneyBase):
         msg = _(locale, "tourney.error_new_tourney")               
         raise HTTPException(status_code=403, detail=msg)
 
-def verify_dates(start_date, close_date, locale):
-    
-    if start_date > close_date:
-        raise HTTPException(status_code=404, detail=_(locale, "tourney.start_date_incorrect"))
-    
-    return True
- 
 def delete(request: Request, tourney_id: str, db: Session):
     locale = request.headers["accept-language"].split(",")[0].split("-")[0];
     
@@ -192,17 +175,8 @@ def update(request: Request, tourney_id: str, tourney: TourneyBase, db: Session)
         if tourney.modality and db_tourney.modality != tourney.modality:    
             db_tourney.modality = tourney.modality
             
-        if tourney.image and db_tourney.image != tourney.image:    
-            db_tourney.image = tourney.image
-            
         if tourney.start_date and db_tourney.start_date != tourney.start_date:    
             db_tourney.start_date = tourney.start_date
-            
-        if tourney.close_date and db_tourney.close_date != tourney.close_date:    
-            db_tourney.close_date = tourney.close_date
-            
-        if tourney.manage_id and db_tourney.manage_id != tourney.manage_id:    
-            db_tourney.manage_id = tourney.manage_id
             
         db_tourney.updated_by = currentUser['username']
         db_tourney.updated_date = datetime.now()

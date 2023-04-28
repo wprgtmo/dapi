@@ -6,6 +6,7 @@ from fastapi import HTTPException, Request
 from unicodedata import name
 from fastapi import HTTPException
 from domino.models.events import Event
+from domino.models.tourney import Tourney
 from domino.schemas.events import EventBase, EventSchema
 from domino.schemas.result_object import ResultObject, ResultData
 from sqlalchemy.orm import Session
@@ -105,6 +106,15 @@ def new(request, db: Session, event: EventBase):
                      city_id=event.city_id, main_location=event.main_location, status_id=one_status.id,
                      created_by=currentUser['username'], updated_by=currentUser['username'])
     
+    if event.tourneys:
+        for item in event.tourneys:
+            tourney_id = str(uuid.uuid4())
+            db_tourney = Tourney(id=tourney_id, event_id=id, modality=item.modality, name=item.name, 
+                                 summary=item.summary, start_date=item.start_date, 
+                                 status_id=one_status.id, created_by=currentUser['username'], 
+                                 updated_by=currentUser['username'])
+            db_event.tourneys.append(db_tourney)
+    
     try:
         db.add(db_event)
         db.commit()
@@ -182,18 +192,57 @@ def update(request: Request, event_id: str, event: EventBase, db: Session):
         if event.close_date and db_event.close_date != event.close_date:    
             db_event.close_date = event.close_date
             
-        # if event.registration_date and db_event.registration_date != event.registration_date:    
-        #     db_event.registration_date = event.registration_date
-            
-        # if event.registration_price and db_event.registration_price != event.registration_price:    
-        #     db_event.registration_price = event.registration_price
-            
         if event.city_id and db_event.city_id != event.city_id:    
             db_event.city_id = event.city_id
             
         if event.main_location and db_event.main_location != event.main_location:    
             db_event.main_location = event.main_location
+        
+        #desde la interfaz, los que no vengan borrarlos, si vienen nuevos insertarlos, si coinciden modificarlos
+        str_tourneys_iface = ""
+        dict_tourney = {}
+        for item in db_event.tourneys:
+            dict_tourney[item.id] = item
             
+        if event.tourneys:
+            one_status = get_one_by_name('CREATED', db=db)
+            one_status_canc = get_one_by_name('CANCELLED', db=db)
+            
+            for item in event.tourneys:
+                if not item.id:  # viene el torneo pero vacio, es nuevo
+                    tourney_id = str(uuid.uuid4())
+                    db_tourney = Tourney(id=tourney_id, event_id=event_id, modality=item.modality, name=item.name, 
+                                        summary=item.summary, start_date=item.start_date, 
+                                        status_id=one_status.id, created_by=currentUser['username'], 
+                                        updated_by=currentUser['username'])
+                    db_event.tourneys.append(db_tourney)
+                    
+                else:
+                    str_tourneys_iface += " " + item.id
+                    if item.id in dict_tourney:  # modificar datos del torneo
+                        db_tourney = dict_tourney[item.id]
+                        if db_tourney.status_id == 4:  # FINALIZED
+                            raise HTTPException(status_code=400, detail=_(locale, "tourney.tourney_closed"))
+                    
+                        if item.name and db_tourney.name != item.name:
+                            db_tourney.name = item.name
+                        
+                        if item.summary and db_tourney.summary != item.summary:    
+                            db_tourney.summary = item.summary
+                            
+                        if item.modality and db_tourney.modality != item.modality:    
+                            db_tourney.modality = item.modality
+                            
+                        if item.start_date and db_tourney.start_date != item.start_date:    
+                            db_tourney.start_date = item.start_date
+                            
+                        db_tourney.updated_by = currentUser['username']
+                        db_tourney.updated_date = datetime.now()
+            
+            for item_key, item_value in dict_tourney.items():
+                if item_key not in str_tourneys_iface:
+                    item_value.status_id = one_status_canc.id
+                
         db_event.updated_by = currentUser['username']
         db_event.updated_date = datetime.now()
                 
@@ -216,11 +265,10 @@ def get_lst_tourney_by_event_id(event_id: str, db: Session):
     
     str_from = "FROM events.tourney tou " +\
         "JOIN events.events eve ON eve.id = tou.event_id " +\
-        "JOIN resources.entities_status sta ON sta.id = tou.status_id " +\
-        "LEFT JOIN enterprise.users us ON us.username = tou.manage_id "
+        "JOIN resources.entities_status sta ON sta.id = tou.status_id "
     
-    str_query = "Select tou.id, event_id, eve.name as event_name, tou.modality, tou.name, tou.summary, tou.start_date, tou.close_date, " +\
-        "tou.status_id, tou.image, tou.manage_id,sta.name as status_name, us.first_name || ' ' || us.last_name as full_name " + str_from
+    str_query = "Select tou.id, event_id, eve.name as event_name, tou.modality, tou.name, tou.summary, tou.start_date, " +\
+        "tou.status_id, sta.name as status_name " + str_from
     
     str_query += " WHERE sta.name != 'CANCELLED' and event_id = '" + str(event_id) + "' ORDER BY start_date "  
     lst_data = db.execute(str_query)
@@ -231,9 +279,7 @@ def get_lst_tourney_by_event_id(event_id: str, db: Session):
 def create_dict_row_tourney(item):
     
     new_row = {'id': item['id'], 'event_id': item['event_id'], 'event_name': item['event_name'], 'name': item['name'], 
-               'modality': item['modality'], 'summary' : item['summary'], 'photo' : item['image'],
-               'startDate': item['start_date'], 'endDate': item['close_date'], 
-               'manage_user': item['full_name'] 
+               'modality': item['modality'], 'summary' : item['summary'], 'startDate': item['start_date']
                }
        
     return new_row

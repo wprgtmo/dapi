@@ -6,6 +6,7 @@ from datetime import date
 from sqlalchemy import Column, ForeignKey
 from sqlalchemy.sql.sqltypes import String, Boolean, Integer, Date, Text, Float
 from ..config.db import Base
+from sqlalchemy.orm import relationship
 
 def generate_uuid():
     return str(uuid.uuid4())
@@ -32,14 +33,15 @@ class Event(Base):
     updated_by = Column(String, ForeignKey("enterprise.users.username"), nullable=False)
     updated_date = Column(Date, nullable=False, default=date.today())
     
+    tourneys = relationship("Tourney")
+    # tourneys = relationship("Tourney", back_populates="event")
+    
     def dict(self):
         return {
             "id": self.id,
             "name": self.name,
             "start_date": self.start_date,
             "close_date": self.close_date,
-            "registration_date": self.registration_date,
-            "registration_price": self.registration_price,
             "city_id": self.city_id,
             "main_location": self.main_location,
             "summary": self.comments,

@@ -8,15 +8,11 @@ from typing import Optional, List
 class TourneyBase(BaseModel):
     name: str
     event_id: str
-    modality: str
+    modality: Optional[str]
     summary: Optional[str]
     
     start_date: Optional[date] = date.today()
-    close_date: Optional[date] = date.today()
     
-    image: Optional[str]
-    manage_id: Optional[str]
-   
     @validator('name')
     def name_not_empty(cls, name):
         if not name:
@@ -47,3 +43,9 @@ class TourneySchema(TourneyBase):
     class Config:
         orm_mode = True
         
+class TourneyUpdated(BaseModel):
+    name: str
+    id: Optional[str]
+    modality: Optional[str]
+    summary: Optional[str]
+    start_date: Optional[date]

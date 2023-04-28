@@ -22,10 +22,10 @@ class Tourney(Base):
     name = Column(String(100), nullable=True)
     summary = Column(Text, nullable=True)
     start_date = Column(Date, nullable=False)
-    close_date = Column(Date, nullable=False)
+    # close_date = Column(Date, nullable=False)
     status_id  = Column(Integer, ForeignKey("resources.entities_status.id"), nullable=False)
-    image = Column(Text, nullable=True)
-    manage_id = Column(String, ForeignKey("enterprise.users.username"), nullable=False)
+    # image = Column(Text, nullable=True)
+    # manage_id = Column(String, ForeignKey("enterprise.users.username"), nullable=False)
     created_by = Column(String, ForeignKey("enterprise.users.username"), nullable=False)
     created_date = Column(Date, nullable=False, default=date.today())
     updated_date = Column(Date, nullable=False, default=date.today())
@@ -39,10 +39,7 @@ class Tourney(Base):
             "name": self.name,
             "summary": self.summary,
             "start_date": self.start_date,
-            "close_date": self.close_date,
-            "status_id": self.status_id,
-            "image": self.image,
-            "manage_id": self.manage_id
+            "status_id": self.status_id
         }
     
 class Players(Base):
