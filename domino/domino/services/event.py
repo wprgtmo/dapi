@@ -52,7 +52,7 @@ def get_all(request:Request, page: int, per_page: int, criteria_key: str, criter
     
     result = get_result_count(page=page, per_page=per_page, str_count=str_count, db=db)
     
-    str_query += " ORDER BY start_date " 
+    str_query += " ORDER BY start_date DESC " 
     if page != 0:
         str_query += "LIMIT " + str(per_page) + " OFFSET " + str(page*per_page-per_page)
      
@@ -110,7 +110,7 @@ def new(request, db: Session, event: EventBase):
         for item in event.tourney:
             tourney_id = str(uuid.uuid4())
             db_tourney = Tourney(id=tourney_id, event_id=id, modality=item.modality, name=item.name, 
-                                 summary=item.summary, start_date=item.start_date, 
+                                 summary=item.summary, start_date=item.startDate, 
                                  status_id=one_status.id, created_by=currentUser['username'], 
                                  updated_by=currentUser['username'])
             db_event.tourney.append(db_tourney)
@@ -212,7 +212,7 @@ def update(request: Request, event_id: str, event: EventBase, db: Session):
                 if not item.id:  # viene el torneo pero vacio, es nuevo
                     tourney_id = str(uuid.uuid4())
                     db_tourney = Tourney(id=tourney_id, event_id=event_id, modality=item.modality, name=item.name, 
-                                        summary=item.summary, start_date=item.start_date, 
+                                        summary=item.summary, start_date=item.startDate, 
                                         status_id=one_status.id, created_by=currentUser['username'], 
                                         updated_by=currentUser['username'])
                     db_event.tourney.append(db_tourney)
@@ -233,8 +233,8 @@ def update(request: Request, event_id: str, event: EventBase, db: Session):
                         if item.modality and db_tourney.modality != item.modality:    
                             db_tourney.modality = item.modality
                             
-                        if item.start_date and db_tourney.start_date != item.start_date:    
-                            db_tourney.start_date = item.start_date
+                        if item.startDate and db_tourney.start_date != item.startDate:    
+                            db_tourney.start_date = item.startDate
                             
                         db_tourney.updated_by = currentUser['username']
                         db_tourney.updated_date = datetime.now()

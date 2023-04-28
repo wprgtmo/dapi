@@ -43,9 +43,9 @@ class TourneySchema(TourneyBase):
     class Config:
         orm_mode = True
         
-class TourneyUpdated(BaseModel):
-    name: str
+class TourneyCreated(BaseModel):
+    name: Optional[str]
     id: Optional[str]
     modality: Optional[str]
     summary: Optional[str]
-    start_date: Optional[date]
+    startDate: Optional[date]
