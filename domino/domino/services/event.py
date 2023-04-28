@@ -106,14 +106,14 @@ def new(request, db: Session, event: EventBase):
                      city_id=event.city_id, main_location=event.main_location, status_id=one_status.id,
                      created_by=currentUser['username'], updated_by=currentUser['username'])
     
-    if event.tourneys:
-        for item in event.tourneys:
+    if event.tourney:
+        for item in event.tourney:
             tourney_id = str(uuid.uuid4())
             db_tourney = Tourney(id=tourney_id, event_id=id, modality=item.modality, name=item.name, 
                                  summary=item.summary, start_date=item.start_date, 
                                  status_id=one_status.id, created_by=currentUser['username'], 
                                  updated_by=currentUser['username'])
-            db_event.tourneys.append(db_tourney)
+            db_event.tourney.append(db_tourney)
     
     try:
         db.add(db_event)
@@ -199,26 +199,26 @@ def update(request: Request, event_id: str, event: EventBase, db: Session):
             db_event.main_location = event.main_location
         
         #desde la interfaz, los que no vengan borrarlos, si vienen nuevos insertarlos, si coinciden modificarlos
-        str_tourneys_iface = ""
+        str_tourney_iface = ""
         dict_tourney = {}
-        for item in db_event.tourneys:
+        for item in db_event.tourney:
             dict_tourney[item.id] = item
             
-        if event.tourneys:
+        if event.tourney:
             one_status = get_one_by_name('CREATED', db=db)
             one_status_canc = get_one_by_name('CANCELLED', db=db)
             
-            for item in event.tourneys:
+            for item in event.tourney:
                 if not item.id:  # viene el torneo pero vacio, es nuevo
                     tourney_id = str(uuid.uuid4())
                     db_tourney = Tourney(id=tourney_id, event_id=event_id, modality=item.modality, name=item.name, 
                                         summary=item.summary, start_date=item.start_date, 
                                         status_id=one_status.id, created_by=currentUser['username'], 
                                         updated_by=currentUser['username'])
-                    db_event.tourneys.append(db_tourney)
+                    db_event.tourney.append(db_tourney)
                     
                 else:
-                    str_tourneys_iface += " " + item.id
+                    str_tourney_iface += " " + item.id
                     if item.id in dict_tourney:  # modificar datos del torneo
                         db_tourney = dict_tourney[item.id]
                         if db_tourney.status_id == 4:  # FINALIZED
@@ -240,7 +240,7 @@ def update(request: Request, event_id: str, event: EventBase, db: Session):
                         db_tourney.updated_date = datetime.now()
             
             for item_key, item_value in dict_tourney.items():
-                if item_key not in str_tourneys_iface:
+                if item_key not in str_tourney_iface:
                     item_value.status_id = one_status_canc.id
                 
         db_event.updated_by = currentUser['username']

@@ -18,7 +18,7 @@ class EventBase(BaseModel):
     # registration_price: Optional[float] = float(0.00)
     image: Optional[str]
     
-    tourneys: List[TourneyUpdated]
+    tourney: List[TourneyUpdated]
   
     @validator('name')
     def name_not_empty(cls, name):

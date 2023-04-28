@@ -33,7 +33,7 @@ class Event(Base):
     updated_by = Column(String, ForeignKey("enterprise.users.username"), nullable=False)
     updated_date = Column(Date, nullable=False, default=date.today())
     
-    tourneys = relationship("Tourney")
+    tourney = relationship("Tourney")
     # tourneys = relationship("Tourney", back_populates="event")
     
     def dict(self):
