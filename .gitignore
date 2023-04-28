@@ -2,3 +2,6 @@ poetry.lock
 *.pyc
 .env
 alembic.ini
+plublic
+*.toml
+.gitignore

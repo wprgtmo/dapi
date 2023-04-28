@@ -19,6 +19,7 @@ autopep8 = "^2.0.1"
 pydantic = {extras = ["email"], version = "^1.10.4"}
 alembic = "1.8.1"
 SQLAlchemy = "1.4.41"
+python-multipart = "^0.0.6"
 
 [tool.poetry.dev-dependencies]
 pytest = "^5.2"

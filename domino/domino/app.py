@@ -1,6 +1,6 @@
 # app.py
 
-from fastapi import FastAPI, Request
+from fastapi import FastAPI, Request, UploadFile, File
 from pyi18n import PyI18n
 from domino.config.config import settings
 from fastapi.middleware.cors import CORSMiddleware
@@ -10,6 +10,7 @@ from domino.config.db import SessionLocal
 from fastapi.openapi.docs import (get_redoc_html, get_swagger_ui_html, get_swagger_ui_oauth2_redirect_html)
 from fastapi.staticfiles import StaticFiles
 from typing import Callable
+import shutil
 
 
 dictConfig(settings.log_config)
@@ -84,10 +85,21 @@ app.include_router(comment_route, prefix="/api")
 app.include_router(event_route, prefix="/api")
 app.include_router(tourney_route, prefix="/api")
 
-# @app.get("/hello/{name}")
-# def hello_name(request: Request, name: str):
-#     print(request.headers["accept-language"].split(",")[0].split("-")[0]);
-#     locale = "en" #request.headers["accept-language"].split(",")[0].split("-")[0];
-#     # locale: str = get_user_locale(name)
-#     return {"greeting": _(locale, "greetings.hello_name", name=name)}
+@app.post("/file")
+def upfile(file: UploadFile = File(...)):
+    # print(request.headers["accept-language"].split(",")[0].split("-")[0]);
+    # locale = "en" #request.headers["accept-language"].split(",")[0].split("-")[0];
+    # # locale: str = get_user_locale(name)
+    # return {"greeting": _(locale, "greetings.hello_name", name=name)}
+    import os
 
+    path = "public/events"
+    if not os.path.isdir(path):
+        print("crear............")
+        os.mkdir(path)
+                
+    path = path + "/" + file.filename
+    with open(path, "wb") as buffer:
+        shutil.copyfileobj(file.file, buffer)
+        
+    return {"file_name": file.filename}
