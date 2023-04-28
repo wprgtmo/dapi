@@ -264,10 +264,9 @@ def get_lst_tourney_by_event_id(event_id: str, db: Session):
     lst_return = []
     
     str_from = "FROM events.tourney tou " +\
-        "JOIN events.events eve ON eve.id = tou.event_id " +\
         "JOIN resources.entities_status sta ON sta.id = tou.status_id "
     
-    str_query = "Select tou.id, event_id, eve.name as event_name, tou.modality, tou.name, tou.summary, tou.start_date, " +\
+    str_query = "Select tou.id, event_id, tou.modality, tou.name, tou.summary, tou.start_date, " +\
         "tou.status_id, sta.name as status_name " + str_from
     
     str_query += " WHERE sta.name != 'CANCELLED' and event_id = '" + str(event_id) + "' ORDER BY start_date "  
@@ -278,7 +277,7 @@ def get_lst_tourney_by_event_id(event_id: str, db: Session):
 
 def create_dict_row_tourney(item):
     
-    new_row = {'id': item['id'], 'event_id': item['event_id'], 'event_name': item['event_name'], 'name': item['name'], 
+    new_row = {'id': item['id'], 'event_id': item['event_id'], 'name': item['name'], 
                'modality': item['modality'], 'summary' : item['summary'], 'startDate': item['start_date']
                }
        
