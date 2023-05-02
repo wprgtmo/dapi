@@ -3,6 +3,8 @@
 from fastapi import FastAPI, HTTPException, Request, UploadFile, File, Header, Response, status
 from fastapi.responses import FileResponse, JSONResponse, StreamingResponse
 from os import getcwd, remove, path, stat
+import aiofiles
+
 
 from pyi18n import PyI18n
 from domino.config.config import settings
@@ -12,7 +14,7 @@ from logging.config import dictConfig
 from domino.config.db import SessionLocal
 from fastapi.openapi.docs import (get_redoc_html, get_swagger_ui_html, get_swagger_ui_oauth2_redirect_html)
 from fastapi.staticfiles import StaticFiles
-from typing import BinaryIO, Callable
+from typing import BinaryIO, Callable, List
 import shutil
 
 
@@ -207,3 +209,14 @@ def get_video(request: Request, post_id: str, video_name: str):
     return range_requests_response(
         request, file_path=file_name, content_type="video/mp4"
     )
+    
+@app.post("/upload-files")
+async def create_upload_files(files: List[UploadFile] = File(...)):
+    
+    for file in files:
+        # destination_file_path = getcwd() + "/public/post/" + post_id + "/" + video_name
+        destination_file_path = "/home/fm-pc-lt-46/Music/"+file.filename #output file path
+        async with aiofiles.open(destination_file_path, 'wb') as out_file:
+            while content := await file.read(1024):  # async read file chunk
+                await out_file.write(content)  # async write file chunk
+    return {"Result": "OK", "filenames": [file.filename for file in files]}
