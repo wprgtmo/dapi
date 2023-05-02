@@ -2,6 +2,7 @@ poetry.lock
 *.pyc
 .env
 alembic.ini
-plublic
+/plublic
 *.toml
 .gitignore
+*.mp4

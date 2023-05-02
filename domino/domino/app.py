@@ -1,6 +1,9 @@
 # app.py
 
-from fastapi import FastAPI, Request, UploadFile, File
+from fastapi import FastAPI, Request, UploadFile, File, Header, Response
+from fastapi.responses import FileResponse, JSONResponse, StreamingResponse
+from os import getcwd, remove, path
+
 from pyi18n import PyI18n
 from domino.config.config import settings
 from fastapi.middleware.cors import CORSMiddleware
@@ -103,3 +106,31 @@ def upfile(file: UploadFile = File(...)):
         shutil.copyfileobj(file.file, buffer)
         
     return {"file_name": file.filename}
+
+@app.get("/{user_id}/{event_id}/{file_name}", summary="Mostrar imagen de un evento")
+def getEventImage(user_id: str, event_id: str, file_name: str):
+    return FileResponse(getcwd() + "/public/events/" + user_id + "/" + event_id + "/" + file_name)
+
+@app.get("/{post_id}/{file_name}", response_class=FileResponse, summary="Mostrar imagen de un post")
+def getPostFile(post_id: str, file_name: str):
+    return FileResponse(getcwd() + "/public/post/" + post_id + "/" + file_name)
+
+@app.get("/{video_name}")
+def get_video(video_name: str):
+    file_name = getcwd()+"/public/post/316b0eeb-237a-4903-94d7-5686772468d5/"+video_name
+    with open(file_name, "rb") as myfile:
+        data = myfile.read(path.getsize(file_name))
+        return Response(content=data, status_code=206, media_type="video/mp4")
+
+
+@app.delete("/delete/{name}")
+def delevent(name: str):
+    try:
+        remove(getcwd() + "/public/events/" + name)
+        return JSONResponse(content={"success": True, "message": "file deleted"}, status_code=200)
+    except FileNotFoundError:
+        return JSONResponse(content={"success": False}, status_code=404)
+
+@app.get("/{user_id}/{name}")
+def getprofile(user_id: str, file_name: str):
+    return FileResponse(getcwd() + "/public/profile/" + user_id + "/" + file_name)
