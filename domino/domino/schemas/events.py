@@ -4,6 +4,8 @@ from datetime import datetime, date
 from pydantic import BaseModel, validator
 from typing import Optional, List
 
+from fastapi import UploadFile, File
+
 from domino.schemas.tourney import TourneyCreated
 class EventBase(BaseModel):
     name: Optional[str]
@@ -13,10 +15,8 @@ class EventBase(BaseModel):
     
     start_date: Optional[date] = date.today()
     close_date: Optional[date] = date.today()
-    # registration_date: Optional[date] = date.today()
-    
-    # registration_price: Optional[float] = float(0.00)
-    image: Optional[str]
+    # image: Optional[str]
+    file: UploadFile = File(...)
     
     tourney: List[TourneyCreated]
   

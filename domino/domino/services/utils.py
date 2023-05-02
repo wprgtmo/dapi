@@ -1,5 +1,8 @@
 
 import math
+import shutil
+from fastapi import FastAPI, Request, UploadFile, File
+
 # from fastapi import Request
 from sqlalchemy.orm import Session
 from domino.schemas.result_object import ResultObject, ResultData
@@ -15,3 +18,17 @@ def get_result_count(page: int, per_page: int, str_count: str, db: Session):
         result = ResultObject()
         
     return result
+
+def upfile(file: File, path: str):
+    import os
+
+    # path = "public/events"
+    if not os.path.isdir(path):
+        print("crear............")
+        os.mkdir(path)
+                
+    path = path + "/" + file.filename
+    with open(path, "wb") as buffer:
+        shutil.copyfileobj(file.file, buffer)
+        
+    return {"file_name": file.filename}
