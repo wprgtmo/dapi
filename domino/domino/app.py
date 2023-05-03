@@ -237,6 +237,7 @@ class Base(BaseModel):
     name: str
     point: Optional[float] = None
     is_accepted: Optional[bool] = False
+    tourney: List[Properties]
 
 @app.post("/submit")
 def submit(base: Base = Depends(), files: List[UploadFile] = File(...)):

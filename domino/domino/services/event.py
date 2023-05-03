@@ -7,6 +7,7 @@ from unicodedata import name
 from fastapi import HTTPException
 from domino.models.events import Event
 from domino.models.tourney import Tourney
+from domino.schemas.tourney import TourneyCreated
 from domino.schemas.events import EventBase, EventSchema
 from domino.schemas.result_object import ResultObject, ResultData
 from sqlalchemy.orm import Session
@@ -85,7 +86,7 @@ def get_one_by_id(event_id: str, db: Session):
     result.data = db.query(Event).filter(Event.id == event_id).first()
     return result
 
-def new(request: Request, event: EventBase, db: Session, file: File):
+def new(request: Request, event: EventBase, db: Session, file: File, tourney: TourneyCreated):
     
     locale = request.headers["accept-language"].split(",")[0].split("-")[0];
     
@@ -97,7 +98,7 @@ def new(request: Request, event: EventBase, db: Session, file: File):
         raise HTTPException(status_code=404, detail=_(locale, "status.not_found"))
     
     if event:
-        verify_dates(event.start_date, event.close_date, locale)
+        verify_dates(event['start_date'], event['close_date'], locale)
     
     id = str(uuid.uuid4())
     
@@ -105,20 +106,29 @@ def new(request: Request, event: EventBase, db: Session, file: File):
     path = create_dir(entity_type="EVENT", user_id=str(currentUser['user_id']), entity_id=str(id))
     
     if event:    
-        db_event = Event(id=id, name=event.name, summary=event.summary, start_date=event.start_date, 
-                        close_date=event.close_date, registration_date=event.start_date, 
+        db_event = Event(id=id, name=event['name'], summary=event['summary'], start_date=event['start_date'], 
+                        close_date=event['close_date'], registration_date=event['start_date'], 
                         image=image, registration_price=float(0.00), 
-                        city_id=event.city_id, main_location=event.main_location, status_id=one_status.id,
+                        city_id=event['city_id'], main_location=event['main_location'], status_id=one_status.id,
                         created_by=currentUser['username'], updated_by=currentUser['username'])
     
-    if event and event.tourney:
-        for item in event.tourney:
+    if tourney:
+        for item in tourney:
             tourney_id = str(uuid.uuid4())
-            db_tourney = Tourney(id=tourney_id, event_id=id, modality=item.modality, name=item.name, 
-                                 summary=item.summary, start_date=item.startDate, 
+            db_tourney = Tourney(id=tourney_id, event_id=id, modality=item['modality'], name=item['name_tourney'], 
+                                 summary=item['summary_tourney'], start_date=item['startDate'], 
                                  status_id=one_status.id, created_by=currentUser['username'], 
                                  updated_by=currentUser['username'])
             db_event.tourney.append(db_tourney)
+    
+    # if event and event['tourney']:
+    #     for item in event['tourney']:
+    #         tourney_id = str(uuid.uuid4())
+    #         db_tourney = Tourney(id=tourney_id, event_id=id, modality=item['modality'], name=item['name'], 
+    #                              summary=item['summary'], start_date=item['startDate'], 
+    #                              status_id=one_status.id, created_by=currentUser['username'], 
+    #                              updated_by=currentUser['username'])
+    #         db_event.tourney.append(db_tourney)
     
     try:
         if image:
