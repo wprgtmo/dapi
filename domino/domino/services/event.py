@@ -2,7 +2,7 @@ import math
 import uuid
 
 from datetime import datetime
-from fastapi import HTTPException, Request
+from fastapi import HTTPException, Request, UploadFile, File
 from unicodedata import name
 from fastapi import HTTPException
 from domino.models.events import Event
@@ -16,7 +16,7 @@ from domino.auth_bearer import decodeJWT
 from domino.functions_jwt import get_current_user
 from domino.services.status import get_one_by_name, get_one as get_one_status
 from domino.app import _
-from domino.services.utils import get_result_count
+from domino.services.utils import get_result_count, upfile, create_dir
             
 def get_all(request:Request, page: int, per_page: int, criteria_key: str, criteria_value: str, db: Session):  
     locale = request.headers["accept-language"].split(",")[0].split("-")[0];
@@ -85,7 +85,8 @@ def get_one_by_id(event_id: str, db: Session):
     result.data = db.query(Event).filter(Event.id == event_id).first()
     return result
 
-def new(request, db: Session, event: EventBase):
+def new(request: Request, event: EventBase, db: Session, file: File):
+    
     locale = request.headers["accept-language"].split(",")[0].split("-")[0];
     
     result = ResultObject() 
@@ -95,18 +96,22 @@ def new(request, db: Session, event: EventBase):
     if not one_status:
         raise HTTPException(status_code=404, detail=_(locale, "status.not_found"))
     
-    verify_dates(event.start_date, event.close_date, locale)
+    if event:
+        verify_dates(event.start_date, event.close_date, locale)
     
     id = str(uuid.uuid4())
-    image = "/events/" + str(currentUser['user_id']) + "/" + str(id) + "/" + str(event.image)
     
-    db_event = Event(id=id, name=event.name, summary=event.summary, start_date=event.start_date, 
-                     close_date=event.close_date, registration_date=event.start_date, 
-                     image=image, registration_price=float(0.00), # event.registration_price,
-                     city_id=event.city_id, main_location=event.main_location, status_id=one_status.id,
-                     created_by=currentUser['username'], updated_by=currentUser['username'])
+    image = file.filename if file else None
+    path = create_dir(entity_type="EVENT", user_id=str(currentUser['user_id']), entity_id=str(id))
     
-    if event.tourney:
+    if event:    
+        db_event = Event(id=id, name=event.name, summary=event.summary, start_date=event.start_date, 
+                        close_date=event.close_date, registration_date=event.start_date, 
+                        image=image, registration_price=float(0.00), 
+                        city_id=event.city_id, main_location=event.main_location, status_id=one_status.id,
+                        created_by=currentUser['username'], updated_by=currentUser['username'])
+    
+    if event and event.tourney:
         for item in event.tourney:
             tourney_id = str(uuid.uuid4())
             db_tourney = Tourney(id=tourney_id, event_id=id, modality=item.modality, name=item.name, 
@@ -116,9 +121,11 @@ def new(request, db: Session, event: EventBase):
             db_event.tourney.append(db_tourney)
     
     try:
-        db.add(db_event)
-        db.commit()
-        db.refresh(db_event)
+        if image:
+            upfile(file=file, path=path)
+        if event:
+            db.add(db_event)
+            db.commit()
         result.data = {'id': id}
         return result
        

@@ -1,4 +1,4 @@
-from fastapi import APIRouter, Depends, HTTPException, Request
+from fastapi import APIRouter, Depends, HTTPException, Request, UploadFile, File
 from domino.schemas.events import EventBase
 from domino.schemas.result_object import ResultObject
 from sqlalchemy.orm import Session
@@ -29,8 +29,13 @@ def get_event_by_id(id: str, db: Session = Depends(get_db)):
     return get_one_by_id(event_id=id, db=db)
 
 @event_route.post("/event", response_model=ResultObject, summary="Create a Event..")
-def create_event(request:Request, event: EventBase, db: Session = Depends(get_db)):
-    return new(request=request, event=event, db=db)
+def create_event(
+    request:Request, 
+    event: EventBase, 
+    # image: UploadFile = File(...), 
+    db: Session = Depends(get_db)
+):
+    return new(request=request, event=event, db=db, file=None)
 
 @event_route.delete("/event/{id}", response_model=ResultObject, summary="Deactivate a Event by its ID.")
 def delete_event(request:Request, id: str, db: Session = Depends(get_db)):
