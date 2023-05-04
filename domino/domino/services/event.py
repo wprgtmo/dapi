@@ -315,7 +315,6 @@ def get_image_event(event_id: str, db: Session):
     
     user_created = get_one_by_username(db_event.created_by, db=db)
     path = "/public/events/" + str(user_created.id) + "/" + db_event.image
-    
-    return FileResponse(getcwd() + path)
+    return path
     
     # return FileResponse(getcwd() + "/public/events/" + user_id + "/" + file_name)
