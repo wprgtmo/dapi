@@ -3,7 +3,8 @@ import time
 import uuid
 
 from datetime import datetime, timedelta
-from fastapi import HTTPException, Request
+from fastapi import HTTPException, Request, File
+from typing import List
 from unicodedata import name
 from fastapi import HTTPException
 from domino.models.post import Post, PostLikes, PostComments, PostFiles, CommentComments, CommentLikes
@@ -16,7 +17,7 @@ from passlib.context import CryptContext
 from domino.auth_bearer import decodeJWT
 from domino.functions_jwt import get_current_user
 from domino.app import _
-from domino.services.utils import get_result_count
+from domino.services.utils import get_result_count, upfile, create_dir
             
 def get_all(request:Request, page: int, per_page: int, criteria_key: str, criteria_value: str, db: Session):  
     locale = request.headers["accept-language"].split(",")[0].split("-")[0];
@@ -194,7 +195,7 @@ def get_one_by_id(post_id: str, db: Session):
     result.data = db.query(Post).filter(Post.id == post_id).first()
     return result
 
-def new(request, db: Session, post: PostBase):
+def new(request, db: Session, post: PostBase, files: List[File]):
     locale = request.headers["accept-language"].split(",")[0].split("-")[0];
     
     result = ResultObject() 
@@ -202,18 +203,22 @@ def new(request, db: Session, post: PostBase):
     
     id = str(uuid.uuid4())
     
-    db_post = Post(id=id, summary=post.summary, created_by=currentUser['username'], updated_by=currentUser['username'],
-                   is_active=True, allow_comment=post.allow_comment, show_count_like=post.show_count_like)
+    db_post = Post(id=id, summary=post['summary'], created_by=currentUser['username'], updated_by=currentUser['username'],
+                   is_active=True, allow_comment=post['allow_comment'], show_count_like=post['show_count_like'])
     
-    if post.files:
-        for item_file in post.files:
-            post_file = PostFiles(path="/post/" + str(id) + "/" + str(item_file))
+    if files:
+        # image = file.filename if file else None
+        path = create_dir(entity_type="POST", user_id=str(currentUser['user_id']), entity_id=str(id))
+    
+        for item_file in files:
+            # post_file = PostFiles(path="/post/" + str(id) + "/" + str(item_file))
+            post_file = PostFiles(path=+item_file.filename)
             db_post.files.append(post_file)
+            upfile(file=item_file, path=path)
             
     try:
         db.add(db_post)
         db.commit()
-        db.refresh(db_post)
         result.data = {'post_id': id}
         return result
     except (Exception, SQLAlchemyError, IntegrityError) as e:
