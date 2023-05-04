@@ -45,7 +45,7 @@ def update_event(request:Request, id: str, event: EventBase = Depends(), image: 
 
 @event_route.get("/event/{event_id}", summary="Mostrar imagen de un evento")
 def getEventImage(event_id: str, db: Session = Depends(get_db)):
-    return get_image_event(event_id)
+    return get_image_event(event_id, db=db)
     
     # return FileResponse(getcwd() + "/public/events/" + user_id + "/" + file_name)
 
