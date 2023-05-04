@@ -2,9 +2,11 @@
 import math
 import shutil
 from fastapi import FastAPI, Request, UploadFile, File
+from os import getcwd, remove
 
 # from fastapi import Request
 from sqlalchemy.orm import Session
+from fastapi import HTTPException
 from domino.schemas.result_object import ResultObject, ResultData
 
 def get_result_count(page: int, per_page: int, str_count: str, db: Session): 
@@ -41,13 +43,11 @@ def create_dir(entity_type: str, user_id: str, entity_id: str):
         
     if entity_type == 'POST':
         if not os.path.isdir("public/post"):
-            print('creando post')
             os.mkdir("public/post")
         path = "public/post/"
         
     elif entity_type == 'EVENT':
         if not os.path.isdir("public/events"):
-            print('creando event')
             os.mkdir("public/events")
         path = "public/events/"
     
@@ -55,10 +55,28 @@ def create_dir(entity_type: str, user_id: str, entity_id: str):
     if not os.path.isdir(path):
         os.mkdir(path)
     
-    path += "/" + str(entity_id)
-    if not os.path.isdir(path):
-        os.mkdir(path)
+    if entity_type == 'POST':
+        path += "/" + str(entity_id)
+        if not os.path.isdir(path):
+            os.mkdir(path)
         
     path += "/"
     
     return path
+
+def del_image(path: str, name: str):
+    try:
+        remove(getcwd() + path + name)
+        return True
+    except FileNotFoundError:
+        raise HTTPException(status_code=400, detail="FileNotFoundError")
+    
+def get_ext_at_file(filename: str):
+    
+    ext = ""
+    if filename:
+        pos = filename.find(".")
+        if pos:
+            ext = filename[pos+1:]
+            
+    return ext

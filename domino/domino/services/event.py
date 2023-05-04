@@ -5,19 +5,22 @@ from datetime import datetime
 from fastapi import HTTPException, Request, UploadFile, File
 from unicodedata import name
 from fastapi import HTTPException
+from sqlalchemy.orm import Session
+from sqlalchemy.exc import SQLAlchemyError, IntegrityError
+from passlib.context import CryptContext
+
+from domino.config.config import settings
 from domino.models.events import Event
 from domino.models.tourney import Tourney
 from domino.schemas.tourney import TourneyCreated
 from domino.schemas.events import EventBase, EventSchema
 from domino.schemas.result_object import ResultObject, ResultData
-from sqlalchemy.orm import Session
-from sqlalchemy.exc import SQLAlchemyError, IntegrityError
-from passlib.context import CryptContext
 from domino.auth_bearer import decodeJWT
 from domino.functions_jwt import get_current_user
 from domino.services.status import get_one_by_name, get_one as get_one_status
+from domino.services.users import get_one_by_username
 from domino.app import _
-from domino.services.utils import get_result_count, upfile, create_dir
+from domino.services.utils import get_result_count, upfile, create_dir, del_image, get_ext_at_file
             
 def get_all(request:Request, page: int, per_page: int, criteria_key: str, criteria_value: str, db: Session):  
     locale = request.headers["accept-language"].split(",")[0].split("-")[0];
@@ -25,11 +28,13 @@ def get_all(request:Request, page: int, per_page: int, criteria_key: str, criter
     str_from = "FROM events.events eve " +\
         "JOIN resources.entities_status sta ON sta.id = eve.status_id " +\
         "JOIN resources.city city ON city.id = eve.city_id " +\
-        "JOIN resources.country country ON country.id = city.country_id "
+        "JOIN resources.country country ON country.id = city.country_id " +\
+        "JOIN enterprise.users users ON users.username = eve.created_by "
         
     str_count = "Select count(*) " + str_from
     str_query = "Select eve.id, eve.name, start_date, close_date, registration_date, registration_price, city.name as city_name, " +\
-        "main_location, summary, image, eve.status_id, sta.name as status_name, country.id as country_id, city.id  as city_id " + str_from
+        "main_location, summary, image, eve.status_id, sta.name as status_name, country.id as country_id, city.id  as city_id, " +\
+        "users.id as user_id " + str_from
     
     str_where = " WHERE sta.name != 'CANCELLED' "  
     
@@ -58,18 +63,21 @@ def get_all(request:Request, page: int, per_page: int, criteria_key: str, criter
         str_query += "LIMIT " + str(per_page) + " OFFSET " + str(page*per_page-per_page)
      
     lst_data = db.execute(str_query)
-    result.data = [create_dict_row(item, page, db=db, incluye_tourney=True) for item in lst_data]
+    result.data = [create_dict_row(item, page, db=db, incluye_tourney=True, 
+                                   host=str(settings.server_uri), port=str(int(settings.server_port))) for item in lst_data]
     
     return result
 
-def create_dict_row(item, page, db: Session, incluye_tourney=False):
+def create_dict_row(item, page, db: Session, incluye_tourney=False, host="", port=""):
+    
+    image = "http://" + host + ":" + port + "/public/events/" + str(item['user_id']) + "/" + item['image']
     
     new_row = {'id': item['id'], 'name': item['name'], 
                'startDate': item['start_date'], 'endDate': item['close_date'], 
                'country': item['country_id'], 'city': item['city_id'],
                'city_name': item['city_name'], 'campus': item['main_location'], 
                'summary' : item['summary'],
-               'photo' : item['image'], 'tourney':[]}
+               'photo' : image, 'tourney':[]}
     if page != 0:
         new_row['selected'] = False
     
@@ -97,28 +105,28 @@ def new(request: Request, event: EventBase, db: Session, file: File):
     if not one_status:
         raise HTTPException(status_code=404, detail=_(locale, "status.not_found"))
     
-    if event:
-        verify_dates(event['start_date'], event['close_date'], locale)
+    verify_dates(event['start_date'], event['close_date'], locale)
     
     id = str(uuid.uuid4())
     
-    image = file.filename if file else None
-    path = create_dir(entity_type="EVENT", user_id=str(currentUser['user_id']), entity_id=str(id))
+    if file:
+        ext = get_ext_at_file(file.filename)
+        file.filename = str(id) + "." + ext if ext else str(id)
+        
+        path = create_dir(entity_type="EVENT", user_id=str(currentUser['user_id']), entity_id=str(id))
     
-    if event:    
-        db_event = Event(id=id, name=event['name'], summary=event['summary'], start_date=event['start_date'], 
-                        close_date=event['close_date'], registration_date=event['start_date'], 
-                        image=image, registration_price=float(0.00), 
-                        city_id=event['city_id'], main_location=event['main_location'], status_id=one_status.id,
-                        created_by=currentUser['username'], updated_by=currentUser['username'])
+    db_event = Event(id=id, name=event['name'], summary=event['summary'], start_date=event['start_date'], 
+                    close_date=event['close_date'], registration_date=event['start_date'], 
+                    image=file.filename if file else None, registration_price=float(0.00), 
+                    city_id=event['city_id'], main_location=event['main_location'], status_id=one_status.id,
+                    created_by=currentUser['username'], updated_by=currentUser['username'])
     
     try:
-        if image:
+        if file:
             upfile(file=file, path=path)
             
-        if event:
-            db.add(db_event)
-            db.commit()
+        db.add(db_event)
+        db.commit()
         result.data = {'id': id}
         return result
        
@@ -131,9 +139,6 @@ def verify_dates(start_date, close_date, locale):
     
     if start_date > close_date:
         raise HTTPException(status_code=404, detail=_(locale, "event.start_date_incorrect"))
-    
-    # if registration_date > start_date:
-    #     raise HTTPException(status_code=404, detail=_(locale, "event.registration_date_incorrect"))
     
     return True
  
@@ -154,6 +159,15 @@ def delete(request: Request, event_id: str, db: Session):
             db_event.updated_by = currentUser['username']
             db_event.updated_date = datetime.now()
             db.commit()
+            
+            if db_event.image:
+                user_created = get_one_by_username(db_event.created_by, db=db)
+                path = "/public/events/" + str(user_created.id) + "/"
+                try:
+                    del_image(path=path, name=str(db_event.image))
+                except:
+                    pass
+                
             return result
         else:
             raise HTTPException(status_code=404, detail=_(locale, "event.not_found"))
@@ -182,16 +196,19 @@ def update(request: Request, event_id: str, event: EventBase, db: Session, file:
             db_event.summary = event['summary']
         
         if file:
-            image = file.filename if file else None
-            path = create_dir(entity_type="EVENT", user_id=str(currentUser['user_id']), entity_id=str(id))
-            upfile(file=file, path=path)
-            db_event.image = image
-        
-        # if event.image:
-        #     image = "/events/" + str(currentUser['user_id']) + "/" + str(db_event.id) + "/" + str(event.image)
-        #     if db_event.image != image:   
-        #         db_event.image = image
+            ext = get_ext_at_file(file.filename)
+            file.filename = str(db_event.id) + "." + ext if ext else str(db_event.id)
+            path = create_dir(entity_type="EVENT", user_id=str(currentUser['user_id']), entity_id=str(db_event.id))
             
+            user_created = get_one_by_username(db_event.created_by, db=db)
+            path_del = "/public/events/" + str(user_created.id) + "/"
+            try:
+                del_image(path=path_del, name=str(db_event.image))
+            except:
+                pass
+            upfile(file=file, path=path)
+            db_event.image = file.filename
+        
         if event['start_date'] and db_event.start_date != event['start_date']:    
             db_event.start_date = event['start_date']
             

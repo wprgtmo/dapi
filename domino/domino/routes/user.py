@@ -13,6 +13,9 @@ from starlette import status
 from domino.auth_bearer import JWTBearer
 import uuid
 
+from fastapi.responses import FileResponse
+from os import getcwd
+
 user_route = APIRouter(
     tags=["Users"],
     dependencies=[Depends(JWTBearer())]
@@ -78,3 +81,7 @@ def get_followers_suggestion(
     db: Session = Depends(get_db)
 ):
     return get_all_not_followers(request=request, db=db)
+
+@user_route.get("/{user_id}/{name}", summary="Mostrar la imagen de perfil de un usuario")
+def getprofile(user_id: str, file_name: str):
+    return FileResponse(getcwd() + "/public/profile/" + user_id + "/" + file_name)
