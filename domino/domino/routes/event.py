@@ -43,9 +43,9 @@ def delete_event(request:Request, id: str, db: Session = Depends(get_db)):
 def update_event(request:Request, id: str, event: EventBase = Depends(), image: UploadFile = File(...), db: Session = Depends(get_db)):
     return update(request=request, db=db, event_id=str(id), event=event.dict(), file=image)
 
-@event_route.get("/event/file/{user_id}/{event_id}", summary="Mostrar imagen de un evento")
-def getEventImage(user_id: str, event_id: str):
-    return FileResponse(getcwd() + "/public/events/" + user_id + "/" + event_id + "/" + file_name)
+@event_route.get("/event/{user_id}/{file_name}", summary="Mostrar imagen de un evento")
+def getEventImage(user_id: str, file_name: str):
+    return FileResponse(getcwd() + "/public/events/" + user_id + "/" + file_name)
 
 @event_route.delete("/delete/{name}")
 def delevent(name: str):
