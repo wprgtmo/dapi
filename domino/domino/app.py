@@ -117,13 +117,16 @@ def getEventImage(user_id: str, event_id: str, file_name: str):
 def getPostFile(post_id: str, file_name: str):
     return FileResponse(getcwd() + "/public/post/" + post_id + "/" + file_name)
 
-# @app.get("/{video_name}")
-# def get_video(video_name: str):
-#     file_name = getcwd()+"/public/post/316b0eeb-237a-4903-94d7-5686772468d5/"+video_name
-#     with open(file_name, "rb") as myfile:
-#         data = myfile.read(path.getsize(file_name))
-#         return Response(content=data, status_code=206, media_type="video/mp4")
+@app.get("/{user_id}/{name}", summary="Mostrar la imagen de perfil de un usuario")
+def getprofile(user_id: str, file_name: str):
+    return FileResponse(getcwd() + "/public/profile/" + user_id + "/" + file_name)
 
+@app.get("/{post_id}/{video_name}", summary="Mostrar un video de un Post")
+def get_video(request: Request, post_id: str, video_name: str):
+    file_name = getcwd() + "/public/post/" + post_id + "/" + video_name
+    return range_requests_response(
+        request, file_path=file_name, content_type="video/mp4"
+    )
 
 @app.delete("/delete/{name}")
 def delevent(name: str):
@@ -132,10 +135,6 @@ def delevent(name: str):
         return JSONResponse(content={"success": True, "message": "file deleted"}, status_code=200)
     except FileNotFoundError:
         return JSONResponse(content={"success": False}, status_code=404)
-
-@app.get("/{user_id}/{name}")
-def getprofile(user_id: str, file_name: str):
-    return FileResponse(getcwd() + "/public/profile/" + user_id + "/" + file_name)
 
 def send_bytes_range_requests(
     file_obj: BinaryIO, start: int, end: int, chunk_size: int = 10_000
@@ -201,13 +200,6 @@ def range_requests_response(
         send_bytes_range_requests(open(file_path, mode="rb"), start, end),
         headers=headers,
         status_code=status_code,
-    )
-
-@app.get("/{post_id}/{video_name}")
-def get_video(request: Request, post_id: str, video_name: str):
-    file_name = getcwd() + "/public/post/" + post_id + "/" + video_name
-    return range_requests_response(
-        request, file_path=file_name, content_type="video/mp4"
     )
 
 from pydantic import BaseModel

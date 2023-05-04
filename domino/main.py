@@ -1,6 +1,7 @@
 # main.py
+from domino.config.config import settings
 
 import uvicorn
 
 if __name__ == "__main__":
-    uvicorn.run("domino.app:app", host="127.0.0.1", port=5000, reload=True)
+    uvicorn.run("domino.app:app", host=settings.server_uri, port=int(settings.server_port), reload=True)
