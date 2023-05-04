@@ -30,26 +30,13 @@ def get_event_by_id(id: str, db: Session = Depends(get_db)):
     return get_one_by_id(event_id=id, db=db)
 
 @event_route.post("/event", response_model=ResultObject, summary="Create a Event..")
-def create_event(
-    request:Request, 
-    event: EventBase = Depends(), 
-    # tourney: List[TourneyCreated] = Depends(),
-    image: List[UploadFile] = File(...), 
-    db: Session = Depends(get_db)
-):
-    # return True
-    event_data = event.dict()
-    # tourney = event_data.tourney.dict()
-    
-    print(event_data)
-    return event_data
-
-    return new(request=request, event=event_data, db=db, file=image, tourney=tourney.dict())
+def create_event(request:Request, event: EventBase = Depends(), image: UploadFile = File(...), db: Session = Depends(get_db)):
+    return new(request=request, event=event.dict(), db=db, file=image)
 
 @event_route.delete("/event/{id}", response_model=ResultObject, summary="Deactivate a Event by its ID.")
 def delete_event(request:Request, id: str, db: Session = Depends(get_db)):
     return delete(request=request, event_id=str(id), db=db)
     
 @event_route.put("/event/{id}", response_model=ResultObject, summary="Update a Event by its ID")
-def update_event(request:Request, id: str, event: EventBase, db: Session = Depends(get_db)):
-    return update(request=request, db=db, event_id=str(id), event=event)
+def update_event(request:Request, id: str, event: EventBase = Depends(), image: UploadFile = File(...), db: Session = Depends(get_db)):
+    return update(request=request, db=db, event_id=str(id), event=event.dict(), file=image)

@@ -33,7 +33,7 @@ def get_tourney_by_id(id: str, db: Session = Depends(get_db)):
     return get_one_by_id(tourney_id=id, db=db)
 
 @tourney_route.post("/tourney", response_model=ResultObject, summary="Create a Tourney..")
-def create_tourney(request:Request, tourney: TourneyBase, db: Session = Depends(get_db)):
+def create_tourney(request:Request, tourney: List[TourneyBase], db: Session = Depends(get_db)):
     return new(request=request, tourney=tourney, db=db)
 
 @tourney_route.delete("/tourney/{id}", response_model=ResultObject, summary="Deactivate a Tourney by its ID.")

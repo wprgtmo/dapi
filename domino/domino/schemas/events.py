@@ -3,8 +3,6 @@
 from datetime import datetime, date
 from pydantic import BaseModel, validator
 from typing import Optional, List
-
-from domino.schemas.tourney import TourneyCreated
 class EventBase(BaseModel):
     name: Optional[str]
     summary: Optional[str]
@@ -14,8 +12,6 @@ class EventBase(BaseModel):
     start_date: Optional[date] = date.today()
     close_date: Optional[date] = date.today()
     
-    tourney: List[TourneyCreated]
-  
     @validator('name')
     def name_not_empty(cls, name):
         if not name:
