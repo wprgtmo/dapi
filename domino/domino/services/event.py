@@ -21,6 +21,9 @@ from domino.services.status import get_one_by_name, get_one as get_one_status
 from domino.services.users import get_one_by_username
 from domino.app import _
 from domino.services.utils import get_result_count, upfile, create_dir, del_image, get_ext_at_file
+
+from fastapi.responses import FileResponse
+from os import getcwd
             
 def get_all(request:Request, page: int, per_page: int, criteria_key: str, criteria_value: str, db: Session):  
     locale = request.headers["accept-language"].split(",")[0].split("-")[0];
@@ -305,3 +308,14 @@ def create_dict_row_tourney(item):
                }
        
     return new_row
+
+def get_image_event(event_id: str, db: Session): 
+    
+    db_event = db.query(Event).filter(Event.id == event_id).first()
+    
+    user_created = get_one_by_username(db_event.created_by, db=db)
+    path = "/public/events/" + str(user_created.id) + "/" + db_event.image
+    
+    return FileResponse(getcwd() + path)
+    
+    # return FileResponse(getcwd() + "/public/events/" + user_id + "/" + file_name)
