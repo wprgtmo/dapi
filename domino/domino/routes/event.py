@@ -5,7 +5,7 @@ from domino.schemas.result_object import ResultObject
 from sqlalchemy.orm import Session
 from domino.app import get_db
 from typing import List, Dict
-from domino.services.event import get_all, new, get_one_by_id, delete, update
+from domino.services.event import get_all, new, get_one_by_id, delete, update, get_image_event
 from starlette import status
 from domino.auth_bearer import JWTBearer
 from fastapi.responses import FileResponse, JSONResponse
@@ -43,9 +43,11 @@ def delete_event(request:Request, id: str, db: Session = Depends(get_db)):
 def update_event(request:Request, id: str, event: EventBase = Depends(), image: UploadFile = File(...), db: Session = Depends(get_db)):
     return update(request=request, db=db, event_id=str(id), event=event.dict(), file=image)
 
-@event_route.get("/event/{user_id}/{file_name}", summary="Mostrar imagen de un evento")
-def getEventImage(user_id: str, file_name: str):
-    return FileResponse(getcwd() + "/public/events/" + user_id + "/" + file_name)
+@event_route.get("/event/{event_id}", summary="Mostrar imagen de un evento")
+def getEventImage(event_id: str, db: Session = Depends(get_db)):
+    return get_image_event(event_id)
+    
+    # return FileResponse(getcwd() + "/public/events/" + user_id + "/" + file_name)
 
 @event_route.delete("/delete/{name}")
 def delevent(name: str):
