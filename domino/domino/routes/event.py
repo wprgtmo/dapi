@@ -43,18 +43,7 @@ def delete_event(request:Request, id: str, db: Session = Depends(get_db)):
 def update_event(request:Request, id: str, event: EventBase = Depends(), image: UploadFile = File(...), db: Session = Depends(get_db)):
     return update(request=request, db=db, event_id=str(id), event=event.dict(), file=image)
 
-# @event_route.get("/event/image/{event_id}", summary="Mostrar imagen de un evento")
-# def get_mage(event_id: str, db: Session = Depends(get_db)):
-    
-#     path = get_image_event(event_id, db=db)
-#     print('camino')
-#     print(path)
-#     # return True
-#     return FileResponse(getcwd() + get_image_event(event_id, db=db))
-
-#     # return FileResponse(getcwd() + "/public/events/" + user_id + "/" + file_name)
-
-@event_route.get("/event//image/{event_id}", summary="Mostrar imagen de un evento")
+@event_route.get("/event/image/{event_id}", summary="Mostrar imagen de un evento")
 def getEventImage(event_id: str, db: Session = Depends(get_db)):
     return FileResponse(getcwd() + get_image_event(event_id, db=db))
 
