@@ -8,6 +8,8 @@ from typing import List, Dict
 from domino.services.event import get_all, new, get_one_by_id, delete, update
 from starlette import status
 from domino.auth_bearer import JWTBearer
+from fastapi.responses import FileResponse, JSONResponse
+from os import getcwd, remove
   
 event_route = APIRouter(
     tags=["Events"],
@@ -40,3 +42,15 @@ def delete_event(request:Request, id: str, db: Session = Depends(get_db)):
 @event_route.put("/event/{id}", response_model=ResultObject, summary="Update a Event by its ID")
 def update_event(request:Request, id: str, event: EventBase = Depends(), image: UploadFile = File(...), db: Session = Depends(get_db)):
     return update(request=request, db=db, event_id=str(id), event=event.dict(), file=image)
+
+@event_route.get("/event/file/{user_id}/{event_id}", summary="Mostrar imagen de un evento")
+def getEventImage(user_id: str, event_id: str):
+    return FileResponse(getcwd() + "/public/events/" + user_id + "/" + event_id + "/" + file_name)
+
+@event_route.delete("/delete/{name}")
+def delevent(name: str):
+    try:
+        remove(getcwd() + "/public/events/" + name)
+        return JSONResponse(content={"success": True, "message": "file deleted"}, status_code=200)
+    except FileNotFoundError:
+        return JSONResponse(content={"success": False}, status_code=404)
