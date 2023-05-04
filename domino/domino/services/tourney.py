@@ -1,12 +1,12 @@
 import math
 import uuid
-
+from typing import List
 from datetime import datetime
 from fastapi import HTTPException, Request
 from unicodedata import name
 from fastapi import HTTPException
 from domino.models.tourney import Tourney
-from domino.schemas.tourney import TourneyBase, TourneySchema
+from domino.schemas.tourney import TourneyBase, TourneySchema, TourneyCreated
 from domino.schemas.result_object import ResultObject, ResultData
 from sqlalchemy.orm import Session
 from sqlalchemy.exc import SQLAlchemyError, IntegrityError
@@ -95,7 +95,7 @@ def get_all_by_event_id(event_id: str, db: Session):
     
     return result
 
-def new(request, db: Session, tourney: TourneyBase):
+def new(request, event_id: str, lst_tourney: List[TourneyCreated], db: Session):
     locale = request.headers["accept-language"].split(",")[0].split("-")[0];
     
     result = ResultObject() 
@@ -105,22 +105,27 @@ def new(request, db: Session, tourney: TourneyBase):
     if not one_status:
         raise HTTPException(status_code=404, detail=_(locale, "status.not_found"))
     
-    id = str(uuid.uuid4())
-    
-    one_event = get_one_event(tourney.event_id, db=db)
+    one_event = get_one_event(event_id, db=db)
     if one_event.status_id != one_status.id:
         raise HTTPException(status_code=404, detail=_(locale, "event.event_closed"))
     
-    db_tourney = Tourney(id=id, event_id=tourney.event_id, modality=tourney.modality, name=tourney.name, 
-                         summary=tourney.summary, start_date=tourney.start_date, 
-                         status_id=one_status.id, created_by=currentUser['username'], 
-                         updated_by=currentUser['username'])
+    for item_to in lst_tourney:
+        id = str(uuid.uuid4())
+        if item_to.startDate < one_event.start_date: 
+            raise HTTPException(status_code=404, detail=_(locale, "tourney.incorrect_startDate"))
+        if item_to.startDate > one_event.close_date: 
+            raise HTTPException(status_code=404, detail=_(locale, "tourney.incorrect_startDate"))
+        
+        db_tourney = Tourney(id=id, event_id=event_id, modality=item_to.modality, name=item_to.name, 
+                            summary=item_to.summary, start_date=item_to.startDate, 
+                            status_id=one_status.id, created_by=currentUser['username'], 
+                            updated_by=currentUser['username'])
+        db.add(db_tourney)
     
     try:
-        db.add(db_tourney)
+        
         db.commit()
-        db.refresh(db_tourney)
-        result.data = {'tourney_id': id}
+        result.data = {'event_id': event_id}
         return result
        
     except (Exception, SQLAlchemyError, IntegrityError) as e:
