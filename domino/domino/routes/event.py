@@ -43,16 +43,16 @@ def delete_event(request:Request, id: str, db: Session = Depends(get_db)):
 def update_event(request:Request, id: str, event: EventBase = Depends(), image: UploadFile = File(...), db: Session = Depends(get_db)):
     return update(request=request, db=db, event_id=str(id), event=event.dict(), file=image)
 
-@event_route.get("/event/image/{event_id}", summary="Mostrar imagen de un evento")
-def getEventImage(event_id: str, db: Session = Depends(get_db)):
-    return FileResponse(getcwd() + get_image_event(event_id, db=db))
+# @event_route.get("/event/image/{event_id}", summary="Mostrar imagen de un evento")
+# def getEventImage(event_id: str, db: Session = Depends(get_db)):
+#     return FileResponse(getcwd() + get_image_event(event_id, db=db))
 
-    # return FileResponse(getcwd() + "/public/events/" + user_id + "/" + file_name)
+#     # return FileResponse(getcwd() + "/public/events/" + user_id + "/" + file_name)
 
-@event_route.delete("/delete/{name}")
-def delevent(name: str):
-    try:
-        remove(getcwd() + "/public/events/" + name)
-        return JSONResponse(content={"success": True, "message": "file deleted"}, status_code=200)
-    except FileNotFoundError:
-        return JSONResponse(content={"success": False}, status_code=404)
+# @event_route.delete("/delete/{name}")
+# def delevent(name: str):
+#     try:
+#         remove(getcwd() + "/public/events/" + name)
+#         return JSONResponse(content={"success": True, "message": "file deleted"}, status_code=200)
+#     except FileNotFoundError:
+#         return JSONResponse(content={"success": False}, status_code=404)
