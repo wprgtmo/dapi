@@ -74,7 +74,7 @@ def get_all(request:Request, page: int, per_page: int, criteria_key: str, criter
 def create_dict_row(item, page, db: Session, incluye_tourney=False, host="", port=""):
     
     # image = "http://" + host + ":" + port + "/api/event/image/" + str(item['user_id']) + "/" + item['image']
-    image = "http://" + host + ":" + port + "/api/event/image/" + item['id']
+    image = "http://" + host + ":" + port + "/api/image/event/" + item['id']
     
     new_row = {'id': item['id'], 'name': item['name'], 
                'startDate': item['start_date'], 'endDate': item['close_date'], 
