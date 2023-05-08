@@ -12,6 +12,8 @@ class EventBase(BaseModel):
     start_date: Optional[date] = date.today()
     close_date: Optional[date] = date.today()
     
+    tourney: Optional[str]
+    
     @validator('name')
     def name_not_empty(cls, name):
         if not name:
