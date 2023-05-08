@@ -132,6 +132,8 @@ def new(request: Request, event: EventBase, db: Session, file: File):
         
         res_dictionary = json.loads(tourney_string) 
         
+        print('script recibido')
+        print(event['tourney'])
         
         print('tourney_string')
         print(tourney_string)
