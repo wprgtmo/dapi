@@ -82,8 +82,8 @@ async def redoc_html():
 
 app.include_router(auth_routes, prefix="/api")
 app.include_router(user_route, prefix="/api")
-# app.include_router(country_route, prefix="/api")
-# app.include_router(city_route, prefix="/api")
+app.include_router(country_route, prefix="/api")
+app.include_router(city_route, prefix="/api")
 # app.include_router(packages_route, prefix="/api")
 # app.include_router(status_route, prefix="/api")
 app.include_router(post_route, prefix="/api")
