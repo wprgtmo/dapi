@@ -55,10 +55,10 @@ def create_dir(entity_type: str, user_id: str, entity_id: str):
     if not os.path.isdir(path):
         os.mkdir(path)
     
-    if entity_type == 'POST':
-        path += "/" + str(entity_id)
-        if not os.path.isdir(path):
-            os.mkdir(path)
+    # if entity_type == 'POST':
+    path += "/" + str(entity_id)
+    if not os.path.isdir(path):
+        os.mkdir(path)
         
     path += "/"
     

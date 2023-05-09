@@ -115,9 +115,9 @@ def new(request: Request, event: EventBase, db: Session, file: File):
     id = str(uuid.uuid4())
     
     if file:
-        # en el nombre voy a guardar un consecutivo empezandp por uno para que no se quede en cache al actualizar
         ext = get_ext_at_file(file.filename)
-        file.filename = str(id) + "_1" + "." + ext
+        # file.filename = str(id) + "_1" + "." + ext
+        file.filename = str(id) + "." + ext
         
         path = create_dir(entity_type="EVENT", user_id=str(currentUser['user_id']), entity_id=str(id))
     
@@ -126,18 +126,6 @@ def new(request: Request, event: EventBase, db: Session, file: File):
                     image=file.filename if file else None, registration_price=float(0.00), 
                     city_id=event['city_id'], main_location=event['main_location'], status_id=one_status.id,
                     created_by=currentUser['username'], updated_by=currentUser['username'])
-    
-    # if event['tourney']:
-        
-    #     tourney_dictionary = json.loads(event["tourney"])
-        
-    #     for item in tourney_dictionary:
-    #         tourney_id = str(uuid.uuid4())
-    #         db_tourney = Tourney(id=tourney_id, event_id=id, modality=item['modality'], name=item['name'], 
-    #                              summary=item['summary'], start_date=item['startDate'], 
-    #                              status_id=one_status.id, created_by=currentUser['username'], 
-    #                              updated_by=currentUser['username'])
-    #         db_event.tourney.append(db_tourney)
     
     try:
         if file:
@@ -180,7 +168,7 @@ def delete(request: Request, event_id: str, db: Session):
             
             if db_event.image:
                 user_created = get_one_by_username(db_event.created_by, db=db)
-                path = "/public/events/" + str(user_created.id) + "/"
+                path = "/public/events/" + str(user_created.id) + "/" + str(db_event.id) + "/"
                 try:
                     del_image(path=path, name=str(db_event.image))
                 except:
@@ -217,19 +205,22 @@ def update(request: Request, event_id: str, event: EventBase, db: Session, file:
             ext = get_ext_at_file(file.filename)
             
             current_image = db_event.image
-            consecutive = 1
-            if current_image:
-                pos_guion = current_image.find('_')
-                pos_ext = current_image.find('.')
+            # consecutive = 1
             
-                consecutive = int(db_event.image[pos_guion+1:pos_ext]) if db_event.image else 1
-                consecutive += 1
+            new_name = str(uuid.uuid4())
+                
+            #     pos_guion = current_image.find('_')
+            #     pos_ext = current_image.find('.')
             
-            file.filename = str(db_event.id) + '_' + str(consecutive) + "." + ext if ext else str(db_event.id) + '_' + str(consecutive)
+            #     consecutive = int(db_event.image[pos_guion+1:pos_ext]) if db_event.image else 1
+            #     consecutive += 1
+            
+            # file.filename = str(db_event.id) + '_' + str(consecutive) + "." + ext if ext else str(db_event.id) + '_' + str(consecutive)
+            file.filename = str(uuid.uuid4()) + "." + ext if ext else str(uuid.uuid4())
             path = create_dir(entity_type="EVENT", user_id=str(currentUser['user_id']), entity_id=str(db_event.id))
             
             user_created = get_one_by_username(db_event.created_by, db=db)
-            path_del = "/public/events/" + str(user_created.id) + "/"
+            path_del = "/public/events/" + str(user_created.id) + "/" + str(db_event.id) + "/"
             try:
                 del_image(path=path_del, name=str(current_image))
             except:
@@ -342,7 +333,7 @@ def get_image_event(event_id: str, db: Session):
     db_event = db.query(Event).filter(Event.id == event_id).first()
     
     user_created = get_one_by_username(db_event.created_by, db=db)
-    path = "/public/events/" + str(user_created.id) + "/" + db_event.image
+    path = "/public/events/" + str(user_created.id) + "/" + str(db_event.id) + "/" + db_event.image
     
     return path
     
