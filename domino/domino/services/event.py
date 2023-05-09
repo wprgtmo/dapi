@@ -273,19 +273,19 @@ def update(request: Request, event_id: str, event: EventBase, db: Session, file:
                     str_tourney_iface += " " + item['id']
                     if item['id'] in dict_tourney:  # modificar datos del torneo
                         db_tourney = dict_tourney[item['id']]
-                        if db_tourney['status_id'] == 4:  # FINALIZED
+                        if db_tourney.status_id == 4:  # FINALIZED
                             raise HTTPException(status_code=400, detail=_(locale, "tourney.tourney_closed"))
                     
-                        if item['name'] and db_tourney.name != item['name']:
+                        if 'name' in item and item['name'] and db_tourney.name != item['name']:
                             db_tourney.name = item['name']
                         
-                        if item['summary'] and db_tourney.summary != item['summary']:    
+                        if 'summary' in item and item['summary'] and db_tourney.summary != item['summary']:    
                             db_tourney.summary = item['summary']
                             
-                        if item['modality'] and db_tourney.modality != item['modality']:    
+                        if 'modality' in item and item['modality'] and db_tourney.modality != item['modality']:    
                             db_tourney.modality = item['modality']
                             
-                        if item['startDate'] and db_tourney.start_date != item['startDate']:    
+                        if 'startDate' in item and item['startDate'] and db_tourney.start_date != item['startDate']:    
                             db_tourney.start_date = item.startDate
                             
                         db_tourney.updated_by = currentUser['username']
