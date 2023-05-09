@@ -16,8 +16,9 @@ from sqlalchemy.exc import SQLAlchemyError, IntegrityError
 from passlib.context import CryptContext
 from domino.auth_bearer import decodeJWT
 from domino.functions_jwt import get_current_user
+from domino.services.users import get_one_by_username
 from domino.app import _
-from domino.services.utils import get_result_count, upfile, create_dir
+from domino.services.utils import get_result_count, upfile, create_dir, del_image, get_ext_at_file
             
 def get_all(request:Request, page: int, per_page: int, criteria_key: str, criteria_value: str, db: Session):  
     locale = request.headers["accept-language"].split(",")[0].split("-")[0];
@@ -207,12 +208,15 @@ def new(request, db: Session, post: PostBase, files: List[File]):
                    is_active=True, allow_comment=post['allow_comment'], show_count_like=post['show_count_like'])
     
     if files:
-        # image = file.filename if file else None
         path = create_dir(entity_type="POST", user_id=str(currentUser['user_id']), entity_id=str(id))
-    
+        
         for item_file in files:
+            file_id = str(uuid.uuid4())
+            ext = get_ext_at_file(file.filename)
+            file.filename = str(id) + "_1" + "." + ext
+        
             # post_file = PostFiles(path="/post/" + str(id) + "/" + str(item_file))
-            post_file = PostFiles(path=+item_file.filename)
+            post_file = PostFiles(path = item_file.filename)
             db_post.files.append(post_file)
             upfile(file=item_file, path=path)
             
@@ -238,6 +242,19 @@ def delete(request: Request, post_id: str, db: Session):
             db_post.is_active = False
             db_post.updated_by = currentUser['username']
             db_post.updated_date = datetime.now()
+            # borrar las imagenes
+            
+            for item_file in db_post.files:
+                # "public/post") str(user_id) str(entity_id)
+                
+                user_created = get_one_by_username(db_post.created_by, db=db)
+                path = "/public/post/" + str(user_created.id) + "/" + 
+                try:
+                    del_image(path=path, name=str(db_event.image))
+                except:
+                    pass
+            
+            
             db.commit()
             return result
         else:
