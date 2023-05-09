@@ -261,7 +261,7 @@ def update(request: Request, event_id: str, event: EventBase, db: Session, file:
             tourney_dictionary = json.loads(event["tourney"])
             
             for item in tourney_dictionary:
-                if not item['id']:  # viene el torneo pero vacio, es nuevo
+                if 'id' not in item or not item['id']:  # viene el torneo pero vacio, es nuevo
                     tourney_id = str(uuid.uuid4())
                     db_tourney = Tourney(id=tourney_id, event_id=event_id, modality=item['modality'], name=item['name'], 
                                         summary=item['summary'], start_date=item['startDate'], 
