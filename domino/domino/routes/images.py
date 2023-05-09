@@ -15,9 +15,9 @@ image_route = APIRouter(
     tags=["Images"]   
 )
 
-@image_route.get("/image/event/{event_id}", summary="Mostrar imagen de un evento")
-def getEventImage(event_id: str, db: Session = Depends(get_db)):
-    return FileResponse(getcwd() + get_image_event(event_id, db=db))
+@image_route.get("/image/{user_id}/{event_id}/{file_name}", summary="Mostrar imagen de un evento")
+def getEventImage(user_id: str, event_id: str, file_name: str):
+    return FileResponse(getcwd() + "/public/events/" + user_id + "/" + event_id + "/" + file_name)
 
 @image_route.delete("/image/event/{event_id}", summary="Eliminar imagen de un evento")
 def delevent(name: str):
