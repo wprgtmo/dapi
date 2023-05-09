@@ -126,25 +126,12 @@ def new(request: Request, event: EventBase, db: Session, file: File):
                     city_id=event['city_id'], main_location=event['main_location'], status_id=one_status.id,
                     created_by=currentUser['username'], updated_by=currentUser['username'])
     
-    if event['tourney']:
+    # if event['tourney']:
         
-        tourney_string = json.dumps(event['tourney']) 
-        
-        res_dictionary = json.loads(tourney_string) 
-        
-        print('script recibido')
-        print(event['tourney'])
-        
-        print('tourney_string')
-        print(tourney_string)
-        
-        print('res_dictionary')
-        print(res_dictionary)
-        
-        for item in res_dictionary: # event['tourney']:
-            tourney_id = str(uuid.uuid4())
-            print('nombre')
-            print(item)
+        # for item in res_dictionary3: # event['tourney']:
+        #     tourney_id = str(uuid.uuid4())
+        #     print('nombre')
+        #     print(item)
             # db_tourney = Tourney(id=tourney_id, event_id=id, modality=item['modality'], name=item['name'], 
             #                      summary=item['summary'], start_date=item['startDate'], 
             #                      status_id=one_status.id, created_by=currentUser['username'], 
@@ -152,7 +139,6 @@ def new(request: Request, event: EventBase, db: Session, file: File):
             # db_event.tourney.append(db_tourney)
     
     try:
-        raise HTTPException(status_code=403, detail='Error')
         if file:
             upfile(file=file, path=path)
             
