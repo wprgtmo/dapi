@@ -115,8 +115,10 @@ def new(request: Request, event: EventBase, db: Session, file: File):
     id = str(uuid.uuid4())
     
     if file:
+        # en el nombre voy a guardar un consecutivo empezandp por uno para que no se quede en cache al actualizar
         ext = get_ext_at_file(file.filename)
-        file.filename = str(id) + "." + ext if ext else str(id)
+        image = '1' + "." + ext
+        file.filename = str(uuid.uuid4()) + "_" + image
         
         path = create_dir(entity_type="EVENT", user_id=str(currentUser['user_id']), entity_id=str(id))
     
@@ -126,19 +128,32 @@ def new(request: Request, event: EventBase, db: Session, file: File):
                     city_id=event['city_id'], main_location=event['main_location'], status_id=one_status.id,
                     created_by=currentUser['username'], updated_by=currentUser['username'])
     
-    # if event['tourney']:
+    if event['tourney']:
         
-        # for item in res_dictionary3: # event['tourney']:
-        #     tourney_id = str(uuid.uuid4())
-        #     print('nombre')
+        print(event['tourney'])
+        res_dictionary = json.loads(event["tourney"])
+        
+        print('script recibido')
+        print(event['tourney'])
+        
+        # for item in res_dictionary: # event['tourney']:
+        #     # tourney_id = str(uuid.uuid4())
+        #     # print('nombre')
         #     print(item)
-            # db_tourney = Tourney(id=tourney_id, event_id=id, modality=item['modality'], name=item['name'], 
-            #                      summary=item['summary'], start_date=item['startDate'], 
-            #                      status_id=one_status.id, created_by=currentUser['username'], 
-            #                      updated_by=currentUser['username'])
-            # db_event.tourney.append(db_tourney)
+        #     # db_tourney = Tourney(id=tourney_id, event_id=id, modality=item['modality'], name=item['name'], 
+        #     #                      summary=item['summary'], start_date=item['startDate'], 
+        #     #                      status_id=one_status.id, created_by=currentUser['username'], 
+        #     #                      updated_by=currentUser['username'])
+        #     # db_event.tourney.append(db_tourney)
+            
+               
+        for item in res_dictionary: 
+            # tourney_id = str(uuid.uuid4())
+            # print('nombre')
+            print(item)
     
     try:
+        raise HTTPException(status_code=404, detail=_(locale, "status.not_found"))
         if file:
             upfile(file=file, path=path)
             
