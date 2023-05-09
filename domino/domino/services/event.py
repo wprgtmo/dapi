@@ -286,7 +286,7 @@ def update(request: Request, event_id: str, event: EventBase, db: Session, file:
                             db_tourney.modality = item['modality']
                             
                         if 'startDate' in item and item['startDate'] and db_tourney.start_date != item['startDate']:    
-                            db_tourney.start_date = item.startDate
+                            db_tourney.start_date = item['startDate']
                             
                         db_tourney.updated_by = currentUser['username']
                         db_tourney.updated_date = datetime.now()
