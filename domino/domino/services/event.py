@@ -330,7 +330,8 @@ def get_lst_tourney_by_event_id(event_id: str, db: Session):
 def create_dict_row_tourney(item):
     
     new_row = {'id': item['id'], 'event_id': item['event_id'], 'name': item['name'], 
-               'modality': item['modality'], 'summary' : item['summary'], 'startDate': item['start_date']
+               'modality': item['modality'], 'summary' : item['summary'], 'startDate': item['start_date'],
+               'status_id': item['status_id'], 'status_name': item['status_name'] 
                }
        
     return new_row
