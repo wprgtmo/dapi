@@ -212,10 +212,9 @@ def new(request, db: Session, post: PostBase, files: List[File]):
         
         for item_file in files:
             file_id = str(uuid.uuid4())
-            ext = get_ext_at_file(file.filename)
-            file.filename = str(id) + "_1" + "." + ext
+            ext = get_ext_at_file(item_file.filename)
+            item_file.filename = str(file_id) + "." + ext
         
-            # post_file = PostFiles(path="/post/" + str(id) + "/" + str(item_file))
             post_file = PostFiles(path = item_file.filename)
             db_post.files.append(post_file)
             upfile(file=item_file, path=path)
@@ -245,15 +244,12 @@ def delete(request: Request, post_id: str, db: Session):
             # borrar las imagenes
             
             for item_file in db_post.files:
-                # "public/post") str(user_id) str(entity_id)
-                
                 user_created = get_one_by_username(db_post.created_by, db=db)
-                # path = "/public/post/" + str(user_created.id) + "/" + 
-                # try:
-                #     del_image(path=path, name=str(db_event.image))
-                # except:
-                #     pass
-            
+                path = "/public/post/" + str(user_created.id) + "/" + str(db_post.id)
+                try:
+                    del_image(path=path, name=str(item_file.path))
+                except:
+                    pass
             
             db.commit()
             return result
@@ -263,6 +259,8 @@ def delete(request: Request, post_id: str, db: Session):
     except (Exception, SQLAlchemyError) as e:
         print(e)
         raise HTTPException(status_code=404, detail=_(locale, "post.imposible_delete"))
+ 
+ # new(request, db: Session, post: PostBase, files: List[File]):
     
 def update(request: Request, post_id: str, post: PostUpdated, db: Session):
     locale = request.headers["accept-language"].split(",")[0].split("-")[0];
