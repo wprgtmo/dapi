@@ -260,9 +260,7 @@ def delete(request: Request, post_id: str, db: Session):
         print(e)
         raise HTTPException(status_code=404, detail=_(locale, "post.imposible_delete"))
  
- # new(request, db: Session, post: PostBase, files: List[File]):
-    
-def update(request: Request, post_id: str, post: PostUpdated, db: Session):
+def update(request: Request, post_id: str, post: PostBase, , files: List[File], db: Session):
     locale = request.headers["accept-language"].split(",")[0].split("-")[0];
     
     result = ResultObject() 
@@ -272,7 +270,7 @@ def update(request: Request, post_id: str, post: PostUpdated, db: Session):
     
     if db_post:
     
-        if db_post.summary != post.summary:    
+        if 'summary' in post and db_post.summary != post.summary:    
             db_post.summary = post.summary
         
         db_post.allow_comment = post.allow_comment
