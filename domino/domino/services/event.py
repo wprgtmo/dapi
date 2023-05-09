@@ -217,12 +217,13 @@ def update(request: Request, event_id: str, event: EventBase, db: Session, file:
             ext = get_ext_at_file(file.filename)
             
             current_image = db_event.image
+            consecutive = 1
+            if current_image:
+                pos_guion = current_image.find('_')
+                pos_ext = current_image.find('.')
             
-            pos_guion = current_image.find('_')
-            pos_ext = current_image.find('.')
-            
-            consecutive = int(db_event.image[pos_guion+1:pos_ext]) if db_event.image else 1
-            consecutive += 1
+                consecutive = int(db_event.image[pos_guion+1:pos_ext]) if db_event.image else 1
+                consecutive += 1
             
             file.filename = str(db_event.id) + '_' + str(consecutive) + "." + ext if ext else str(db_event.id) + '_' + str(consecutive)
             path = create_dir(entity_type="EVENT", user_id=str(currentUser['user_id']), entity_id=str(db_event.id))

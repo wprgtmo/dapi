@@ -46,7 +46,7 @@ def get_all(request:Request, page: int, per_page: int, criteria_key: str, criter
     
     if page != 0:
         str_query += "LIMIT " + str(per_page) + " OFFSET " + str(page*per_page-per_page)
-     
+    
     lst_data = db.execute(str_query)
     current_date = datetime.now()
     result.data = [create_dict_row(item, current_date, db=db) for item in lst_data]
@@ -69,6 +69,7 @@ def get_list_post(request:Request, db: Session):
         "AND (usf.username = '" + currentUser['username'] + "' or po.created_by = 'domino' or po.created_by = '" + currentUser['username'] + "')"
     
     str_query += " ORDER BY updated_date DESC " 
+    
     lst_data = db.execute(str_query)
     result.data = [create_dict_row(item, current_date, currentUser, db=db) for item in lst_data]
     
@@ -215,7 +216,7 @@ def new(request, db: Session, post: PostBase, files: List[File]):
             ext = get_ext_at_file(item_file.filename)
             item_file.filename = str(file_id) + "." + ext
         
-            post_file = PostFiles(path = item_file.filename)
+            post_file = PostFiles(id=file_id, path = item_file.filename)
             db_post.files.append(post_file)
             upfile(file=item_file, path=path)
             
@@ -249,6 +250,7 @@ def delete(request: Request, post_id: str, db: Session):
                 try:
                     del_image(path=path, name=str(item_file.path))
                 except:
+                    print('No encontre, dio ERROR')
                     pass
             
             db.commit()
