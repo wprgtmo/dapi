@@ -254,7 +254,7 @@ def update(request: Request, event_id: str, event: EventBase, db: Session, file:
         for item in db_event.tourney:
             dict_tourney[item.id] = item
         
-        if event.tourney:
+        if event['tourney']:
             one_status = get_one_by_name('CREATED', db=db)
             one_status_canc = get_one_by_name('CANCELLED', db=db)
             
