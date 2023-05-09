@@ -248,11 +248,11 @@ def delete(request: Request, post_id: str, db: Session):
                 # "public/post") str(user_id) str(entity_id)
                 
                 user_created = get_one_by_username(db_post.created_by, db=db)
-                path = "/public/post/" + str(user_created.id) + "/" + 
-                try:
-                    del_image(path=path, name=str(db_event.image))
-                except:
-                    pass
+                # path = "/public/post/" + str(user_created.id) + "/" + 
+                # try:
+                #     del_image(path=path, name=str(db_event.image))
+                # except:
+                #     pass
             
             
             db.commit()
