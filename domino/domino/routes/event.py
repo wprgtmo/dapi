@@ -40,7 +40,7 @@ def delete_event(request:Request, id: str, db: Session = Depends(get_db)):
     return delete(request=request, event_id=str(id), db=db)
     
 @event_route.put("/event/{id}", response_model=ResultObject, summary="Update a Event by its ID")
-def update_event(request:Request, id: str, event: EventBase = Depends(), image: UploadFile = File(...), db: Session = Depends(get_db))
+def update_event(request:Request, id: str, event: EventBase = Depends(), image: UploadFile = File(...), db: Session = Depends(get_db)):
     return update(request=request, db=db, event_id=str(id), event=event.dict(), file=image)
 
 # @event_route.get("/event/image/{event_id}", summary="Mostrar imagen de un evento")
