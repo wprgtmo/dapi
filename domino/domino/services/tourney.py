@@ -158,38 +158,65 @@ def delete(request: Request, tourney_id: str, db: Session):
         print(e)
         raise HTTPException(status_code=404, detail=_(locale, "tourney.imposible_delete"))
     
-def update(request: Request, tourney_id: str, tourney: TourneyBase, db: Session):
+def update(request: Request, event_id: str, tourney: List[TourneyCreated], db: Session):
     locale = request.headers["accept-language"].split(",")[0].split("-")[0];
     
     result = ResultObject() 
     currentUser = get_current_user(request) 
-       
-    db_tourney = db.query(Tourney).filter(Tourney.id == tourney_id).first()
     
-    if db_tourney:
-        
-        if db_tourney.status_id == 4:  # FINALIZED
-            raise HTTPException(status_code=400, detail=_(locale, "tourney.tourney_closed"))
+    one_status_end = get_one_by_name('FINALIZED', db=db)
+    one_status_new = get_one_by_name('CREATED', db=db)
+    one_status_canc = get_one_by_name('CANCELLED', db=db)
     
-        if tourney.name and db_tourney.name != tourney.name:
-            db_tourney.name = tourney.name
+    one_event = get_one_event(event_id, db=db)
+    if one_event.status_id == one_status_end.id:
+        raise HTTPException(status_code=404, detail=_(locale, "event.event_closed"))
+    
+    if tourney:
+        # desde la interfaz, los que no vengan borrarlos, si vienen nuevos insertarlos, si coinciden modificarlos
+        str_tourney_iface = ""
+        dict_tourney = {}
+        for item_to in one_event.tourney:
+            dict_tourney[item_to.id] = item_to
+            
+        for item in tourney:
+            if 'id' not in item or not item.id_tourney:  # viene el torneo pero vacio, es nuevo
+                tourney_id = str(uuid.uuid4())
+                db_tourney = Tourney(id=tourney_id, event_id=event_id, modality=item.modality, name=item.name, 
+                                     summary=item.summary, start_date=item.startDate, 
+                                     status_id=one_status_new.id, created_by=currentUser['username'],
+                                     updated_by=currentUser['username'])
+                one_event.tourney.append(db_tourney)
+                
+            else:
+                str_tourney_iface += " " + item.id_tourney
+                if item.id_tourney in dict_tourney:  # modificar datos del torneo
+                    db_tourney = dict_tourney[item.id_tourney]
+                    if db_tourney.status_id == one_status_end.id:  # FINALIZED
+                        raise HTTPException(status_code=400, detail=_(locale, "tourney.tourney_closed"))
+                
+                    if 'name' in item and item.name and db_tourney.name != item.name:
+                        db_tourney.name = item.name
+                    
+                    if 'summary' in item and item.summary and db_tourney.summary != item.summary:    
+                        db_tourney.summary = item.summary
+                        
+                    if 'modality' in item and item.modality and db_tourney.modality != item.modality:    
+                        db_tourney.modality = item.modality
+                        
+                    if 'startDate' in item and item.startDate and db_tourney.start_date != item.startDate:    
+                        db_tourney.start_date = item.startDate
+                        
+                    db_tourney.updated_by = currentUser['username']
+                    db_tourney.updated_date = datetime.now()
         
-        if tourney.summary and db_tourney.summary != tourney.summary:    
-            db_tourney.summary = tourney.summary
-            
-        if tourney.modality and db_tourney.modality != tourney.modality:    
-            db_tourney.modality = tourney.modality
-            
-        if tourney.start_date and db_tourney.start_date != tourney.start_date:    
-            db_tourney.start_date = tourney.start_date
-            
-        db_tourney.updated_by = currentUser['username']
-        db_tourney.updated_date = datetime.now()
-         
+        for item_key, item_value in dict_tourney.items():
+            if item_key not in str_tourney_iface:
+                item_value.status_id = one_status_canc.id
+        
         try:
-            db.add(db_tourney)
+            db.add(one_event)
             db.commit()
-            db.refresh(db_tourney)
             return result
         except (Exception, SQLAlchemyError) as e:
             print(e.code)
