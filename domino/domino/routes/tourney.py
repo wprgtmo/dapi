@@ -41,5 +41,5 @@ def delete_tourney(request:Request, id: str, db: Session = Depends(get_db)):
     return delete(request=request, tourney_id=str(id), db=db)
     
 @tourney_route.put("/tourney/{id}", response_model=ResultObject, summary="Update a Tourney by its ID")
-def update_tourney(request:Request, id: str, tourney: TourneyBase, db: Session = Depends(get_db)):
+def update_tourney(request:Request, event_id: str, tourney: List[TourneyBase], db: Session = Depends(get_db)):
     return update(request=request, db=db, tourney_id=str(id), tourney=tourney)
