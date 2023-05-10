@@ -27,7 +27,7 @@ def delevent(name: str):
     except FileNotFoundError:
         return JSONResponse(content={"success": False}, status_code=404)
     
-@image_route.get("/post/{post_id}/{file_name}", response_class=FileResponse, summary="Mostrar imagen de un post")
+@image_route.get("pictures/post/{post_id}/{file_name}", response_class=FileResponse, summary="Mostrar imagen de un post")
 def getPostFile(post_id: str, file_name: str):
     return FileResponse(getcwd() + "/public/post/" + post_id + "/" + file_name)
 

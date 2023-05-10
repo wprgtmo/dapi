@@ -180,7 +180,7 @@ def get_files_of_post(post_id: str, db: Session, host='', port=''):
  
     lst_result = []
     if host:
-        path = "http://" + host + ":" + port + "/api/image/post/" #+ str(item['user_id']) + "/" + item['id'] + "/" + item['image']
+        path = "http://" + host + ":" + port + "/api/pictures/post/" #+ str(item['user_id']) + "/" + item['id'] + "/" + item['image']
     
     for item_file in lst_files:
         path_file = path + post_id + "/" + item_file['path']
