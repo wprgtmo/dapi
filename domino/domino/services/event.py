@@ -74,7 +74,6 @@ def get_all(request:Request, page: int, per_page: int, criteria_key: str, criter
 
 def create_dict_row(item, page, db: Session, incluye_tourney=False, host="", port=""):
     
-    # image = "http://" + host + ":" + port + "/api/event/image/" + str(item['user_id']) + "/" + item['image']
     image = "http://" + host + ":" + port + "/api/image/" + str(item['user_id']) + "/" + item['id'] + "/" + item['image']
     
     new_row = {'id': item['id'], 'name': item['name'], 
@@ -116,7 +115,6 @@ def new(request: Request, event: EventBase, db: Session, file: File):
     
     if file:
         ext = get_ext_at_file(file.filename)
-        # file.filename = str(id) + "_1" + "." + ext
         file.filename = str(id) + "." + ext
         
         path = create_dir(entity_type="EVENT", user_id=str(currentUser['user_id']), entity_id=str(id))
@@ -127,6 +125,19 @@ def new(request: Request, event: EventBase, db: Session, file: File):
                     city_id=event['city_id'], main_location=event['main_location'], status_id=one_status.id,
                     created_by=currentUser['username'], updated_by=currentUser['username'])
     
+    if event['tourney']:
+        
+        tourney_dictionary = json.loads(event["tourney"])
+        
+        for item in tourney_dictionary:
+            tourney_id = str(uuid.uuid4())
+            db_tourney = Tourney(id=tourney_id, event_id=id, modality=item['modality'], name=item['name'], 
+                                 summary=item['summary'], start_date=item['startDate'], 
+                                 status_id=one_status.id, created_by=currentUser['username'], 
+                                 updated_by=currentUser['username'])
+            db_event.tourney.append(db_tourney)
+            
+            
     try:
         if file:
             upfile(file=file, path=path)
@@ -205,17 +216,6 @@ def update(request: Request, event_id: str, event: EventBase, db: Session, file:
             ext = get_ext_at_file(file.filename)
             
             current_image = db_event.image
-            # consecutive = 1
-            
-            new_name = str(uuid.uuid4())
-                
-            #     pos_guion = current_image.find('_')
-            #     pos_ext = current_image.find('.')
-            
-            #     consecutive = int(db_event.image[pos_guion+1:pos_ext]) if db_event.image else 1
-            #     consecutive += 1
-            
-            # file.filename = str(db_event.id) + '_' + str(consecutive) + "." + ext if ext else str(db_event.id) + '_' + str(consecutive)
             file.filename = str(uuid.uuid4()) + "." + ext if ext else str(uuid.uuid4())
             path = create_dir(entity_type="EVENT", user_id=str(currentUser['user_id']), entity_id=str(db_event.id))
             
@@ -241,51 +241,51 @@ def update(request: Request, event_id: str, event: EventBase, db: Session, file:
             db_event.main_location = event['main_location']
         
         #desde la interfaz, los que no vengan borrarlos, si vienen nuevos insertarlos, si coinciden modificarlos
-        # str_tourney_iface = ""
-        # dict_tourney = {}
-        # for item in db_event.tourney:
-        #     dict_tourney[item.id] = item
+        str_tourney_iface = ""
+        dict_tourney = {}
+        for item in db_event.tourney:
+            dict_tourney[item.id] = item
         
-        # if event['tourney']:
-        #     one_status = get_one_by_name('CREATED', db=db)
-        #     one_status_canc = get_one_by_name('CANCELLED', db=db)
+        if event['tourney']:
+            one_status = get_one_by_name('CREATED', db=db)
+            one_status_canc = get_one_by_name('CANCELLED', db=db)
             
-        #     tourney_dictionary = json.loads(event["tourney"])
+            tourney_dictionary = json.loads(event["tourney"])
             
-        #     for item in tourney_dictionary:
-        #         if 'id' not in item or not item['id']:  # viene el torneo pero vacio, es nuevo
-        #             tourney_id = str(uuid.uuid4())
-        #             db_tourney = Tourney(id=tourney_id, event_id=event_id, modality=item['modality'], name=item['name'], 
-        #                                 summary=item['summary'], start_date=item['startDate'], 
-        #                                 status_id=one_status.id, created_by=currentUser['username'], 
-        #                                 updated_by=currentUser['username'])
-        #             db_event.tourney.append(db_tourney)
+            for item in tourney_dictionary:
+                if 'id' not in item or not item['id']:  # viene el torneo pero vacio, es nuevo
+                    tourney_id = str(uuid.uuid4())
+                    db_tourney = Tourney(id=tourney_id, event_id=event_id, modality=item['modality'], name=item['name'], 
+                                        summary=item['summary'], start_date=item['startDate'], 
+                                        status_id=one_status.id, created_by=currentUser['username'], 
+                                        updated_by=currentUser['username'])
+                    db_event.tourney.append(db_tourney)
                     
-        #         else:
-        #             str_tourney_iface += " " + item['id']
-        #             if item['id'] in dict_tourney:  # modificar datos del torneo
-        #                 db_tourney = dict_tourney[item['id']]
-        #                 if db_tourney.status_id == 4:  # FINALIZED
-        #                     raise HTTPException(status_code=400, detail=_(locale, "tourney.tourney_closed"))
+                else:
+                    str_tourney_iface += " " + item['id']
+                    if item['id'] in dict_tourney:  # modificar datos del torneo
+                        db_tourney = dict_tourney[item['id']]
+                        if db_tourney.status_id == 4:  # FINALIZED
+                            raise HTTPException(status_code=400, detail=_(locale, "tourney.tourney_closed"))
                     
-        #                 if 'name' in item and item['name'] and db_tourney.name != item['name']:
-        #                     db_tourney.name = item['name']
+                        if 'name' in item and item['name'] and db_tourney.name != item['name']:
+                            db_tourney.name = item['name']
                         
-        #                 if 'summary' in item and item['summary'] and db_tourney.summary != item['summary']:    
-        #                     db_tourney.summary = item['summary']
+                        if 'summary' in item and item['summary'] and db_tourney.summary != item['summary']:    
+                            db_tourney.summary = item['summary']
                             
-        #                 if 'modality' in item and item['modality'] and db_tourney.modality != item['modality']:    
-        #                     db_tourney.modality = item['modality']
+                        if 'modality' in item and item['modality'] and db_tourney.modality != item['modality']:    
+                            db_tourney.modality = item['modality']
                             
-        #                 if 'startDate' in item and item['startDate'] and db_tourney.start_date != item['startDate']:    
-        #                     db_tourney.start_date = item['startDate']
+                        if 'startDate' in item and item['startDate'] and db_tourney.start_date != item['startDate']:    
+                            db_tourney.start_date = item['startDate']
                             
-        #                 db_tourney.updated_by = currentUser['username']
-        #                 db_tourney.updated_date = datetime.now()
+                        db_tourney.updated_by = currentUser['username']
+                        db_tourney.updated_date = datetime.now()
             
-        #     for item_key, item_value in dict_tourney.items():
-        #         if item_key not in str_tourney_iface:
-        #             item_value.status_id = one_status_canc.id
+            for item_key, item_value in dict_tourney.items():
+                if item_key not in str_tourney_iface:
+                    item_value.status_id = one_status_canc.id
                 
         db_event.updated_by = currentUser['username']
         db_event.updated_date = datetime.now()
@@ -336,5 +336,3 @@ def get_image_event(event_id: str, db: Session):
     path = "/public/events/" + str(user_created.id) + "/" + str(db_event.id) + "/" + db_event.image
     
     return path
-    
-    # return FileResponse(getcwd() + "/public/events/" + user_id + "/" + file_name)
