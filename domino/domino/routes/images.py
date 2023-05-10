@@ -31,7 +31,7 @@ def delevent(name: str):
 def getPostFile(post_id: str, file_name: str):
     return FileResponse(getcwd() + "/public/post/" + post_id + "/" + file_name)
 
-@image_route.get("/{post_id}/{video_name}", summary="Mostrar un video de un Post")
+@image_route.get("/video/post/{post_id}/{video_name}", summary="Mostrar un video de un Post")
 def get_video(request: Request, post_id: str, video_name: str):
     file_name = getcwd() + "/public/post/" + post_id + "/" + video_name
     return range_requests_response(

@@ -2,6 +2,7 @@ import math
 import time
 import uuid
 
+from domino.config.config import settings
 from datetime import datetime, timedelta
 from fastapi import HTTPException, Request, File
 from typing import List
@@ -71,11 +72,14 @@ def get_list_post(request:Request, db: Session):
     str_query += " ORDER BY updated_date DESC " 
     
     lst_data = db.execute(str_query)
-    result.data = [create_dict_row(item, current_date, currentUser, db=db) for item in lst_data]
+    host=str(settings.server_uri)
+    port=str(int(settings.server_port))
+    
+    result.data = [create_dict_row(item, current_date, currentUser, db=db, host=host, port=port) for item in lst_data]
     
     return result
 
-def create_dict_row(item, current_date, currentUser, db: Session):
+def create_dict_row(item, current_date, currentUser, db: Session, host='', port=''):
     
     amount_like, amount_comments = get_amount_element_of_post(item['id'], db=db)
     return {'id': item['id'], 
@@ -86,7 +90,7 @@ def create_dict_row(item, current_date, currentUser, db: Session):
             'comment': item['summary'] if item['summary'] else "",
             'amountLike': amount_like, 'amountComment': amount_comments, 
             'comments': get_comments_of_post(item['id'], current_date, db=db),
-            'photos': get_files_of_post(item['id'], db=db),
+            'photos': get_files_of_post(item['id'], db=db, host=host, port=port),
             'like': verify_likes(str(item['id']), currentUser['username'], db=db),
             "allowComment": item['allow_comment'], "showCountLike": item['show_count_like']
             }
@@ -169,14 +173,18 @@ def get_comments_of_comment(comment_id: str, current_date: datetime, db: Session
     
     return lst_result
 
-def get_files_of_post(post_id: str, db: Session):
+def get_files_of_post(post_id: str, db: Session, host='', port=''):
     
     str_files = "SELECT path FROM post.post_files WHERE post_id = '" + post_id + "' "
     lst_files = db.execute(str_files)
  
     lst_result = []
+    if host:
+        path = "http://" + host + ":" + port + "/api/image/post/" #+ str(item['user_id']) + "/" + item['id'] + "/" + item['image']
+    
     for item_file in lst_files:
-        lst_result.append({'path': item_file['path'], 'type': get_ext_type(item_file['path'])})
+        path_file = path + post_id + "/" + item_file['path']
+        lst_result.append({'path': path_file, 'type': get_ext_type(item_file['path'])})
     
     return lst_result
 
@@ -216,7 +224,7 @@ def new(request, db: Session, post: PostBase, files: List[File]):
             ext = get_ext_at_file(item_file.filename)
             item_file.filename = str(file_id) + "." + ext
         
-            post_file = PostFiles(id=file_id, path = item_file.filename)
+            post_file = PostFiles(id=file_id, path=item_file.filename)
             db_post.files.append(post_file)
             upfile(file=item_file, path=path)
             
@@ -272,14 +280,31 @@ def update(request: Request, post_id: str, post: PostBase, files: List[File], db
     
     if db_post:
     
-        if 'summary' in post and db_post.summary != post.summary:    
-            db_post.summary = post.summary
+        if 'summary' in post and db_post.summary != post['summary']:    
+            db_post.summary = post['summary']
         
-        db_post.allow_comment = post.allow_comment
-        db_post.show_count_like = post.show_count_like
+        if 'allow_comment' in post and db_post.summary != post['allow_comment']: 
+            db_post.allow_comment = post['allow_comment']
+            
+        if 'show_count_like' in post and db_post.summary != post['show_count_like']: 
+            db_post.show_count_like = post['show_count_like']
         
         db_post.updated_by = currentUser['username']
         db_post.updated_date = datetime.now()
+        
+        if files:
+            path = create_dir(entity_type="POST", user_id=str(currentUser['user_id']), entity_id=str(id))
+            
+            for item_file in files:
+                file_id = str(uuid.uuid4())
+                ext = get_ext_at_file(item_file.filename)
+                item_file.filename = str(file_id) + "." + ext
+            
+                post_file = PostFiles(id=file_id, path=item_file.filename)
+                db_post.files.append(post_file)
+                upfile(file=item_file, path=path)
+                
+                #falta borrar los ficheros que no vienen, incluir losnuevos.....
                 
         try:
             db.add(db_post)

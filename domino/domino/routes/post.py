@@ -40,7 +40,7 @@ def get_post_by_id(id: str, db: Session = Depends(get_db)):
     return get_one_by_id(post_id=id, db=db)
 
 @post_route.post("/post", response_model=ResultObject, summary="Create a Post.")
-def create_post(request:Request, post: PostBase = Depends(), files: List[UploadFile] = File(...), db: Session = Depends(get_db)):
+def create_post(request:Request, post: PostBase = Depends(), files: List[UploadFile] = [], db: Session = Depends(get_db)):
     return new(request=request, post=post.dict(), db=db, files=files)
 
 @post_route.delete("/post/{id}", response_model=ResultObject, summary="Deactivate a Post by its ID.")
@@ -48,8 +48,8 @@ def delete_post(request:Request, id: str, db: Session = Depends(get_db)):
     return delete(request=request, post_id=str(id), db=db)
     
 @post_route.put("/post/{id}", response_model=ResultObject, summary="Update a Post by its ID")
-def update_post(request:Request, id: str, post: PostUpdated, db: Session = Depends(get_db)):
-    return update(request=request, db=db, post_id=str(id), post=post)
+def update_post(request:Request, id: str, post: PostUpdated = Depends(), files: List[UploadFile] = [], db: Session = Depends(get_db)):
+    return update(request=request, db=db, post_id=str(id), post=post, files=files)
 
 @post_route.post("/postlike", response_model=ResultObject, summary="Create a like at Post.")
 def add_like(request:Request, postlike: PostLikeCreate, db: Session = Depends(get_db)):

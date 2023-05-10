@@ -51,9 +51,10 @@ def create_dir(entity_type: str, user_id: str, entity_id: str):
             os.mkdir("public/events")
         path = "public/events/"
     
-    path += str(user_id) 
-    if not os.path.isdir(path):
-        os.mkdir(path)
+    if entity_type == 'EVENT':
+        path += str(user_id) 
+        if not os.path.isdir(path):
+            os.mkdir(path)
     
     # if entity_type == 'POST':
     path += "/" + str(entity_id)
