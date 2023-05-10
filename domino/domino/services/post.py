@@ -17,7 +17,7 @@ from sqlalchemy.exc import SQLAlchemyError, IntegrityError
 from passlib.context import CryptContext
 from domino.auth_bearer import decodeJWT
 from domino.functions_jwt import get_current_user
-from domino.services.users import get_one_by_username
+from domino.services.users import get_one_by_username, get_url_avatar
 from domino.app import _
 from domino.services.utils import get_result_count, upfile, create_dir, del_image, get_ext_at_file
             
@@ -85,7 +85,7 @@ def create_dict_row(item, current_date, currentUser, db: Session, host='', port=
     return {'id': item['id'], 
             'user_id': item['user_id'],
             'name': item['full_name'],
-            'avatar': item['photo'] if item['photo'] else "", 
+            'avatar': get_url_avatar(item['id'], item['photo'], host, port) if item['photo'] else "", 
             'elapsed': calculate_time(current_date, item['updated_date']), 
             'comment': item['summary'] if item['summary'] else "",
             'amountLike': amount_like, 'amountComment': amount_comments, 

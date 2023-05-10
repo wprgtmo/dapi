@@ -37,6 +37,10 @@ def get_video(request: Request, post_id: str, video_name: str):
     return range_requests_response(
         request, file_path=file_name, content_type="video/mp4"
     )
+
+@image_route.get("/avatar/{user_id}", summary="Mostrar imagen de un usuario")
+def getAvatar(user_id: str, file_name: str):
+    return FileResponse(getcwd() + "/public/profile/" + user_id + "/" + file_name)
        
 def send_bytes_range_requests(
     file_obj: BinaryIO, start: int, end: int, chunk_size: int = 10_000

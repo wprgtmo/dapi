@@ -50,19 +50,24 @@ def create_dir(entity_type: str, user_id: str, entity_id: str):
         if not os.path.isdir("public/events"):
             os.mkdir("public/events")
         path = "public/events/"
+        
+    elif entity_type == 'USER':
+        if not os.path.isdir("public/profile"):
+            os.mkdir("public/profile")
+        path = "public/profile/"
     
-    if entity_type == 'EVENT':
+    if entity_type == 'EVENT' or entity_type == 'USER':
         path += str(user_id) 
         if not os.path.isdir(path):
             os.mkdir(path)
         path += "/"
     
-    # if entity_type == 'POST':
-    path += str(entity_id)
-    if not os.path.isdir(path):
-        os.mkdir(path)
+    if entity_id:
+        path += str(entity_id)
+        if not os.path.isdir(path):
+            os.mkdir(path)
+        path += "/"
         
-    path += "/"
     return path
 
 def remove_dir(path: str):

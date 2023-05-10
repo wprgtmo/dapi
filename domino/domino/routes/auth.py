@@ -1,6 +1,5 @@
 # auth.py
-
-from fastapi import APIRouter, Depends, HTTPException, Request
+from fastapi import APIRouter, Depends, HTTPException, Request, UploadFile, File
 from domino.schemas.user import UserLogin
 from domino.services.auth import auth
 
@@ -35,8 +34,8 @@ async def get_me(request: Request):
 
 
 @auth_routes.post("/register", response_model=ResultObject, tags=["Autentificación"], summary="Register a user on the platform")
-def create_user(request: Request, user: UserCreate, db: Session = Depends(get_db)):
-    return new_user(request=request, user=user, db=db)
+def create_user(request: Request, user: UserCreate = Depends(), avatar: UploadFile = None, db: Session = Depends(get_db)):
+    return new_user(request=request, user=user, db=db, avatar=avatar)
 
 @auth_routes.post("/verify", response_model=ResultObject, tags=["Autentificación"], summary="Verify security code.")
 def verify_security_code(

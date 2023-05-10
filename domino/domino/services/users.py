@@ -2,9 +2,10 @@
 
 import math
 import random
+import uuid
 
 from datetime import datetime
-from fastapi import HTTPException, Request
+from fastapi import HTTPException, Request, UploadFile, File
 from domino.models.user import Users, UserFollowers
 from domino.schemas.user import UserCreate, UserShema, ChagePasswordSchema, UserBase, UserProfile, UserFollowerBase
 from domino.schemas.result_object import ResultObject, ResultData
@@ -16,9 +17,12 @@ from domino.functions_jwt import get_current_user
 from typing import List
 from domino.app import _
 from domino.services.utils import get_result_count
+from domino.config.config import settings
 
 from domino.services.country import get_one as country_get_one
 from domino.services.city import get_one as city_get_one
+
+from domino.services.utils import get_result_count, upfile, create_dir, del_image, get_ext_at_file, remove_dir
 
 pwd_context = CryptContext(schemes=["bcrypt"], deprecated="auto")
 
@@ -104,7 +108,7 @@ def create_dict_row(item, page, db: Session):
         new_row['selected'] = False
     return new_row
         
-def new(request: Request, db: Session, user: UserCreate):  
+def new(request: Request, db: Session, user: UserCreate, avatar: File):  
     locale = request.headers["accept-language"].split(",")[0].split("-")[0];
     
     result = ResultObject() 
@@ -117,12 +121,22 @@ def new(request: Request, db: Session, user: UserCreate):
     if not one_country:
         raise HTTPException(status_code=404, detail=_(locale, "country.not_found"))
     
+    id = str(uuid.uuid4())
     user.password = pwd_context.hash(user.password)  
-    db_user = Users(username=user.username,  first_name=user.first_name, last_name=user.last_name, country_id=user.country_id,  
-                    email=user.email, phone=user.phone, password=user.password, is_active=True)
+    db_user = Users(id=id, username=user.username,  first_name=user.first_name, last_name=user.last_name, 
+                    country_id=user.country_id, email=user.email, phone=user.phone, password=user.password, 
+                    is_active=True)
     
     db_user.security_code = random.randint(10000, 99999)  # codigo de 5 caracteres
+    
+    if avatar:
+        ext = get_ext_at_file(avatar.filename)
+        avatar.filename = str(id) + "." + ext
         
+        path = create_dir(entity_type="USER", user_id=str(id), entity_id=None)
+        db_user.photo = avatar.filename
+        upfile(file=avatar, path=path)
+            
     try:
         db.add(db_user)
         db.commit()
@@ -167,6 +181,13 @@ def get_one_profile(request: Request, user_id: str, db: Session):
     
     return result
 
+def get_url_avatar(user_id: str, file_name: str, host='', port=''):
+    
+    host=str(settings.server_uri) if not host else host
+    port=str(int(settings.server_port)) if not port else port
+    
+    return "http://" + host + ":" + port + "/api/profile/" + str(user_id) + "/" + file_name
+    
 def check_security_code(request: Request, username: str, security_code: str, db: Session):
     locale = request.headers["accept-language"].split(",")[0].split("-")[0];
     
@@ -250,11 +271,10 @@ def update(request: Request, user_id: str, user: UserBase, db: Session):
         if e.code == "gkpj":
             raise HTTPException(status_code=400, detail=_(locale, "users.already_exist"))
 
-def update_one_profile(request: Request, user_id: str, user: UserProfile, db: Session):
+def update_one_profile(request: Request, user_id: str, user: UserProfile, db: Session, avatar: File):
     locale = request.headers["accept-language"].split(",")[0].split("-")[0];
     
     result = ResultObject()
-    # currentUser = get_current_user(request)
        
     db_user = db.query(Users).filter(Users.id == user_id).first()
     
@@ -294,8 +314,8 @@ def update_one_profile(request: Request, user_id: str, user: UserProfile, db: Se
     if user.job and user.job != db_user.job:
         db_user.job = user.job
         
-    if user.photo and user.photo != db_user.photo:
-        db_user.photo = user.photo
+    # if user.photo and user.photo != db_user.photo:
+    #     db_user.photo = user.photo
     
     if user.city_id and user.city_id != db_user.city_id:
         one_city = city_get_one(user.city_id, db=db)
@@ -304,6 +324,22 @@ def update_one_profile(request: Request, user_id: str, user: UserProfile, db: Se
         if one_city.country_id != user.country_id:
             raise HTTPException(status_code=404, detail=_(locale, "city.country_incorrect"))
         db_user.city_id = user.city_id
+        
+    if avatar:
+        ext = get_ext_at_file(avatar.filename)
+        
+        current_image = user.photo
+        avatar.filename = str(uuid.uuid4()) + "." + ext if ext else str(uuid.uuid4())
+        path = create_dir(entity_type="USER", user_id=str(user.id), entity_id=None)
+        
+        user_created = get_one_by_username(user.username, db=db)
+        path_del = "/public/profile/" + str(user_created.id) + "/" 
+        try:
+            del_image(path=path_del, name=str(current_image))
+        except:
+            pass
+        upfile(file=avatar, path=path)
+        avatar.photo = avatar.filename
         
     try:
         db.add(db_user)

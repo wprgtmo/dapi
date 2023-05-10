@@ -1,6 +1,6 @@
 # Routes user.py
 
-from fastapi import APIRouter, Depends, HTTPException, Request
+from fastapi import APIRouter, Depends, HTTPException, Request, UploadFile, File
 from domino.schemas.user import UserShema, UserCreate, UserBase, ChagePasswordSchema, UserProfile, UserFollowerBase
 from domino.schemas.result_object import ResultObject
 from sqlalchemy.orm import Session
@@ -49,8 +49,8 @@ def delete_user(request:Request, id: uuid.UUID, db: Session = Depends(get_db)):
     return delete(request=request, user_id=str(id), db=db)
     
 @user_route.put("/users/{id}", response_model=ResultObject, summary="Update a User by his ID.")
-def update_user(request:Request, id: uuid.UUID, user: UserProfile, db: Session = Depends(get_db)):
-    return update_one_profile(request=request, db=db, user_id=str(id), user=user)
+def update_user(request:Request, id: uuid.UUID, user: UserProfile = Depends(), avatar: UploadFile = None, db: Session = Depends(get_db)):
+    return update_one_profile(request=request, db=db, user_id=str(id), user=user, avatar=avatar)
 
 @user_route.post("/users/password", response_model=ResultObject, summary="Change password to a user.")
 def reset_password(
