@@ -76,7 +76,6 @@ class UserProfile(UserBase):
     birthdate: Optional[date]
     alias: Optional[str]
     job: Optional[str]
-    photo: Optional[str]
     city_id: Optional[int]
     
     class Config:
