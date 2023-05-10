@@ -89,7 +89,7 @@ def create_dict_row(item, current_date, currentUser, db: Session, host='', port=
             'elapsed': calculate_time(current_date, item['updated_date']), 
             'comment': item['summary'] if item['summary'] else "",
             'amountLike': amount_like, 'amountComment': amount_comments, 
-            'comments': get_comments_of_post(item['id'], current_date, db=db),
+            'comments': get_comments_of_post(item['id'], current_date, db=db, host=host, port=port),
             'photos': get_files_of_post(item['id'], db=db, host=host, port=port),
             'like': verify_likes(str(item['id']), currentUser['username'], db=db),
             "allowComment": item['allow_comment'], "showCountLike": item['show_count_like']
@@ -132,7 +132,7 @@ def get_amount_element_of_post(post_id, db: Session):
     
     return amount_like, amount_comments
 
-def get_comments_of_post(post_id: str, current_date: datetime, db: Session):
+def get_comments_of_post(post_id: str, current_date: datetime, db: Session, host='', port=''):
     
     str_comments = "SELECT po.id, us.first_name || ' ' || us.last_name as full_name, us.photo, summary, " +\
         "po.created_date, us.id as user_id, us.username FROM post.post_comments po " +\
@@ -145,7 +145,7 @@ def get_comments_of_post(post_id: str, current_date: datetime, db: Session):
         one_like_comment = get_one_like_at_comment(item_comment['id'], item_comment['username'], db=db)
         lst_result.append({'id': item_comment['id'], 'name': item_comment['full_name'], 
                            'user_id': item_comment['user_id'],
-                           'avatar': item_comment['photo'] if item_comment['photo'] else "", 
+                           'avatar': get_url_avatar(item_comment['user_id'], item_comment['photo'], host, port) if item_comment['photo'] else "",
                            'comment': item_comment['summary'] if item_comment['summary'] else "", 
                            'comments': get_comments_of_comment(item_comment['id'], current_date, db=db),
                            'like': True if one_like_comment else False,
@@ -153,7 +153,7 @@ def get_comments_of_post(post_id: str, current_date: datetime, db: Session):
     
     return lst_result
 
-def get_comments_of_comment(comment_id: str, current_date: datetime, db: Session):
+def get_comments_of_comment(comment_id: str, current_date: datetime, db: Session, host='', port=''):
     
     str_comments = "SELECT co.id, us.first_name || ' ' || us.last_name as full_name, us.photo, summary,co.created_by, " +\
         "co.created_date, us.id as user_id, us.username FROM post.comment_comments co " +\
@@ -166,7 +166,7 @@ def get_comments_of_comment(comment_id: str, current_date: datetime, db: Session
         one_like_comment = get_one_like_at_comment(item_comment['id'], item_comment['username'], db=db)
         lst_result.append({'id': item_comment['id'], 'name': item_comment['full_name'], 
                            'user_id': item_comment['user_id'],
-                           'avatar': item_comment['photo'] if item_comment['photo'] else "", 
+                           'avatar': get_url_avatar(item_comment['user_id'], item_comment['photo'], host, port) if item_comment['photo'] else "",
                            'comment': item_comment['summary'] if item_comment['summary'] else "", 
                            'like': True if one_like_comment else False,
                            'elapsed': calculate_time(current_date, item_comment['created_date'])})

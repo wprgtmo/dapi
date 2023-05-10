@@ -216,7 +216,6 @@ def delete(request: Request, user_id: str, db: Session):
     locale = request.headers["accept-language"].split(",")[0].split("-")[0];
     
     result = ResultObject()
-    # currentUser = get_current_user(request)
     
     try:
         db_user = db.query(Users).filter(Users.id == user_id).first()
@@ -233,7 +232,6 @@ def update(request: Request, user_id: str, user: UserBase, db: Session):
     locale = request.headers["accept-language"].split(",")[0].split("-")[0];
     
     result = ResultObject()
-    # currentUser = get_current_user(request)
        
     db_user = db.query(Users).filter(Users.id == user_id).first()
     
