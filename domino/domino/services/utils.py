@@ -55,15 +55,26 @@ def create_dir(entity_type: str, user_id: str, entity_id: str):
         path += str(user_id) 
         if not os.path.isdir(path):
             os.mkdir(path)
+        path += "/"
     
     # if entity_type == 'POST':
-    path += "/" + str(entity_id)
+    path += str(entity_id)
     if not os.path.isdir(path):
         os.mkdir(path)
         
     path += "/"
-    
     return path
+
+def remove_dir(path: str):
+    import os
+    print(path)
+    print('*********************')
+    
+    os.rmdir(path)
+    
+    os.rmdir(getcwd() + path)
+    
+    return True
 
 def del_image(path: str, name: str):
     try:

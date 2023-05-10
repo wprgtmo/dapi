@@ -270,7 +270,7 @@ def delete(request: Request, post_id: str, db: Session):
         print(e)
         raise HTTPException(status_code=404, detail=_(locale, "post.imposible_delete"))
  
-def update(request: Request, post_id: str, post: PostBase, files: List[File], db: Session):
+def update(request: Request, post_id: str, post: PostCreated, files: List[File], db: Session):
     locale = request.headers["accept-language"].split(",")[0].split("-")[0];
     
     result = ResultObject() 
@@ -280,21 +280,14 @@ def update(request: Request, post_id: str, post: PostBase, files: List[File], db
     
     if db_post:
     
-        if 'summary' in post and db_post.summary != post['summary']:    
-            db_post.summary = post['summary']
-        
-        if 'allow_comment' in post and db_post.summary != post['allow_comment']: 
-            db_post.allow_comment = post['allow_comment']
-            
-        if 'show_count_like' in post and db_post.summary != post['show_count_like']: 
-            db_post.show_count_like = post['show_count_like']
+        if db_post.summary != post.summary:    
+            db_post.summary = post.summary
         
         db_post.updated_by = currentUser['username']
         db_post.updated_date = datetime.now()
         
         if files:
-            path = create_dir(entity_type="POST", user_id=str(currentUser['user_id']), entity_id=str(id))
-            
+            path = create_dir(entity_type="POST", user_id=str(currentUser['user_id']), entity_id=str(db_post.id))
             for item_file in files:
                 file_id = str(uuid.uuid4())
                 ext = get_ext_at_file(item_file.filename)
@@ -303,7 +296,6 @@ def update(request: Request, post_id: str, post: PostBase, files: List[File], db
                 post_file = PostFiles(id=file_id, path=item_file.filename)
                 db_post.files.append(post_file)
                 upfile(file=item_file, path=path)
-                
                 #falta borrar los ficheros que no vienen, incluir losnuevos.....
                 
         try:

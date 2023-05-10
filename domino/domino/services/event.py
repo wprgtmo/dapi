@@ -21,7 +21,7 @@ from domino.functions_jwt import get_current_user
 from domino.services.status import get_one_by_name, get_one as get_one_status
 from domino.services.users import get_one_by_username
 from domino.app import _
-from domino.services.utils import get_result_count, upfile, create_dir, del_image, get_ext_at_file
+from domino.services.utils import get_result_count, upfile, create_dir, del_image, get_ext_at_file, remove_dir
 
 from fastapi.responses import FileResponse
 from os import getcwd
@@ -177,13 +177,19 @@ def delete(request: Request, event_id: str, db: Session):
             db_event.updated_date = datetime.now()
             db.commit()
             
-            if db_event.image:
-                user_created = get_one_by_username(db_event.created_by, db=db)
-                path = "/public/events/" + str(user_created.id) + "/" + str(db_event.id) + "/"
-                try:
-                    del_image(path=path, name=str(db_event.image))
-                except:
-                    pass
+            # if db_event.image:
+            user_created = get_one_by_username(db_event.created_by, db=db)
+            path = "/public/events/" + str(user_created.id) + "/" + str(db_event.id) + "/"
+            print('datata')
+            print(path[:-1])
+            try:
+                del_image(path=path, name=str(db_event.image))
+            except:
+                pass
+            try:
+                remove_dir(path=path[:-1])
+            except:
+                pass
                 
             return result
         else:
