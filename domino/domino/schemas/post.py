@@ -37,3 +37,12 @@ class PostUpdated(BaseModel):
         if not summary:
             raise ValueError('Comentario de Post Requerido')
         return summary
+    
+class PostCreated(BaseModel):
+    summary: Optional[str]
+    
+    @validator('summary')
+    def summary_not_empty(cls, summary):
+        if not summary:
+            raise ValueError('Comentario de Post Requerido')
+        return summary

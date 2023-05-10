@@ -1,5 +1,5 @@
 from fastapi import APIRouter, Depends, HTTPException, Request, UploadFile, File
-from domino.schemas.post import PostBase, PostUpdated
+from domino.schemas.post import PostBase, PostUpdated, PostCreated
 from domino.schemas.postelement import PostLikeCreate, PostCommentCreate, PostFileCreate, CommentCommentCreate, CommentLikeCreate
 from domino.schemas.result_object import ResultObject, ResultData
 from sqlalchemy.orm import Session
@@ -40,7 +40,7 @@ def get_post_by_id(id: str, db: Session = Depends(get_db)):
     return get_one_by_id(post_id=id, db=db)
 
 @post_route.post("/post", response_model=ResultObject, summary="Create a Post.")
-def create_post(request:Request, post: PostBase = Depends(), files: List[UploadFile] = [], db: Session = Depends(get_db)):
+def create_post(request:Request, post: PostCreated = Depends(), files: List[UploadFile] = [], db: Session = Depends(get_db)):
     return new(request=request, post=post.dict(), db=db, files=files)
 
 @post_route.delete("/post/{id}", response_model=ResultObject, summary="Deactivate a Post by its ID.")

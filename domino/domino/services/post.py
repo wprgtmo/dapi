@@ -9,7 +9,7 @@ from typing import List
 from unicodedata import name
 from fastapi import HTTPException
 from domino.models.post import Post, PostLikes, PostComments, PostFiles, CommentComments, CommentLikes
-from domino.schemas.post import PostBase, PostUpdated
+from domino.schemas.post import PostBase, PostUpdated, PostCreated
 from domino.schemas.postelement import PostFileCreate, PostLikeCreate, PostCommentCreate, CommentCommentCreate, CommentLikeCreate
 from domino.schemas.result_object import ResultObject, ResultData
 from sqlalchemy.orm import Session
@@ -205,7 +205,7 @@ def get_one_by_id(post_id: str, db: Session):
     result.data = db.query(Post).filter(Post.id == post_id).first()
     return result
 
-def new(request, db: Session, post: PostBase, files: List[File]):
+def new(request, db: Session, post: PostCreated, files: List[File]):
     locale = request.headers["accept-language"].split(",")[0].split("-")[0];
     
     result = ResultObject() 
@@ -214,7 +214,7 @@ def new(request, db: Session, post: PostBase, files: List[File]):
     id = str(uuid.uuid4())
     
     db_post = Post(id=id, summary=post['summary'], created_by=currentUser['username'], updated_by=currentUser['username'],
-                   is_active=True, allow_comment=post['allow_comment'], show_count_like=post['show_count_like'])
+                   is_active=True, allow_comment=True, show_count_like=True)
     
     if files:
         path = create_dir(entity_type="POST", user_id=str(currentUser['user_id']), entity_id=str(id))
