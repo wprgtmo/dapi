@@ -72,5 +72,5 @@ def add_file(request:Request, postfile: PostFileCreate, db: Session = Depends(ge
     return add_one_file(request=request, postfile=postfile, db=db)
 
 @post_route.delete("/postimage/{id}", response_model=ResultObject, summary="Remove File asociate at Post by its ID.")
-def delete_post_image(request:Request, id: str, db: Session = Depends(get_db)):
-    return remove_one_file(request=request, db=db, postimage_id=str(id))
+def delete_post_image(request:Request, post_id: str, file_id: str, db: Session = Depends(get_db)):
+    return remove_one_file(request=request, db=db, post_id=post_id, file_id=str(file_id))

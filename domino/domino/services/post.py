@@ -175,7 +175,7 @@ def get_comments_of_comment(comment_id: str, current_date: datetime, db: Session
 
 def get_files_of_post(post_id: str, db: Session, host='', port=''):
     
-    str_files = "SELECT path FROM post.post_files WHERE post_id = '" + post_id + "' "
+    str_files = "SELECT id, path FROM post.post_files WHERE post_id = '" + post_id + "' "
     lst_files = db.execute(str_files)
  
     lst_result = []
@@ -184,7 +184,7 @@ def get_files_of_post(post_id: str, db: Session, host='', port=''):
     
     for item_file in lst_files:
         path_file = path + post_id + "/" + item_file['path']
-        lst_result.append({'path': path_file, 'type': get_ext_type(item_file['path'])})
+        lst_result.append({'file_id': item_file['id'], 'path': path_file, 'type': get_ext_type(item_file['path'])})
     
     return lst_result
 
@@ -288,6 +288,7 @@ def update(request: Request, post_id: str, post: PostCreated, files: List[File],
         
         if files:
             path = create_dir(entity_type="POST", user_id=str(currentUser['user_id']), entity_id=str(db_post.id))
+            print(path)
             for item_file in files:
                 file_id = str(uuid.uuid4())
                 ext = get_ext_at_file(item_file.filename)
@@ -296,7 +297,6 @@ def update(request: Request, post_id: str, post: PostCreated, files: List[File],
                 post_file = PostFiles(id=file_id, path=item_file.filename)
                 db_post.files.append(post_file)
                 upfile(file=item_file, path=path)
-                #falta borrar los ficheros que no vienen, incluir losnuevos.....
                 
         try:
             db.add(db_post)
@@ -335,19 +335,26 @@ def add_one_file(request, db: Session, postfile: PostFileCreate):
         print(e)
         msg = _(locale, "post.error_new_postimage")               
         raise HTTPException(status_code=403, detail=msg)
-    
-def remove_one_file(request: Request, db: Session, postfile_id: str):
+   
+def remove_one_file(request: Request, db: Session, post_id: str, file_id: str):
     locale = request.headers["accept-language"].split(",")[0].split("-")[0];
     
     result = ResultObject() 
     currentUser = get_current_user(request)
     
-    db_post_file = db.query(PostFiles).filter(PostFiles.id == postfile_id).first()
+    db_post_file = db.query(PostFiles).filter(PostFiles.id == file_id).first()
     if not db_post_file:
         raise HTTPException(status_code=404, detail=_(locale, "post.file_not_found"))
     
     try:
         db.delete(db_post_file)
+        path_del = "public/post/" + post_id + "/"
+        
+        try:
+            del_image(path=path_del, name=str(db_post_file.path))
+        except:
+            pass
+            
         db.commit()
         return result
     except (Exception, SQLAlchemyError, IntegrityError) as e:
