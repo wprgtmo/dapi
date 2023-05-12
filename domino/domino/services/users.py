@@ -24,6 +24,8 @@ from domino.services.city import get_one as city_get_one
 
 from domino.services.utils import get_result_count, upfile, create_dir, del_image, get_ext_at_file, remove_dir
 
+from domino.services.auth import get_url_avatar
+
 pwd_context = CryptContext(schemes=["bcrypt"], deprecated="auto")
 
 def password_check(passwd, min_len, max_len):
@@ -196,12 +198,6 @@ def get_all_follower_by_user(username: str, db: Session):
 def get_one_profile(request: Request, user_id: str, db: Session):
     return get_one_by_id(request=request, user_id=user_id, db=db)
 
-def get_url_avatar(user_id: str, file_name: str, host='', port=''):
-    
-    host=str(settings.server_uri) if not host else host
-    port=str(int(settings.server_port)) if not port else port
-    return "http://" + host + ":" + port + "/api/avatar/" + str(user_id) + "/" + file_name if file_name else ''
-    
 def check_security_code(request: Request, username: str, security_code: str, db: Session):
     locale = request.headers["accept-language"].split(",")[0].split("-")[0];
     

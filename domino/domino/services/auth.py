@@ -48,6 +48,17 @@ def auth(request: Request, db: Session, user: UserLogin):
 
         token_data = {"username": data.username, "user_id": data.id}
 
-        return JSONResponse(content={"token": write_token(data=token_data), "token_type": "Bearer", "first_name": db_user.first_name, "last_name": db_user.last_name, "photo": db_user.photo, "user_id": db_user.id}, status_code=200)
+        return JSONResponse(content={"token": write_token(data=token_data), 
+                                     "token_type": "Bearer", 
+                                     "first_name": db_user.first_name, 
+                                     "last_name": db_user.last_name, 
+                                     "photo": get_url_avatar(data.id, db_user.photo),  
+                                     "user_id": db_user.id}, status_code=200)
     else:
         raise HTTPException(status_code=404, detail=_(locale, "auth.wrong_password"))
+
+def get_url_avatar(user_id: str, file_name: str, host='', port=''):
+    
+    host=str(settings.server_uri) if not host else host
+    port=str(int(settings.server_port)) if not port else port
+    return "http://" + host + ":" + port + "/api/avatar/" + str(user_id) + "/" + file_name if file_name else ''
