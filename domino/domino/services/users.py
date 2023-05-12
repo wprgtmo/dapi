@@ -276,47 +276,47 @@ def update_one_profile(request: Request, user_id: str, user: UserProfile, db: Se
        
     db_user = db.query(Users).filter(Users.id == user_id).first()
     
-    if 'username' in user and user['username'] and user['username'] != db_user.username:
+    if user.username and user.username != db_user.username:
         one_user = get_one_by_username(user.username, db=db)
         if one_user:
             raise HTTPException(status_code=400, detail=_(locale, "users.already_exist"))
-        db_user.username = user['username']
+        db_user.username = user.username
     
-    if 'country_id' in user and user['country_id'] and user['country_id'] != db_user.country_id:
-        one_country = country_get_one(user['country_id'], db=db)
+    if user.country_id and user.country_id != db_user.country_id:
+        one_country = country_get_one(user.country_id, db=db)
         if not one_country:
             raise HTTPException(status_code=404, detail=_(locale, "country.not_found"))
-        db_user.country_id = user['country_id']
+        db_user.country_id = user.country_id
+                
+    if user.first_name and user.first_name != db_user.first_name:
+        db_user.first_name = user.first_name
         
-    if 'first_name' in user and user['first_name'] and user['first_name'] != db_user.first_name:
-        db_user.first_name = user['first_name']
+    if user.last_name and user.last_name != db_user.last_name:
+        db_user.last_name = user.last_name
         
-    if 'last_name' in user and user['last_name'] and user['last_name'] != db_user.last_name:
-        db_user.last_name = user['last_name']
+    if user.email and user.email != db_user.email:
+        db_user.email = user.email
         
-    if 'email' and user['email'] and user['email'] != db_user.email:
-        db_user.email = user['email']
+    if user.phone and user.phone != db_user.phone:
+        db_user.phone = user.phone
         
-    if 'phone' and user['phone'] and user['phone'] != db_user.phone:
-        db_user.phone = user['phone']
+    if user.sex and user.sex != db_user.sex:
+        db_user.sex = user.sex
         
-    if 'sex' and user['sex'] and user['sex'] != db_user.sex:
-        db_user.sex = user['sex']
+    if user.birthdate and user.birthdate != db_user.birthdate:
+        db_user.birthdate = user.birthdate
         
-    if 'birthdate' and user['birthdate'] and user['birthdate'] != db_user.birthdate:
-        db_user.birthdate = user['birthdate']
+    if user.alias and user.alias != db_user.alias:
+        db_user.alias = user.alias
         
-    if 'alias' in user and user['alias'] and user['alias'] != db_user.alias:
-        db_user.alias = user['alias']
-        
-    if 'job' in user and user['job'] and user['job'] != db_user.job:
+    if user.job and user.job != db_user.job:
         db_user.job = user.job
         
-    if 'city_id' in user and user['city_id'] and user['city_id'] != db_user.city_id:
-        one_city = city_get_one(user['city_id'], db=db)
+    if user.city_id and user.city_id != db_user.city_id:
+        one_city = city_get_one(user.city_id, db=db)
         if not one_city:
             raise HTTPException(status_code=404, detail=_(locale, "city.not_found"))
-        if one_city.country_id != user['country_id']:
+        if one_city.country_id != user.country_id:
             raise HTTPException(status_code=404, detail=_(locale, "city.country_incorrect"))
         db_user.city_id = one_city.id
         
