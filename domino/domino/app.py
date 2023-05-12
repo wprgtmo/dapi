@@ -55,6 +55,7 @@ from domino.routes.comment import comment_route
 from domino.routes.event import event_route
 from domino.routes.tourney import tourney_route
 from domino.routes.images import image_route
+from domino.routes.eventroles import eventroles_route
 
 @app.get("/docs", include_in_schema=False)
 async def custom_swagger_ui_html():
@@ -85,7 +86,8 @@ app.include_router(user_route, prefix="/api")
 app.include_router(country_route, prefix="/api")
 app.include_router(city_route, prefix="/api")
 # app.include_router(packages_route, prefix="/api")
-# app.include_router(status_route, prefix="/api")
+app.include_router(status_route, prefix="/api")
+app.include_router(eventroles_route, prefix="/api")
 app.include_router(post_route, prefix="/api")
 app.include_router(comment_route, prefix="/api")
 app.include_router(event_route, prefix="/api")

@@ -179,9 +179,18 @@ def get_one_by_id(request: Request, user_id: str, db: Session):
     if not one_country:
         raise HTTPException(status_code=404, detail=_(locale, "country.not_found"))
     
-    result.data = {'id': one_user.id, 'username' : one_user.username, 'first_name': one_user.first_name, 
-                   'last_name': one_user.last_name, 'email': one_user.email, 'phone': one_user.phone, 
-                   'country_id': one_country.id, 'country': one_country.name,
+    result.data = {'id': one_user.id, 'username' : one_user.username, 
+                   'first_name': one_user.first_name, 
+                   'last_name': one_user.last_name if one_user.last_name else '', 
+                   'email': one_user.email if one_user.email else '', 
+                   'phone': one_user.phone if one_user.phone else '', 
+                   'country_id': one_country.id if one_country else '', 
+                   'country': one_country.name if one_country else '', 
+                   'job': one_user.job if one_user.job else '',
+                   'sex': one_user.sex if one_user.sex else '', 
+                   'birthdate': one_user.birthdate if one_user.birthdate else '', 
+                   'alias': one_user.alias if one_user.alias else '',
+                   'city_id': one_user.city_id if one_user.city_id else '', 
                    'photo': get_url_avatar(one_user.id, one_user.photo, host=host, port=port)} 
     
     return result
@@ -341,6 +350,7 @@ def update_one_profile(request: Request, user_id: str, user: UserProfile, db: Se
         db.add(db_user)
         db.commit()
         db.refresh(db_user)
+        result.data = get_url_avatar(db_user.id, avatar.filename)
         return result
     except (Exception, SQLAlchemyError) as e:
         print(e.code)

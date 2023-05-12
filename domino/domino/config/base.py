@@ -7,4 +7,5 @@ from ..models.status import *
 from ..models.events import *
 from ..models.post import *
 from ..models.tourney import *
+from ..models.eventroles import *
 
