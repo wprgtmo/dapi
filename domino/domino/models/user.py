@@ -78,3 +78,23 @@ class UserFollowers(Base):
             "created_date": self.created_date,
             "is_active": self.is_active
         }
+
+
+class UserEventRoles(Base):
+    """UserEventRoles Class contains standard information for Roles of User"""
+ 
+    __tablename__ = "user_eventroles"
+    __table_args__ = {'schema' : 'enterprise'}
+    
+    username = Column(String(50), primary_key=True)
+    eventrol_id = Column(Integer, ForeignKey("resources.event_roles.id"), primary_key=True)
+    created_by = Column(String, ForeignKey("enterprise.users.username"), nullable=False)
+    created_date = Column(DateTime, nullable=False, default=datetime.now())
+    
+    def dict(self):
+        return {
+            "username": self.username,
+            "user_follow": self.user_follow,
+            "created_date": self.created_date,
+            "is_active": self.is_active
+        }
