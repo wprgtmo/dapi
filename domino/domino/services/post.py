@@ -85,7 +85,7 @@ def create_dict_row(item, current_date, currentUser, db: Session, host='', port=
     return {'id': item['id'], 
             'user_id': item['user_id'],
             'name': item['full_name'],
-            'avatar': get_url_avatar(item['id'], item['photo'], host, port) if item['photo'] else "", 
+            'avatar': get_url_avatar(item['user_id'], item['photo'], host, port) if item['photo'] else "", 
             'elapsed': calculate_time(current_date, item['updated_date']), 
             'comment': item['summary'] if item['summary'] else "",
             'amountLike': amount_like, 'amountComment': amount_comments, 
