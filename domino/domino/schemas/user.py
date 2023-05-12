@@ -71,12 +71,23 @@ class ChagePasswordSchema(BaseModel):
             raise ValueError('Contraseña Nueva repetida es Requerida')
         return renew_password 
 
-class UserProfile(UserBase):
+class UserProfile(BaseModel):
+    first_name: str
+    last_name: Optional[str]
     sex: Optional[str]
     birthdate: Optional[date]
     alias: Optional[str]
     job: Optional[str]
     city_id: Optional[int]
+    
+    email: Optional[str]
+    phone: Optional[str]
+    
+    @validator('first_name')
+    def first_name_not_empty(cls, first_name):
+        if not first_name:
+            raise ValueError('Nombre del Usuario es Requerido')
+        return first_name
     
     class Config:
         orm_mode = True

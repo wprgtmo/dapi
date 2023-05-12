@@ -33,8 +33,8 @@ def get_users(
     return get_all(request=request, page=page, per_page=per_page, criteria_key=criteria_key, criteria_value=criteria_value, db=db)
 
 @user_route.get("/users/{id}", response_model=ResultObject, summary="Get a User by his ID")
-def get_user_by_id(id: str, db: Session = Depends(get_db)):
-    return get_one_by_id(user_id=id, db=db)
+def get_user_by_id(request:Request, id: str, db: Session = Depends(get_db)):
+    return get_one_by_id(user_id=id, db=db, request=request)
 
 @user_route.get("/profile/{id}", response_model=ResultObject, summary="Get Profile a User by his ID")
 def get_profile(

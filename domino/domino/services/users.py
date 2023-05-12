@@ -66,9 +66,13 @@ def password_check(passwd, min_len, max_len):
 def get_all(request:Request, page: int, per_page: int, criteria_key: str, criteria_value: str, db: Session):    
     locale = request.headers["accept-language"].split(",")[0].split("-")[0];
     
+    host=str(settings.server_uri)
+    port=str(int(settings.server_port))
+    
     str_where = "WHERE use.is_active=True " 
     str_count = "Select count(*) FROM enterprise.users use "
-    str_query = "Select use.id, username, first_name, last_name, email, phone, password, use.is_active, country_id, pa.name as country " \
+    str_query = "Select use.id, username, first_name, last_name, email, phone, password, use.is_active, country_id, " \
+        "pa.name as country, use.photo " \
         "FROM enterprise.users use left join resources.country pa ON pa.id = use.country_id "
 
     dict_query = {'username': " AND username ilike '%" + criteria_value + "%'",
@@ -95,15 +99,18 @@ def get_all(request:Request, page: int, per_page: int, criteria_key: str, criter
         str_query += "LIMIT " + str(per_page) + " OFFSET " + str(page*per_page-per_page)
     
     lst_data = db.execute(str_query)
-    result.data = [create_dict_row(item, page, db=db) for item in lst_data]
+    result.data = [create_dict_row(item, page, host=host, port=port) for item in lst_data]
     
     return result
 
-def create_dict_row(item, page, db: Session):
+def create_dict_row(item, page, host='', port=''):
+    
+    photo = "http://" + host + ":" + port + "/api/profile/" + str(item['id']) + "/" + item['photo']
     
     new_row = {'id': item['id'], 'username' : item['username'], 'first_name': item['first_name'], 
                'last_name': item['last_name'], 'email': item['email'], 'phone': item['phone'], 
-               'password': item['password'], 'country_id': item['country_id'], 'country': item['country']}
+               'country_id': item['country_id'], 'country': item['country'], 
+               'photo': get_url_avatar(item['id'], item['photo'], host=host, port=port)}
     if page != 0:
         new_row['selected'] = False
     return new_row
@@ -155,9 +162,26 @@ def new(request: Request, db: Session, user: UserCreate, avatar: File):
 def get_one(user_id: str, db: Session):  
     return db.query(Users).filter(Users.id == user_id).first()
 
-def get_one_by_id(user_id: str, db: Session): 
+def get_one_by_id(request: Request, user_id: str, db: Session): 
+    locale = request.headers["accept-language"].split(",")[0].split("-")[0];
     result = ResultObject() 
-    result.data = db.query(Users).filter(Users.id == user_id).first()
+    
+    host = str(settings.server_uri)
+    port = str(int(settings.server_port))
+    
+    one_user = db.query(Users).filter(Users.id == user_id).first()
+    if not one_user:
+        raise
+    
+    one_country = country_get_one(one_user.country_id, db=db)
+    if not one_country:
+        raise HTTPException(status_code=404, detail=_(locale, "country.not_found"))
+    
+    result.data = {'id': one_user.id, 'username' : one_user.username, 'first_name': one_user.first_name, 
+                   'last_name': one_user.last_name, 'email': one_user.email, 'phone': one_user.phone, 
+                   'country_id': one_country.id, 'country': one_country.name,
+                   'photo': get_url_avatar(one_user.id, one_user.photo, host=host, port=port)} 
+    
     return result
 
 def get_one_by_username(username: str, db: Session):  
@@ -170,16 +194,7 @@ def get_all_follower_by_user(username: str, db: Session):
     return db.query(UserFollowers).filter(UserFollowers.username == username, UserFollowers.is_active == True).all()
 
 def get_one_profile(request: Request, user_id: str, db: Session):
-    locale = request.headers["accept-language"].split(",")[0].split("-")[0];
-    
-    result = ResultObject() 
-    db_user = db.query(Users).filter(Users.id == user_id).first()
-    if not db_user:
-        raise HTTPException(status_code=404, detail=_(locale, "users.not_found"))
-    
-    result.data = db_user.dict()
-    
-    return result
+    return get_one_by_id(request=request, user_id=user_id, db=db)
 
 def get_url_avatar(user_id: str, file_name: str, host='', port=''):
     
@@ -276,18 +291,12 @@ def update_one_profile(request: Request, user_id: str, user: UserProfile, db: Se
        
     db_user = db.query(Users).filter(Users.id == user_id).first()
     
-    if user.username and user.username != db_user.username:
-        one_user = get_one_by_username(user.username, db=db)
-        if one_user:
-            raise HTTPException(status_code=400, detail=_(locale, "users.already_exist"))
-        db_user.username = user.username
+    # if user.username and user.username != db_user.username:
+    #     one_user = get_one_by_username(user.username, db=db)
+    #     if one_user:
+    #         raise HTTPException(status_code=400, detail=_(locale, "users.already_exist"))
+    #     db_user.username = user.username
     
-    if user.country_id and user.country_id != db_user.country_id:
-        one_country = country_get_one(user.country_id, db=db)
-        if not one_country:
-            raise HTTPException(status_code=404, detail=_(locale, "country.not_found"))
-        db_user.country_id = user.country_id
-                
     if user.first_name and user.first_name != db_user.first_name:
         db_user.first_name = user.first_name
         
@@ -316,8 +325,6 @@ def update_one_profile(request: Request, user_id: str, user: UserProfile, db: Se
         one_city = city_get_one(user.city_id, db=db)
         if not one_city:
             raise HTTPException(status_code=404, detail=_(locale, "city.not_found"))
-        if one_city.country_id != user.country_id:
-            raise HTTPException(status_code=404, detail=_(locale, "city.country_incorrect"))
         db_user.city_id = one_city.id
         
     if avatar:
@@ -333,7 +340,7 @@ def update_one_profile(request: Request, user_id: str, user: UserProfile, db: Se
         except:
             pass
         upfile(file=avatar, path=path)
-        avatar.photo = avatar.filename
+        db_user.photo = avatar.filename
         
     try:
         db.add(db_user)
