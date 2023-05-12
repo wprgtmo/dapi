@@ -200,8 +200,7 @@ def get_url_avatar(user_id: str, file_name: str, host='', port=''):
     
     host=str(settings.server_uri) if not host else host
     port=str(int(settings.server_port)) if not port else port
-    
-    return "http://" + host + ":" + port + "/api/avatar/" + str(user_id) + "/" + file_name
+    return "http://" + host + ":" + port + "/api/avatar/" + str(user_id) + "/" + file_name if file_name else ''
     
 def check_security_code(request: Request, username: str, security_code: str, db: Session):
     locale = request.headers["accept-language"].split(",")[0].split("-")[0];
