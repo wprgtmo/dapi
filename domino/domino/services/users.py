@@ -345,12 +345,14 @@ def update_one_profile(request: Request, user_id: str, user: UserProfile, db: Se
             pass
         
     else:
-        user_domino = get_one_by_username('domino', db=db)
-        avatar = UploadFile(filename=user_domino.photo)
-        
-    path = create_dir(entity_type="USER", user_id=str(db_user.id), entity_id=None)
-    db_user.photo = avatar.filename
-    upfile(file=avatar, path=path)
+        if not user.photo:
+            user_domino = get_one_by_username('domino', db=db)
+            avatar = UploadFile(filename=user_domino.photo)
+            
+    if not user.photo:  
+        path = create_dir(entity_type="USER", user_id=str(db_user.id), entity_id=None)
+        db_user.photo = avatar.filename
+        upfile(file=avatar, path=path)
      
     try:
         db.add(db_user)
