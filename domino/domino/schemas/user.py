@@ -14,6 +14,8 @@ class UserBase(BaseModel):
     email: Optional[str]
     phone: Optional[str]
     country_id: Optional[int]
+    
+    receive_notifications: Optional[bool] = False
 
     @validator('username')
     def username_not_empty(cls, username):
@@ -82,6 +84,8 @@ class UserProfile(BaseModel):
     
     email: Optional[str]
     phone: Optional[str]
+    
+    receive_notifications: Optional[bool] = False
     
     @validator('first_name')
     def first_name_not_empty(cls, first_name):

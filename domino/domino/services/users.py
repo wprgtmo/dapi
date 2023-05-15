@@ -331,6 +331,9 @@ def update_one_profile(request: Request, user_id: str, user: UserProfile, db: Se
             raise HTTPException(status_code=404, detail=_(locale, "city.not_found"))
         db_user.city_id = one_city.id
         
+    if user.receive_notifications and user.receive_notifications != db_user.receive_notifications:
+        db_user.receive_notifications = user.receive_notifications
+        
     if avatar:
         ext = get_ext_at_file(avatar.filename)
         
@@ -350,11 +353,12 @@ def update_one_profile(request: Request, user_id: str, user: UserProfile, db: Se
         db.add(db_user)
         db.commit()
         db.refresh(db_user)
-        result.data = get_url_avatar(db_user.id, avatar.filename)
+        filename = avatar.filename if avatar else db_user.photo
+        result.data = get_url_avatar(db_user.id, filename)
+            
         return result
     except (Exception, SQLAlchemyError) as e:
-        print(e.code)
-        if e.code == "gkpj":
+        if e and e.code == "gkpj":
             raise HTTPException(status_code=400, detail=_(locale, "users.already_exist"))
         
 def change_password(request: Request, db: Session, password: ChagePasswordSchema):  

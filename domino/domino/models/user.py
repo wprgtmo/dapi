@@ -40,6 +40,8 @@ class Users(Base):
     #datos del ranking
     elo = Column(Integer, nullable=True)
     ranking = Column(String(2), nullable=True)
+    
+    receive_notifications = Column(Boolean, nullable=False, default=False)
      
     def dict(self):
         return {
