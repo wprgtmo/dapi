@@ -24,7 +24,6 @@ def get_result_count(page: int, per_page: int, str_count: str, db: Session):
 def upfile(file: File, path: str):
     import os
 
-    # path = "public/events"
     if not os.path.isdir(path):
         os.mkdir(path)
                 
@@ -79,6 +78,10 @@ def remove_dir(path: str):
     
     os.rmdir(getcwd() + path)
     
+    return True
+
+def copy_image(image_origen: str, image_destiny: str):
+    shutil.copy(image_origen, image_destiny)
     return True
 
 def del_image(path: str, name: str):

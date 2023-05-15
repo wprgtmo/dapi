@@ -3,6 +3,7 @@
 import math
 import random
 import uuid
+import shutil
 
 from datetime import datetime
 from fastapi import HTTPException, Request, UploadFile, File
@@ -22,7 +23,7 @@ from domino.config.config import settings
 from domino.services.country import get_one as country_get_one
 from domino.services.city import get_one as city_get_one
 
-from domino.services.utils import get_result_count, upfile, create_dir, del_image, get_ext_at_file, remove_dir
+from domino.services.utils import get_result_count, upfile, create_dir, del_image, get_ext_at_file, remove_dir, copy_image
 
 from domino.services.auth import get_url_avatar
 
@@ -137,17 +138,21 @@ def new(request: Request, db: Session, user: UserCreate, avatar: File):
     
     db_user.security_code = random.randint(10000, 99999)  # codigo de 5 caracteres
     
+    path = create_dir(entity_type="USER", user_id=str(id), entity_id=None)
+    
     if avatar:
         ext = get_ext_at_file(avatar.filename)
         avatar.filename = str(id) + "." + ext
-        
+        db_user.photo = avatar.filename
+        upfile(file=avatar, path=path)
+    
     else:
         user_domino = get_one_by_username('domino', db=db)
-        avatar = UploadFile(filename=user_domino.photo)
-        
-    path = create_dir(entity_type="USER", user_id=str(id), entity_id=None)
-    db_user.photo = avatar.filename
-    upfile(file=avatar, path=path)
+        image_domino="public/profile/" + str(user_domino.id) + "/" + str(user_domino.photo)
+        image_destiny = "public/profile/" + str(db_user.id) + "/" + str(user_domino.photo)
+     
+        copy_image(image_domino, image_destiny)
+        db_user.photo = user_domino.photo
                 
     try:
         db.add(db_user)
@@ -331,29 +336,29 @@ def update_one_profile(request: Request, user_id: str, user: UserProfile, db: Se
         
     if user.receive_notifications and user.receive_notifications != db_user.receive_notifications:
         db_user.receive_notifications = user.receive_notifications
-        
+    
+    path = create_dir(entity_type="USER", user_id=str(db_user.id), entity_id=None)    
     if avatar:
         ext = get_ext_at_file(avatar.filename)
-        
         current_image = db_user.photo
         avatar.filename = str(uuid.uuid4()) + "." + ext if ext else str(uuid.uuid4())
-        
+        db_user.photo = avatar.filename
         path_del = "/public/profile/" + str(db_user.id) + "/" 
         try:
             del_image(path=path_del, name=str(current_image))
         except:
             pass
+        upfile(file=avatar, path=path)
         
     else:
         if not db_user.photo:
             user_domino = get_one_by_username('domino', db=db)
-            avatar = UploadFile(filename=user_domino.photo)
-            
-    if not db_user.photo:  
-        path = create_dir(entity_type="USER", user_id=str(db_user.id), entity_id=None)
-        db_user.photo = avatar.filename
-        upfile(file=avatar, path=path)
-     
+            image_domino="public/profile/" + str(user_domino.id) + "/" + str(user_domino.photo)
+            image_destiny = "public/profile/" + str(db_user.id) + "/" + str(user_domino.photo)
+        
+            copy_image(image_domino, image_destiny)
+            db_user.photo = user_domino.photo
+    
     try:
         db.add(db_user)
         db.commit()
