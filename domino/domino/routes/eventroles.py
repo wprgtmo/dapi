@@ -5,7 +5,7 @@ from domino.schemas.result_object import ResultObject
 from sqlalchemy.orm import Session
 from typing import Dict
 from domino.app import get_db
-from domino.services.status import get_all, new
+from domino.services.eventroles import get_all, new
 from starlette import status
 from domino.auth_bearer import JWTBearer
   
