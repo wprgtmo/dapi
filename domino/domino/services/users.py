@@ -107,8 +107,6 @@ def get_all(request:Request, page: int, per_page: int, criteria_key: str, criter
 
 def create_dict_row(item, page, host='', port=''):
     
-    photo = "http://" + host + ":" + port + "/api/profile/" + str(item['id']) + "/" + item['photo']
-    
     new_row = {'id': item['id'], 'username' : item['username'], 'first_name': item['first_name'], 
                'last_name': item['last_name'], 'email': item['email'], 'phone': item['phone'], 
                'country_id': item['country_id'], 'country': item['country'], 

@@ -61,4 +61,8 @@ def get_url_avatar(user_id: str, file_name: str, host='', port=''):
     
     host=str(settings.server_uri) if not host else host
     port=str(int(settings.server_port)) if not port else port
-    return "http://" + host + ":" + port + "/api/avatar/" + str(user_id) + "/" + file_name if file_name else ''
+    
+    photo = "http://" + host + ":" + port + "/api/avatar/" + str(user_id) + "/" + file_name if \
+        file_name else "http://" + host + ":" + port + "/api/avatar/user-vector.jpg"
+        
+    return photo
