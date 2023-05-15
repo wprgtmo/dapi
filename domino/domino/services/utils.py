@@ -1,5 +1,6 @@
 
 import math
+import os
 import shutil
 from fastapi import FastAPI, Request, UploadFile, File
 from os import getcwd, remove
@@ -10,7 +11,6 @@ from fastapi import HTTPException
 from domino.schemas.result_object import ResultObject, ResultData
 
 def get_result_count(page: int, per_page: int, str_count: str, db: Session): 
-    
     if page != 0:
         result = ResultData(page=page, per_page=per_page)  
         
@@ -22,8 +22,6 @@ def get_result_count(page: int, per_page: int, str_count: str, db: Session):
     return result
 
 def upfile(file: File, path: str):
-    import os
-
     if not os.path.isdir(path):
         os.mkdir(path)
                 
@@ -34,8 +32,6 @@ def upfile(file: File, path: str):
     return True
 
 def create_dir(entity_type: str, user_id: str, entity_id: str):
-    import os
-    
     path = ""
     if not os.path.isdir("public"):
         os.mkdir("public")
@@ -70,17 +66,23 @@ def create_dir(entity_type: str, user_id: str, entity_id: str):
     return path
 
 def remove_dir(path: str):
-    import os
     print(path)
-    print('*********************')
+    print('imagen')
+    
+    
+    print('verify dir')
+    print(os.path.exists(path))
+    
+    print('**************')
     
     os.rmdir(path)
-    
     os.rmdir(getcwd() + path)
-    
     return True
 
 def copy_image(image_origen: str, image_destiny: str):
+    if not os.path.exists(image_origen):
+        raise HTTPException(status_code=400, detail="FileNotFoundError")
+    
     shutil.copy(image_origen, image_destiny)
     return True
 
@@ -92,7 +94,6 @@ def del_image(path: str, name: str):
         raise HTTPException(status_code=400, detail="FileNotFoundError")
     
 def get_ext_at_file(filename: str):
-    
     ext = ""
     if filename:
         pos = filename.find(".")

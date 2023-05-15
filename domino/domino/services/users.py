@@ -147,12 +147,12 @@ def new(request: Request, db: Session, user: UserCreate, avatar: File):
         upfile(file=avatar, path=path)
     
     else:
-        user_domino = get_one_by_username('domino', db=db)
-        image_domino="public/profile/" + str(user_domino.id) + "/" + str(user_domino.photo)
-        image_destiny = "public/profile/" + str(db_user.id) + "/" + str(user_domino.photo)
-     
+        image_domino="public/profile/user-vector.jpg"
+        filename = str(id) + ".jpg"
+        image_destiny = "public/profile/" + str(db_user.id) + "/" + filename
+
         copy_image(image_domino, image_destiny)
-        db_user.photo = user_domino.photo
+        db_user.photo = filename
                 
     try:
         db.add(db_user)
@@ -249,7 +249,19 @@ def delete(request: Request, user_id: str, db: Session):
         db_user = db.query(Users).filter(Users.id == user_id).first()
         if not db_user:
             raise HTTPException(status_code=404, detail=_(locale, "users.not_found"))
+        
+        #borrar la foto y la carpeta del usuario
+        path_del = "/public/profile/" + str(db_user.id) + "/" 
+        try:
+            del_image(path=path_del, name=str(db_user.photo))
+            # borrar directorio del usuario
+            remove_dir(path_del)
+        except:
+            pass
+        
+        db_user.photo=None
         db_user.is_active=False
+        del_image
         db.commit()
         return result
     except (Exception, SQLAlchemyError) as e:
@@ -352,13 +364,13 @@ def update_one_profile(request: Request, user_id: str, user: UserProfile, db: Se
         
     else:
         if not db_user.photo:
-            user_domino = get_one_by_username('domino', db=db)
-            image_domino="public/profile/" + str(user_domino.id) + "/" + str(user_domino.photo)
-            image_destiny = "public/profile/" + str(db_user.id) + "/" + str(user_domino.photo)
+            image_domino="public/profile/user-vector.jpg"
+            filename = str(db_user.id) + ".jpg"
+            image_destiny = "public/profile/" + str(db_user.id) + "/" + str(filename)
         
             copy_image(image_domino, image_destiny)
-            db_user.photo = user_domino.photo
-    
+            db_user.photo = filename
+        
     try:
         db.add(db_user)
         db.commit()
