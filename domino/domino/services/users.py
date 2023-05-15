@@ -74,7 +74,7 @@ def get_all(request:Request, page: int, per_page: int, criteria_key: str, criter
     str_where = "WHERE use.is_active=True " 
     str_count = "Select count(*) FROM enterprise.users use "
     str_query = "Select use.id, username, first_name, last_name, email, phone, password, use.is_active, country_id, " \
-        "pa.name as country, use.photo " \
+        "pa.name as country, use.photo, user.receive_notifications " \
         "FROM enterprise.users use left join resources.country pa ON pa.id = use.country_id "
 
     dict_query = {'username': " AND username ilike '%" + criteria_value + "%'",
@@ -110,6 +110,7 @@ def create_dict_row(item, page, host='', port=''):
     new_row = {'id': item['id'], 'username' : item['username'], 'first_name': item['first_name'], 
                'last_name': item['last_name'], 'email': item['email'], 'phone': item['phone'], 
                'country_id': item['country_id'], 'country': item['country'], 
+               'receive_notifications': item['receive_notifications'],
                'photo': get_url_avatar(item['id'], item['photo'], host=host, port=port)}
     if page != 0:
         new_row['selected'] = False
@@ -132,7 +133,7 @@ def new(request: Request, db: Session, user: UserCreate, avatar: File):
     user.password = pwd_context.hash(user.password)  
     db_user = Users(id=id, username=user.username,  first_name=user.first_name, last_name=user.last_name, 
                     country_id=user.country_id, email=user.email, phone=user.phone, password=user.password, 
-                    is_active=True)
+                    is_active=True, receive_notifications=user.receive_notifications if user.receive_notifications else False)
     
     db_user.security_code = random.randint(10000, 99999)  # codigo de 5 caracteres
     
@@ -140,10 +141,14 @@ def new(request: Request, db: Session, user: UserCreate, avatar: File):
         ext = get_ext_at_file(avatar.filename)
         avatar.filename = str(id) + "." + ext
         
-        path = create_dir(entity_type="USER", user_id=str(id), entity_id=None)
-        db_user.photo = avatar.filename
-        upfile(file=avatar, path=path)
-            
+    else:
+        user_domino = get_one_by_username('domino', db=db)
+        avatar = UploadFile(filename=user_domino.photo)
+        
+    path = create_dir(entity_type="USER", user_id=str(id), entity_id=None)
+    db_user.photo = avatar.filename
+    upfile(file=avatar, path=path)
+                
     try:
         db.add(db_user)
         db.commit()
@@ -188,7 +193,8 @@ def get_one_by_id(request: Request, user_id: str, db: Session):
                    'sex': one_user.sex if one_user.sex else '', 
                    'birthdate': one_user.birthdate if one_user.birthdate else '', 
                    'alias': one_user.alias if one_user.alias else '',
-                   'city_id': one_user.city_id if one_user.city_id else '', 
+                   'city_id': one_user.city_id if one_user.city_id else '',
+                   'receive_notifications': one_user.receive_notifications if one_user.receive_notifications else False,  
                    'photo': get_url_avatar(one_user.id, one_user.photo, host=host, port=port)} 
     
     return result
@@ -293,12 +299,6 @@ def update_one_profile(request: Request, user_id: str, user: UserProfile, db: Se
        
     db_user = db.query(Users).filter(Users.id == user_id).first()
     
-    # if user.username and user.username != db_user.username:
-    #     one_user = get_one_by_username(user.username, db=db)
-    #     if one_user:
-    #         raise HTTPException(status_code=400, detail=_(locale, "users.already_exist"))
-    #     db_user.username = user.username
-    
     if user.first_name and user.first_name != db_user.first_name:
         db_user.first_name = user.first_name
         
@@ -337,16 +337,21 @@ def update_one_profile(request: Request, user_id: str, user: UserProfile, db: Se
         
         current_image = db_user.photo
         avatar.filename = str(uuid.uuid4()) + "." + ext if ext else str(uuid.uuid4())
-        path = create_dir(entity_type="USER", user_id=str(db_user.id), entity_id=None)
         
         path_del = "/public/profile/" + str(db_user.id) + "/" 
         try:
             del_image(path=path_del, name=str(current_image))
         except:
             pass
-        upfile(file=avatar, path=path)
-        db_user.photo = avatar.filename
         
+    else:
+        user_domino = get_one_by_username('domino', db=db)
+        avatar = UploadFile(filename=user_domino.photo)
+        
+    path = create_dir(entity_type="USER", user_id=str(db_user.id), entity_id=None)
+    db_user.photo = avatar.filename
+    upfile(file=avatar, path=path)
+     
     try:
         db.add(db_user)
         db.commit()
