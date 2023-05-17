@@ -180,8 +180,6 @@ def delete(request: Request, event_id: str, db: Session):
             # if db_event.image:
             user_created = get_one_by_username(db_event.created_by, db=db)
             path = "/public/events/" + str(user_created.id) + "/" + str(db_event.id) + "/"
-            print('datata')
-            print(path[:-1])
             try:
                 del_image(path=path, name=str(db_event.image))
             except:

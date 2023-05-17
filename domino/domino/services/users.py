@@ -4,6 +4,7 @@ import math
 import random
 import uuid
 import shutil
+import json
 
 from datetime import datetime
 from fastapi import HTTPException, Request, UploadFile, File
@@ -237,14 +238,15 @@ def get_roles_by_user(username: str, db: Session):
 def get_lst_roles_by_user(username: str, db: Session):
     str_query = "SELECT eve.id, eve.name, eve.description FROM enterprise.user_eventroles use_eve " +\
         "inner join resources.event_roles eve ON eve.id = use_eve.eventrol_id " +\
-        "where username='" + username + "'"
+        "where username='" + username + "' ORDER BY eve.id "
     
     lst_data = db.execute(str_query)
-    lst_roles = []
+    str_roles = ""
     for item in lst_data:
-        lst_roles.append({'id': item.id, 'name': item.name, 'description': item.description})
+        str_roles += item.name + ','
+        # lst_roles.append({'id': item.id, 'name': item.name, 'description': item.description})
             
-    return lst_roles
+    return str_roles[:-1] if str_roles else str_roles
 
 def check_security_code(request: Request, username: str, security_code: str, db: Session):
     locale = request.headers["accept-language"].split(",")[0].split("-")[0];
@@ -402,16 +404,21 @@ def update_one_profile(request: Request, user_id: str, user: UserProfile, db: Se
             copy_image(image_domino, image_destiny)
             db_user.photo = filename
     
+    if db_user.receive_notifications and not user.roles:
+        raise HTTPException(status_code=404, detail=_(locale, "eventroles.list_not_empty"))
+    
+    # si viene en True, borrar todo lo que tenia y poner nuevos.
     if user.roles:
+        str_delete = "DELETE FROM enterprise.user_eventroles WHERE username = '" + db_user.username + "'; COMMIT; "
+        db.execute(str_delete)
         lst_roles = user.roles.split(',')
-        if lst_roles:
-            for item in lst_roles:
-                rol = get_one_by_name_roles(item, db=db)
-                if not rol:
-                    continue
-                one_roles = UserEventRoles(username=db_user.username, eventrol_id=rol.id, 
-                                           created_by=currentUser['username'])
-                db_user.roles.append(one_roles)
+        for item in lst_roles:
+            rol = get_one_by_name_roles(item, db=db)
+            if not rol:
+                continue
+            one_roles = UserEventRoles(username=db_user.username, eventrol_id=rol.id, 
+                                        created_by=currentUser['username'])
+            db_user.roles.append(one_roles)
     
     try:
         db.add(db_user)
