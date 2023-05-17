@@ -4,7 +4,7 @@ from pydantic import BaseModel, ValidationError, validator
 from datetime import datetime
 from uuid import UUID
 from datetime import date
-from typing import Optional
+from typing import Optional, List
 from domino.app import _
  
 class UserBase(BaseModel):
@@ -16,6 +16,7 @@ class UserBase(BaseModel):
     country_id: Optional[int]
     
     receive_notifications: Optional[bool] = False
+    roles: Optional[List]
 
     @validator('username')
     def username_not_empty(cls, username):
@@ -86,6 +87,8 @@ class UserProfile(BaseModel):
     phone: Optional[str]
     
     receive_notifications: Optional[bool] = False
+    
+    roles: Optional[List]
     
     @validator('first_name')
     def first_name_not_empty(cls, first_name):

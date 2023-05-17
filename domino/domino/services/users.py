@@ -7,9 +7,10 @@ import shutil
 
 from datetime import datetime
 from fastapi import HTTPException, Request, UploadFile, File
-from domino.models.user import Users, UserFollowers
+from domino.models.user import Users, UserFollowers, UserEventRoles
 from domino.schemas.user import UserCreate, UserShema, ChagePasswordSchema, UserBase, UserProfile, UserFollowerBase
 from domino.schemas.result_object import ResultObject, ResultData
+from domino.services.eventroles import get_one_by_name as get_one_by_name_roles
 from sqlalchemy.orm import Session
 from sqlalchemy.exc import SQLAlchemyError, IntegrityError
 from passlib.context import CryptContext
@@ -153,7 +154,20 @@ def new(request: Request, db: Session, user: UserCreate, avatar: File):
 
         copy_image(image_domino, image_destiny)
         db_user.photo = filename
+    
+    if user.roles:
+        lst_roles = user.roles[0].split(',')
+        
+        if lst_roles:
+            for item in lst_roles:
+                rol = get_one_by_name_roles(item, db=db)
+                if not rol:
+                    continue
                 
+                one_roles = UserEventRoles(username=db_user.username, eventrol_id=rol.id, 
+                                        created_by=user.username)
+                db_user.roles.append(one_roles)
+                            
     try:
         db.add(db_user)
         db.commit()
@@ -187,6 +201,8 @@ def get_one_by_id(request: Request, user_id: str, db: Session):
     if not one_country:
         raise HTTPException(status_code=404, detail=_(locale, "country.not_found"))
     
+    lst_roles = get_lst_roles_by_user(one_user.username, db=db)
+        
     result.data = {'id': one_user.id, 'username' : one_user.username, 
                    'first_name': one_user.first_name, 
                    'last_name': one_user.last_name if one_user.last_name else '', 
@@ -200,7 +216,8 @@ def get_one_by_id(request: Request, user_id: str, db: Session):
                    'alias': one_user.alias if one_user.alias else '',
                    'city_id': one_user.city_id if one_user.city_id else '',
                    'receive_notifications': one_user.receive_notifications if one_user.receive_notifications else False,  
-                   'photo': get_url_avatar(one_user.id, one_user.photo, host=host, port=port)} 
+                   'photo': get_url_avatar(one_user.id, one_user.photo, host=host, port=port),
+                   'roles': lst_roles} 
     
     return result
 
@@ -215,6 +232,21 @@ def get_all_follower_by_user(username: str, db: Session):
 
 def get_one_profile(request: Request, user_id: str, db: Session):
     return get_one_by_id(request=request, user_id=user_id, db=db)
+
+def get_roles_by_user(username: str, db: Session):
+    return db.query(UserEventRoles).filter(UserEventRoles.username == username).all()
+
+def get_lst_roles_by_user(username: str, db: Session):
+    str_query = "SELECT eve.id, eve.name, eve.description FROM enterprise.user_eventroles use_eve " +\
+        "inner join resources.event_roles eve ON eve.id = use_eve.eventrol_id " +\
+        "where username='" + username + "'"
+    
+    lst_data = db.execute(str_query)
+    lst_roles = []
+    for item in lst_data:
+        lst_roles.append({'id': item.id, 'name': item.name, 'description': item.description})
+            
+    return lst_roles
 
 def check_security_code(request: Request, username: str, security_code: str, db: Session):
     locale = request.headers["accept-language"].split(",")[0].split("-")[0];
@@ -311,6 +343,7 @@ def update(request: Request, user_id: str, user: UserBase, db: Session):
 
 def update_one_profile(request: Request, user_id: str, user: UserProfile, db: Session, avatar: File):
     locale = request.headers["accept-language"].split(",")[0].split("-")[0];
+    currentUser = get_current_user(request)
     
     result = ResultObject()
        
@@ -370,7 +403,20 @@ def update_one_profile(request: Request, user_id: str, user: UserProfile, db: Se
         
             copy_image(image_domino, image_destiny)
             db_user.photo = filename
+    
+    if user.roles:
+        lst_roles = user.roles[0].split(',')
         
+        if lst_roles:
+            for item in lst_roles:
+                rol = get_one_by_name_roles(item, db=db)
+                if not rol:
+                    continue
+                
+                one_roles = UserEventRoles(username=db_user.username, eventrol_id=rol.id, 
+                                        created_by=currentUser['username'])
+                db_user.roles.append(one_roles)
+    
     try:
         db.add(db_user)
         db.commit()

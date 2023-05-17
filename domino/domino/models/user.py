@@ -7,7 +7,7 @@ from datetime import datetime
 from sqlalchemy import Column, ForeignKey
 from sqlalchemy.sql.sqltypes import String, Boolean, Integer, Date, DateTime
 from ..config.db import Base
-
+from sqlalchemy.orm import relationship
 
 def generate_uuid():
     return str(uuid.uuid4())
@@ -41,6 +41,7 @@ class Users(Base):
     elo = Column(Integer, nullable=True)
     ranking = Column(String(2), nullable=True)
     
+    roles = relationship("UserEventRoles")
     receive_notifications = Column(Boolean, nullable=False, default=False)
      
     def dict(self):
