@@ -156,16 +156,14 @@ def new(request: Request, db: Session, user: UserCreate, avatar: File):
         db_user.photo = filename
     
     if user.roles:
-        lst_roles = user.roles[0].split(',')
-        
+        lst_roles = user.roles.split(',')
         if lst_roles:
             for item in lst_roles:
                 rol = get_one_by_name_roles(item, db=db)
                 if not rol:
                     continue
-                
                 one_roles = UserEventRoles(username=db_user.username, eventrol_id=rol.id, 
-                                        created_by=user.username)
+                                           created_by=user.username)
                 db_user.roles.append(one_roles)
                             
     try:
@@ -378,8 +376,8 @@ def update_one_profile(request: Request, user_id: str, user: UserProfile, db: Se
         if not one_city:
             raise HTTPException(status_code=404, detail=_(locale, "city.not_found"))
         db_user.city_id = one_city.id
-        
-    if user.receive_notifications and user.receive_notifications != db_user.receive_notifications:
+    
+    if user.receive_notifications != db_user.receive_notifications:
         db_user.receive_notifications = user.receive_notifications
     
     path = create_dir(entity_type="USER", user_id=str(db_user.id), entity_id=None)    
@@ -405,16 +403,14 @@ def update_one_profile(request: Request, user_id: str, user: UserProfile, db: Se
             db_user.photo = filename
     
     if user.roles:
-        lst_roles = user.roles[0].split(',')
-        
+        lst_roles = user.roles.split(',')
         if lst_roles:
             for item in lst_roles:
                 rol = get_one_by_name_roles(item, db=db)
                 if not rol:
                     continue
-                
                 one_roles = UserEventRoles(username=db_user.username, eventrol_id=rol.id, 
-                                        created_by=currentUser['username'])
+                                           created_by=currentUser['username'])
                 db_user.roles.append(one_roles)
     
     try:
