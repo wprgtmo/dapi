@@ -34,7 +34,7 @@ def get_all(request:Request, page: int, per_page: int, criteria_key: str, criter
     
     result = get_result_count(page=page, per_page=per_page, str_count=str_count, db=db)
     
-    str_query += " ORDER BY name "
+    str_query += " ORDER BY id "
     
     if page != 0:
         str_query += "LIMIT " + str(per_page) + " OFFSET " + str(page*per_page-per_page)
