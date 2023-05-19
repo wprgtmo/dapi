@@ -56,6 +56,7 @@ from domino.routes.event import event_route
 from domino.routes.tourney import tourney_route
 from domino.routes.images import image_route
 from domino.routes.eventroles import eventroles_route
+from domino.routes.invitations import invitation_route
 
 @app.get("/docs", include_in_schema=False)
 async def custom_swagger_ui_html():
@@ -93,6 +94,7 @@ app.include_router(comment_route, prefix="/api")
 app.include_router(event_route, prefix="/api")
 app.include_router(tourney_route, prefix="/api")
 app.include_router(image_route, prefix="/api")
+app.include_router(invitation_route, prefix="/api")
 
 @app.post("/file")
 def upfile(file: UploadFile = File(...)):

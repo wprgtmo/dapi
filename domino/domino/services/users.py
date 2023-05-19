@@ -349,31 +349,31 @@ def update_one_profile(request: Request, user_id: str, user: UserProfile, db: Se
        
     db_user = db.query(Users).filter(Users.id == user_id).first()
     
-    if user.first_name and user.first_name != db_user.first_name:
+    if user.first_name != db_user.first_name:
         db_user.first_name = user.first_name
         
-    if user.last_name and user.last_name != db_user.last_name:
+    if user.last_name != db_user.last_name:
         db_user.last_name = user.last_name
         
-    if user.email and user.email != db_user.email:
+    if user.email != db_user.email:
         db_user.email = user.email
         
-    if user.phone and user.phone != db_user.phone:
+    if user.phone != db_user.phone:
         db_user.phone = user.phone
         
-    if user.sex and user.sex != db_user.sex:
+    if user.sex != db_user.sex:
         db_user.sex = user.sex
         
-    if user.birthdate and user.birthdate != db_user.birthdate:
+    if user.birthdate != db_user.birthdate:
         db_user.birthdate = user.birthdate
         
-    if user.alias and user.alias != db_user.alias:
+    if user.alias != db_user.alias:
         db_user.alias = user.alias
         
-    if user.job and user.job != db_user.job:
+    if user.job != db_user.job:
         db_user.job = user.job
         
-    if user.city_id and user.city_id != db_user.city_id:
+    if user.city_id != db_user.city_id:
         one_city = city_get_one(user.city_id, db=db)
         if not one_city:
             raise HTTPException(status_code=404, detail=_(locale, "city.not_found"))
