@@ -18,6 +18,7 @@ class Invitations(Base):
     id = Column(String, primary_key=True, default=generate_uuid)
     tourney_id = Column(String, ForeignKey("events.tourney.id"), nullable=False)
     user_name = Column(String, ForeignKey("enterprise.users.username"), nullable=False)
+    rolevent_name = Column(String, ForeignKey("resources.event_roles.name"), nullable=False)
     status_name  = Column(String, ForeignKey("resources.entities_status.name"), nullable=False)
     created_by = Column(String, ForeignKey("enterprise.users.username"), nullable=False)
     created_date = Column(Date, nullable=False, default=date.today())
@@ -29,6 +30,7 @@ class Invitations(Base):
             "id": self.id,
             "tourney_id": self.tourney_id,
             "user_name": self.user_name,
+            "rolevent_name": self.rolevent_name,
             "status_name": self.status_name,
             'created_by': self.created_by
             }

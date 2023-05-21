@@ -15,6 +15,9 @@ from domino.functions_jwt import get_current_user
 from domino.app import _
 from domino.services.utils import get_result_count
 from domino.services.tourney import get_one as get_tourney_by_id
+from domino.services.player import new_player
+from domino.services.referee import new_referee
+from domino.services.users import get_one_by_username
 from domino.services.status import get_one_by_name as get_status_by_name
 
 def get_one_by_id(invitation_id: str, db: Session):  
@@ -30,10 +33,11 @@ def get_all_sent_by_user(request, db: Session):
     
     str_query = "SELECT invitations.id, tourney.name as tourney_name, tourney.modality, tourney.start_date, " + \
         "events.name as event_name, events.close_date, events.main_location, city.name as city_name, " + \
-        "country.name country_name " +\
+        "country.name country_name, eve.description as rolevent_name " +\
         "FROM events.invitations " + \
         "inner join events.tourney ON tourney.id = invitations.tourney_id " + \
         "inner join events.events ON events.id = tourney.event_id " + \
+        "inner join resources.event_roles eve ON eve.name = invitations.rolevent_name " +\
         "left join resources.city ON city.id = events.city_id " +\
         "left join resources.country ON country.id = city.country_id " +\
         "WHERE invitations.status_name = 'SENT' and user_name = '" + currentUser['username'] + "' " +\
@@ -47,12 +51,13 @@ def get_all_sent_by_user(request, db: Session):
 def create_dict_row_invitation(item):
     
     summary = "Se le invita a participar en el Evento: " + str(item['event_name']) 
-    summary += " a celebrarse en: " + item['country_name'] + ", "
-    summary += "en la ciudad de: " + item['city_name'] + ", " if item['city_name'] else ""
-    summary += "con sede principal en: " + item['main_location'] + ", " if item['main_location'] else ""
-    summary += "en el torneo: " + item['tourney_name'] + ", " if item['tourney_name'] else ""
-    summary += "en la modalidad: " + item['modality'] if item['modality'] else ""
-    summary += "desde el " + item['start_date'].strftime('%d/%m/%Y') + " hasta " + item['close_date'].strftime('%d/%m/%Y')
+    summary += " en calidad de  " + str(item['rolevent_name'])  + ","
+    summary += " a celebrarse en: " + str(item['country_name']) + ","
+    summary += " en la ciudad de: " + str(item['city_name']) + "," if item['city_name'] else ""
+    summary += " con sede principal en: " + str(item['main_location']) + ", " if item['main_location'] else ""
+    summary += " en el torneo: " + str(item['tourney_name']) + "," if item['tourney_name'] else ""
+    summary += " en la modalidad: " + str(item['modality']) if item['modality'] else ""
+    summary += " desde el " + item['start_date'].strftime('%d/%m/%Y') + " hasta " + item['close_date'].strftime('%d/%m/%Y')
     
     new_row = {'id': item['id'], 'summary': summary, 'selected': False}
     return new_row
@@ -71,17 +76,21 @@ def generate_all_user(request, db: Session, tourney_id: str):
     if not db_status:
         raise HTTPException(status_code=404, detail=_(locale, "status.not_exist"))
         
-    str_users = "SELECT username FROM enterprise.users where is_active = True and receive_notifications = True " +\
-        "and username in (Select username FROM enterprise.user_eventroles inner join resources.event_roles rol " +\
-        "ON rol.id = user_eventroles.eventrol_id where name = 'PLAYER') " +\
-        "and username NOT IN (Select user_name FROM events.invitations where tourney_id = '" + tourney_id + "') "
+    str_users = "SELECT users.username, eve.name as rolevent_name FROM enterprise.users " + \
+        "inner join enterprise.user_eventroles everol ON everol.username = users.username " +\
+        "inner join resources.event_roles eve ON eve.id = everol.eventrol_id " +\
+        "where users.is_active = True and receive_notifications = True " +\
+        "and users.username in (Select username FROM enterprise.user_eventroles inner join resources.event_roles rol " +\
+        "ON rol.id = user_eventroles.eventrol_id where name IN ('PLAYER', 'REFEREE')) " +\
+        "and users.username NOT IN (Select user_name FROM events.invitations where tourney_id = '" + tourney_id + "') "
 
     lst_data = db.execute(str_users)
     
     try:
         for item in lst_data:
-            one_invitation = Invitations(tourney_id=db_tourney.id, user_name=item.username, status_name=db_status.name,
-                                        created_by=currentUser['username'])
+            one_invitation = Invitations(tourney_id=db_tourney.id, user_name=item.username, 
+                                         rolevent_name=item.rolevent_name, status_name=db_status.name,
+                                         created_by=currentUser['username'], updated_by=currentUser['username'])
             db.add(one_invitation)
             db.commit()
         
@@ -113,6 +122,19 @@ def update(request: Request, invitation_id: str, invitation: InvitationAccepted,
     db_invitation.updated_by = currentUser['username']
     db_invitation.updated_date = datetime.now()
     
+    if status_name == 'ACCEPTED':  #inscribir como jugador o arbitro
+        one_user = get_one_by_username(db_invitation.user_name, db=db)
+        
+        if db_invitation.rolevent_name == 'PLAYER':
+            result_update = new_player(tourney_id=db_invitation.tourney_id, user_id=one_user.id, 
+                                username=db_invitation.user_name, db=db)
+        elif db_invitation.rolevent_name == 'REFEREE':
+            result_update = new_referee(tourney_id=db_invitation.tourney_id, user_id=one_user.id, 
+                                 username=db_invitation.user_name, db=db)
+    
+        if not result_update:
+            raise HTTPException(status_code=400, detail=_(locale, "invitation.error_create_player"))
+        
     try:
         db.add(db_invitation)
         db.commit()

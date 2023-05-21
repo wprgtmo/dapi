@@ -8,7 +8,7 @@ from typing import Optional, List
 class InvitationBase(BaseModel):
     tourney_id: str
     user_name: str
-    
+    rolevent_name: str
     
     @validator('tourney_id')
     def tourney_id_not_empty(cls, tourney_id):

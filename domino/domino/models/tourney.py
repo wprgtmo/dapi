@@ -52,6 +52,13 @@ class Players(Base):
     user_id = Column(String, ForeignKey("enterprise.users.id"), nullable=False, primary_key=True)
     nivel = Column(String(50), nullable=True)  # nivel del jugador en ese torneo
     
+    created_by = Column(String, ForeignKey("enterprise.users.username"), nullable=False)
+    created_date = Column(Date, nullable=False, default=date.today())
+    updated_by = Column(String, ForeignKey("enterprise.users.username"), nullable=False)
+    updated_date = Column(Date, nullable=False, default=date.today())
+    
+    is_active = Column(Boolean, nullable=False, default=True)
+    
     def dict(self):
         return {
             "tourney_id": self.tourney_id,
@@ -68,28 +75,43 @@ class Referees(Base):
     tourney_id = Column(String, ForeignKey("events.tourney.id"), nullable=False, primary_key=True)
     user_id = Column(String, ForeignKey("enterprise.users.id"), nullable=False, primary_key=True)
     
+    created_by = Column(String, ForeignKey("enterprise.users.username"), nullable=False)
+    created_date = Column(Date, nullable=False, default=date.today())
+    updated_by = Column(String, ForeignKey("enterprise.users.username"), nullable=False)
+    updated_date = Column(Date, nullable=False, default=date.today())
+    
+    is_active = Column(Boolean, nullable=False, default=True)
+    
     def dict(self):
         return {
             "tourney_id": self.tourney_id,
             "user_id": self.user_id
         }
-        
-class Sponsors(Base):
-    """Sponsors Class contains standard information for a Sponsors of Tourney.""" # patrocinadores
+    
+# Los patrocinadores son de eventos    
+# class Sponsors(Base):
+#     """Sponsors Class contains standard information for a Sponsors of Tourney.""" # patrocinadores
 
-    __tablename__ = "sponsors"
-    __table_args__ = {'schema' : 'events'}
+#     __tablename__ = "sponsors"
+#     __table_args__ = {'schema' : 'events'}
     
-    id = Column(Integer, primary_key=True)
-    tourney_id = Column(String, ForeignKey("events.tourney.id"))
-    name = Column(Text, nullable=False)
+#     id = Column(Integer, primary_key=True)
+#     tourney_id = Column(String, ForeignKey("events.tourney.id"))
+#     name = Column(Text, nullable=False)
     
-    def dict(self):
-        return {
-            "id": self.id,
-            "tourney_id": self.tourney_id,
-            "name": self.name
-        }
+#     created_by = Column(String, ForeignKey("enterprise.users.username"), nullable=False)
+#     created_date = Column(Date, nullable=False, default=date.today())
+#     updated_by = Column(String, ForeignKey("enterprise.users.username"), nullable=False)
+#     updated_date = Column(Date, nullable=False, default=date.today())
+    
+#     is_active = Column(Boolean, nullable=False, default=True)
+    
+#     def dict(self):
+#         return {
+#             "id": self.id,
+#             "tourney_id": self.tourney_id,
+#             "name": self.name
+#         }
         
 class GameRules(Base):
     """Game rules Class contains standard information for game rules of Tourney.""" 
@@ -120,14 +142,15 @@ class Pairs(Base):
     two_player = Column(String, ForeignKey("enterprise.users.username"), nullable=False)
     name = Column(String(100), nullable=True)
     
-    
-    event_id = Column(String, ForeignKey("events.events.id"), nullable=False)
-    modality = Column(String(30), nullable=False)
-    
-    
-    
     amount_points = Column(Integer, nullable=True, default=100)
     amount_time = Column(Integer, nullable=True, default=60)
+    
+    created_by = Column(String, ForeignKey("enterprise.users.username"), nullable=False)
+    created_date = Column(Date, nullable=False, default=date.today())
+    updated_by = Column(String, ForeignKey("enterprise.users.username"), nullable=False)
+    updated_date = Column(Date, nullable=False, default=date.today())
+    
+    is_active = Column(Boolean, nullable=False, default=True)
     
     def dict(self):
         return {
