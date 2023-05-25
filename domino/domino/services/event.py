@@ -111,8 +111,10 @@ def get_one_by_id(event_id: str, db: Session):
         for item in lst_data: 
             result.data = create_dict_row(item, 0, db=db, incluye_tourney=True, 
                                         host=str(settings.server_uri), port=str(int(settings.server_port)))
+        if not result.data:
+            raise HTTPException(status_code=404, detail="event.not_found")
     else:
-        result.data = {}
+        raise HTTPException(status_code=404, detail="event.not_found")
     
     return result
 
