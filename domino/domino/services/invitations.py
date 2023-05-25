@@ -28,8 +28,23 @@ def get_all_by_tourney(tourney_id: str, db: Session):
 
 def get_all_sent_by_user(request, db: Session):  
     
-    result = ResultObject() 
     currentUser = get_current_user(request)
+    
+    return get_invitations_by_user_and_status(user_name=currentUser['username'], status_name='SENT', result=ResultObject(), db=db)
+
+def get_all_accept_by_user(request, db: Session):  
+    
+    currentUser = get_current_user(request)
+    
+    return get_invitations_by_user_and_status(user_name=currentUser['username'], status_name='ACCEPTED', result=ResultObject(), db=db)
+
+def get_all_invitations_by_user(request, db: Session):  
+    
+    currentUser = get_current_user(request)
+    
+    return get_invitations_by_user_and_status(user_name=currentUser['username'], status_name='ALL', result=ResultObject(), db=db)
+    
+def get_invitations_by_user_and_status(user_name: str, status_name: str, result: ResultObject, db: Session):  
     
     str_query = "SELECT invitations.id, tourney.name as tourney_name, tourney.modality, tourney.start_date, " + \
         "events.name as event_name, events.close_date, events.main_location, city.name as city_name, " + \
@@ -40,8 +55,12 @@ def get_all_sent_by_user(request, db: Session):
         "inner join resources.event_roles eve ON eve.name = invitations.rolevent_name " +\
         "left join resources.city ON city.id = events.city_id " +\
         "left join resources.country ON country.id = city.country_id " +\
-        "WHERE invitations.status_name = 'SENT' and user_name = '" + currentUser['username'] + "' " +\
-        "ORDER BY tourney.start_date ASC "
+        "WHERE user_name = '" + user_name + "' "
+        
+    if status_name != 'ALL':
+        str_query += " AND invitations.status_name = '" + status_name + "' "
+        
+    str_query += "ORDER BY tourney.start_date ASC "
         
     lst_inv = db.execute(str_query)
     result.data = [create_dict_row_invitation(item) for item in lst_inv]
