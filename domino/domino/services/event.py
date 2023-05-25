@@ -95,7 +95,21 @@ def get_one(event_id: str, db: Session):
 
 def get_one_by_id(event_id: str, db: Session): 
     result = ResultObject()  
-    result.data = db.query(Event).filter(Event.id == event_id).first()
+    
+    str_query = "Select eve.id, eve.name, start_date, close_date, registration_date, registration_price, city.name as city_name, " +\
+        "main_location, summary, image, eve.status_id, sta.name as status_name, country.id as country_id, city.id  as city_id, " +\
+        "users.id as user_id " +\
+        "FROM events.events eve " +\
+        "JOIN resources.entities_status sta ON sta.id = eve.status_id " +\
+        "JOIN resources.city city ON city.id = eve.city_id " +\
+        "JOIN resources.country country ON country.id = city.country_id " +\
+        "JOIN enterprise.users users ON users.username = eve.created_by " +\
+        " WHERE eve.id = '" + str(event_id) + "' "  
+    lst_data = db.execute(str_query)  
+    
+    result.data = [create_dict_row(item, 0, db=db, incluye_tourney=True, 
+                                   host=str(settings.server_uri), port=str(int(settings.server_port))) for item in lst_data]  
+    
     return result
 
 def new(request: Request, event: EventBase, db: Session, file: File):

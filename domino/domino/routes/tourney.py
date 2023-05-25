@@ -7,6 +7,7 @@ from typing import List, Dict
 from domino.services.tourney import get_all, new, get_one_by_id, delete, update, get_all_by_event_id
 from starlette import status
 from domino.auth_bearer import JWTBearer
+from domino.services.event import get_one_by_id as event_get_one
   
 tourney_route = APIRouter(
     tags=["Tourney"],
@@ -24,9 +25,14 @@ def get_tourney(
 ):
     return get_all(request=request, page=page, per_page=per_page, criteria_key=criteria_key, criteria_value=criteria_value, db=db)
 
+# @tourney_route.get("/tourney/event/{event_id}", response_model=ResultObject, summary="Get List of Tourney for Event.")
+# def get_by_event(event_id: str, db: Session = Depends(get_db)):
+#     return get_all_by_event_id(event_id=event_id, db=db)
+
 @tourney_route.get("/tourney/event/{event_id}", response_model=ResultObject, summary="Get List of Tourney for Event.")
 def get_by_event(event_id: str, db: Session = Depends(get_db)):
-    return get_all_by_event_id(event_id=event_id, db=db)
+    print('ejecutamdo este metodo')
+    return event_get_one(event_id=event_id, db=db)
 
 @tourney_route.get("/tourney/{id}", response_model=ResultObject, summary="Get a Tourney for your ID.")
 def get_tourney_by_id(id: str, db: Session = Depends(get_db)):

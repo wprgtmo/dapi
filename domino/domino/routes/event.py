@@ -30,6 +30,7 @@ def get_events(
 
 @event_route.get("/event/{id}", response_model=ResultObject, summary="Get a Event for your ID.")
 def get_event_by_id(id: str, db: Session = Depends(get_db)):
+    print('ejecutamdo este metodo')
     return get_one_by_id(event_id=id, db=db)
 
 @event_route.post("/event", response_model=ResultObject, summary="Create a Event..")
