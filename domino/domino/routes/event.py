@@ -28,7 +28,7 @@ def get_events(
 ):
     return get_all(request=request, page=page, per_page=per_page, criteria_key=criteria_key, criteria_value=criteria_value, db=db)
 
-@event_route.get("/event/{id}", response_model=ResultObject, summary="Get a Event for your ID.")
+@event_route.get("/event/one_event/{id}", response_model=ResultObject, summary="Get a Event for your ID.")
 def get_event_by_id(id: str, db: Session = Depends(get_db)):
     print('ejecutamdo este metodo')
     return get_one_by_id(event_id=id, db=db)
