@@ -105,10 +105,14 @@ def get_one_by_id(event_id: str, db: Session):
         "JOIN resources.country country ON country.id = city.country_id " +\
         "JOIN enterprise.users users ON users.username = eve.created_by " +\
         " WHERE eve.id = '" + str(event_id) + "' "  
-    lst_data = db.execute(str_query)  
+    lst_data = db.execute(str_query) 
     
-    result.data = [create_dict_row(item, 0, db=db, incluye_tourney=True, 
-                                   host=str(settings.server_uri), port=str(int(settings.server_port))) for item in lst_data]  
+    if lst_data: 
+        for item in lst_data: 
+            result.data = create_dict_row(item, 0, db=db, incluye_tourney=True, 
+                                        host=str(settings.server_uri), port=str(int(settings.server_port)))
+    else:
+        result.data = {}
     
     return result
 
