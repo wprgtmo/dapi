@@ -32,3 +32,5 @@ def generate(request:Request, tourney_id: str, db: Session = Depends(get_db)):
 @invitation_route.put("/invitation/{id}", response_model=ResultObject, summary="Accept or Rejected Invitation")
 def update_invitation(request:Request, id: str, invitation: InvitationAccepted, db: Session = Depends(get_db)):
     return update(request=request, db=db, invitation_id=str(id), invitation=invitation)
+
+#comentando
