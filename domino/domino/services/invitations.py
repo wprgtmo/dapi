@@ -1,6 +1,7 @@
 import math
 from datetime import datetime
 
+from domino.config.config import settings
 from fastapi import HTTPException, Request
 from unicodedata import name
 from fastapi import HTTPException
@@ -43,10 +44,15 @@ def get_all_invitations_by_user(request, status_name:str, db: Session):
     
     result = ResultObject() 
     currentUser = get_current_user(request)
+    user_id=currentUser['user_id']
     
+    host=str(settings.server_uri)
+    port=str(int(settings.server_port))
+                                            
     str_query = "SELECT invitations.id, tourney.name as tourney_name, tourney.modality, tourney.start_date, " + \
         "events.name as event_name, events.close_date, events.main_location, city.name as city_name, " + \
-        "country.name country_name, eve.description as rolevent_name " +\
+        "country.name country_name, eve.description as rolevent_name, events.id as event_id, " +\
+        "events.image " +\
         "FROM events.invitations " + \
         "inner join events.tourney ON tourney.id = invitations.tourney_id " + \
         "inner join events.events ON events.id = tourney.event_id " + \
@@ -61,22 +67,33 @@ def get_all_invitations_by_user(request, status_name:str, db: Session):
     str_query += "ORDER BY tourney.start_date ASC "
         
     lst_inv = db.execute(str_query)
-    result.data = [create_dict_row_invitation(item) for item in lst_inv]
+    result.data = [create_dict_row_invitation(item, user_id, host=host, port=port) for item in lst_inv]
     
     return result
  
-def create_dict_row_invitation(item):
+def create_dict_row_invitation(item, user_id, host="", port=""):
     
-    summary = "Se le invita a participar en el Evento: " + str(item['event_name']) 
-    summary += " en calidad de  " + str(item['rolevent_name'])  + ","
-    summary += " a celebrarse en: " + str(item['country_name']) + ","
-    summary += " en la ciudad de: " + str(item['city_name']) + "," if item['city_name'] else ""
-    summary += " con sede principal en: " + str(item['main_location']) + ", " if item['main_location'] else ""
-    summary += " en el torneo: " + str(item['tourney_name']) + "," if item['tourney_name'] else ""
-    summary += " en la modalidad: " + str(item['modality']) if item['modality'] else ""
-    summary += " desde el " + item['start_date'].strftime('%d/%m/%Y') + " hasta " + item['close_date'].strftime('%d/%m/%Y')
+    image = "http://" + host + ":" + port + "/api/image/" + str(user_id) + "/" + item['event_id'] + "/" + item['image']
     
-    new_row = {'id': item['id'], 'summary': summary, 'selected': False}
+    # summary = "Se le invita a participar en el Evento: " + str(item['event_name']) 
+    # summary += " en calidad de  " + str(item['rolevent_name'])  + ","
+    # summary += " a celebrarse en: " + str(item['country_name']) + ","
+    # summary += " en la ciudad de: " + str(item['city_name']) + "," if item['city_name'] else ""
+    # summary += " con sede principal en: " + str(item['main_location']) + ", " if item['main_location'] else ""
+    # summary += " en el torneo: " + str(item['tourney_name']) + "," if item['tourney_name'] else ""
+    # summary += " en la modalidad: " + str(item['modality']) if item['modality'] else ""
+    # summary += " desde el " + item['start_date'].strftime('%d/%m/%Y') + " hasta " + item['close_date'].strftime('%d/%m/%Y')
+    
+    
+    new_row = {'id': item['id'], 'event_name': item['event_name'], 
+               'rolevent_name': item['rolevent_name'],
+               'country': item['country_name'], 'city_name': item['city_name'],
+               'campus': item['main_location'], 
+               'tourney_name': item['tourney_name'], 
+               'modality': item['modality'], 
+               'startDate': item['start_date'], 'endDate': item['close_date'], 
+               'photo' : image}
+    
     return new_row
            
 def generate_all_user(request, db: Session, tourney_id: str):
