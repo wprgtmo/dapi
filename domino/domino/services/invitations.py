@@ -26,25 +26,23 @@ def get_one_by_id(invitation_id: str, db: Session):
 def get_all_by_tourney(tourney_id: str, db: Session):  
     return db.query(Invitations).filter(Invitations.tourney_id == tourney_id).all()
 
-def get_all_sent_by_user(request, db: Session):  
+# def get_all_sent_by_user(request, db: Session):  
     
-    currentUser = get_current_user(request)
+#     currentUser = get_current_user(request)
     
-    return get_invitations_by_user_and_status(user_name=currentUser['username'], status_name='SENT', result=ResultObject(), db=db)
+#     return get_invitations_by_user_and_status(user_name=currentUser['username'], status_name='SEND', result=ResultObject(), db=db)
 
-def get_all_accept_by_user(request, db: Session):  
+# def get_all_accept_by_user(request, db: Session):  
     
-    currentUser = get_current_user(request)
+#     currentUser = get_current_user(request)
     
-    return get_invitations_by_user_and_status(user_name=currentUser['username'], status_name='ACCEPTED', result=ResultObject(), db=db)
+#     return get_invitations_by_user_and_status(user_name=currentUser['username'], status_name='ACCEPTED', result=ResultObject(), db=db)
 
-def get_all_invitations_by_user(request, db: Session):  
+def get_all_invitations_by_user(request, status_name:str, db: Session):  
+    locale = request.headers["accept-language"].split(",")[0].split("-")[0];
     
+    result = ResultObject() 
     currentUser = get_current_user(request)
-    
-    return get_invitations_by_user_and_status(user_name=currentUser['username'], status_name='ALL', result=ResultObject(), db=db)
-    
-def get_invitations_by_user_and_status(user_name: str, status_name: str, result: ResultObject, db: Session):  
     
     str_query = "SELECT invitations.id, tourney.name as tourney_name, tourney.modality, tourney.start_date, " + \
         "events.name as event_name, events.close_date, events.main_location, city.name as city_name, " + \
@@ -55,7 +53,7 @@ def get_invitations_by_user_and_status(user_name: str, status_name: str, result:
         "inner join resources.event_roles eve ON eve.name = invitations.rolevent_name " +\
         "left join resources.city ON city.id = events.city_id " +\
         "left join resources.country ON country.id = city.country_id " +\
-        "WHERE user_name = '" + user_name + "' "
+        "WHERE user_name = '" + currentUser['username'] + "' "
         
     if status_name != 'ALL':
         str_query += " AND invitations.status_name = '" + status_name + "' "
@@ -91,7 +89,7 @@ def generate_all_user(request, db: Session, tourney_id: str):
     if not db_tourney:
         raise HTTPException(status_code=404, detail=_(locale, "tourney.not_exist"))
     
-    db_status = get_status_by_name('SENT', db=db)
+    db_status = get_status_by_name('SEND', db=db)
     if not db_status:
         raise HTTPException(status_code=404, detail=_(locale, "status.not_exist"))
         
