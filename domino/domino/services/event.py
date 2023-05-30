@@ -87,6 +87,8 @@ def create_dict_row(item, page, db: Session, incluye_tourney=False, host="", por
     
     if incluye_tourney:
         new_row['tourney'] = get_lst_tourney_by_event_id(item['id'], db=db)
+    
+    new_row['amount_people'] = get_number_people_at_event(item['id'], "EVENT", db=db) 
         
     return new_row
 
@@ -342,6 +344,24 @@ def get_lst_tourney_by_event_id(event_id: str, db: Session):
     lst_return = [create_dict_row_tourney(item) for item in lst_data]
     
     return lst_return
+
+def get_number_people_at_event(id: str, type_event: str, db: Session): 
+    
+    str_select = "SELECT user_id, tourney_id, tor.event_id "
+    str_from_ref = "FROM events.referees eve_r "
+    str_from_play = "FROM events.players eve_r "
+    str_inner = "INNER JOIN events.tourney tor ON tor.id = eve_r.tourney_id "
+    str_where = "WHERE is_active = True "
+    if type_event == 'EVENT':
+        str_where += "AND tor.event_id = '" + str(id) + "' "
+    elif type_event == 'TOURNEY':
+        str_where += "AND tor.tourney_id = '" + str(id) + "' "
+    
+    str_query = "Select count(*) FROM (" + str_select + str_from_ref + str_inner + str_where
+    str_query += " UNION " + str_select + str_from_play + str_inner + str_where
+    str_query += " ) as people "
+    
+    return db.execute(str_query).fetchone()[0]
 
 def create_dict_row_tourney(item):
     

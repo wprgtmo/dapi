@@ -30,3 +30,15 @@ def new_player(tourney_id: str, user_id: str, username:str, db: Session):
         return True
     except (Exception, SQLAlchemyError) as e:
         return False
+    
+def remove_player(tourney_id: str, user_id: str, db: Session):
+    
+    try:
+        db_player = db.query(Players).filter(Players.tourney_id == tourney_id, Players.user_id == user_id,).first()
+        db.delete(db_player)
+        db.commit()
+    except (Exception, SQLAlchemyError) as e:
+        print(e)
+        raise HTTPException(status_code=404, detail="No es posible eliminar")
+    return True
+    

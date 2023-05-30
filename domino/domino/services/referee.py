@@ -31,3 +31,14 @@ def new_referee(tourney_id: str, user_id: str, username:str, db: Session):
     except (Exception, SQLAlchemyError) as e:
         return False
     
+def remove_referee(tourney_id: str, user_id: str, db: Session):
+    
+    try:
+        db_referee = db.query(Referees).filter(Referees.tourney_id == tourney_id, Referees.user_id == user_id,).first()
+        db.delete(db_referee)
+        db.commit()
+    except (Exception, SQLAlchemyError) as e:
+        print(e)
+        raise HTTPException(status_code=404, detail="No es posible eliminar")
+    return True
+    

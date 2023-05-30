@@ -16,8 +16,8 @@ from domino.functions_jwt import get_current_user
 from domino.app import _
 from domino.services.utils import get_result_count
 from domino.services.tourney import get_one as get_tourney_by_id
-from domino.services.player import new_player
-from domino.services.referee import new_referee
+from domino.services.player import new_player, remove_player
+from domino.services.referee import new_referee, remove_referee
 from domino.services.users import get_one_by_username
 from domino.services.status import get_one_by_name as get_status_by_name
 
@@ -147,27 +147,44 @@ def update(request: Request, invitation_id: str, invitation: InvitationAccepted,
     if not db_invitation:
         raise HTTPException(status_code=400, detail=_(locale, "invitation.not_exist"))
     
-    status_name = 'ACCEPTED' if invitation.accept else 'REJECTED'
+    if db_invitation.status_name == 'SEND':
+        status_name = 'ACCEPTED' if invitation.accept else 'REJECTED'
+    else:
+        status_name = db_invitation.status_name if invitation.accept else 'SEND'
+            
     db_status = get_status_by_name(status_name, db=db)
     if not db_status:
         raise HTTPException(status_code=400, detail=_(locale, "status.not_exist"))
     
+    if db_invitation.status_name == 'SEND':
+        if status_name == 'ACCEPTED':  #inscribir como jugador o arbitro
+            one_user = get_one_by_username(db_invitation.user_name, db=db)
+            if db_invitation.rolevent_name == 'PLAYER':
+                result_update = new_player(tourney_id=db_invitation.tourney_id, user_id=one_user.id, 
+                                    username=db_invitation.user_name, db=db)
+            elif db_invitation.rolevent_name == 'REFEREE':
+                result_update = new_referee(tourney_id=db_invitation.tourney_id, user_id=one_user.id, 
+                                    username=db_invitation.user_name, db=db)
+            if not result_update:
+                raise HTTPException(status_code=400, detail=_(locale, "invitation.error_create_player"))
+    elif db_invitation.status_name == 'ACCEPTED':
+        if status_name == 'SEND':  #eliminar como jugador o arbitro
+            one_user = get_one_by_username(db_invitation.user_name, db=db)
+            
+            if db_invitation.rolevent_name == 'PLAYER':
+                result_update = remove_player(tourney_id=db_invitation.tourney_id, user_id=one_user.id, db=db)
+            elif db_invitation.rolevent_name == 'REFEREE':
+                result_update = remove_referee(tourney_id=db_invitation.tourney_id, user_id=one_user.id, db=db)
+        
+            if not result_update:
+                raise HTTPException(status_code=400, detail=_(locale, "invitation.error_create_player"))
+        
+    elif db_invitation.status_name == 'REJECTED':
+        pass
+    
     db_invitation.status_name = db_status.name
     db_invitation.updated_by = currentUser['username']
     db_invitation.updated_date = datetime.now()
-    
-    if status_name == 'ACCEPTED':  #inscribir como jugador o arbitro
-        one_user = get_one_by_username(db_invitation.user_name, db=db)
-        
-        if db_invitation.rolevent_name == 'PLAYER':
-            result_update = new_player(tourney_id=db_invitation.tourney_id, user_id=one_user.id, 
-                                username=db_invitation.user_name, db=db)
-        elif db_invitation.rolevent_name == 'REFEREE':
-            result_update = new_referee(tourney_id=db_invitation.tourney_id, user_id=one_user.id, 
-                                 username=db_invitation.user_name, db=db)
-    
-        if not result_update:
-            raise HTTPException(status_code=400, detail=_(locale, "invitation.error_create_player"))
         
     try:
         db.add(db_invitation)
