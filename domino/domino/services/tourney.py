@@ -76,7 +76,16 @@ def get_one(tourney_id: str, db: Session):
 
 def get_one_by_id(tourney_id: str, db: Session): 
     result = ResultObject()  
-    result.data = db.query(Tourney).filter(Tourney.id == tourney_id).first()
+    str_query = "Select tou.id, event_id, eve.name as event_name, tou.modality, tou.name, tou.summary, tou.start_date, " +\
+        "tou.status_id, sta.name as status_name FROM events.tourney tou " +\
+        "JOIN events.events eve ON eve.id = tou.event_id " +\
+        "JOIN resources.entities_status sta ON sta.id = tou.status_id " +\
+        " WHERE tou.id = '" + str(tourney_id)  + "' "
+        
+    lst_data = db.execute(str_query)
+    if lst_data:
+        for item in lst_data:
+            result.data = create_dict_row(item, 0, db=db)
     return result
 
 def get_all_by_event_id(event_id: str, db: Session): 

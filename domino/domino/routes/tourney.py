@@ -28,7 +28,7 @@ def get_tourney(
 def get_by_event(event_id: str, db: Session = Depends(get_db)):
     return get_all_by_event_id(event_id=event_id, db=db)
 
-@tourney_route.get("/tourney/{id}", response_model=ResultObject, summary="Get a Tourney for your ID.")
+@tourney_route.get("/tourney/one/{id}", response_model=ResultObject, summary="Get a Tourney for your ID.")
 def get_tourney_by_id(id: str, db: Session = Depends(get_db)):
     return get_one_by_id(tourney_id=id, db=db)
 
