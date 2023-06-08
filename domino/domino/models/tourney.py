@@ -49,7 +49,7 @@ class Players(Base):
     __table_args__ = {'schema' : 'events'}
     
     tourney_id = Column(String, ForeignKey("events.tourney.id"), nullable=False, primary_key=True)
-    user_id = Column(String, ForeignKey("enterprise.users.id"), nullable=False, primary_key=True)
+    profile_id = Column(String, ForeignKey("enterprise.member_profile.id"), nullable=False)
     nivel = Column(String(50), nullable=True)  # nivel del jugador en ese torneo
     
     created_by = Column(String, ForeignKey("enterprise.users.username"), nullable=False)
@@ -73,7 +73,7 @@ class Referees(Base):
     __table_args__ = {'schema' : 'events'}
     
     tourney_id = Column(String, ForeignKey("events.tourney.id"), nullable=False, primary_key=True)
-    user_id = Column(String, ForeignKey("enterprise.users.id"), nullable=False, primary_key=True)
+    profile_id = Column(String, ForeignKey("enterprise.member_profile.id"), nullable=False)
     
     created_by = Column(String, ForeignKey("enterprise.users.username"), nullable=False)
     created_date = Column(Date, nullable=False, default=date.today())

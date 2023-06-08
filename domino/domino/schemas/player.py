@@ -6,7 +6,7 @@ from typing import Optional
         
 class PlayerBase(BaseModel):
     tourney_id: str
-    user_id: str
+    profile_id: str
     nivel: Optional[str]
     
     @validator('tourney_id')
@@ -15,11 +15,11 @@ class PlayerBase(BaseModel):
             raise ValueError('Identificador del de Torneo es Requerido')
         return tourney_id
     
-    @validator('user_id')
-    def user_id_not_empty(cls, user_id):
-        if not user_id:
-            raise ValueError('Id del usuario es Requerido')
-        return user_id
+    @validator('profile_id')
+    def profile_id_not_empty(cls, profile_id):
+        if not profile_id:
+            raise ValueError('Id del profile de usario es Requerido')
+        return profile_id
     
 class PlayerSchema(PlayerBase):
     

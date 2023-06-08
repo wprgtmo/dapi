@@ -9,4 +9,4 @@ from ..models.post import *
 from ..models.tourney import *
 from ..models.eventroles import *
 from ..models.invitations import *
-
+from ..models.userprofile import *

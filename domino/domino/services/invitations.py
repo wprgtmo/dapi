@@ -75,16 +75,6 @@ def create_dict_row_invitation(item, user_id, host="", port=""):
     
     image = "http://" + host + ":" + port + "/api/image/" + str(user_id) + "/" + item['event_id'] + "/" + item['image']
     
-    # summary = "Se le invita a participar en el Evento: " + str(item['event_name']) 
-    # summary += " en calidad de  " + str(item['rolevent_name'])  + ","
-    # summary += " a celebrarse en: " + str(item['country_name']) + ","
-    # summary += " en la ciudad de: " + str(item['city_name']) + "," if item['city_name'] else ""
-    # summary += " con sede principal en: " + str(item['main_location']) + ", " if item['main_location'] else ""
-    # summary += " en el torneo: " + str(item['tourney_name']) + "," if item['tourney_name'] else ""
-    # summary += " en la modalidad: " + str(item['modality']) if item['modality'] else ""
-    # summary += " desde el " + item['start_date'].strftime('%d/%m/%Y') + " hasta " + item['close_date'].strftime('%d/%m/%Y')
-    
-    
     new_row = {'id': item['id'], 'event_name': item['event_name'], 
                'rolevent_name': item['rolevent_name'],
                'country': item['country_name'], 'city_name': item['city_name'],

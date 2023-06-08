@@ -25,6 +25,8 @@ from domino.config.config import settings
 from domino.services.country import get_one as country_get_one
 from domino.services.city import get_one as city_get_one
 
+from domino.services.userprofile import new_member_profie, get_user_profile, update_user_profile
+
 from domino.services.utils import get_result_count, upfile, create_dir, del_image, get_ext_at_file, remove_dir, copy_image
 
 from domino.services.auth import get_url_avatar
@@ -163,6 +165,14 @@ def new(request: Request, db: Session, user: UserCreate, avatar: File):
                 rol = get_one_by_name_roles(item, db=db)
                 if not rol:
                     continue
+                
+                profile_id = get_user_profile(db_user.username, rol.name, db=db)
+                if profile_id:
+                    update_user_profile(db_user.username, rol.name, db=db)
+                else:
+                    new_member_profie(username=db_user.username, name=db_user.first_name, rolevent_name=rol.name, email=db_user.email, 
+                                    city_id=db_user.city_id, photo=db_user.photo, db=db)
+                
                 one_roles = UserEventRoles(username=db_user.username, eventrol_id=rol.id, 
                                            created_by=user.username)
                 db_user.roles.append(one_roles)
@@ -409,13 +419,23 @@ def update_one_profile(request: Request, user_id: str, user: UserProfile, db: Se
     
     # si viene en True, borrar todo lo que tenia y poner nuevos.
     if user.roles:
-        str_delete = "DELETE FROM enterprise.user_eventroles WHERE username = '" + db_user.username + "'; COMMIT; "
+        str_delete = "DELETE FROM enterprise.user_eventroles WHERE username = '" + db_user.username + "'; " + \
+            "UPDATE enterprise.member_profile pro SET is_active=False FROM enterprise.member_users us " +\
+            "WHERE us.profile_id = pro.id and username = '" + db_user.username + "'; "
+ 
         db.execute(str_delete)
         lst_roles = user.roles.split(',')
         for item in lst_roles:
             rol = get_one_by_name_roles(item, db=db)
             if not rol:
                 continue
+            profile_id = get_user_profile(db_user.username, rol.name, db=db)
+            if profile_id:
+                update_user_profile(db_user.username, rol.name, db=db)
+            else:
+                new_member_profie(username=db_user.username, name=db_user.first_name, rolevent_name=rol.name, email=db_user.email, 
+                                  city_id=db_user.city_id, photo=db_user.photo, db=db)
+                
             one_roles = UserEventRoles(username=db_user.username, eventrol_id=rol.id, 
                                         created_by=currentUser['username'])
             db_user.roles.append(one_roles)
