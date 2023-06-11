@@ -22,7 +22,8 @@ class MemberProfile(Base):
     id = Column(String, primary_key=True, default=generate_uuid)
     name = Column(String(300), nullable=False)
     email = Column(String(50), nullable=False)
-    rolevent_name = Column(String, ForeignKey("resources.event_roles.name"), nullable=False) # Individual/Parejas/Equipo/Arbitro
+    rolevent_name = Column(String, ForeignKey("resources.event_roles.name"), nullable=False) # Jugador/Arbitro
+    modality = Column(String(30), nullable=False) # Individual/Parejas/Equipo/
     city_id = Column(Integer, ForeignKey("resources.city.id"), nullable=True, comment="City to which the player belongs")
     photo = Column(String(255), nullable=True)
     

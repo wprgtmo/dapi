@@ -7,6 +7,7 @@ from typing import Optional
 class RefereeBase(BaseModel):
     tourney_id: str
     profile_id: str
+    invitation_id: Optional[str]
     
     @validator('tourney_id')
     def tourney_id_not_empty(cls, tourney_id):
@@ -22,6 +23,7 @@ class RefereeBase(BaseModel):
     
 class RefereeSchema(RefereeBase):
     
+    id: Optional[int]
     is_active: bool = True
     
     created_by: str

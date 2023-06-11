@@ -11,6 +11,7 @@ class MemberProfileBase(BaseModel):
     name: str
     email: Optional[str]
     rolevent_name: Optional[str]
+    modality: Optional[str]
     city_id: Optional[int]
     photo: Optional[str]
     

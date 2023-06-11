@@ -433,20 +433,20 @@ def update_one_profile(request: Request, user_id: str, user: UserProfile, db: Se
             if profile_id:
                 update_user_profile(db_user.username, rol.name, db=db)
             else:
-                new_member_profie(username=db_user.username, name=db_user.first_name, rolevent_name=rol.name, email=db_user.email, 
+                new_member_profie(username=db_user.username, name=db_user.first_name, rolevent_name=rol.name, 
+                                  email=db_user.email, modality='Individual',
                                   city_id=db_user.city_id, photo=db_user.photo, db=db)
                 
             one_roles = UserEventRoles(username=db_user.username, eventrol_id=rol.id, 
                                         created_by=currentUser['username'])
             db_user.roles.append(one_roles)
-    
+            
     try:
         db.add(db_user)
         db.commit()
         db.refresh(db_user)
         filename = avatar.filename if avatar else db_user.photo
         result.data = get_url_avatar(db_user.id, filename)
-            
         return result
     except (Exception, SQLAlchemyError) as e:
         if e and e.code == "gkpj":

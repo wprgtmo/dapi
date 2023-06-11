@@ -8,6 +8,7 @@ class PlayerBase(BaseModel):
     tourney_id: str
     profile_id: str
     nivel: Optional[str]
+    invitation_id: Optional[str]
     
     @validator('tourney_id')
     def tourney_id_not_empty(cls, tourney_id):
@@ -23,6 +24,7 @@ class PlayerBase(BaseModel):
     
 class PlayerSchema(PlayerBase):
     
+    id: Optional[int]
     is_active: bool = True
     
     created_by: str

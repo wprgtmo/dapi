@@ -48,9 +48,11 @@ class Players(Base):
     __tablename__ = "players"
     __table_args__ = {'schema' : 'events'}
     
+    id = Column(String, primary_key=True, default=generate_uuid)
     tourney_id = Column(String, ForeignKey("events.tourney.id"), nullable=False, primary_key=True)
     profile_id = Column(String, ForeignKey("enterprise.member_profile.id"), nullable=False)
     nivel = Column(String(50), nullable=True)  # nivel del jugador en ese torneo
+    invitation_id = Column(String, ForeignKey("events.invitations.id"), nullable=False)
     
     created_by = Column(String, ForeignKey("enterprise.users.username"), nullable=False)
     created_date = Column(Date, nullable=False, default=date.today())
@@ -63,7 +65,8 @@ class Players(Base):
         return {
             "tourney_id": self.tourney_id,
             "user_id": self.user_id,
-            "nivel": self.nivel
+            "nivel": self.nivel,
+            "invitation_id": self.invitation_id
         }
         
 class Referees(Base):
@@ -72,8 +75,10 @@ class Referees(Base):
     __tablename__ = "referees"
     __table_args__ = {'schema' : 'events'}
     
+    id = Column(String, primary_key=True, default=generate_uuid)
     tourney_id = Column(String, ForeignKey("events.tourney.id"), nullable=False, primary_key=True)
     profile_id = Column(String, ForeignKey("enterprise.member_profile.id"), nullable=False)
+    invitation_id = Column(String, ForeignKey("events.invitations.id"), nullable=False)
     
     created_by = Column(String, ForeignKey("enterprise.users.username"), nullable=False)
     created_date = Column(Date, nullable=False, default=date.today())
@@ -130,31 +135,31 @@ class GameRules(Base):
             "amount_time": self.amount_time
         }
         
-class Pairs(Base):
-    """Pairs Class contains standard information for Pairs of domino of Tourney.""" 
+# class Pairs(Base):
+#     """Pairs Class contains standard information for Pairs of domino of Tourney.""" 
 
-    __tablename__ = "pairs"
-    __table_args__ = {'schema' : 'events'}
+#     __tablename__ = "pairs"
+#     __table_args__ = {'schema' : 'events'}
     
-    id = Column(String, primary_key=True, default=generate_uuid)
-    tourney_id = Column(String, ForeignKey("events.tourney.id"))
-    one_player = Column(String, ForeignKey("enterprise.users.username"), nullable=False)
-    two_player = Column(String, ForeignKey("enterprise.users.username"), nullable=False)
-    name = Column(String(100), nullable=True)
+#     id = Column(String, primary_key=True, default=generate_uuid)
+#     tourney_id = Column(String, ForeignKey("events.tourney.id"))
+#     one_player = Column(String, ForeignKey("enterprise.users.username"), nullable=False)
+#     two_player = Column(String, ForeignKey("enterprise.users.username"), nullable=False)
+#     name = Column(String(100), nullable=True)
     
-    amount_points = Column(Integer, nullable=True, default=100)
-    amount_time = Column(Integer, nullable=True, default=60)
+#     amount_points = Column(Integer, nullable=True, default=100)
+#     amount_time = Column(Integer, nullable=True, default=60)
     
-    created_by = Column(String, ForeignKey("enterprise.users.username"), nullable=False)
-    created_date = Column(Date, nullable=False, default=date.today())
-    updated_by = Column(String, ForeignKey("enterprise.users.username"), nullable=False)
-    updated_date = Column(Date, nullable=False, default=date.today())
+#     created_by = Column(String, ForeignKey("enterprise.users.username"), nullable=False)
+#     created_date = Column(Date, nullable=False, default=date.today())
+#     updated_by = Column(String, ForeignKey("enterprise.users.username"), nullable=False)
+#     updated_date = Column(Date, nullable=False, default=date.today())
     
-    is_active = Column(Boolean, nullable=False, default=True)
+#     is_active = Column(Boolean, nullable=False, default=True)
     
-    def dict(self):
-        return {
-            "tourney_id": self.tourney_id,
-            "amount_points": self.amount_points,
-            "amount_time": self.amount_time
-        }
+#     def dict(self):
+#         return {
+#             "tourney_id": self.tourney_id,
+#             "amount_points": self.amount_points,
+#             "amount_time": self.amount_time
+#         }

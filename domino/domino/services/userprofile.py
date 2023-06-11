@@ -17,17 +17,17 @@ from domino.app import _
 
 from domino.services.status import get_one_by_name as get_status_by_name
 
-def new_member_profie(username: str, name:str, rolevent_name: str, email:str, city_id:int, photo:str, db: Session): 
+def new_member_profie(username: str, name:str, rolevent_name: str, modality: str, email:str, city_id:int, photo:str, db: Session): 
     
-    one_profile = MemberProfile(id=str(uuid.uuid4()), name=name, email=email, rolevent_name=rolevent_name, city_id=city_id,
-                                photo=photo, is_active=True, is_ready=True, created_by=username, updated_by=username)
+    one_profile = MemberProfile(id=str(uuid.uuid4()), name=name, email=email, rolevent_name=rolevent_name, 
+                                modality=modality, city_id=city_id, photo=photo, is_active=True, is_ready=True, 
+                                created_by=username, updated_by=username)
     one_user_member = MemberUsers(profile_id=one_profile.id, username=username, is_principal=True, created_by=username)
     
     one_profile.users_member.append(one_user_member)  
     
     try:
         db.add(one_profile)
-        print('escribi profiel')
         return True
     except (Exception, SQLAlchemyError) as e:
         return False
