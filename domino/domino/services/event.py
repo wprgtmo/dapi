@@ -347,7 +347,7 @@ def get_lst_tourney_by_event_id(event_id: str, db: Session):
 
 def get_number_people_at_event(id: str, type_event: str, db: Session): 
     
-    str_select = "SELECT user_id, tourney_id, tor.event_id "
+    str_select = "SELECT profile_id, tourney_id, tor.event_id "
     str_from_ref = "FROM events.referees eve_r "
     str_from_play = "FROM events.players eve_r "
     str_inner = "INNER JOIN events.tourney tor ON tor.id = eve_r.tourney_id "
