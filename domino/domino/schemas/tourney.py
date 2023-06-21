@@ -2,8 +2,7 @@
 
 from datetime import datetime, date
 from pydantic import BaseModel, validator
-from typing import Optional, List
-
+from typing import Optional
  
 class TourneyBase(BaseModel):
     name: str
@@ -45,7 +44,6 @@ class TourneySchema(TourneyBase):
         
 class TourneyCreated(BaseModel):
     name: Optional[str]
-    id_tourney: Optional[str]
     modality: Optional[str]
     summary: Optional[str]
     startDate: Optional[date]

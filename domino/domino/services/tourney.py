@@ -104,7 +104,7 @@ def get_all_by_event_id(event_id: str, db: Session):
     
     return result
 
-def new(request, event_id: str, lst_tourney: List[TourneyCreated], db: Session):
+def new(request, event_id: str, tourney: TourneyCreated, db: Session):
     locale = request.headers["accept-language"].split(",")[0].split("-")[0];
     
     result = ResultObject() 
@@ -118,18 +118,18 @@ def new(request, event_id: str, lst_tourney: List[TourneyCreated], db: Session):
     if one_event.status_id != one_status.id:
         raise HTTPException(status_code=404, detail=_(locale, "event.event_closed"))
     
-    for item_to in lst_tourney:
-        id = str(uuid.uuid4())
-        if item_to.startDate < one_event.start_date: 
-            raise HTTPException(status_code=404, detail=_(locale, "tourney.incorrect_startDate"))
-        if item_to.startDate > one_event.close_date: 
-            raise HTTPException(status_code=404, detail=_(locale, "tourney.incorrect_startDate"))
-        
-        db_tourney = Tourney(id=id, event_id=event_id, modality=item_to.modality, name=item_to.name, 
-                            summary=item_to.summary, start_date=item_to.startDate, 
-                            status_id=one_status.id, created_by=currentUser['username'], 
-                            updated_by=currentUser['username'])
-        db.add(db_tourney)
+    id = str(uuid.uuid4())
+    if tourney.startDate < one_event.start_date: 
+        raise HTTPException(status_code=404, detail=_(locale, "tourney.incorrect_startDate"))
+    
+    if tourney.startDate > one_event.close_date: 
+        raise HTTPException(status_code=404, detail=_(locale, "tourney.incorrect_startDate"))
+    
+    db_tourney = Tourney(id=id, event_id=event_id, modality=tourney.modality, name=tourney.name, 
+                        summary=tourney.summary, start_date=tourney.startDate, 
+                        status_id=one_status.id, created_by=currentUser['username'], 
+                        updated_by=currentUser['username'])
+    db.add(db_tourney)
     
     try:
         
@@ -167,7 +167,7 @@ def delete(request: Request, tourney_id: str, db: Session):
         print(e)
         raise HTTPException(status_code=404, detail=_(locale, "tourney.imposible_delete"))
     
-def update(request: Request, event_id: str, tourney: List[TourneyCreated], db: Session):
+def update(request: Request, tourney_id: str, tourney: TourneyCreated, db: Session):
     locale = request.headers["accept-language"].split(",")[0].split("-")[0];
     
     result = ResultObject() 
@@ -177,9 +177,50 @@ def update(request: Request, event_id: str, tourney: List[TourneyCreated], db: S
     one_status_new = get_one_by_name('CREATED', db=db)
     one_status_canc = get_one_by_name('CANCELLED', db=db)
     
-    one_event = get_one_event(event_id, db=db)
-    if one_event.status_id == one_status_end.id:
-        raise HTTPException(status_code=404, detail=_(locale, "event.event_closed"))
+    db_tourney = get_one(tourney_id, db=db)
+    if not db_tourney:
+        raise HTTPException(status_code=404, detail=_(locale, "tourney.not_found"))
+    
+    if db_tourney.status_id != one_status_new.id:
+        raise HTTPException(status_code=404, detail=_(locale, "tourney.tourney_closed"))
+    
+    if db_tourney.name != tourney.name:
+        db_tourney.name = tourney.name
+        
+    if db_tourney.summary != tourney.summary:
+        db_tourney.summary = tourney.summary
+        
+    if db_tourney.modality != tourney.modality:
+        db_tourney.modality = tourney.modality
+        
+    if db_tourney.start_date != tourney.startDate:
+        db_tourney.start_date = tourney.startDate
+        
+    db_tourney.updated_by = currentUser['username']
+    db_tourney.updated_date = datetime.now()
+    
+    try:
+        db.add(db_tourney)
+        db.commit()
+        return result
+    except (Exception, SQLAlchemyError) as e:
+        print(e.code)
+        if e.code == "gkpj":
+            raise HTTPException(status_code=400, detail=_(locale, "tourney.already_exist"))
+   
+def update_original(request: Request, tourney_id: str, tourney: TourneyCreated, db: Session):
+    locale = request.headers["accept-language"].split(",")[0].split("-")[0];
+    
+    result = ResultObject() 
+    currentUser = get_current_user(request) 
+    
+    one_status_end = get_one_by_name('FINALIZED', db=db)
+    one_status_new = get_one_by_name('CREATED', db=db)
+    one_status_canc = get_one_by_name('CANCELLED', db=db)
+    
+    tourney = get_one(tourney_id, db=db)
+    if tourney.status_id != one_status_new.id:
+        raise HTTPException(status_code=404, detail=_(locale, "tourney.tourney_closed"))
     
     if tourney:
         # desde la interfaz, los que no vengan borrarlos, si vienen nuevos insertarlos, si coinciden modificarlos
