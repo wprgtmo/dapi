@@ -119,22 +119,25 @@ def generate_all_user(request, db: Session, tourney_id: str):
     db_status = get_status_by_name('SEND', db=db)
     if not db_status:
         raise HTTPException(status_code=404, detail=_(locale, "status.not_exist"))
+    
+    dict_modality = {'Individual': "'SINGLE_PLAYER', 'REFEREE'",
+                     'Parejas': "'PAIR_PLAYER', 'REFEREE'",
+                     'Equipo': "'TEAM_PLAYER', 'REFEREE'"}
+    str_profile = dict_modality[db_tourney.modality]
         
     str_users = "SELECT profile_member.id profile_id, eve.name as rolevent_name  " + \
         "FROM enterprise.profile_member " +\
         "inner join enterprise.profile_users ON profile_users.profile_id = profile_member.id " +\
-        "inner join enterprise.profile_type eve ON eve.name = pro.profile_type " +\
-        "where profile_member.is_active=True and eve.name IN ('SINGLE_PLAYER', 'PAIR_PLAYER', 'TEAM_PLAYER', 'REFEREE') " +\
-        "and enterprise.profile_member.modality='" + db_tourney.modality + "' " +\
-        "and profile_member.id " +\
-        "NOT IN (Select profile_id FROM events.invitations where tourney_id = '" + tourney_id + "') "
+        "inner join enterprise.profile_type eve ON eve.name = profile_member.profile_type " +\
+        "where profile_member.is_active=True and eve.name IN (" + str_profile + ") " +\
+        "and profile_member.id NOT IN (Select profile_id FROM events.invitations where tourney_id = '" + tourney_id + "') "
 
     lst_data = db.execute(str_users)
     
     try:
         for item in lst_data:
             one_invitation = Invitations(tourney_id=db_tourney.id, profile_id=item.profile_id, 
-                                         rolevent_name=item.rolevent_name, modality=db_tourney.modality,
+                                         modality=db_tourney.modality,
                                          status_name=db_status.name, created_by=currentUser['username'], 
                                          updated_by=currentUser['username'])
             db.add(one_invitation)
@@ -142,13 +145,13 @@ def generate_all_user(request, db: Session, tourney_id: str):
         
         return result
     except (Exception, SQLAlchemyError, IntegrityError) as e:
-        print(e)
-        print(e.__dict__)
-        msg = _(locale, "invitation.error_generate_new")
-        if e.code == 'gkpj':
-            msg = msg + _(locale, "invitation.already_exist")
+        # print(e)
+        # print(e.__dict__)
+        # msg = _(locale, "invitation.error_generate_new")
+        # if e.code == 'gkpj':
+            # msg = msg + _(locale, "invitation.already_exist")
         
-        raise HTTPException(status_code=403, detail=msg)
+        raise HTTPException(status_code=403, detail=e)
     
 def update(request: Request, invitation_id: str, invitation: InvitationAccepted, db: Session):
     locale = request.headers["accept-language"].split(",")[0].split("-")[0];
