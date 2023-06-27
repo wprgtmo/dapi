@@ -8,10 +8,9 @@ import json
 
 from datetime import datetime
 from fastapi import HTTPException, Request, UploadFile, File
-from domino.models.user import Users, UserFollowers, UserEventRoles
+from domino.models.user import Users, UserFollowers
 from domino.schemas.user import UserCreate, UserShema, ChagePasswordSchema, UserBase, UserProfile, UserFollowerBase
 from domino.schemas.result_object import ResultObject, ResultData
-from domino.services.eventroles import get_one_by_name as get_one_by_name_roles
 from sqlalchemy.orm import Session
 from sqlalchemy.exc import SQLAlchemyError, IntegrityError
 from passlib.context import CryptContext
@@ -25,7 +24,7 @@ from domino.config.config import settings
 from domino.services.country import get_one as country_get_one
 from domino.services.city import get_one as city_get_one
 
-from domino.services.userprofile import new_member_profie, get_user_profile, update_user_profile
+# from domino.services.userprofile import new_member_profie, get_user_profile, update_user_profile
 
 from domino.services.utils import get_result_count, upfile, create_dir, del_image, get_ext_at_file, remove_dir, copy_image
 
@@ -158,24 +157,24 @@ def new(request: Request, db: Session, user: UserCreate, avatar: File):
         copy_image(image_domino, image_destiny)
         db_user.photo = filename
     
-    if user.roles:
-        lst_roles = user.roles.split(',')
-        if lst_roles:
-            for item in lst_roles:
-                rol = get_one_by_name_roles(item, db=db)
-                if not rol:
-                    continue
+    # if user.roles:
+    #     lst_roles = user.roles.split(',')
+    #     if lst_roles:
+    #         for item in lst_roles:
+    #             rol = get_one_by_name_roles(item, db=db)
+    #             if not rol:
+    #                 continue
                 
-                profile_id = get_user_profile(db_user.username, rol.name, db=db)
-                if profile_id:
-                    update_user_profile(db_user.username, rol.name, db=db)
-                else:
-                    new_member_profie(username=db_user.username, name=db_user.first_name, rolevent_name=rol.name, email=db_user.email, 
-                                    city_id=db_user.city_id, photo=db_user.photo, db=db)
+    #             profile_id = get_user_profile(db_user.username, rol.name, db=db)
+    #             if profile_id:
+    #                 update_user_profile(db_user.username, rol.name, db=db)
+    #             else:
+    #                 new_member_profie(username=db_user.username, name=db_user.first_name, rolevent_name=rol.name, email=db_user.email, 
+    #                                 city_id=db_user.city_id, photo=db_user.photo, db=db)
                 
-                one_roles = UserEventRoles(username=db_user.username, eventrol_id=rol.id, 
-                                           created_by=user.username)
-                db_user.roles.append(one_roles)
+    #             one_roles = UserEventRoles(username=db_user.username, eventrol_id=rol.id, 
+    #                                        created_by=user.username)
+    #             db_user.roles.append(one_roles)
                             
     try:
         db.add(db_user)
@@ -210,8 +209,6 @@ def get_one_by_id(request: Request, user_id: str, db: Session):
     if not one_country:
         raise HTTPException(status_code=404, detail=_(locale, "country.not_found"))
     
-    lst_roles = get_lst_roles_by_user(one_user.username, db=db)
-        
     result.data = {'id': one_user.id, 'username' : one_user.username, 
                    'first_name': one_user.first_name, 
                    'last_name': one_user.last_name if one_user.last_name else '', 
@@ -225,8 +222,7 @@ def get_one_by_id(request: Request, user_id: str, db: Session):
                    'alias': one_user.alias if one_user.alias else '',
                    'city_id': one_user.city_id if one_user.city_id else '',
                    'receive_notifications': one_user.receive_notifications if one_user.receive_notifications else False,  
-                   'photo': get_url_avatar(one_user.id, one_user.photo, host=host, port=port),
-                   'roles': lst_roles} 
+                   'photo': get_url_avatar(one_user.id, one_user.photo, host=host, port=port)} 
     
     return result
 
@@ -242,21 +238,21 @@ def get_all_follower_by_user(username: str, db: Session):
 def get_one_profile(request: Request, user_id: str, db: Session):
     return get_one_by_id(request=request, user_id=user_id, db=db)
 
-def get_roles_by_user(username: str, db: Session):
-    return db.query(UserEventRoles).filter(UserEventRoles.username == username).all()
+# def get_roles_by_user(username: str, db: Session):
+#     return db.query(UserEventRoles).filter(UserEventRoles.username == username).all()
 
-def get_lst_roles_by_user(username: str, db: Session):
-    str_query = "SELECT eve.id, eve.name, eve.description FROM enterprise.user_eventroles use_eve " +\
-        "inner join resources.event_roles eve ON eve.id = use_eve.eventrol_id " +\
-        "where username='" + username + "' ORDER BY eve.id "
+# def get_lst_roles_by_user(username: str, db: Session):
+#     str_query = "SELECT eve.id, eve.name, eve.description FROM enterprise.user_eventroles use_eve " +\
+#         "inner join resources.event_roles eve ON eve.id = use_eve.eventrol_id " +\
+#         "where username='" + username + "' ORDER BY eve.id "
     
-    lst_data = db.execute(str_query)
-    str_roles = ""
-    for item in lst_data:
-        str_roles += item.name + ','
-        # lst_roles.append({'id': item.id, 'name': item.name, 'description': item.description})
+#     lst_data = db.execute(str_query)
+#     str_roles = ""
+#     for item in lst_data:
+#         str_roles += item.name + ','
+#         # lst_roles.append({'id': item.id, 'name': item.name, 'description': item.description})
             
-    return str_roles[:-1] if str_roles else str_roles
+#     return str_roles[:-1] if str_roles else str_roles
 
 def check_security_code(request: Request, username: str, security_code: str, db: Session):
     locale = request.headers["accept-language"].split(",")[0].split("-")[0];
@@ -414,32 +410,29 @@ def update_one_profile(request: Request, user_id: str, user: UserProfile, db: Se
             copy_image(image_domino, image_destiny)
             db_user.photo = filename
     
-    if db_user.receive_notifications and not user.roles:
-        raise HTTPException(status_code=404, detail=_(locale, "eventroles.list_not_empty"))
-    
     # si viene en True, borrar todo lo que tenia y poner nuevos.
-    if user.roles:
-        str_delete = "DELETE FROM enterprise.user_eventroles WHERE username = '" + db_user.username + "'; " + \
-            "UPDATE enterprise.member_profile pro SET is_active=False FROM enterprise.member_users us " +\
-            "WHERE us.profile_id = pro.id and username = '" + db_user.username + "'; "
+    # if user.roles:
+    #     str_delete = "DELETE FROM enterprise.user_eventroles WHERE username = '" + db_user.username + "'; " + \
+    #         "UPDATE enterprise.member_profile pro SET is_active=False FROM enterprise.member_users us " +\
+    #         "WHERE us.profile_id = pro.id and username = '" + db_user.username + "'; "
  
-        db.execute(str_delete)
-        lst_roles = user.roles.split(',')
-        for item in lst_roles:
-            rol = get_one_by_name_roles(item, db=db)
-            if not rol:
-                continue
-            profile_id = get_user_profile(db_user.username, rol.name, db=db)
-            if profile_id:
-                update_user_profile(db_user.username, rol.name, db=db)
-            else:
-                new_member_profie(username=db_user.username, name=db_user.first_name, rolevent_name=rol.name, 
-                                  email=db_user.email, modality='Individual',
-                                  city_id=db_user.city_id, photo=db_user.photo, db=db)
+    #     db.execute(str_delete)
+    #     lst_roles = user.roles.split(',')
+    #     for item in lst_roles:
+    #         rol = get_one_by_name_roles(item, db=db)
+    #         if not rol:
+    #             continue
+    #         profile_id = get_user_profile(db_user.username, rol.name, db=db)
+    #         if profile_id:
+    #             update_user_profile(db_user.username, rol.name, db=db)
+    #         else:
+    #             new_member_profie(username=db_user.username, name=db_user.first_name, rolevent_name=rol.name, 
+    #                               email=db_user.email, modality='Individual',
+    #                               city_id=db_user.city_id, photo=db_user.photo, db=db)
                 
-            one_roles = UserEventRoles(username=db_user.username, eventrol_id=rol.id, 
-                                        created_by=currentUser['username'])
-            db_user.roles.append(one_roles)
+    #         one_roles = UserEventRoles(username=db_user.username, eventrol_id=rol.id, 
+    #                                     created_by=currentUser['username'])
+    #         db_user.roles.append(one_roles)
             
     try:
         db.add(db_user)

@@ -55,10 +55,11 @@ from domino.routes.comment import comment_route
 from domino.routes.event import event_route
 from domino.routes.tourney import tourney_route
 from domino.routes.images import image_route
-from domino.routes.eventroles import eventroles_route
+from domino.routes.profiletype import profiletype_route
 from domino.routes.invitations import invitation_route
 from domino.routes.player import player_route
 from domino.routes.referee import referee_route
+from domino.routes.userprofile import singleprofile_route
 
 @app.get("/docs", include_in_schema=False)
 async def custom_swagger_ui_html():
@@ -90,7 +91,7 @@ app.include_router(country_route, prefix="/api")
 app.include_router(city_route, prefix="/api")
 # app.include_router(packages_route, prefix="/api")
 app.include_router(status_route, prefix="/api")
-app.include_router(eventroles_route, prefix="/api")
+app.include_router(profiletype_route, prefix="/api")
 app.include_router(post_route, prefix="/api")
 app.include_router(comment_route, prefix="/api")
 app.include_router(event_route, prefix="/api")
@@ -99,6 +100,8 @@ app.include_router(image_route, prefix="/api")
 app.include_router(invitation_route, prefix="/api")
 app.include_router(player_route, prefix="/api")
 app.include_router(referee_route, prefix="/api")
+app.include_router(singleprofile_route, prefix="/api")
+
 
 @app.post("/file")
 def upfile(file: UploadFile = File(...)):

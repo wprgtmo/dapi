@@ -46,12 +46,17 @@ def create_dir(entity_type: str, user_id: str, entity_id: str):
             os.mkdir("public/events")
         path = "public/events/"
         
-    elif entity_type == 'USER':
+    elif entity_type == 'USER' or entity_type == 'USERPROFILE':
         if not os.path.isdir("public/profile"):
             os.mkdir("public/profile")
         path = "public/profile/"
+        
+    # elif entity_type == 'USERPROFILE':
+    #     if not os.path.isdir("public/profile/player"):
+    #         os.mkdir("public/profile/player")
+    #     path = "public/profile/player/"
     
-    if entity_type == 'EVENT' or entity_type == 'USER':
+    if entity_type == 'EVENT' or entity_type == 'USER' or entity_type == 'USERPROFILE':
         path += str(user_id) 
         if not os.path.isdir(path):
             os.mkdir(path)
@@ -66,15 +71,6 @@ def create_dir(entity_type: str, user_id: str, entity_id: str):
     return path
 
 def remove_dir(path: str):
-    print(path)
-    print('imagen')
-    
-    
-    print('verify dir')
-    print(os.path.exists(path))
-    
-    print('**************')
-    
     os.rmdir(path)
     os.rmdir(getcwd() + path)
     return True

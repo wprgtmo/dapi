@@ -57,3 +57,32 @@ event:
     dates_incorrect: 'Dates incorrect.'
     start_date_incorrect: 'Start Date Incorrect'
     registration_date_incorrect: 'Registration Date Incorrect.'
+    event_closed: 'Event is closed'
+  tourney:
+    not_exist: 'Tourney not found'
+    not_found: 'Tourney not found.'
+    imposible_delete: 'Imposible desactivar'
+    already_exist: ' Tourney exist'
+    dates_incorrect: 'Wrong date data'
+    start_date_incorrect: 'Wrong begin date'
+    registration_date_incorrect: 'Wrong registration date'
+    tourney_closed: 'Tourney is closed'
+  invitation:
+    not_exist: 'Invitation not found.'
+    not_found: 'Invitation not found.'
+    already_exist: 'Invitation exist'
+    status_incorrect: 'Status of invitation incorrect.'
+  profiletype:
+    exist_name: 'There is type of profile'
+    already_exist: 'Error creating profile type'
+    not_found: 'Profile Type not found'
+  userprofile:
+    existprofile: 'Exists for user profile'
+    errorinsert: 'Error insert profie;'
+    not_found: 'Profile not found'
+    already_exist: 'Error insert profile'
+    imposible_delete: 'Imposible desactivar'
+  player:
+    not_found: 'Player not found'
+  referee:
+    not_found: 'Referee not found'

@@ -37,13 +37,8 @@ class Users(Base):
     city_id = Column(Integer, ForeignKey("resources.city.id"), nullable=True, comment="City to which the player belongs")
     photo = Column(String(255), nullable=True)
     
-    #datos del ranking
-    elo = Column(Integer, nullable=True)
-    ranking = Column(String(2), nullable=True)
-    
-    roles = relationship("UserEventRoles")
     receive_notifications = Column(Boolean, nullable=False, default=False)
-     
+    
     def dict(self):
         return {
             "id": self.id,
@@ -59,7 +54,8 @@ class Users(Base):
             "alias": self.alias,
             "job": self.job,
             "photo": self.photo,
-            "city_id": self.city_id
+            "city_id": self.city_id,
+            "receive_notifications": self.receive_notifications
         }
 
 
@@ -73,26 +69,6 @@ class UserFollowers(Base):
     user_follow = Column(String(50), primary_key=True)
     created_date = Column(DateTime, nullable=False, default=datetime.now())
     is_active = Column(Boolean, nullable=False, default=False)
-    
-    def dict(self):
-        return {
-            "username": self.username,
-            "user_follow": self.user_follow,
-            "created_date": self.created_date,
-            "is_active": self.is_active
-        }
-
-
-class UserEventRoles(Base):
-    """UserEventRoles Class contains standard information for Roles of User"""
- 
-    __tablename__ = "user_eventroles"
-    __table_args__ = {'schema' : 'enterprise'}
-    
-    username = Column(String(50), primary_key=True)
-    eventrol_id = Column(Integer, ForeignKey("resources.event_roles.id"), primary_key=True)
-    created_by = Column(String, ForeignKey("enterprise.users.username"), nullable=False)
-    created_date = Column(DateTime, nullable=False, default=datetime.now())
     
     def dict(self):
         return {

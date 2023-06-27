@@ -16,8 +16,7 @@ class UserBase(BaseModel):
     country_id: Optional[int]
     
     receive_notifications: Optional[bool] = False
-    roles: Optional[str]
-
+    
     @validator('username')
     def username_not_empty(cls, username):
         if not username:
@@ -87,8 +86,6 @@ class UserProfile(BaseModel):
     phone: Optional[str]
     
     receive_notifications: Optional[bool] = False
-    
-    roles: Optional[str]
     
     @validator('first_name')
     def first_name_not_empty(cls, first_name):

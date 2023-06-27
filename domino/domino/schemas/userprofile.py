@@ -7,16 +7,16 @@ from datetime import date
 from typing import Optional, List
 from domino.app import _
         
-class MemberProfileBase(BaseModel):
+class ProfileMemberBase(BaseModel):
     name: str
     email: Optional[str]
-    rolevent_name: Optional[str]
-    modality: Optional[str]
+    profile_type: Optional[str]
     city_id: Optional[int]
     photo: Optional[str]
     
+    receive_notifications: Optional[bool] = False
     
-class MemberProfileSchema(MemberProfileBase):
+class ProfileMemberSchema(ProfileMemberBase):
     id: Optional[int]
     
     created_by: str
@@ -30,12 +30,12 @@ class MemberProfileSchema(MemberProfileBase):
     class Config:
         orm_mode = True    
     
-class MemberUsersBase(BaseModel):
+class ProfileUsersBase(BaseModel):
     profile_id: str
     username: str
     is_principal: Optional[bool] = False
     
-class MemberUsersSchema(MemberUsersBase):
+class ProfileUsersSchema(ProfileUsersBase):
     
     created_by: str
     created_date: datetime = datetime.today()
@@ -43,3 +43,20 @@ class MemberUsersSchema(MemberUsersBase):
     class Config:
         orm_mode = True 
     
+
+class ProfileSinglePlayerBase(BaseModel):
+    profile_id: str
+    elo: int
+    ranking: str
+    
+class ProfileSinglePlayerSchema(ProfileSinglePlayerBase):
+    
+    class Config:
+        orm_mode = True 
+        
+class SingleProfileCreated(BaseModel):
+    name: str
+    email: Optional[str]
+    city_id: Optional[int]
+    
+    receive_notifications: Optional[bool] = False

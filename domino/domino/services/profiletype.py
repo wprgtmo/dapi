@@ -3,8 +3,8 @@ import math
 from fastapi import HTTPException, Request
 from unicodedata import name
 from fastapi import HTTPException
-from domino.models.eventroles import EventRoles
-from domino.schemas.eventroles import EventRolesBase
+from domino.models.userprofile import ProfileType
+from domino.schemas.profiletype import ProfileTypeSchema, ProfileTypeBase
 from domino.schemas.result_object import ResultObject
 from sqlalchemy.orm import Session
 from sqlalchemy.exc import SQLAlchemyError, IntegrityError
@@ -17,8 +17,8 @@ from domino.services.utils import get_result_count
 def get_all(request:Request, page: int, per_page: int, criteria_key: str, criteria_value: str, db: Session):  
     locale = request.headers["accept-language"].split(",")[0].split("-")[0];
     
-    str_count = "Select count(*) FROM resources.event_roles "
-    str_query = "Select id, name, description FROM resources.event_roles "
+    str_count = "Select count(*) FROM enterprise.profile_type "
+    str_query = "Select id, name, description FROM enterprise.profile_type "
     
     dict_query = {'name': " WHERE name ilike '%" + criteria_value + "%'",
                   'description': " WHERE description ilike '%" + criteria_value + "%'"}
@@ -51,34 +51,34 @@ def create_dict_row(item, page, db: Session):
         new_row['selected'] = False
     return new_row
 
-def get_one(status_id: str, db: Session):  
-    return db.query(EventRoles).filter(EventRoles.id == status_id).first()
+def get_one(id: str, db: Session):  
+    return db.query(ProfileType).filter(ProfileType.id == id).first()
 
 def get_one_by_name(name: str, db: Session):  
-    return db.query(EventRoles).filter(EventRoles.name == name).first()
+    return db.query(ProfileType).filter(ProfileType.name == name).first()
       
-def new(request, db: Session, eventrol: EventRolesBase):
+def new(request, db: Session, profiletype: ProfileTypeBase):
     locale = request.headers["accept-language"].split(",")[0].split("-")[0];
     
     result = ResultObject() 
     currentUser = get_current_user(request)
     
-    db_rol = get_one_by_name(eventrol.name, db=db)
-    if db_rol:
-        raise HTTPException(status_code=404, detail=_(locale, "eventrol.exist_name"))
+    db_pro_type = get_one_by_name(profiletype.name, db=db)
+    if db_pro_type:
+        raise HTTPException(status_code=404, detail=_(locale, "profiletype.exist_name"))
         
-    db_rol = EventRoles(name=eventrol.name, description=eventrol.description, created_by=currentUser['username'])
+    db_pro_type = ProfileType(name=profiletype.name, description=profiletype.description, created_by=currentUser['username'])
     
     try:
-        db.add(db_rol)
+        db.add(db_pro_type)
         db.commit()
         return result
     except (Exception, SQLAlchemyError, IntegrityError) as e:
         print(e)
-        msg = _(locale, "eventrol.error_new_status")
+        msg = _(locale, "profiletype.error_new_status")
         if e.code == 'gkpj':
             field_name = str(e.__dict__['orig']).split('"')[1].split('_')[1]
             if field_name == 'username':
-                msg = msg + _(locale, "eventrol.already_exist")
+                msg = msg + _(locale, "profiletype.already_exist")
         
         raise HTTPException(status_code=403, detail=msg)

@@ -24,7 +24,6 @@ class Tourney(Base):
     start_date = Column(Date, nullable=False)
     # close_date = Column(Date, nullable=False)
     status_id  = Column(Integer, ForeignKey("resources.entities_status.id"), nullable=False)
-    # image = Column(Text, nullable=True)
     # manage_id = Column(String, ForeignKey("enterprise.users.username"), nullable=False)
     created_by = Column(String, ForeignKey("enterprise.users.username"), nullable=False)
     created_date = Column(Date, nullable=False, default=date.today())
@@ -49,8 +48,8 @@ class Players(Base):
     __table_args__ = {'schema' : 'events'}
     
     id = Column(String, primary_key=True, default=generate_uuid)
-    tourney_id = Column(String, ForeignKey("events.tourney.id"), nullable=False, primary_key=True)
-    profile_id = Column(String, ForeignKey("enterprise.member_profile.id"), nullable=False)
+    tourney_id = Column(String, ForeignKey("events.tourney.id"), nullable=False)
+    profile_id = Column(String, ForeignKey("enterprise.profile_member.id"), nullable=False)
     nivel = Column(String(50), nullable=True)  # nivel del jugador en ese torneo
     invitation_id = Column(String, ForeignKey("events.invitations.id"), nullable=False)
     
@@ -64,7 +63,7 @@ class Players(Base):
     def dict(self):
         return {
             "tourney_id": self.tourney_id,
-            "user_id": self.user_id,
+            "profile_id": self.profile_id,
             "nivel": self.nivel,
             "invitation_id": self.invitation_id
         }
@@ -77,7 +76,7 @@ class Referees(Base):
     
     id = Column(String, primary_key=True, default=generate_uuid)
     tourney_id = Column(String, ForeignKey("events.tourney.id"), nullable=False, primary_key=True)
-    profile_id = Column(String, ForeignKey("enterprise.member_profile.id"), nullable=False)
+    profile_id = Column(String, ForeignKey("enterprise.profile_member.id"), nullable=False)
     invitation_id = Column(String, ForeignKey("events.invitations.id"), nullable=False)
     
     created_by = Column(String, ForeignKey("enterprise.users.username"), nullable=False)

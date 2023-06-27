@@ -60,4 +60,32 @@ es:
     dates_incorrect: 'Datos de Fecha incorrectas.'
     start_date_incorrect: 'Fecha de Inicio Incorrecta.'
     registration_date_incorrect: 'Fecha de inscripción incorrecta.'
-    
+    event_closed: 'Evento ya Terminado'
+  tourney:
+    not_exist: 'Torneo no existe.'
+    not_found: 'Torneo no existe.'
+    imposible_delete: 'Imposible desactivar'
+    already_exist: ' Torneo existe'
+    dates_incorrect: 'Datos de Fecha incorrectas.'
+    start_date_incorrect: 'Fecha de Inicio Incorrecta.'
+    registration_date_incorrect: 'Fecha de inscripción incorrecta.'
+    tourney_closed: 'Torneo ya Terminado'
+  invitation:
+    not_exist: 'Invitación no existe.'
+    not_found: 'Invitación no existe.'
+    already_exist: 'Invitacion ya existe.'
+    status_incorrect: 'Estado de la invitación incorrecta.'
+  profiletype:
+    exist_name: 'Existe nombre de tipo de perfil'
+    already_exist: 'Error creando tipo de perfil'
+    not_found: 'Tipo de perfil no existe'
+  userprofile:
+    existprofile: 'Existe perfil de ese tipo para ese usuario'
+    errorinsert: 'Error insertnado perfil indicado'
+    not_found: 'Perfil no encontrado en el sistema'
+    already_exist: 'Error insertnado perfil indicado'
+    imposible_delete: 'Imposible desactivar'
+  player:
+    not_found: 'Jugador no encontrado'
+  referee:
+    not_found: 'Arbitro no encontrado'
