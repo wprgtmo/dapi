@@ -126,7 +126,7 @@ def generate_all_user(request, db: Session, tourney_id: str):
         "inner join enterprise.profile_type eve ON eve.name = pro.profile_type " +\
         "where profile_member.is_active=True and eve.name IN ('SINGLE_PLAYER', 'PAIR_PLAYER', 'TEAM_PLAYER', 'REFEREE') " +\
         "and enterprise.profile_member.modality='" + db_tourney.modality + "' " +\
-        "and profile_member.id +\
+        "and profile_member.id " +\
         "NOT IN (Select profile_id FROM events.invitations where tourney_id = '" + tourney_id + "') "
 
     lst_data = db.execute(str_users)
