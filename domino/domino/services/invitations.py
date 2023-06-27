@@ -36,14 +36,13 @@ def get_all_invitations_by_tourney(request, tourney_id: str, status_name:str, db
                                            
     str_query = "SELECT invitations.id, tourney.name as tourney_name, tourney.modality, tourney.start_date, " + \
         "events.name as event_name, events.close_date, events.main_location, city.name as city_name, " + \
-        "country.name country_name, eve.description as rolevent_name, events.id as event_id, " +\
-        "events.image " +\
+        "country.name country_name, eve.description as rolevent_name, events.id as event_id, events.image " +\
         "FROM events.invitations " + \
-        "inner join enterprise.member_profile pro ON pro.id = invitations.profile_id " + \
-        "inner join enterprise.member_users use ON use.profile_id = pro.id " +\
+        "inner join enterprise.profile_member pro ON pro.id = invitations.profile_id " + \
+        "inner join enterprise.profile_users use ON use.profile_id = pro.id " +\
         "inner join events.tourney ON tourney.id = invitations.tourney_id " + \
         "inner join events.events ON events.id = tourney.event_id " + \
-        "inner join resources.event_roles eve ON eve.name = invitations.rolevent_name " +\
+        "inner join enterprise.profile_type eve ON eve.name = pro.profile_type " +\
         "left join resources.city ON city.id = events.city_id " +\
         "left join resources.country ON country.id = city.country_id " +\
         "WHERE invitations.tourney_id = '" + tourney_id + "' "
@@ -73,11 +72,11 @@ def get_all_invitations_by_user(request, status_name:str, db: Session):
         "country.name country_name, eve.description as rolevent_name, events.id as event_id, " +\
         "events.image " +\
         "FROM events.invitations " + \
-        "inner join enterprise.member_profile pro ON pro.id = invitations.profile_id " + \
-        "inner join enterprise.member_users use ON use.profile_id = pro.id " +\
+        "inner join enterprise.profile_member pro ON pro.id = invitations.profile_id " + \
+        "inner join enterprise.profile_users use ON use.profile_id = pro.id " +\
         "inner join events.tourney ON tourney.id = invitations.tourney_id " + \
         "inner join events.events ON events.id = tourney.event_id " + \
-        "inner join resources.event_roles eve ON eve.name = invitations.rolevent_name " +\
+        "inner join enterprise.profile_type eve ON eve.name = pro.profile_type " +\
         "left join resources.city ON city.id = events.city_id " +\
         "left join resources.country ON country.id = city.country_id " +\
         "WHERE use.username = '" + currentUser['username'] + "' "
@@ -121,14 +120,14 @@ def generate_all_user(request, db: Session, tourney_id: str):
     if not db_status:
         raise HTTPException(status_code=404, detail=_(locale, "status.not_exist"))
         
-    str_users = "SELECT member_profile.id profile_id,  eve.name as rolevent_name  " + \
-        "FROM enterprise.member_profile " +\
-        "inner join enterprise.member_users ON member_users.profile_id = member_profile.id " +\
-        "inner join resources.event_roles eve ON eve.name = member_profile.rolevent_name " +\
-        "where member_profile.is_active=True and eve.name IN ('PLAYER', 'REFEREE') " +\
-        "and enterprise.member_profile.modality='" + db_tourney.modality + "' " +\
-        "and member_profile.id || member_profile.rolevent_name || member_profile.modality " +\
-        "NOT IN (Select profile_id || rolevent_name || modality FROM events.invitations where tourney_id = '" + tourney_id + "') "
+    str_users = "SELECT profile_member.id profile_id, eve.name as rolevent_name  " + \
+        "FROM enterprise.profile_member " +\
+        "inner join enterprise.profile_users ON profile_users.profile_id = profile_member.id " +\
+        "inner join enterprise.profile_type eve ON eve.name = pro.profile_type " +\
+        "where profile_member.is_active=True and eve.name IN ('SINGLE_PLAYER', 'PAIR_PLAYER', 'TEAM_PLAYER', 'REFEREE') " +\
+        "and enterprise.profile_member.modality='" + db_tourney.modality + "' " +\
+        "and profile_member.id +\
+        "NOT IN (Select profile_id FROM events.invitations where tourney_id = '" + tourney_id + "') "
 
     lst_data = db.execute(str_users)
     
@@ -169,33 +168,6 @@ def update(request: Request, invitation_id: str, invitation: InvitationAccepted,
     db_status = get_status_by_name(status_name, db=db)
     if not db_status:
         raise HTTPException(status_code=400, detail=_(locale, "status.not_exist"))
-    
-    # No se van a crear jugadores al aceptar la invitación
-    # if db_invitation.status_name == 'SEND':
-    #     if status_name == 'ACCEPTED':  #inscribir como jugador o arbitro
-    #         one_user = get_one_by_username(db_invitation.user_name, db=db)
-    #         if db_invitation.rolevent_name == 'PLAYER':
-    #             result_update = new_player(tourney_id=db_invitation.tourney_id, user_id=one_user.id, 
-    #                                 username=db_invitation.user_name, db=db)
-    #         elif db_invitation.rolevent_name == 'REFEREE':
-    #             result_update = new_referee(tourney_id=db_invitation.tourney_id, user_id=one_user.id, 
-    #                                 username=db_invitation.user_name, db=db)
-    #         if not result_update:
-    #             raise HTTPException(status_code=400, detail=_(locale, "invitation.error_create_player"))
-    # elif db_invitation.status_name == 'ACCEPTED':
-    #     if status_name == 'SEND':  #eliminar como jugador o arbitro
-    #         one_user = get_one_by_username(db_invitation.user_name, db=db)
-            
-    #         if db_invitation.rolevent_name == 'PLAYER':
-    #             result_update = remove_player(tourney_id=db_invitation.tourney_id, user_id=one_user.id, db=db)
-    #         elif db_invitation.rolevent_name == 'REFEREE':
-    #             result_update = remove_referee(tourney_id=db_invitation.tourney_id, user_id=one_user.id, db=db)
-        
-    #         if not result_update:
-    #             raise HTTPException(status_code=400, detail=_(locale, "invitation.error_create_player"))
-        
-    # elif db_invitation.status_name == 'REJECTED':
-    #     pass
     
     db_invitation.status_name = db_status.name
     db_invitation.updated_by = currentUser['username']
