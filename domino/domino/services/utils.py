@@ -56,7 +56,7 @@ def create_dir(entity_type: str, user_id: str, entity_id: str):
     #         os.mkdir("public/profile/player")
     #     path = "public/profile/player/"
     
-    if entity_type == 'EVENT' or entity_type == 'USER' or entity_type == 'USERPROFILE':
+    if entity_type == 'EVENT' or entity_type == 'USER':
         path += str(user_id) 
         if not os.path.isdir(path):
             os.mkdir(path)

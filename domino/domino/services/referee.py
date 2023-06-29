@@ -35,7 +35,10 @@ def new(request: Request, invitation_id: str, db: Session):
     if one_invitation.status_name != 'ACCEPTED':
         raise HTTPException(status_code=404, detail=_(locale, "invitation.status_incorrect"))
     
-    # no se si verificar si esa invitacion ya esta incluida en los arbitros..
+    one_referee = get_one_by_invitation_id(invitation_id, db=db)
+    if one_referee:
+        raise HTTPException(status_code=404, detail=_(locale, "referee.already_exist"))
+    
     one_referee = Referees(id=str(uuid.uuid4()), tourney_id=one_invitation.tourney_id, 
                             profile_id=one_invitation.profile_id, invitation_id=one_invitation.id,
                            created_by=currentUser['username'], updated_by=currentUser['username'], is_active=True)
@@ -71,16 +74,17 @@ def remove_referee(request: Request, referee_id: str, db: Session):
         raise HTTPException(status_code=404, detail="No es posible eliminar")
     return result
     
-def get_all_players_by_tourney(request:Request, page: int, per_page: int, tourney_id: str, is_active: bool, db: Session):  
+def get_all_referees_by_tourney(request:Request, page: int, per_page: int, tourney_id: str, is_active: bool, db: Session):  
     locale = request.headers["accept-language"].split(",")[0].split("-")[0];
     
     str_from = "FROM events.referees " +\
-        "inner join enterprise.member_profile pro ON pro.id = players.profile_id " +\
+        "inner join enterprise.profile_member pro ON pro.id = players.profile_id " +\
+        "inner join enterprise.profile_type prot ON prot.name = pro.profile_type " +\
         "left join resources.city ON city.id = pro.city_id " + \
         "left join resources.country ON country.id = city.country_id "
-        
+    
     str_count = "Select count(*) " + str_from
-    str_query = "SELECT referees.id, pro.name as name, pro.rolevent_name, pro.photo, " +\
+    str_query = "SELECT referees.id, pro.name as name, prot.description as profile_type, pro.photo, " +\
         "city.name as city_name, country.name as country_name " + str_from
     
     str_where = "WHERE pro.is_ready is True and referees.is_active is " + str(is_active) 
@@ -109,10 +113,13 @@ def create_dict_row(item, page, db: Session, host="", port=""):
     image = ''  #"http://" + host + ":" + port + "/api/image/" + str(item['user_id']) + "/" + item['id'] + "/" + item['image']
     
     new_row = {'id': item['id'], 'name': item['name'], 
-               'rolevent_name': item['rolevent_name'],  
+               'profile_type': item['profile_type'],   
                'country': item['country_name'], 'city_name': item['city_name'],  
                'modality' : item['modality'], 'photo' : image}
     if page != 0:
         new_row['selected'] = False
     
     return new_row
+
+def get_one_by_invitation_id(invitation_id: str, db: Session):  
+    return db.query(Referees).filter(Referees.invitation_id == invitation_id).first()

@@ -87,5 +87,7 @@ es:
     imposible_delete: 'Imposible desactivar'
   player:
     not_found: 'Jugador no encontrado'
+    already_exist: 'Perfil ya incluido como jugador en el torneo'
   referee:
     not_found: 'Arbitro no encontrado'
+    already_exist: 'Perfil ya incluido como arbitro en el torneo'

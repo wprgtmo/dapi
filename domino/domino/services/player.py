@@ -22,6 +22,8 @@ from domino.services.users import get_one_by_username
 from domino.app import _
 from domino.services.utils import get_result_count
 
+from domino.services.auth import get_url_avatar
+
 def new(request: Request, invitation_id: str, db: Session):
     
     locale = request.headers["accept-language"].split(",")[0].split("-")[0];
@@ -36,7 +38,10 @@ def new(request: Request, invitation_id: str, db: Session):
     if one_invitation.status_name != 'ACCEPTED':
         raise HTTPException(status_code=404, detail=_(locale, "invitation.status_incorrect"))
     
-    # no se si verificar si esa invitacion ya esta incluida en los jugadores..
+    one_player = get_one_by_invitation_id(invitation_id, db=db)
+    if one_player:
+        raise HTTPException(status_code=404, detail=_(locale, "players.already_exist"))
+    
     one_player = Players(id=str(uuid.uuid4()), tourney_id=one_invitation.tourney_id, 
                          profile_id=one_invitation.profile_id, nivel='NORMAL', invitation_id=one_invitation.id,
                          created_by=currentUser['username'], updated_by=currentUser['username'], is_active=True)
@@ -71,22 +76,17 @@ def remove_player(request: Request, player_id: str, db: Session):
         raise HTTPException(status_code=404, detail="No es posible eliminar")
     return result
     
-def get_all_players_by_tourney(tourney_id: str, db: Session):
-    
-    
-    
-    return True
-
 def get_all_players_by_tourney(request:Request, page: int, per_page: int, tourney_id: str, is_active: bool, db: Session):  
     locale = request.headers["accept-language"].split(",")[0].split("-")[0];
     
     str_from = "FROM events.players " +\
-        "inner join enterprise.member_profile pro ON pro.id = players.profile_id " +\
+        "inner join enterprise.profile_member pro ON pro.id = players.profile_id " +\
+        "inner join enterprise.profile_type prot ON prot.name = pro.profile_type " +\
         "left join resources.city ON city.id = pro.city_id " + \
         "left join resources.country ON country.id = city.country_id "
         
     str_count = "Select count(*) " + str_from
-    str_query = "SELECT players.id, pro.name as name, pro.rolevent_name, pro.modality, pro.photo, " +\
+    str_query = "SELECT players.id, pro.name as name, prot.description as profile_type, pro.photo, " +\
         "city.name as city_name, country.name as country_name " + str_from
     
     str_where = "WHERE pro.is_ready is True and players.is_active is " + str(is_active) 
@@ -94,7 +94,7 @@ def get_all_players_by_tourney(request:Request, page: int, per_page: int, tourne
     
     str_count += str_where
     str_query += str_where
-    
+
     if page and page > 0 and not per_page:
         raise HTTPException(status_code=404, detail=_(locale, "commun.invalid_param"))
     
@@ -112,13 +112,17 @@ def get_all_players_by_tourney(request:Request, page: int, per_page: int, tourne
 
 def create_dict_row(item, page, db: Session, host="", port=""):
     
-    image = ''  #"http://" + host + ":" + port + "/api/image/" + str(item['user_id']) + "/" + item['id'] + "/" + item['image']
+    # image = ''  #"http://" + host + ":" + port + "/api/image/" + str(item['user_id']) + "/" + item['id'] + "/" + item['image']
+    image = get_url_avatar(item['id'], item['photo'], host=host, port=port)
     
     new_row = {'id': item['id'], 'name': item['name'], 
-               'rolevent_name': item['rolevent_name'],  
+               'profile_type': item['profile_type'],  
                'country': item['country_name'], 'city_name': item['city_name'],  
-               'modality' : item['modality'], 'photo' : image}
+               'photo' : image}
     if page != 0:
         new_row['selected'] = False
     
     return new_row
+
+def get_one_by_invitation_id(invitation_id: str, db: Session):  
+    return db.query(Players).filter(Players.invitation_id == invitation_id).first()

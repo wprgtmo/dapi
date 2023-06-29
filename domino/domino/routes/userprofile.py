@@ -16,7 +16,7 @@ singleprofile_route = APIRouter(
 def create_single_profile(request:Request, singleprofile: SingleProfileCreated = Depends(), image: UploadFile = None, db: Session = Depends(get_db)):
     return new_profile_single_player(request=request, singleprofile=singleprofile.dict(), file=image, db=db)
 
-@singleprofile_route.get("/singleprofile/{id}", response_model=ResultObject, summary="Get a Single Profile of Player for your ID.")
+@singleprofile_route.get("/singleprofile/one/{id}", response_model=ResultObject, summary="Get a Single Profile of Player for your ID.")
 def get_single_profile(request: Request, id: str, db: Session = Depends(get_db)):
     return get_one_single_profile(request, id=id, db=db)
 
