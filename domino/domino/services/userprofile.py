@@ -17,7 +17,8 @@ from sqlalchemy.exc import SQLAlchemyError, IntegrityError
 from passlib.context import CryptContext
 from domino.auth_bearer import decodeJWT
 from domino.app import _
-from domino.services.users import get_one_by_username
+from domino.services.users import get_one_by_username, get_one_by_id as get_one_user_by_id
+from domino.services.city import get_one_by_id as get_city_by_id
 from domino.services.utils import upfile, create_dir, del_image, get_ext_at_file, remove_dir, copy_image
 
 from domino.services.auth import get_url_avatar
@@ -243,7 +244,99 @@ def update_one_single_profile(request: Request, id: str, singleprofile: SinglePr
         if e.code == "gkpj":
             raise HTTPException(status_code=400, detail=_(locale, "userprofile.already_exist"))
 
- 
+def update_one_default_profile(request: Request, user_id: str, defaultuserprofile: DefaultUserProfileBase, db: Session, avatar: File):
+    locale = request.headers["accept-language"].split(",")[0].split("-")[0];
+    currentUser = get_current_user(request)
+    
+    result = ResultObject()
+    
+    db_default_profile = get_one(id, db=db)
+    if not db_default_profile:
+        raise HTTPException(status_code=400, detail=_(locale, "userprofile.not_found"))
+       
+    one_user = get_one_user_by_id(db_default_profile.id)
+    if not one_user:
+        raise HTTPException(status_code=400, detail=_(locale, "user.not_found"))
+    
+    if defaultuserprofile['first_name'] and one_user.first_name != defaultuserprofile['first_name']:
+        one_user.first_name = defaultuserprofile['first_name']
+        
+    if defaultuserprofile['last_name'] and one_user.last_name != defaultuserprofile['last_name']:
+        one_user.last_name = defaultuserprofile['last_name']
+        
+    db_default_profile.name = defaultuserprofile['first_name'] + ' ' + defaultuserprofile['last_name'] if defaultuserprofile['last_name'] else one_user.last_name
+    
+    if defaultuserprofile['email'] and one_user.email != defaultuserprofile['email']:
+        one_user.email = defaultuserprofile['email']
+        db_default_profile.email = defaultuserprofile['email']
+    
+    if defaultuserprofile['phone'] and one_user.phone != defaultuserprofile['phone']:
+        one_user.phone = defaultuserprofile['phone']
+        
+    if defaultuserprofile['country_id'] and one_user.country_id != defaultuserprofile['country_id']:
+        one_user.country_id = defaultuserprofile['country_id']
+        
+    if defaultuserprofile['sex'] and db_default_profile.sex != defaultuserprofile['sex']:
+        db_default_profile.sex = defaultuserprofile['sex']
+        
+    if defaultuserprofile['birthdate'] and db_default_profile.birthdate != defaultuserprofile['birthdate']:
+        db_default_profile.birthdate = defaultuserprofile['birthdate']
+        
+    if defaultuserprofile['alias'] and db_default_profile.alias != defaultuserprofile['alias']:
+        db_default_profile.alias = defaultuserprofile['alias']
+        
+    if defaultuserprofile['job'] and db_default_profile.job != defaultuserprofile['job']:
+        db_default_profile.job = defaultuserprofile['job']
+        
+    if defaultuserprofile['city_id'] and db_default_profile.city_id != defaultuserprofile['city_id']:
+        one_city = get_city_by_id(defaultuserprofile['city_id'], db=db)
+        if not one_city:
+            raise HTTPException(status_code=404, detail=_(locale, "city.not_found"))
+        db_default_profile.city_id = defaultuserprofile['city_id']
+        
+    db_default_profile.receive_notifications = defaultuserprofile['receive_notifications'] 
+    
+    path = create_dir(entity_type="USER", user_id=str(one_user.id), entity_id=None)    
+    if avatar:
+        ext = get_ext_at_file(avatar.filename)
+        current_image = db_default_profile.photo
+        avatar.filename = str(uuid.uuid4()) + "." + ext if ext else str(uuid.uuid4())
+        db_default_profile.photo = avatar.filename
+        path_del = "/public/profile/" + str(one_user.id) + "/" 
+        try:
+            del_image(path=path_del, name=str(current_image))
+        except:
+            pass
+        upfile(file=avatar, path=path)
+        
+    else:
+        if not db_default_profile.photo:
+            image_domino="public/profile/user-vector.jpg"
+            filename = str(db_default_profile.id) + ".jpg"
+            image_destiny = "public/profile/" + str(db_default_profile.id) + "/" + str(filename)
+        
+            copy_image(image_domino, image_destiny)
+            db_default_profile.photo = filename
+    
+    db_default_profile.updated_by = currentUser['username']
+    db_default_profile.updated_date = datetime.now()
+    
+    one_user.updated_by = currentUser['username']
+    one_user.updated_date = datetime.now()
+        
+    try:
+        db.add(db_default_profile)
+        db.add(one_user)
+        db.commit()
+        if avatar:
+            filename = avatar.filename
+            
+        result.data = get_url_avatar(db_default_profile.id, filename)
+        return result
+    except (Exception, SQLAlchemyError) as e:
+        if e and e.code == "gkpj":
+            raise HTTPException(status_code=400, detail=_(locale, "users.already_exist"))    
+         
 def delete_one_single_profile(request: Request, id: str, db: Session):
     locale = request.headers["accept-language"].split(",")[0].split("-")[0];
     
@@ -276,82 +369,48 @@ def delete_one_single_profile(request: Request, id: str, db: Session):
     except (Exception, SQLAlchemyError) as e:
         print(e)
         raise HTTPException(status_code=404, detail=_(locale, "userprofile.imposible_delete"))
-                                      
+    
+def delete_one_default_profile(request: Request, id: str, db: Session):
+    locale = request.headers["accept-language"].split(",")[0].split("-")[0];
+    
+    result = ResultObject() 
+    currentUser = get_current_user(request)
+    
+    try:
+        db_profile = db.query(ProfileMember).filter(ProfileMember.id == id).first()
+        if db_profile:
+            db_user = get_one_user_by_id(db_profile.id)
+            
+            db_profile.is_active = False
+            db_profile.updated_by = currentUser['username']
+            db_profile.updated_date = datetime.now()
+            
+            db_user.is_active = False
+            db_user.updated_by = currentUser['username']
+            db_user.updated_date = datetime.now()
+            
+            db.commit()
+            
+            if db_profile.photo:
+                path = "/public/profile/" + str(db_profile.id) + "/"
+                try:
+                    del_image(path=path, name=str(db_profile.photo))
+                except:
+                    pass
+                try:
+                    remove_dir(path=path[:-1])
+                except:
+                    pass
+                
+            return result
+        else:
+            raise HTTPException(status_code=404, detail=_(locale, "userprofile.not_found"))
+        
+    except (Exception, SQLAlchemyError) as e:
+        print(e)
+        raise HTTPException(status_code=404, detail=_(locale, "userprofile.imposible_delete"))
+        
 def update_user_profile(profile_id:str, is_active:bool, db: Session):
     str_update = " UPDATE enterprise.profile_member pro SET is_active=is_active " +\
             "WHERE pro.id '" + profile_id + "'; "
             
-#servicios que estaban en user
-def update_one_profile(request: Request, user_id: str, user: DefaultUserProfileBase, db: Session, avatar: File):
-    locale = request.headers["accept-language"].split(",")[0].split("-")[0];
-    currentUser = get_current_user(request)
-    
-    result = ResultObject()
-       
-    db_user = db.query(Users).filter(Users.id == user_id).first()
-    
-    if user.first_name != db_user.first_name:
-        db_user.first_name = user.first_name
-        
-    if user.last_name != db_user.last_name:
-        db_user.last_name = user.last_name
-        
-    if user.email != db_user.email:
-        db_user.email = user.email
-        
-    if user.phone != db_user.phone:
-        db_user.phone = user.phone
-        
-    if user.sex != db_user.sex:
-        db_user.sex = user.sex
-        
-    if user.birthdate != db_user.birthdate:
-        db_user.birthdate = user.birthdate
-        
-    if user.alias != db_user.alias:
-        db_user.alias = user.alias
-        
-    if user.job != db_user.job:
-        db_user.job = user.job
-        
-    if user.city_id != db_user.city_id:
-        one_city = city_get_one(user.city_id, db=db)
-        if not one_city:
-            raise HTTPException(status_code=404, detail=_(locale, "city.not_found"))
-        db_user.city_id = one_city.id
-    
-    if user.receive_notifications != db_user.receive_notifications:
-        db_user.receive_notifications = user.receive_notifications
-    
-    path = create_dir(entity_type="USER", user_id=str(db_user.id), entity_id=None)    
-    if avatar:
-        ext = get_ext_at_file(avatar.filename)
-        current_image = db_user.photo
-        avatar.filename = str(uuid.uuid4()) + "." + ext if ext else str(uuid.uuid4())
-        db_user.photo = avatar.filename
-        path_del = "/public/profile/" + str(db_user.id) + "/" 
-        try:
-            del_image(path=path_del, name=str(current_image))
-        except:
-            pass
-        upfile(file=avatar, path=path)
-        
-    else:
-        if not db_user.photo:
-            image_domino="public/profile/user-vector.jpg"
-            filename = str(db_user.id) + ".jpg"
-            image_destiny = "public/profile/" + str(db_user.id) + "/" + str(filename)
-        
-            copy_image(image_domino, image_destiny)
-            db_user.photo = filename
-    
-    try:
-        db.add(db_user)
-        db.commit()
-        db.refresh(db_user)
-        filename = avatar.filename if avatar else db_user.photo
-        result.data = get_url_avatar(db_user.id, filename)
-        return result
-    except (Exception, SQLAlchemyError) as e:
-        if e and e.code == "gkpj":
-            raise HTTPException(status_code=400, detail=_(locale, "users.already_exist"))    

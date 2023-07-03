@@ -34,14 +34,14 @@ def auth(request: Request, db: Session, user: UserLogin):
     locale = request.headers["accept-language"].split(",")[0].split("-")[0]
     
     str_query = "SELECT us.id user_id, us.username, us.first_name, us.last_name, pro.photo, " +\
-        "us.is_active, password " +\
+        "us.is_active, password, pro.profile_type " +\
         "FROM enterprise.users us inner join enterprise.profile_member pro ON pro.id = us.id " +\
         "WHERE us.username = '" + user.username + "' "
     lst_data = db.execute(str_query)
     if not lst_data:
         raise HTTPException(status_code=404, detail=_(locale, "auth.not_found"))
 
-    user_id, username, first_name, last_name, photo = '', '', '', '', ''
+    user_id, username, first_name, last_name, photo, profile_type = '', '', '', '', '', ''
     password = ''
     is_active = False
     for item in lst_data:
@@ -61,7 +61,8 @@ def auth(request: Request, db: Session, user: UserLogin):
                                      "token_type": "Bearer", 
                                      "first_name": first_name, 
                                      "last_name": last_name, 
-                                     "photo": get_url_avatar(user_id, photo),  
+                                     "photo": get_url_avatar(user_id, photo), 
+                                     "profile_type": profile_type, 
                                      "user_id": user_id}, status_code=200)
     else:
         raise HTTPException(status_code=404, detail=_(locale, "auth.wrong_password"))
