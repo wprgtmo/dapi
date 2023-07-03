@@ -24,13 +24,18 @@ class ProfileType(Base):
     created_by = Column(String(50), nullable=False, default='foo')
     created_date = Column(DateTime, nullable=False, default=datetime.now())
     
+    by_default = Column(Boolean, nullable=False, default=True)
+    is_active = Column(Boolean, nullable=False, default=True)
+    
     def dict(self):
         return {
             "id": self.id,
             "name": self.name,
             "description": self.description,
             "created_by": self.created_by,
-            "created_date": self.created_date
+            "created_date": self.created_date,
+            "by_default": self.by_default,
+            "is_active": self.is_active
         }
         
 class ProfileMember(Base):
@@ -57,6 +62,7 @@ class ProfileMember(Base):
     
     profile_users = relationship("ProfileUsers")
     profile_single_player = relationship("SingleProfile")
+    profile_default_user = relationship("DefaultUserProfile")
      
     def dict(self):
         return {
@@ -106,4 +112,32 @@ class SingleProfile(Base):
             "elo": self.elo,
             "ranking": self.ranking
         }
-                
+        
+class DefaultUserProfile(Base):
+    """DefaultUserProfile Class contains standard information for a Profile of Default User"""
+ 
+    __tablename__ = "profile_default_user"
+    __table_args__ = {'schema' : 'enterprise'}
+    
+    profile_id = Column(String, ForeignKey("enterprise.profile_member.id"), primary_key=True)
+    
+    sex = Column(String(1), nullable=True)
+    birthdate = Column(Date, nullable=True)
+    alias = Column(String(30), nullable=True)
+    job = Column(String(120), nullable=True)
+    city_id = Column(Integer, ForeignKey("resources.city.id"), nullable=True, comment="City to which the player belongs")
+    
+    updated_by = Column(String, ForeignKey("enterprise.users.username"), nullable=False)
+    updated_date = Column(Date, nullable=False, default=date.today())
+     
+    def dict(self):
+        return {
+            "profile_id": self.profile_id,
+            "is_active": self.is_active,
+            "sex": self.sex,
+            "birthdate": self.birthdate,
+            "alias": self.alias,
+            "job": self.job,
+            "photo": self.photo,
+            "receive_notifications": self.receive_notifications
+        }

@@ -29,16 +29,6 @@ class Users(Base):
     country_id = Column(Integer, ForeignKey("resources.country.id"))
     security_code = Column(String(5), nullable=True)
     
-    # datos para el perfil de usuarios
-    sex = Column(String(1), nullable=True)
-    birthdate = Column(Date, nullable=True)
-    alias = Column(String(30), nullable=True)
-    job = Column(String(120), nullable=True)
-    city_id = Column(Integer, ForeignKey("resources.city.id"), nullable=True, comment="City to which the player belongs")
-    photo = Column(String(255), nullable=True)
-    
-    receive_notifications = Column(Boolean, nullable=False, default=False)
-    
     def dict(self):
         return {
             "id": self.id,
@@ -48,14 +38,7 @@ class Users(Base):
             "email": self.email,
             "phone": self.phone,
             "is_active": self.is_active,
-            "country_id": self.country_id,
-            "sex": self.sex,
-            "birthdate": self.birthdate,
-            "alias": self.alias,
-            "job": self.job,
-            "photo": self.photo,
-            "city_id": self.city_id,
-            "receive_notifications": self.receive_notifications
+            "country_id": self.country_id
         }
 
 

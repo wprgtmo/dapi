@@ -8,8 +8,8 @@ from fastapi import HTTPException, Request, File
 from unicodedata import name
 from domino.functions_jwt import get_current_user
 from fastapi import HTTPException
-from domino.models.userprofile import ProfileMember, ProfileUsers, SingleProfile
-from domino.schemas.userprofile import SingleProfileCreated
+from domino.models.userprofile import ProfileMember, ProfileUsers, SingleProfile, DefaultUserProfile
+from domino.schemas.userprofile import SingleProfileCreated, DefaultUserProfileBase
 from domino.schemas.result_object import ResultObject, ResultData
 from domino.services.profiletype import get_one as get_profile_type_by_id, get_one_by_name as get_profile_type_by_name
 from sqlalchemy.orm import Session
@@ -21,33 +21,8 @@ from domino.services.users import get_one_by_username
 from domino.services.utils import upfile, create_dir, del_image, get_ext_at_file, remove_dir, copy_image
 
 from domino.services.auth import get_url_avatar
+from domino.services.comunprofile import new_profile
 
-def new_profile(request: Request, username: str, name:str, profile_type_id: str, email:str, city_id:int, 
-                photo:str, receive_notifications: bool, db: Session): 
-    locale = request.headers["accept-language"].split(",")[0].split("-")[0];
-    
-    profile_type = get_profile_type_by_id(profile_type_id, db=db)
-    if not profile_type:
-        raise HTTPException(status_code=400, detail=_(locale, "event.event_closed"))
-    
-    one_profile = ProfileMember(id=str(uuid.uuid4()), name=name, email=email, profile_type=profile_type, 
-                                city_id=city_id, photo=photo, receive_notifications=receive_notifications, 
-                                is_active=True, is_ready=True, 
-                                created_by=username, updated_by=username)
-    
-    one_user_member = ProfileUsers(profile_id=one_profile.id, username=username, is_principal=True, created_by=username)
-    one_profile.profile_users.append(one_user_member)  
-    
-    if profile_type.name == "SINGLE_PLAYER":
-        one_single_player = SingleProfile(profile_id=one_profile.id, elo=0, ranking='')
-        one_profile.profile_single_player.append(one_single_player)
-    
-    try:
-        db.add(one_profile)
-        return True
-    except (Exception, SQLAlchemyError) as e:
-        return False
-    
 def new_profile_single_player(request: Request, singleprofile: SingleProfileCreated, file: File, db: Session): 
     locale = request.headers["accept-language"].split(",")[0].split("-")[0];
     
@@ -64,22 +39,67 @@ def new_profile_single_player(request: Request, singleprofile: SingleProfileCrea
         raise  HTTPException(status_code=400, detail=_(locale, "userprofile.existprofile"))
     
     id = str(uuid.uuid4())
-    
-    one_profile = ProfileMember(id=id, name=singleprofile['name'], email=singleprofile['email'], 
-                                profile_type=profile_type.name, 
-                                city_id=singleprofile['city_id'], photo=file.filename if file else None, 
-                                receive_notifications=singleprofile['receive_notifications'], 
-                                is_active=True, is_ready=True, 
-                                created_by=currentUser['username'], updated_by=currentUser['username'])
-    
-    one_user_member = ProfileUsers(profile_id=id, username=currentUser['username'], is_principal=True, 
-                                   created_by=currentUser['username'])
-    one_profile.profile_users.append(one_user_member)  
+    one_profile = new_profile(profile_type, id, currentUser['user_id'], currentUser['username'], singleprofile['name'], 
+                              singleprofile['email'], singleprofile['city_id'], singleprofile['receive_notifications'], 
+                              True, True, "USERPROFILE", currentUser['username'], currentUser['username'], file)
     
     one_single_player = SingleProfile(profile_id=id, elo=0, ranking=None, updated_by=currentUser['username'])
     one_profile.profile_single_player.append(one_single_player)
     
+    try:   
+        db.add(one_profile)
+        db.commit()
+        result.data = {'id': id}
+        return result
+    except (Exception, SQLAlchemyError) as e:
+        raise HTTPException(status_code=400, detail=_(locale, "userprofile.errorinsert"))
+
+def new_profile_default_user(request: Request, defaultuserprofile: DefaultUserProfileBase, file: File, db: Session): 
+    locale = request.headers["accept-language"].split(",")[0].split("-")[0];
+    
+    result = ResultObject() 
+    currentUser = get_current_user(request)
+    
+    profile_type = get_profile_type_by_name("USER", db=db)
+    if not profile_type:
+        raise HTTPException(status_code=400, detail=_(locale, "profiletype.not_found"))
+    
+    # si ya tengo perfil no permitir crear otro.
+    exist_profile_id = get_one_profile_by_user(currentUser['username'], "USER", db=db)
+    if exist_profile_id:
+        raise  HTTPException(status_code=400, detail=_(locale, "userprofile.existprofile"))
+    
+    id = str(uuid.uuid4())
+    
+    # buscar el usuario para coger sus datos
+    username = defaultuserprofile.username if defaultuserprofile.username else currentUser['username']
+    
+    one_user = get_one_by_username(username=username, db=db)
+    
+    name = one_user.first_name + ' ' + defaultuserprofile['last_name'] if defaultuserprofile['last_name'] else one_user.last_name
+    one_profile = ProfileMember(id=id, name=name, email=defaultuserprofile['email'] if defaultuserprofile['email'] else None, 
+                                profile_type=profile_type.name, 
+                                city_id=defaultuserprofile['city_id'] if defaultuserprofile['city_id'] else None, 
+                                photo=file.filename if file else None, 
+                                receive_notifications=defaultuserprofile['receive_notifications'], 
+                                is_active=True, is_ready=True, 
+                                created_by=currentUser['username'], updated_by=currentUser['username'])
+    
+    one_user_member = ProfileUsers(profile_id=id, username=username, is_principal=True, 
+                                   created_by=currentUser['username'])
+    one_profile.profile_users.append(one_user_member)  
+    
+    one_default_user = DefaultUserProfile(profile_id=id, sex=defaultuserprofile.sex, birthdate=defaultuserprofile.birthdate,
+                                          alias=defaultuserprofile.alias, job=defaultuserprofile.job,
+                                          city_id=defaultuserprofile.city_id, is_active=True,
+                                          updated_by=currentUser['username'])
+    
+    one_profile.profile_default_user.append(one_default_user)
+    
     path = create_dir(entity_type="USERPROFILE", user_id=str(currentUser['user_id']), entity_id=id)
+    
+    # si los datos de el como usuario no estan completo ponerle el que dice en el perfil.
+    
     if file:
         ext = get_ext_at_file(file.filename)
         file.filename = str(id) + "." + ext
@@ -100,7 +120,7 @@ def new_profile_single_player(request: Request, singleprofile: SingleProfileCrea
         return result
     except (Exception, SQLAlchemyError) as e:
         raise HTTPException(status_code=400, detail=_(locale, "userprofile.errorinsert"))
-
+    
 def get_one(id: str, db: Session):  
     return db.query(ProfileMember).filter(ProfileMember.id == id).first()
 
@@ -122,6 +142,32 @@ def get_one_single_profile(request: Request, id: str, db: Session):
         photo = "http://" + host + ":" + port + "/public/profile/" + str(item.profile_id) + "/" + item.photo 
         
         result.data = {'id': item.profile_id, 'name': item.name, 'email': item.email,
+                       'profile_type_name': item.profile_type_name, 
+                       'profile_type_description': item.profile_type_description, 'photo': photo,
+                       'city_id': item.city_id, 'receive_notifications': item.receive_notifications}
+    
+    return result
+
+def get_one_default_user_profile(request: Request, id: str, db: Session): 
+    
+    result = ResultObject() 
+    
+    host = str(settings.server_uri)
+    port = str(int(settings.server_port))
+    
+    str_query = "Select pro.id profile_id, pro.name, pro.email, pro.city_id, pro.photo, pro.receive_notifications, " +\
+        "eve.name as profile_type_name, eve.description as profile_type_description " +\
+        "FROM enterprise.profile_member pro " +\
+        "inner join enterprise.profile_type eve ON eve.name = pro.profile_type " +\
+        "inner join enterprise.profile_default_user pro_def ON pro_def.profile_id = pro.id " +\
+        "Where pro.id='" + id + "' "
+    res_profile=db.execute(str_query)
+    
+    for item in res_profile:
+        photo = "http://" + host + ":" + port + "/public/profile/" + str(item.profile_id) + "/" + item.photo 
+        
+        result.data = {'id': item.profile_id, 'first_name': item.first_name, 'last_name': item.last_name, 
+                       'email': item.email,
                        'profile_type_name': item.profile_type_name, 
                        'profile_type_description': item.profile_type_description, 'photo': photo,
                        'city_id': item.city_id, 'receive_notifications': item.receive_notifications}
@@ -235,5 +281,77 @@ def update_user_profile(profile_id:str, is_active:bool, db: Session):
     str_update = " UPDATE enterprise.profile_member pro SET is_active=is_active " +\
             "WHERE pro.id '" + profile_id + "'; "
             
-
+#servicios que estaban en user
+def update_one_profile(request: Request, user_id: str, user: DefaultUserProfileBase, db: Session, avatar: File):
+    locale = request.headers["accept-language"].split(",")[0].split("-")[0];
+    currentUser = get_current_user(request)
     
+    result = ResultObject()
+       
+    db_user = db.query(Users).filter(Users.id == user_id).first()
+    
+    if user.first_name != db_user.first_name:
+        db_user.first_name = user.first_name
+        
+    if user.last_name != db_user.last_name:
+        db_user.last_name = user.last_name
+        
+    if user.email != db_user.email:
+        db_user.email = user.email
+        
+    if user.phone != db_user.phone:
+        db_user.phone = user.phone
+        
+    if user.sex != db_user.sex:
+        db_user.sex = user.sex
+        
+    if user.birthdate != db_user.birthdate:
+        db_user.birthdate = user.birthdate
+        
+    if user.alias != db_user.alias:
+        db_user.alias = user.alias
+        
+    if user.job != db_user.job:
+        db_user.job = user.job
+        
+    if user.city_id != db_user.city_id:
+        one_city = city_get_one(user.city_id, db=db)
+        if not one_city:
+            raise HTTPException(status_code=404, detail=_(locale, "city.not_found"))
+        db_user.city_id = one_city.id
+    
+    if user.receive_notifications != db_user.receive_notifications:
+        db_user.receive_notifications = user.receive_notifications
+    
+    path = create_dir(entity_type="USER", user_id=str(db_user.id), entity_id=None)    
+    if avatar:
+        ext = get_ext_at_file(avatar.filename)
+        current_image = db_user.photo
+        avatar.filename = str(uuid.uuid4()) + "." + ext if ext else str(uuid.uuid4())
+        db_user.photo = avatar.filename
+        path_del = "/public/profile/" + str(db_user.id) + "/" 
+        try:
+            del_image(path=path_del, name=str(current_image))
+        except:
+            pass
+        upfile(file=avatar, path=path)
+        
+    else:
+        if not db_user.photo:
+            image_domino="public/profile/user-vector.jpg"
+            filename = str(db_user.id) + ".jpg"
+            image_destiny = "public/profile/" + str(db_user.id) + "/" + str(filename)
+        
+            copy_image(image_domino, image_destiny)
+            db_user.photo = filename
+    
+    try:
+        db.add(db_user)
+        db.commit()
+        db.refresh(db_user)
+        filename = avatar.filename if avatar else db_user.photo
+        result.data = get_url_avatar(db_user.id, filename)
+        return result
+    except (Exception, SQLAlchemyError) as e:
+        if e and e.code == "gkpj":
+            raise HTTPException(status_code=400, detail=_(locale, "users.already_exist"))    

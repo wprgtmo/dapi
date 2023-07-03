@@ -33,9 +33,13 @@ async def get_me(request: Request):
     return JSONResponse(content=user, status_code=200)
 
 
+# @auth_routes.post("/register", response_model=ResultObject, tags=["Autentificación"], summary="Register a user on the platform")
+# def create_user(request: Request, user: UserCreate = Depends(), db: Session = Depends(get_db)):
+#     return new_user(request=request, user=user, db=db)
+
 @auth_routes.post("/register", response_model=ResultObject, tags=["Autentificación"], summary="Register a user on the platform")
-def create_user(request: Request, user: UserCreate = Depends(), avatar: UploadFile = None, db: Session = Depends(get_db)):
-    return new_user(request=request, user=user, db=db, avatar=avatar)
+def create_user(request: Request, user: UserCreate, db: Session = Depends(get_db)):
+    return new_user(request=request, user=user, db=db)
 
 @auth_routes.post("/verify", response_model=ResultObject, tags=["Autentificación"], summary="Verify security code.")
 def verify_security_code(

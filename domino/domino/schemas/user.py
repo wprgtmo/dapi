@@ -15,8 +15,6 @@ class UserBase(BaseModel):
     phone: Optional[str]
     country_id: Optional[int]
     
-    receive_notifications: Optional[bool] = False
-    
     @validator('username')
     def username_not_empty(cls, username):
         if not username:
@@ -72,36 +70,6 @@ class ChagePasswordSchema(BaseModel):
         if not renew_password:
             raise ValueError('Contraseña Nueva repetida es Requerida')
         return renew_password 
-
-class UserProfile(BaseModel):
-    first_name: str
-    last_name: Optional[str]
-    sex: Optional[str]
-    birthdate: Optional[date]
-    alias: Optional[str]
-    job: Optional[str]
-    city_id: Optional[int]
-    
-    email: Optional[str]
-    phone: Optional[str]
-    
-    receive_notifications: Optional[bool] = False
-    
-    @validator('first_name')
-    def first_name_not_empty(cls, first_name):
-        if not first_name:
-            raise ValueError('Nombre del Usuario es Requerido')
-        return first_name
-    
-    class Config:
-        orm_mode = True
- 
-class UserRankin(BaseModel):
-    username: str
-    elo: int
-    ranking: str
- 
- 
 class UserFollowerBase(BaseModel):
     user_follow: str
     

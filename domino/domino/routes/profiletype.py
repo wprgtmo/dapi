@@ -19,11 +19,14 @@ def get_profiletype(
     request: Request,
     page: int = 1, 
     per_page: int = 6, 
+    profile_type_id: str = '',
     criteria_key: str = "",
     criteria_value: str = "",
     db: Session = Depends(get_db)
 ):
-    return get_all(request=request, page=page, per_page=per_page, criteria_key=criteria_key, criteria_value=criteria_value, db=db)
+    return get_all(
+        request=request, profile_type_id=profile_type_id, page=page, per_page=per_page, 
+        criteria_key=criteria_key, criteria_value=criteria_value, db=db)
 
 @profiletype_route.post("/profiletype", response_model=ResultObject, summary="Create a new profile type.")
 def create_profiletype(request:Request, profiletype: ProfileTypeBase, db: Session = Depends(get_db)):

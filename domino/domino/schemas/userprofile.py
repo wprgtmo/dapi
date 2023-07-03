@@ -60,3 +60,27 @@ class SingleProfileCreated(BaseModel):
     city_id: Optional[int]
     
     receive_notifications: Optional[bool] = False
+    
+
+class DefaultUserProfileBase(BaseModel):
+    username: Optional[str]
+    first_name: Optional[str]
+    last_name: Optional[str]
+    sex: Optional[str]
+    birthdate: Optional[date]
+    alias: Optional[str]
+    job: Optional[str]
+    city_id: Optional[int]
+    
+    email: Optional[str]
+    phone: Optional[str]
+    
+    receive_notifications: Optional[bool] = False
+    
+    class Config:
+        orm_mode = True
+ 
+# class UserRankin(BaseModel):
+#     username: str
+#     elo: int
+#     ranking: str

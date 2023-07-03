@@ -59,7 +59,7 @@ from domino.routes.profiletype import profiletype_route
 from domino.routes.invitations import invitation_route
 from domino.routes.player import player_route
 from domino.routes.referee import referee_route
-from domino.routes.userprofile import singleprofile_route
+from domino.routes.singleprofile import singleprofile_route
 
 @app.get("/docs", include_in_schema=False)
 async def custom_swagger_ui_html():

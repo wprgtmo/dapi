@@ -9,7 +9,8 @@ import json
 from datetime import datetime
 from fastapi import HTTPException, Request, UploadFile, File
 from domino.models.user import Users, UserFollowers
-from domino.schemas.user import UserCreate, UserShema, ChagePasswordSchema, UserBase, UserProfile, UserFollowerBase
+from domino.models.userprofile import ProfileMember
+from domino.schemas.user import UserCreate, UserShema, ChagePasswordSchema, UserBase, UserFollowerBase
 from domino.schemas.result_object import ResultObject, ResultData
 from sqlalchemy.orm import Session
 from sqlalchemy.exc import SQLAlchemyError, IntegrityError
@@ -23,12 +24,12 @@ from domino.config.config import settings
 
 from domino.services.country import get_one as country_get_one
 from domino.services.city import get_one as city_get_one
-
-# from domino.services.userprofile import new_member_profie, get_user_profile, update_user_profile
+from domino.services.profiletype import get_one as get_profile_type_by_id, get_one_by_name as get_profile_type_by_name
 
 from domino.services.utils import get_result_count, upfile, create_dir, del_image, get_ext_at_file, remove_dir, copy_image
 
 from domino.services.auth import get_url_avatar
+from domino.services.comunprofile import new_profile_default_user
 
 pwd_context = CryptContext(schemes=["bcrypt"], deprecated="auto")
 
@@ -77,9 +78,11 @@ def get_all(request:Request, page: int, per_page: int, criteria_key: str, criter
     
     str_where = "WHERE use.is_active=True " 
     str_count = "Select count(*) FROM enterprise.users use "
-    str_query = "Select use.id, username, first_name, last_name, email, phone, password, use.is_active, country_id, " \
-        "pa.name as country, use.photo, use.receive_notifications " \
-        "FROM enterprise.users use left join resources.country pa ON pa.id = use.country_id "
+    str_query = "Select use.id, username, first_name, last_name, pro.email, phone, password, use.is_active, country_id, " \
+        "pa.name as country, pro.photo, pro.receive_notifications " \
+        "FROM enterprise.users use " + \
+        "inner join enterprise.profile_member pro ON pro.id = use.id " +\
+        "left join resources.country pa ON pa.id = use.country_id "
 
     dict_query = {'username': " AND username ilike '%" + criteria_value + "%'",
                   'first_name': " AND first_name ilike '%" + criteria_value + "%'",
@@ -119,8 +122,9 @@ def create_dict_row(item, page, host='', port=''):
     if page != 0:
         new_row['selected'] = False
     return new_row
-        
-def new(request: Request, db: Session, user: UserCreate, avatar: File):  
+ 
+#crear un usuario siempre crea el perfil de ususraio asociado...        
+def new(request: Request, db: Session, user: UserCreate):  
     locale = request.headers["accept-language"].split(",")[0].split("-")[0];
     
     result = ResultObject() 
@@ -137,49 +141,25 @@ def new(request: Request, db: Session, user: UserCreate, avatar: File):
     user.password = pwd_context.hash(user.password)  
     db_user = Users(id=id, username=user.username,  first_name=user.first_name, last_name=user.last_name, 
                     country_id=user.country_id, email=user.email, phone=user.phone, password=user.password, 
-                    is_active=True, receive_notifications=user.receive_notifications if user.receive_notifications else False)
+                    is_active=True)
     
     db_user.security_code = random.randint(10000, 99999)  # codigo de 5 caracteres
     
-    path = create_dir(entity_type="USER", user_id=str(id), entity_id=None)
+    profile_type = get_profile_type_by_name("USER", db=db)
+    if not profile_type:
+        raise HTTPException(status_code=400, detail=_(locale, "profiletype.not_found"))
     
-    if avatar:
-        ext = get_ext_at_file(avatar.filename)
-        avatar.filename = str(id) + "." + ext
-        db_user.photo = avatar.filename
-        upfile(file=avatar, path=path)
-    
-    else:
-        image_domino="public/profile/user-vector.jpg"
-        filename = str(id) + ".jpg"
-        image_destiny = "public/profile/" + str(db_user.id) + "/" + filename
-
-        copy_image(image_domino, image_destiny)
-        db_user.photo = filename
-    
-    # if user.roles:
-    #     lst_roles = user.roles.split(',')
-    #     if lst_roles:
-    #         for item in lst_roles:
-    #             rol = get_one_by_name_roles(item, db=db)
-    #             if not rol:
-    #                 continue
-                
-    #             profile_id = get_user_profile(db_user.username, rol.name, db=db)
-    #             if profile_id:
-    #                 update_user_profile(db_user.username, rol.name, db=db)
-    #             else:
-    #                 new_member_profie(username=db_user.username, name=db_user.first_name, rolevent_name=rol.name, email=db_user.email, 
-    #                                 city_id=db_user.city_id, photo=db_user.photo, db=db)
-                
-    #             one_roles = UserEventRoles(username=db_user.username, eventrol_id=rol.id, 
-    #                                        created_by=user.username)
-    #             db_user.roles.append(one_roles)
-                            
+    full_name = user.first_name + ' ' + user.last_name if user.last_name else '' 
+    profile_id = id  # voy a ahecr coincidir el id de usuario con el del perfil de usuario, tema fotos                     
+    one_profile_user = new_profile_default_user(profile_type, profile_id, id, user.username, full_name, user.email, None,
+                                                False, user.username, user.username, None, None, None, None, None)
+                               
     try:
         db.add(db_user)
+        db.add(one_profile_user)
         db.commit()
         db.refresh(db_user)
+        result.data = {'id': id}
         return result
     except (Exception, SQLAlchemyError, IntegrityError) as e:
         print(e)
@@ -201,28 +181,44 @@ def get_one_by_id(request: Request, user_id: str, db: Session):
     host = str(settings.server_uri)
     port = str(int(settings.server_port))
     
-    one_user = db.query(Users).filter(Users.id == user_id).first()
-    if not one_user:
-        raise
+    str_query = "Select use.id user_id, username, first_name, last_name, pro.email, phone, password, use.is_active, use.country_id, " \
+        "pa.name as country_name, pro.photo, pro.receive_notifications, def.job, def.sex, def.birthdate, def.alias, " \
+        "city.id as city_id, city.name as city_name " +\
+        "FROM enterprise.users use " + \
+        "inner join enterprise.profile_member pro ON pro.id = use.id " +\
+        "inner join enterprise.profile_default_user def ON def.profile_id = pro.id " +\
+        "left join resources.country pa ON pa.id = use.country_id " +\
+        "left join resources.city city ON city.id = pro.city_id "
     
-    one_country = country_get_one(one_user.country_id, db=db)
-    if not one_country:
-        raise HTTPException(status_code=404, detail=_(locale, "country.not_found"))
+    lst_data = db.execute(str_query)
+    if not lst_data:
+        raise HTTPException(status_code=404, detail=_(locale, "auth.not_found"))
     
-    result.data = {'id': one_user.id, 'username' : one_user.username, 
-                   'first_name': one_user.first_name, 
-                   'last_name': one_user.last_name if one_user.last_name else '', 
-                   'email': one_user.email if one_user.email else '', 
-                   'phone': one_user.phone if one_user.phone else '', 
-                   'country_id': one_country.id if one_country else '', 
-                   'country': one_country.name if one_country else '', 
-                   'job': one_user.job if one_user.job else '',
-                   'sex': one_user.sex if one_user.sex else '', 
-                   'birthdate': one_user.birthdate if one_user.birthdate else '', 
-                   'alias': one_user.alias if one_user.alias else '',
-                   'city_id': one_user.city_id if one_user.city_id else '',
-                   'receive_notifications': one_user.receive_notifications if one_user.receive_notifications else False,  
-                   'photo': get_url_avatar(one_user.id, one_user.photo, host=host, port=port)} 
+    user_id, username, first_name, last_name, photo = '', '', '', '', ''
+    email, job, sex, birthdate, alias = '', '', '', '', ''
+    is_active, receive_notifications = False, False
+    country_id, country_name, city_id, city_name = '', '', '', ''
+    for item in lst_data:
+        user_id, username = item.user_id, item.username
+        first_name, last_name, birthdate = item.first_name, item.last_name, item.birthdate
+        email, phone, job, sex = item.email, item.phone, item.job, item.sex
+        photo, alias = item.photo, item.alias
+        is_active = item.is_active
+        country_id, country_name = item.country_id, item.country_name
+        city_id, city_name = item.city_id, item.city_name
+        
+    if is_active is False:
+        raise HTTPException(status_code=404, detail=_(locale, "auth.not_registered"))
+    
+    result.data = {'id': user_id, 'username': username, 
+                   'first_name': first_name, 'last_name': last_name if last_name else '', 
+                   'email': email if email else '', 'phone': phone if phone else '', 
+                   'country_id': country_id if country_id else '', 'country': country_name if country_name else '', 
+                   'job': job if job else '', 'sex': sex if sex else '', 'birthdate': birthdate if birthdate else '', 
+                   'alias': alias if alias else '',
+                   'city_id': city_id if city_id else '', 'city_name': city_name if city_name else '',
+                   'receive_notifications': receive_notifications,  
+                   'photo': get_url_avatar(user_id, photo, host=host, port=port)} 
     
     return result
 
@@ -237,22 +233,6 @@ def get_all_follower_by_user(username: str, db: Session):
 
 def get_one_profile(request: Request, user_id: str, db: Session):
     return get_one_by_id(request=request, user_id=user_id, db=db)
-
-# def get_roles_by_user(username: str, db: Session):
-#     return db.query(UserEventRoles).filter(UserEventRoles.username == username).all()
-
-# def get_lst_roles_by_user(username: str, db: Session):
-#     str_query = "SELECT eve.id, eve.name, eve.description FROM enterprise.user_eventroles use_eve " +\
-#         "inner join resources.event_roles eve ON eve.id = use_eve.eventrol_id " +\
-#         "where username='" + username + "' ORDER BY eve.id "
-    
-#     lst_data = db.execute(str_query)
-#     str_roles = ""
-#     for item in lst_data:
-#         str_roles += item.name + ','
-#         # lst_roles.append({'id': item.id, 'name': item.name, 'description': item.description})
-            
-#     return str_roles[:-1] if str_roles else str_roles
 
 def check_security_code(request: Request, username: str, security_code: str, db: Session):
     locale = request.headers["accept-language"].split(",")[0].split("-")[0];
@@ -288,6 +268,9 @@ def delete(request: Request, user_id: str, db: Session):
         if not db_user:
             raise HTTPException(status_code=404, detail=_(locale, "users.not_found"))
         
+        # desactivar el perfil del usuario
+        db_profile = db.query(ProfileMember).filter(ProfileMember.id == user_id).first()
+        
         #borrar la foto y la carpeta del usuario
         path_del = "/public/profile/" + str(db_user.id) + "/" 
         try:
@@ -297,9 +280,12 @@ def delete(request: Request, user_id: str, db: Session):
         except:
             pass
         
-        db_user.photo=None
-        db_user.is_active=False
-        del_image
+        db_user.photo = None
+        db_user.is_active = False
+        
+        if db_profile:
+            db_profile.is_active = False
+            
         db.commit()
         return result
     except (Exception, SQLAlchemyError) as e:
@@ -345,104 +331,6 @@ def update(request: Request, user_id: str, user: UserBase, db: Session):
     except (Exception, SQLAlchemyError) as e:
         print(e.code)
         if e.code == "gkpj":
-            raise HTTPException(status_code=400, detail=_(locale, "users.already_exist"))
-
-def update_one_profile(request: Request, user_id: str, user: UserProfile, db: Session, avatar: File):
-    locale = request.headers["accept-language"].split(",")[0].split("-")[0];
-    currentUser = get_current_user(request)
-    
-    result = ResultObject()
-       
-    db_user = db.query(Users).filter(Users.id == user_id).first()
-    
-    if user.first_name != db_user.first_name:
-        db_user.first_name = user.first_name
-        
-    if user.last_name != db_user.last_name:
-        db_user.last_name = user.last_name
-        
-    if user.email != db_user.email:
-        db_user.email = user.email
-        
-    if user.phone != db_user.phone:
-        db_user.phone = user.phone
-        
-    if user.sex != db_user.sex:
-        db_user.sex = user.sex
-        
-    if user.birthdate != db_user.birthdate:
-        db_user.birthdate = user.birthdate
-        
-    if user.alias != db_user.alias:
-        db_user.alias = user.alias
-        
-    if user.job != db_user.job:
-        db_user.job = user.job
-        
-    if user.city_id != db_user.city_id:
-        one_city = city_get_one(user.city_id, db=db)
-        if not one_city:
-            raise HTTPException(status_code=404, detail=_(locale, "city.not_found"))
-        db_user.city_id = one_city.id
-    
-    if user.receive_notifications != db_user.receive_notifications:
-        db_user.receive_notifications = user.receive_notifications
-    
-    path = create_dir(entity_type="USER", user_id=str(db_user.id), entity_id=None)    
-    if avatar:
-        ext = get_ext_at_file(avatar.filename)
-        current_image = db_user.photo
-        avatar.filename = str(uuid.uuid4()) + "." + ext if ext else str(uuid.uuid4())
-        db_user.photo = avatar.filename
-        path_del = "/public/profile/" + str(db_user.id) + "/" 
-        try:
-            del_image(path=path_del, name=str(current_image))
-        except:
-            pass
-        upfile(file=avatar, path=path)
-        
-    else:
-        if not db_user.photo:
-            image_domino="public/profile/user-vector.jpg"
-            filename = str(db_user.id) + ".jpg"
-            image_destiny = "public/profile/" + str(db_user.id) + "/" + str(filename)
-        
-            copy_image(image_domino, image_destiny)
-            db_user.photo = filename
-    
-    # si viene en True, borrar todo lo que tenia y poner nuevos.
-    # if user.roles:
-    #     str_delete = "DELETE FROM enterprise.user_eventroles WHERE username = '" + db_user.username + "'; " + \
-    #         "UPDATE enterprise.member_profile pro SET is_active=False FROM enterprise.member_users us " +\
-    #         "WHERE us.profile_id = pro.id and username = '" + db_user.username + "'; "
- 
-    #     db.execute(str_delete)
-    #     lst_roles = user.roles.split(',')
-    #     for item in lst_roles:
-    #         rol = get_one_by_name_roles(item, db=db)
-    #         if not rol:
-    #             continue
-    #         profile_id = get_user_profile(db_user.username, rol.name, db=db)
-    #         if profile_id:
-    #             update_user_profile(db_user.username, rol.name, db=db)
-    #         else:
-    #             new_member_profie(username=db_user.username, name=db_user.first_name, rolevent_name=rol.name, 
-    #                               email=db_user.email, modality='Individual',
-    #                               city_id=db_user.city_id, photo=db_user.photo, db=db)
-                
-    #         one_roles = UserEventRoles(username=db_user.username, eventrol_id=rol.id, 
-    #                                     created_by=currentUser['username'])
-    #         db_user.roles.append(one_roles)
-            
-    try:
-        db.add(db_user)
-        db.commit()
-        db.refresh(db_user)
-        filename = avatar.filename if avatar else db_user.photo
-        result.data = get_url_avatar(db_user.id, filename)
-        return result
-    except (Exception, SQLAlchemyError) as e:
-        if e and e.code == "gkpj":
             raise HTTPException(status_code=400, detail=_(locale, "users.already_exist"))
         
 def change_password(request: Request, db: Session, password: ChagePasswordSchema):  

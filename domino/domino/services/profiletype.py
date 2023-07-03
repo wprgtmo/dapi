@@ -14,7 +14,7 @@ from domino.functions_jwt import get_current_user
 from domino.app import _
 from domino.services.utils import get_result_count
             
-def get_all(request:Request, page: int, per_page: int, criteria_key: str, criteria_value: str, db: Session):  
+def get_all(request:Request, profile_type_id: str, page: int, per_page: int, criteria_key: str, criteria_value: str, db: Session):  
     locale = request.headers["accept-language"].split(",")[0].split("-")[0];
     
     str_count = "Select count(*) FROM enterprise.profile_type "
