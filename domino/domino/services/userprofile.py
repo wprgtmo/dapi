@@ -157,10 +157,11 @@ def get_one_default_user_profile(request: Request, id: str, db: Session):
     port = str(int(settings.server_port))
     
     str_query = "Select pro.id profile_id, pro.name, pro.email, pro.city_id, pro.photo, pro.receive_notifications, " +\
-        "eve.name as profile_type_name, eve.description as profile_type_description " +\
+        "eve.name as profile_type_name, eve.description as profile_type_description, " +\
+        "us.first_name, us.last_name " +\
         "FROM enterprise.profile_member pro " +\
         "inner join enterprise.profile_type eve ON eve.name = pro.profile_type " +\
-        "inner join enterprise.profile_default_user pro_def ON pro_def.profile_id = pro.id " +\
+        "inner join enterprise.users us ON us.id = pro.id " +\
         "Where pro.id='" + id + "' "
     res_profile=db.execute(str_query)
     
