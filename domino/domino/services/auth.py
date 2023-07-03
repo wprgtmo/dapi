@@ -50,6 +50,7 @@ def auth(request: Request, db: Session, user: UserLogin):
         photo = item.photo
         is_active = item.is_active
         password = item.password
+        profile_type = item.profile_type
         
     if is_active is False:
         raise HTTPException(status_code=404, detail=_(locale, "auth.not_registered"))
@@ -63,7 +64,7 @@ def auth(request: Request, db: Session, user: UserLogin):
                                      "last_name": last_name, 
                                      "photo": get_url_avatar(user_id, photo), 
                                      "profile_type": profile_type, 
-                                     "profile_id": user_id}, status_code=200)
+                                     "user_id": user_id}, status_code=200)
     else:
         raise HTTPException(status_code=404, detail=_(locale, "auth.wrong_password"))
 
