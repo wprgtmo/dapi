@@ -17,7 +17,7 @@ from sqlalchemy.exc import SQLAlchemyError, IntegrityError
 from passlib.context import CryptContext
 from domino.auth_bearer import decodeJWT
 from domino.app import _
-from domino.services.users import get_one_by_username, get_one_by_id as get_one_user_by_id
+from domino.services.users import get_one_by_username, get_one as get_one_user_by_id
 from domino.services.city import get_one_by_id as get_city_by_id
 from domino.services.utils import upfile, create_dir, del_image, get_ext_at_file, remove_dir, copy_image
 
@@ -245,7 +245,7 @@ def update_one_single_profile(request: Request, id: str, singleprofile: SinglePr
         if e.code == "gkpj":
             raise HTTPException(status_code=400, detail=_(locale, "userprofile.already_exist"))
 
-def update_one_default_profile(request: Request, user_id: str, defaultuserprofile: DefaultUserProfileBase, db: Session, avatar: File):
+def update_one_default_profile(request: Request, id: str, defaultuserprofile: DefaultUserProfileBase, db: Session, avatar: File):
     locale = request.headers["accept-language"].split(",")[0].split("-")[0];
     currentUser = get_current_user(request)
     
@@ -255,7 +255,7 @@ def update_one_default_profile(request: Request, user_id: str, defaultuserprofil
     if not db_default_profile:
         raise HTTPException(status_code=400, detail=_(locale, "userprofile.not_found"))
        
-    one_user = get_one_user_by_id(db_default_profile.id)
+    one_user = get_one_user_by_id(user_id=id, db=db)
     if not one_user:
         raise HTTPException(status_code=400, detail=_(locale, "user.not_found"))
     
@@ -273,9 +273,13 @@ def update_one_default_profile(request: Request, user_id: str, defaultuserprofil
     
     if defaultuserprofile['phone'] and one_user.phone != defaultuserprofile['phone']:
         one_user.phone = defaultuserprofile['phone']
-        
-    if defaultuserprofile['country_id'] and one_user.country_id != defaultuserprofile['country_id']:
-        one_user.country_id = defaultuserprofile['country_id']
+    
+    if defaultuserprofile['city_id'] and db_default_profile.city_id != defaultuserprofile['city_id']:
+        one_city = get_city_by_id(defaultuserprofile['city_id'], db=db)
+        if not one_city:
+            raise HTTPException(status_code=404, detail=_(locale, "city.not_found"))
+        db_default_profile.city_id = defaultuserprofile['city_id']
+        one_user.country_id = one_city.country.id
         
     if defaultuserprofile['sex'] and db_default_profile.sex != defaultuserprofile['sex']:
         db_default_profile.sex = defaultuserprofile['sex']
@@ -288,12 +292,6 @@ def update_one_default_profile(request: Request, user_id: str, defaultuserprofil
         
     if defaultuserprofile['job'] and db_default_profile.job != defaultuserprofile['job']:
         db_default_profile.job = defaultuserprofile['job']
-        
-    if defaultuserprofile['city_id'] and db_default_profile.city_id != defaultuserprofile['city_id']:
-        one_city = get_city_by_id(defaultuserprofile['city_id'], db=db)
-        if not one_city:
-            raise HTTPException(status_code=404, detail=_(locale, "city.not_found"))
-        db_default_profile.city_id = defaultuserprofile['city_id']
         
     db_default_profile.receive_notifications = defaultuserprofile['receive_notifications'] 
     
@@ -380,7 +378,9 @@ def delete_one_default_profile(request: Request, id: str, db: Session):
     try:
         db_profile = db.query(ProfileMember).filter(ProfileMember.id == id).first()
         if db_profile:
-            db_user = get_one_user_by_id(db_profile.id)
+            db_user = get_one_user_by_id(user_id=id, db=db)
+            if not db_user:
+                raise HTTPException(status_code=400, detail=_(locale, "user.not_found"))
             
             db_profile.is_active = False
             db_profile.updated_by = currentUser['username']
@@ -410,8 +410,8 @@ def delete_one_default_profile(request: Request, id: str, db: Session):
     except (Exception, SQLAlchemyError) as e:
         print(e)
         raise HTTPException(status_code=404, detail=_(locale, "userprofile.imposible_delete"))
+
+def get_all_profile_by_user(profile_id):
+    
+    return True
         
-def update_user_profile(profile_id:str, is_active:bool, db: Session):
-    str_update = " UPDATE enterprise.profile_member pro SET is_active=is_active " +\
-            "WHERE pro.id '" + profile_id + "'; "
-            
