@@ -4,7 +4,7 @@ from domino.schemas.result_object import ResultObject
 from sqlalchemy.orm import Session
 from domino.app import get_db
 from domino.services.userprofile import new_profile_default_user, get_one_default_user_profile, \
-    update_one_default_profile, delete_one_default_profile
+    update_one_default_profile, delete_one_default_profile, get_all_profile_by_user_profile_id
 
 from starlette import status
 from domino.auth_bearer import JWTBearer
@@ -29,6 +29,10 @@ def delete_default_profile(request:Request, id: str, db: Session = Depends(get_d
 @defaultprofile_route.put("/profile/default/{id}", response_model=ResultObject, summary="Update Default User Profile for your ID")
 def update_default_profile(request:Request, id: str, defaultusereprofile: DefaultUserProfileBase = Depends(), image: UploadFile = None, db: Session = Depends(get_db)):
     return update_one_default_profile(request=request, db=db, id=str(id), defaultuserprofile=defaultusereprofile.dict(), avatar=image)
+
+@defaultprofile_route.put("/profile/commun/{id}", response_model=ResultObject, summary="Obtener nombre de perfiles de cada usuario")
+def get_all_profile_type_by_user(request:Request, profile_id: str, db: Session = Depends(get_db)):
+    return get_all_profile_by_user_profile_id(request=request, db=db, profile_id=str(profile_id))
 
 # @defaultprofile_route.put("/users/{id}", response_model=ResultObject, summary="Update a User by his ID.")
 # def update_user(request:Request, id: uuid.UUID, user: UserProfile = Depends(), avatar: UploadFile = None, db: Session = Depends(get_db)):

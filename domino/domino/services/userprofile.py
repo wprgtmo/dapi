@@ -411,7 +411,27 @@ def delete_one_default_profile(request: Request, id: str, db: Session):
         print(e)
         raise HTTPException(status_code=404, detail=_(locale, "userprofile.imposible_delete"))
 
-def get_all_profile_by_user(profile_id):
+def get_all_profile_by_user_profile_id(request: Request, profile_id: str, db: Session):
+    locale = request.headers["accept-language"].split(",")[0].split("-")[0];
     
-    return True
+    result = ResultObject() 
+    result.data = []
+    
+    try:
+        str_profile = "SELECT pus.username FROM enterprise.profile_member pme " +\
+            "INNER JOIN enterprise.profile_users pus ON pus.profile_id = pme.id " +\
+            "where pme.id = '" + profile_id + "' "
+        user_name = db.execute(str_profile).scalar()
+        if user_name:
+            str_profile = "SELECT DISTINCT profile_type FROM enterprise.profile_member pme " +\
+                "INNER JOIN enterprise.profile_users pus ON pus.profile_id = pme.id " +\
+                "where pus.username = '" + user_name + "' AND pme.id != '" + profile_id + "' "
+            lst_data =  db.execute(str_profile)
+            for item in lst_data:
+                result.data.append(item.profile_type)  
+     
+        return result
         
+    except (Exception, SQLAlchemyError) as e:
+        print(e)
+        raise HTTPException(status_code=404, detail=_(locale, "userprofile.imposible_delete"))
