@@ -63,7 +63,7 @@ def auth(request: Request, db: Session, user: UserLogin):
                                      "last_name": last_name, 
                                      "photo": get_url_avatar(user_id, photo), 
                                      "profile_type": profile_type, 
-                                     "user_id": user_id}, status_code=200)
+                                     "profile_id": user_id}, status_code=200)
     else:
         raise HTTPException(status_code=404, detail=_(locale, "auth.wrong_password"))
 
