@@ -159,7 +159,7 @@ def get_one_default_user_profile(request: Request, id: str, db: Session):
     host = str(settings.server_uri)
     port = str(int(settings.server_port))
     
-    str_query = "Select pro.id profile_id, username, pro.name, pro.email, pro.city_id, pro.photo, pro.receive_notifications, " +\
+    str_query = "Select pro.id profile_id, username, pro.name, pro.email, def.city_id, pro.photo, pro.receive_notifications, " +\
         "eve.name as profile_type_name, eve.description as profile_type_description, " +\
         "us.first_name, us.last_name, us.phone, us.is_active, us.country_id, " +\
         "def.job, def.sex, def.birthdate, def.alias, pa.name as country_name, " +\
