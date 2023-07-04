@@ -169,7 +169,7 @@ def get_one_default_user_profile(request: Request, id: str, db: Session):
         "inner join enterprise.profile_default_user def ON def.profile_id = pro.id " +\
         "inner join enterprise.users us ON us.id = pro.id " +\
         "left join resources.country pa ON pa.id = us.country_id " +\
-        "left join resources.city city ON city.id = pro.city_id " +\
+        "left join resources.city city ON city.id = def.city_id " +\
         "Where pro.id='" + id + "' "
     res_profile=db.execute(str_query)
     
