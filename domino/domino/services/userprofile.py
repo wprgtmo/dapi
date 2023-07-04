@@ -343,19 +343,19 @@ def update_one_default_profile(request: Request, id: str, defaultuserprofile: De
     one_user.updated_by = currentUser['username']
     one_user.updated_date = datetime.now()
         
-    # try:
-    db.add(db_default_profile)
-    db.add(one_user)
-    db.add(db_default_profile_user)
-    db.commit()
-    
-    filename = avatar.filename if avatar else str(db_default_profile.id) + ".jpg"
+    try:
+        db.add(db_default_profile)
+        db.add(one_user)
+        db.add(db_default_profile_user)
+        db.commit()
         
-    result.data = get_url_avatar(db_default_profile.id, filename)
-    return result
-    # except (Exception, SQLAlchemyError) as e:
-    #     if e and e.code == "gkpj":
-    #         raise HTTPException(status_code=400, detail=_(locale, "users.already_exist"))    
+        filename = avatar.filename if avatar else str(db_default_profile.id) + ".jpg"
+            
+        result.data = get_url_avatar(db_default_profile.id, filename)
+        return result
+    except (Exception, SQLAlchemyError) as e:
+        if e and e.code == "gkpj":
+            raise HTTPException(status_code=400, detail=_(locale, "users.already_exist"))    
          
 def delete_one_single_profile(request: Request, id: str, db: Session):
     locale = request.headers["accept-language"].split(",")[0].split("-")[0];
