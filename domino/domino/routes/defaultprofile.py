@@ -31,8 +31,8 @@ def update_default_profile(request:Request, id: str, defaultusereprofile: Defaul
     return update_one_default_profile(request=request, db=db, id=str(id), defaultuserprofile=defaultusereprofile.dict(), avatar=image)
 
 @defaultprofile_route.get("/profile/commun/{id}", response_model=ResultObject, summary="Obtener nombre de perfiles de cada usuario")
-def get_all_profile_type_by_user(request:Request, profile_id: str, db: Session = Depends(get_db)):
-    return get_all_profile_by_user_profile_id(request=request, db=db, profile_id=str(profile_id))
+def get_all_profile_type_by_user(request:Request, id: str, db: Session = Depends(get_db)):
+    return get_all_profile_by_user_profile_id(request=request, db=db, profile_id=str(id))
 
 # @defaultprofile_route.put("/users/{id}", response_model=ResultObject, summary="Update a User by his ID.")
 # def update_user(request:Request, id: uuid.UUID, user: UserProfile = Depends(), avatar: UploadFile = None, db: Session = Depends(get_db)):
