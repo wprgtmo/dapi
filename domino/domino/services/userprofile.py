@@ -348,8 +348,8 @@ def update_one_default_profile(request: Request, id: str, defaultuserprofile: De
     db.add(one_user)
     db.add(db_default_profile_user)
     db.commit()
-    if avatar:
-        filename = avatar.filename
+    
+    filename = avatar.filename if avatar else str(db_default_profile.id) + ".jpg"
         
     result.data = get_url_avatar(db_default_profile.id, filename)
     return result
