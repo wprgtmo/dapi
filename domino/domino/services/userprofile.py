@@ -174,7 +174,7 @@ def get_one_default_user_profile(request: Request, id: str, db: Session):
     res_profile=db.execute(str_query)
     
     for item in res_profile:
-        photo = "http://" + host + ":" + port + "/public/profile/" + str(item.profile_id) + "/" + item.photo 
+        # photo = "http://" + host + ":" + port + "/public/profile/" + str(item.profile_id) + "/" + item.photo 
         
         result.data = {'id': item.profile_id, 'first_name': item.first_name, 
                        'last_name': item.last_name if item.last_name else '',  
@@ -184,7 +184,8 @@ def get_one_default_user_profile(request: Request, id: str, db: Session):
                        'job': item.job if item.job else '', 'sex': item.sex if item.sex else '', 
                        'birthdate': item.birthdate if item.birthdate else '',
                        'profile_type_name': item.profile_type_name, 
-                       'profile_type_description': item.profile_type_description, 'photo': photo,
+                       'profile_type_description': item.profile_type_description, 
+                       'photo': get_url_avatar(item.profile_id, item.photo, host=host, port=port),
                        'country_id': item.country_id if item.country_id else '', 
                        'country': item.country_name if item.country_name else '', 
                        'city_id': item.city_id if item.city_id else '', 

@@ -194,6 +194,7 @@ def get_one_by_id(request: Request, user_id: str, db: Session):
     if not lst_data:
         raise HTTPException(status_code=404, detail=_(locale, "auth.not_found"))
     
+    
     user_id, username, first_name, last_name, photo = '', '', '', '', ''
     email, job, sex, birthdate, alias = '', '', '', '', ''
     is_active, receive_notifications = False, False
@@ -219,7 +220,6 @@ def get_one_by_id(request: Request, user_id: str, db: Session):
                    'city_id': city_id if city_id else '', 'city_name': city_name if city_name else '',
                    'receive_notifications': receive_notifications,  
                    'photo': get_url_avatar(user_id, photo, host=host, port=port)} 
-    
     return result
 
 def get_one_by_username(username: str, db: Session):  
