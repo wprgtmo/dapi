@@ -298,6 +298,7 @@ def update_one_default_profile(request: Request, id: str, defaultuserprofile: De
         one_city = get_city_by_id(defaultuserprofile['city_id'], db=db)
         if not one_city:
             raise HTTPException(status_code=404, detail=_(locale, "city.not_found"))
+        db_default_profile.city_id = defaultuserprofile['city_id']
         db_default_profile_user.city_id = defaultuserprofile['city_id']
         one_user.country_id = one_city.country_id
         
