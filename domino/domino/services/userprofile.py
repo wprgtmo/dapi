@@ -174,8 +174,6 @@ def get_one_default_user_profile(request: Request, id: str, db: Session):
     res_profile=db.execute(str_query)
     
     for item in res_profile:
-        # photo = "http://" + host + ":" + port + "/public/profile/" + str(item.profile_id) + "/" + item.photo 
-        
         result.data = {'id': item.profile_id, 'first_name': item.first_name, 
                        'last_name': item.last_name if item.last_name else '',  
                        'email': item.email if item.email else '', 
@@ -345,19 +343,19 @@ def update_one_default_profile(request: Request, id: str, defaultuserprofile: De
     one_user.updated_by = currentUser['username']
     one_user.updated_date = datetime.now()
         
-    try:
-        db.add(db_default_profile)
-        db.add(one_user)
-        db.add(db_default_profile_user)
-        db.commit()
-        if avatar:
-            filename = avatar.filename
-            
-        result.data = get_url_avatar(db_default_profile.id, filename)
-        return result
-    except (Exception, SQLAlchemyError) as e:
-        if e and e.code == "gkpj":
-            raise HTTPException(status_code=400, detail=_(locale, "users.already_exist"))    
+    # try:
+    db.add(db_default_profile)
+    db.add(one_user)
+    db.add(db_default_profile_user)
+    db.commit()
+    if avatar:
+        filename = avatar.filename
+        
+    result.data = get_url_avatar(db_default_profile.id, filename)
+    return result
+    # except (Exception, SQLAlchemyError) as e:
+    #     if e and e.code == "gkpj":
+    #         raise HTTPException(status_code=400, detail=_(locale, "users.already_exist"))    
          
 def delete_one_single_profile(request: Request, id: str, db: Session):
     locale = request.headers["accept-language"].split(",")[0].split("-")[0];
