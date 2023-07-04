@@ -18,7 +18,7 @@ from passlib.context import CryptContext
 from domino.auth_bearer import decodeJWT
 from domino.app import _
 from domino.services.users import get_one_by_username, get_one as get_one_user_by_id
-from domino.services.city import get_one_by_id as get_city_by_id
+from domino.services.city import get_one as get_city_by_id
 from domino.services.utils import upfile, create_dir, del_image, get_ext_at_file, remove_dir, copy_image
 
 from domino.services.auth import get_url_avatar
@@ -125,6 +125,9 @@ def new_profile_default_user(request: Request, defaultuserprofile: DefaultUserPr
 def get_one(id: str, db: Session):  
     return db.query(ProfileMember).filter(ProfileMember.id == id).first()
 
+def get_one_default_user(id: str, db: Session):  
+    return db.query(DefaultUserProfile).filter(DefaultUserProfile.profile_id == id).first()
+
 def get_one_single_profile(request: Request, id: str, db: Session): 
     
     result = ResultObject() 
@@ -156,24 +159,38 @@ def get_one_default_user_profile(request: Request, id: str, db: Session):
     host = str(settings.server_uri)
     port = str(int(settings.server_port))
     
-    str_query = "Select pro.id profile_id, pro.name, pro.email, pro.city_id, pro.photo, pro.receive_notifications, " +\
+    str_query = "Select pro.id profile_id, username, pro.name, pro.email, pro.city_id, pro.photo, pro.receive_notifications, " +\
         "eve.name as profile_type_name, eve.description as profile_type_description, " +\
-        "us.first_name, us.last_name " +\
+        "us.first_name, us.last_name, us.phone, us.is_active, us.country_id, " +\
+        "def.job, def.sex, def.birthdate, def.alias, pa.name as country_name, " +\
+        "city.id as city_id, city.name as city_name " +\
         "FROM enterprise.profile_member pro " +\
         "inner join enterprise.profile_type eve ON eve.name = pro.profile_type " +\
+        "inner join enterprise.profile_default_user def ON def.profile_id = pro.id " +\
         "inner join enterprise.users us ON us.id = pro.id " +\
+        "left join resources.country pa ON pa.id = us.country_id " +\
+        "left join resources.city city ON city.id = pro.city_id " +\
         "Where pro.id='" + id + "' "
     res_profile=db.execute(str_query)
     
     for item in res_profile:
         photo = "http://" + host + ":" + port + "/public/profile/" + str(item.profile_id) + "/" + item.photo 
         
-        result.data = {'id': item.profile_id, 'first_name': item.first_name, 'last_name': item.last_name, 
-                       'email': item.email,
+        result.data = {'id': item.profile_id, 'first_name': item.first_name, 
+                       'last_name': item.last_name if item.last_name else '',  
+                       'email': item.email if item.email else '', 
+                       'username': item.username, 'alias': item.alias if item.alias else '',
+                       'phone': item.phone if item.phone else '', 
+                       'job': item.job if item.job else '', 'sex': item.sex if item.sex else '', 
+                       'birthdate': item.birthdate if item.birthdate else '',
                        'profile_type_name': item.profile_type_name, 
                        'profile_type_description': item.profile_type_description, 'photo': photo,
-                       'city_id': item.city_id, 'receive_notifications': item.receive_notifications}
-    
+                       'country_id': item.country_id if item.country_id else '', 
+                       'country': item.country_name if item.country_name else '', 
+                       'city_id': item.city_id if item.city_id else '', 
+                       'city_name': item.city_name if item.city_name else '',
+                       'receive_notifications': item.receive_notifications}
+        
     return result
     
 def get_one_profile_id(id: str, db: Session): 
@@ -259,6 +276,10 @@ def update_one_default_profile(request: Request, id: str, defaultuserprofile: De
     if not one_user:
         raise HTTPException(status_code=400, detail=_(locale, "user.not_found"))
     
+    db_default_profile_user = get_one_default_user(id, db=db)
+    if not db_default_profile_user:
+        raise HTTPException(status_code=400, detail=_(locale, "userprofile.not_found"))
+    
     if defaultuserprofile['first_name'] and one_user.first_name != defaultuserprofile['first_name']:
         one_user.first_name = defaultuserprofile['first_name']
         
@@ -274,24 +295,24 @@ def update_one_default_profile(request: Request, id: str, defaultuserprofile: De
     if defaultuserprofile['phone'] and one_user.phone != defaultuserprofile['phone']:
         one_user.phone = defaultuserprofile['phone']
     
-    if defaultuserprofile['city_id'] and db_default_profile.city_id != defaultuserprofile['city_id']:
+    if defaultuserprofile['city_id'] and db_default_profile_user.city_id != defaultuserprofile['city_id']:
         one_city = get_city_by_id(defaultuserprofile['city_id'], db=db)
         if not one_city:
             raise HTTPException(status_code=404, detail=_(locale, "city.not_found"))
-        db_default_profile.city_id = defaultuserprofile['city_id']
-        one_user.country_id = one_city.country.id
+        db_default_profile_user.city_id = defaultuserprofile['city_id']
+        one_user.country_id = one_city.country_id
         
-    if defaultuserprofile['sex'] and db_default_profile.sex != defaultuserprofile['sex']:
-        db_default_profile.sex = defaultuserprofile['sex']
+    if defaultuserprofile['sex'] and db_default_profile_user.sex != defaultuserprofile['sex']:
+        db_default_profile_user.sex = defaultuserprofile['sex']
         
-    if defaultuserprofile['birthdate'] and db_default_profile.birthdate != defaultuserprofile['birthdate']:
-        db_default_profile.birthdate = defaultuserprofile['birthdate']
+    if defaultuserprofile['birthdate'] and db_default_profile_user.birthdate != defaultuserprofile['birthdate']:
+        db_default_profile_user.birthdate = defaultuserprofile['birthdate']
         
-    if defaultuserprofile['alias'] and db_default_profile.alias != defaultuserprofile['alias']:
-        db_default_profile.alias = defaultuserprofile['alias']
+    if defaultuserprofile['alias'] and db_default_profile_user.alias != defaultuserprofile['alias']:
+        db_default_profile_user.alias = defaultuserprofile['alias']
         
-    if defaultuserprofile['job'] and db_default_profile.job != defaultuserprofile['job']:
-        db_default_profile.job = defaultuserprofile['job']
+    if defaultuserprofile['job'] and db_default_profile_user.job != defaultuserprofile['job']:
+        db_default_profile_user.job = defaultuserprofile['job']
         
     db_default_profile.receive_notifications = defaultuserprofile['receive_notifications'] 
     
@@ -326,6 +347,7 @@ def update_one_default_profile(request: Request, id: str, defaultuserprofile: De
     try:
         db.add(db_default_profile)
         db.add(one_user)
+        db.add(db_default_profile_user)
         db.commit()
         if avatar:
             filename = avatar.filename
@@ -423,12 +445,16 @@ def get_all_profile_by_user_profile_id(request: Request, profile_id: str, db: Se
             "where pme.id = '" + profile_id + "' "
         user_name = db.execute(str_profile).scalar()
         if user_name:
-            str_profile = "SELECT DISTINCT profile_type FROM enterprise.profile_member pme " +\
+            str_profile = "SELECT DISTINCT prot.id as profile_type_id, profile_type, prot.description " +\
+                "FROM enterprise.profile_member pme " +\
                 "INNER JOIN enterprise.profile_users pus ON pus.profile_id = pme.id " +\
+                "INNER JOIN enterprise.profile_type prot ON prot.name = pme.profile_type " +\
                 "where pus.username = '" + user_name + "' AND pme.id != '" + profile_id + "' "
             lst_data =  db.execute(str_profile)
             for item in lst_data:
-                result.data.append(item.profile_type)  
+                result.data.append({'id': item.profile_type_id, 
+                                    'name': item.profile_type,
+                                    'description': item.description})  
      
         return result
         
