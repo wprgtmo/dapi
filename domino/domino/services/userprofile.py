@@ -74,10 +74,7 @@ def new_profile_referee(request: Request, refereeprofile: RefereeProfileCreated,
     
     id = str(uuid.uuid4())
     
-    # buscar el usuario para coger sus datos
-    username = refereeprofile.username if refereeprofile.username else currentUser['username']
-    
-    one_user = get_one_by_username(username=username, db=db)
+    one_user = get_one_by_username(username=currentUser['username'], db=db)
     
     one_profile = ProfileMember(id=id, name=refereeprofile['name'], email=refereeprofile['email'] if refereeprofile['email'] else None, 
                                 profile_type=profile_type.name, 
@@ -91,8 +88,7 @@ def new_profile_referee(request: Request, refereeprofile: RefereeProfileCreated,
                                    created_by=currentUser['username'])
     one_profile.profile_users.append(one_user_member)  
     
-    one_referee_user = RefereeProfile(profile_id=id, level=refereeprofile['level'], is_active=True,
-                                      updated_by=currentUser['username'])
+    one_referee_user = RefereeProfile(profile_id=id, level=refereeprofile['level'], updated_by=currentUser['username'])
     
     one_profile.profile_referee_player.append(one_referee_user)
     
@@ -208,7 +204,7 @@ def get_one_single_profile(request: Request, id: str, db: Session):
     res_profile=db.execute(str_query)
     
     for item in res_profile:
-        photo = "http://" + host + ":" + port + "/public/profile/" + str(item.profile_id) + "/" + item.photo 
+        photo = get_url_avatar(item.profile_id, item.photo, host=host, port=port)
         
         result.data = {'id': item.profile_id, 'name': item.name, 'email': item.email,
                        'profile_type_name': item.profile_type_name, 
@@ -228,12 +224,12 @@ def get_one_referee_profile(request: Request, id: str, db: Session):
         "eve.name as profile_type_name, eve.description as profile_type_description " +\
         "FROM enterprise.profile_member pro " +\
         "inner join enterprise.profile_type eve ON eve.name = pro.profile_type " +\
-        "inner join enterprise.profile_single_player sing ON sing.profile_id = pro.id " +\
+        "inner join enterprise.profile_referee sing ON sing.profile_id = pro.id " +\
         "Where pro.id='" + id + "' "
     res_profile=db.execute(str_query)
     
     for item in res_profile:
-        photo = "http://" + host + ":" + port + "/public/profile/" + str(item.profile_id) + "/" + item.photo 
+        photo = get_url_avatar(item.profile_id, item.photo, host=host, port=port)
         
         result.data = {'id': item.profile_id, 'name': item.name, 'email': item.email,
                        'profile_type_name': item.profile_type_name, 
@@ -253,12 +249,12 @@ def get_one_pair_profile(request: Request, id: str, db: Session):
         "eve.name as profile_type_name, eve.description as profile_type_description " +\
         "FROM enterprise.profile_member pro " +\
         "inner join enterprise.profile_type eve ON eve.name = pro.profile_type " +\
-        "inner join enterprise.profile_single_player sing ON sing.profile_id = pro.id " +\
+        "inner join enterprise.profile_pair_player sing ON sing.profile_id = pro.id " +\
         "Where pro.id='" + id + "' "
     res_profile=db.execute(str_query)
     
     for item in res_profile:
-        photo = "http://" + host + ":" + port + "/public/profile/" + str(item.profile_id) + "/" + item.photo 
+        photo = get_url_avatar(item.profile_id, item.photo, host=host, port=port)
         
         result.data = {'id': item.profile_id, 'name': item.name, 'email': item.email,
                        'profile_type_name': item.profile_type_name, 
@@ -278,12 +274,12 @@ def get_one_team_profile(request: Request, id: str, db: Session):
         "eve.name as profile_type_name, eve.description as profile_type_description " +\
         "FROM enterprise.profile_member pro " +\
         "inner join enterprise.profile_type eve ON eve.name = pro.profile_type " +\
-        "inner join enterprise.profile_single_player sing ON sing.profile_id = pro.id " +\
+        "inner join enterprise.profile_team_player sing ON sing.profile_id = pro.id " +\
         "Where pro.id='" + id + "' "
     res_profile=db.execute(str_query)
     
     for item in res_profile:
-        photo = "http://" + host + ":" + port + "/public/profile/" + str(item.profile_id) + "/" + item.photo 
+        photo = get_url_avatar(item.profile_id, item.photo, host=host, port=port)
         
         result.data = {'id': item.profile_id, 'name': item.name, 'email': item.email,
                        'profile_type_name': item.profile_type_name, 
@@ -600,10 +596,10 @@ def update_profile(profile_member: ProfileMember, file: File, currentUser, name:
     profile_member.receive_notifications = receive_notifications
     
     path = create_dir(entity_type="USERPROFILE", user_id=str(currentUser['user_id']), entity_id=profile_member.id)  
+    current_image = profile_member.photo
       
     if file:
         ext = get_ext_at_file(file.filename)
-        current_image = profile_member.photo
         file.filename = str(uuid.uuid4()) + "." + ext if ext else str(uuid.uuid4())
         profile_member.photo = file.filename
         path_del = "/public/profile/" + str(profile_member.id) + "/"
@@ -614,25 +610,22 @@ def update_profile(profile_member: ProfileMember, file: File, currentUser, name:
         upfile(file=file, path=path)
         
     else:
-        if not profile_member.photo:
-            image_domino="public/profile/user-vector.jpg"
-            filename = str(profile_member.id) + ".jpg"
-            image_destiny = path + "/" + str(filename)
+        # si no viene imagen, borrar la que tiene y poner la foto por defecto del sistema
         
-            copy_image(image_domino, image_destiny)
-            profile_member.photo = filename
-            
+        path_del = "/public/profile/" + str(profile_member.id) + "/" 
+        try:
+            del_image(path=path_del, name=str(current_image))
+        except:
+            pass
+        
+        image_domino="public/profile/user-vector.jpg"
+        filename = str(profile_member.id) + ".jpg"
+        image_destiny = "public/profile/" + str(profile_member.id) + "/" + str(filename)
+    
+        copy_image(image_domino, image_destiny)
+        profile_member.photo = filename
+        
     return True
-            
-    # try:
-    #     db.add(db_single_profile)
-    #     db.commit()
-    #     db.refresh(db_single_profile)
-    #     return result
-    # except (Exception, SQLAlchemyError) as e:
-    #     print(e.code)
-    #     if e.code == "gkpj":
-    #         raise HTTPException(status_code=400, detail=_(locale, "userprofile.already_exist"))
         
 #endregion
 

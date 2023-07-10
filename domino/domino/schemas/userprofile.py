@@ -132,7 +132,6 @@ class ProfileRefereeSchema(ProfileRefereeBase):
         orm_mode = True 
         
 class RefereeProfileCreated(BaseModel):
-    username: Optional[str]
     name: str
     email: Optional[str]
     level: Optional[str]
