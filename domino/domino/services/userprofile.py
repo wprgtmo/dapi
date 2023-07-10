@@ -196,10 +196,13 @@ def get_one_single_profile(request: Request, id: str, db: Session):
     port = str(int(settings.server_port))
     
     str_query = "Select pro.id profile_id, pro.name, pro.email, pro.city_id, pro.photo, pro.receive_notifications, " +\
-        "eve.name as profile_type_name, eve.description as profile_type_description " +\
+        "eve.name as profile_type_name, eve.description as profile_type_description, " +\
+        "city.name as city_name, city.country_id, pa.name as country_name " +\
         "FROM enterprise.profile_member pro " +\
         "inner join enterprise.profile_type eve ON eve.name = pro.profile_type " +\
         "inner join enterprise.profile_single_player sing ON sing.profile_id = pro.id " +\
+        "left join resources.city city ON city.id = pro.city_id " +\
+        "left join resources.country pa ON pa.id = city.country_id " +\
         "Where pro.id='" + id + "' "
     res_profile=db.execute(str_query)
     
@@ -209,7 +212,11 @@ def get_one_single_profile(request: Request, id: str, db: Session):
         result.data = {'id': item.profile_id, 'name': item.name, 'email': item.email,
                        'profile_type_name': item.profile_type_name, 
                        'profile_type_description': item.profile_type_description, 'photo': photo,
-                       'city_id': item.city_id, 'receive_notifications': item.receive_notifications}
+                       'country_id': item.country_id if item.country_id else '', 
+                       'country': item.country_name if item.country_name else '', 
+                       'city_id': item.city_id if item.city_id else '', 
+                       'city_name': item.city_name if item.city_name else '',
+                       'receive_notifications': item.receive_notifications}
     
     return result
 
@@ -221,10 +228,13 @@ def get_one_referee_profile(request: Request, id: str, db: Session):
     port = str(int(settings.server_port))
     
     str_query = "Select pro.id profile_id, pro.name, pro.email, pro.city_id, pro.photo, pro.receive_notifications, " +\
-        "eve.name as profile_type_name, eve.description as profile_type_description " +\
+        "eve.name as profile_type_name, eve.description as profile_type_description, " +\
+        "city.name as city_name, city.country_id, pa.name as country_name " +\
         "FROM enterprise.profile_member pro " +\
         "inner join enterprise.profile_type eve ON eve.name = pro.profile_type " +\
         "inner join enterprise.profile_referee sing ON sing.profile_id = pro.id " +\
+        "left join resources.city city ON city.id = pro.city_id " +\
+        "left join resources.country pa ON pa.id = city.country_id " +\
         "Where pro.id='" + id + "' "
     res_profile=db.execute(str_query)
     
@@ -234,7 +244,11 @@ def get_one_referee_profile(request: Request, id: str, db: Session):
         result.data = {'id': item.profile_id, 'name': item.name, 'email': item.email,
                        'profile_type_name': item.profile_type_name, 
                        'profile_type_description': item.profile_type_description, 'photo': photo,
-                       'city_id': item.city_id, 'receive_notifications': item.receive_notifications}
+                       'country_id': item.country_id if item.country_id else '', 
+                       'country': item.country_name if item.country_name else '', 
+                       'city_id': item.city_id if item.city_id else '', 
+                       'city_name': item.city_name if item.city_name else '',
+                       'receive_notifications': item.receive_notifications}
     
     return result
 
@@ -246,10 +260,13 @@ def get_one_pair_profile(request: Request, id: str, db: Session):
     port = str(int(settings.server_port))
     
     str_query = "Select pro.id profile_id, pro.name, pro.email, pro.city_id, pro.photo, pro.receive_notifications, " +\
-        "eve.name as profile_type_name, eve.description as profile_type_description " +\
+        "eve.name as profile_type_name, eve.description as profile_type_description, " +\
+        "city.name as city_name, city.country_id, pa.name as country_name " +\
         "FROM enterprise.profile_member pro " +\
         "inner join enterprise.profile_type eve ON eve.name = pro.profile_type " +\
         "inner join enterprise.profile_pair_player sing ON sing.profile_id = pro.id " +\
+        "left join resources.city city ON city.id = pro.city_id " +\
+        "left join resources.country pa ON pa.id = city.country_id " +\
         "Where pro.id='" + id + "' "
     res_profile=db.execute(str_query)
     
@@ -259,7 +276,11 @@ def get_one_pair_profile(request: Request, id: str, db: Session):
         result.data = {'id': item.profile_id, 'name': item.name, 'email': item.email,
                        'profile_type_name': item.profile_type_name, 
                        'profile_type_description': item.profile_type_description, 'photo': photo,
-                       'city_id': item.city_id, 'receive_notifications': item.receive_notifications}
+                       'country_id': item.country_id if item.country_id else '', 
+                       'country': item.country_name if item.country_name else '', 
+                       'city_id': item.city_id if item.city_id else '', 
+                       'city_name': item.city_name if item.city_name else '',
+                       'receive_notifications': item.receive_notifications}
     
     return result
 
@@ -271,10 +292,13 @@ def get_one_team_profile(request: Request, id: str, db: Session):
     port = str(int(settings.server_port))
     
     str_query = "Select pro.id profile_id, pro.name, pro.email, pro.city_id, pro.photo, pro.receive_notifications, " +\
-        "eve.name as profile_type_name, eve.description as profile_type_description " +\
+        "eve.name as profile_type_name, eve.description as profile_type_description, " +\
+        "city.name as city_name, city.country_id, pa.name as country_name " +\
         "FROM enterprise.profile_member pro " +\
         "inner join enterprise.profile_type eve ON eve.name = pro.profile_type " +\
         "inner join enterprise.profile_team_player sing ON sing.profile_id = pro.id " +\
+        "left join resources.city city ON city.id = pro.city_id " +\
+        "left join resources.country pa ON pa.id = city.country_id " +\
         "Where pro.id='" + id + "' "
     res_profile=db.execute(str_query)
     
@@ -284,7 +308,11 @@ def get_one_team_profile(request: Request, id: str, db: Session):
         result.data = {'id': item.profile_id, 'name': item.name, 'email': item.email,
                        'profile_type_name': item.profile_type_name, 
                        'profile_type_description': item.profile_type_description, 'photo': photo,
-                       'city_id': item.city_id, 'receive_notifications': item.receive_notifications}
+                       'country_id': item.country_id if item.country_id else '', 
+                       'country': item.country_name if item.country_name else '', 
+                       'city_id': item.city_id if item.city_id else '', 
+                       'city_name': item.city_name if item.city_name else '',
+                       'receive_notifications': item.receive_notifications}
     
     return result
 
