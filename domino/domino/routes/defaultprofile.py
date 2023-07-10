@@ -3,7 +3,7 @@ from domino.schemas.userprofile import DefaultUserProfileBase
 from domino.schemas.result_object import ResultObject
 from sqlalchemy.orm import Session
 from domino.app import get_db
-from domino.services.userprofile import new_profile_default_user, get_one_default_user_profile, \
+from domino.services.userprofile import get_one_default_user_profile, \
     update_one_default_profile, delete_one_default_profile, get_all_profile_by_user_profile_id
 
 from starlette import status
@@ -13,10 +13,6 @@ defaultprofile_route = APIRouter(
     tags=["Profile"],
     dependencies=[Depends(JWTBearer())]   
 )
-
-# @defaultprofile_route.post("/defaultprofile", response_model=ResultObject, summary="Create a Default User Profile")
-# def create_single_profile(request:Request, defaultusereprofile: DefaultUserProfileBase = Depends(), image: UploadFile = None, db: Session = Depends(get_db)):
-#     return new_profile_default_user(request=request, defaultusereprofile=defaultusereprofile.dict(), file=image, db=db)
 
 @defaultprofile_route.get("/profile/default/{id}", response_model=ResultObject, summary="Get a Default User Profile for your ID.")
 def get_default_profile(request: Request, id: str, db: Session = Depends(get_db)):

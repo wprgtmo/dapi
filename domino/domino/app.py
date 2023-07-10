@@ -61,6 +61,9 @@ from domino.routes.player import player_route
 from domino.routes.referee import referee_route
 from domino.routes.singleprofile import singleprofile_route
 from domino.routes.defaultprofile import defaultprofile_route
+from domino.routes.pairprofile import pairprofile_route
+from domino.routes.teamprofile import teamprofile_route
+from domino.routes.referee_profile import refereeprofile_route
 
 @app.get("/docs", include_in_schema=False)
 async def custom_swagger_ui_html():
@@ -103,6 +106,9 @@ app.include_router(player_route, prefix="/api")
 app.include_router(referee_route, prefix="/api")
 app.include_router(singleprofile_route, prefix="/api")
 app.include_router(defaultprofile_route, prefix="/api")
+app.include_router(pairprofile_route, prefix="/api")
+app.include_router(teamprofile_route, prefix="/api")
+app.include_router(refereeprofile_route, prefix="/api")
 
 @app.post("/file")
 def upfile(file: UploadFile = File(...)):

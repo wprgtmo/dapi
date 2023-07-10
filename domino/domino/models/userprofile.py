@@ -63,6 +63,9 @@ class ProfileMember(Base):
     profile_users = relationship("ProfileUsers")
     profile_single_player = relationship("SingleProfile")
     profile_default_user = relationship("DefaultUserProfile")
+    profile_referee_player = relationship("RefereeProfile")
+    profile_pair_player = relationship("PairProfile")
+    profile_team_player = relationship("TeamProfile")
      
     def dict(self):
         return {
@@ -133,11 +136,67 @@ class DefaultUserProfile(Base):
     def dict(self):
         return {
             "profile_id": self.profile_id,
-            "is_active": self.is_active,
             "sex": self.sex,
             "birthdate": self.birthdate,
             "alias": self.alias,
-            "job": self.job,
-            "photo": self.photo,
-            "receive_notifications": self.receive_notifications
+            "job": self.job
+            }
+
+class RefereeProfile(Base):
+    """RefereeProfile Class contains standard information for a Profile of Referee"""
+ 
+    __tablename__ = "profile_referee"
+    __table_args__ = {'schema' : 'enterprise'}
+    
+    profile_id = Column(String, ForeignKey("enterprise.profile_member.id"), primary_key=True)
+    
+    level = Column(String(60), nullable=True)
+    
+    updated_by = Column(String, ForeignKey("enterprise.users.username"), nullable=False)
+    updated_date = Column(Date, nullable=False, default=date.today())
+     
+    def dict(self):
+        return {
+            "profile_id": self.profile_id,
+            "level": self.level   # alcance Internacional, Regional
+        }
+
+class PairProfile(Base):
+    """PairProfile Class contains standard information for a Profile of Pair"""
+ 
+    __tablename__ = "profile_pair_player"
+    __table_args__ = {'schema' : 'enterprise'}
+    
+    profile_id = Column(String, ForeignKey("enterprise.profile_member.id"), primary_key=True)
+    
+    level = Column(String(60), nullable=True)
+    
+    updated_by = Column(String, ForeignKey("enterprise.users.username"), nullable=False)
+    updated_date = Column(Date, nullable=False, default=date.today())
+     
+    def dict(self):
+        return {
+            "profile_id": self.profile_id,
+            "level": self.level   # alcance Internacional, Regional
+        }
+
+class TeamProfile(Base):
+    """TeamProfile Class contains standard information for a Profile of Team"""
+ 
+    __tablename__ = "profile_team_player"
+    __table_args__ = {'schema' : 'enterprise'}
+    
+    profile_id = Column(String, ForeignKey("enterprise.profile_member.id"), primary_key=True)
+    
+    level = Column(String(60), nullable=True)
+    amount_members = Column(Integer, default=4)
+    
+    updated_by = Column(String, ForeignKey("enterprise.users.username"), nullable=False)
+    updated_date = Column(Date, nullable=False, default=date.today())
+     
+    def dict(self):
+        return {
+            "profile_id": self.profile_id,
+            "level": self.level,   # alcance Internacional, Regional
+            "amount_members": self.amount_members
         }

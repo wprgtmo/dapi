@@ -84,3 +84,58 @@ class DefaultUserProfileBase(BaseModel):
 #     username: str
 #     elo: int
 #     ranking: str
+
+
+class ProfilePairPlayerBase(BaseModel):
+    profile_id: str
+    level: Optional[str]
+    
+class ProfilePairPlayerSchema(ProfilePairPlayerBase):
+    
+    class Config:
+        orm_mode = True 
+        
+class PairProfileCreated(BaseModel):
+    name: str
+    email: Optional[str]
+    level: Optional[str]
+    city_id: Optional[int]
+    
+    receive_notifications: Optional[bool] = False
+    
+class ProfileTeamPlayerBase(BaseModel):
+    profile_id: str
+    level: Optional[str]
+    amount_members: int
+    
+class ProfileTeamPlayerSchema(ProfileTeamPlayerBase):
+    
+    class Config:
+        orm_mode = True 
+        
+class TeamProfileCreated(BaseModel):
+    name: str
+    email: Optional[str]
+    level: Optional[str]
+    city_id: Optional[int]
+    amount_members: int
+    
+    receive_notifications: Optional[bool] = False
+    
+class ProfileRefereeBase(BaseModel):
+    profile_id: str
+    level: Optional[str]
+    
+class ProfileRefereeSchema(ProfileRefereeBase):
+    
+    class Config:
+        orm_mode = True 
+        
+class RefereeProfileCreated(BaseModel):
+    username: Optional[str]
+    name: str
+    email: Optional[str]
+    level: Optional[str]
+    city_id: Optional[int]
+    
+    receive_notifications: Optional[bool] = False
