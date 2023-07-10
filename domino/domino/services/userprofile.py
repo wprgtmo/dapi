@@ -536,10 +536,11 @@ def update_one_default_profile(request: Request, id: str, defaultuserprofile: De
         
     db_default_profile.receive_notifications = defaultuserprofile['receive_notifications'] 
     
-    path = create_dir(entity_type="USER", user_id=str(one_user.id), entity_id=None)    
+    path = create_dir(entity_type="USER", user_id=str(one_user.id), entity_id=None)  
+    current_image = db_default_profile.photo
+      
     if avatar:
         ext = get_ext_at_file(avatar.filename)
-        current_image = db_default_profile.photo
         avatar.filename = str(uuid.uuid4()) + "." + ext if ext else str(uuid.uuid4())
         db_default_profile.photo = avatar.filename
         path_del = "/public/profile/" + str(one_user.id) + "/" 
@@ -550,13 +551,19 @@ def update_one_default_profile(request: Request, id: str, defaultuserprofile: De
         upfile(file=avatar, path=path)
         
     else:
-        if not db_default_profile.photo:
-            image_domino="public/profile/user-vector.jpg"
-            filename = str(db_default_profile.id) + ".jpg"
-            image_destiny = "public/profile/" + str(db_default_profile.id) + "/" + str(filename)
+        # si no viene imagen, borrar la que tiene y poner la foto por defecto del sistema
+        path_del = "/public/profile/" + str(one_user.id) + "/" 
+        try:
+            del_image(path=path_del, name=str(current_image))
+        except:
+            pass
         
-            copy_image(image_domino, image_destiny)
-            db_default_profile.photo = filename
+        image_domino="public/profile/user-vector.jpg"
+        filename = str(db_default_profile.id) + ".jpg"
+        image_destiny = "public/profile/" + str(db_default_profile.id) + "/" + str(filename)
+    
+        copy_image(image_domino, image_destiny)
+        db_default_profile.photo = filename
     
     db_default_profile.updated_by = currentUser['username']
     db_default_profile.updated_date = datetime.now()
