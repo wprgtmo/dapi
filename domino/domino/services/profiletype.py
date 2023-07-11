@@ -46,49 +46,6 @@ def get_all(request:Request, db: Session):
     
     return result
 
-def get_all_to_delete(request:Request, username: str, page: int, per_page: int, criteria_key: str, criteria_value: str, db: Session):  
-    locale = request.headers["accept-language"].split(",")[0].split("-")[0];
-    
-    result = ResultObject()
-    
-    str_query = "Select id, name, description FROM enterprise.profile_type "
-    str_profile = "SELECT DISTINCT pmem.profile_type FROM enterprise.profile_users puse " +\
-        "INNER JOIN enterprise.profile_member pmem ON pmem.id = puse.profile_id " +\
-        "WHERE username = '"  + username + "' "
- 
-    dict_query = {'name': " WHERE name ilike '%" + criteria_value + "%'",
-                  'description': " WHERE description ilike '%" + criteria_value + "%'"}
-    
-    if criteria_key and criteria_key not in dict_query:
-        raise HTTPException(status_code=404, detail=_(locale, "commun.invalid_param"))
-    
-    if page and page > 0 and not per_page:
-        raise HTTPException(status_code=404, detail=_(locale, "commun.invalid_param"))
-        
-    str_query += dict_query[criteria_key] if criteria_value else "" 
-    
-    if page != 0:
-        str_query += "LIMIT " + str(per_page) + " OFFSET " + str(page*per_page-per_page)
-     
-    lst_data = db.execute(str_query)
-    
-    lst_profile = db.execute(str_profile)
-    str_profile = ""
-    for item_pro in lst_profile:
-        str_profile += " " + item_pro['profile_type']
-        
-    # result.data = [create_dict_row(item, page, db=db) for item in lst_data]
-            
-    return result
-
-
-def create_dict_row_to_borrar(item, page, db: Session):
-    
-    new_row = {'id': item['id'], 'name' : item['name'], 'description': item['description']}
-    if page != 0:
-        new_row['selected'] = False
-    return new_row
-
 def get_one(id: str, db: Session):  
     return db.query(ProfileType).filter(ProfileType.id == id).first()
 

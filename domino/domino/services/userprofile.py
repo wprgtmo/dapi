@@ -378,22 +378,45 @@ def get_all_profile_by_user_profile_id(request: Request, profile_id: str, db: Se
     result = ResultObject() 
     result.data = []
     
+    host = str(settings.server_uri)
+    port = str(int(settings.server_port))
+    
     try:
         str_profile = "SELECT pus.username FROM enterprise.profile_member pme " +\
             "INNER JOIN enterprise.profile_users pus ON pus.profile_id = pme.id " +\
             "where pme.id = '" + profile_id + "' "
         user_name = db.execute(str_profile).scalar()
         if user_name:
-            str_profile = "SELECT DISTINCT pme.id as profile_id, profile_type, prot.description " +\
+            str_profile = "SELECT DISTINCT pme.id as profile_id, profile_type, prot.description, " +\
+                "pme.name, pme.photo, pme.city_id, city.country_id, pa.name as country_name, " +\
+                "city.name as city_name, pme.name, pme.email, pme.photo " +\
                 "FROM enterprise.profile_member pme " +\
                 "INNER JOIN enterprise.profile_users pus ON pus.profile_id = pme.id " +\
                 "INNER JOIN enterprise.profile_type prot ON prot.name = pme.profile_type " +\
+                "left join resources.city city ON city.id = pme.city_id " +\
+                "left join resources.country pa ON pa.id = city.country_id " +\
                 "where pus.username = '" + user_name + "' AND pme.id != '" + profile_id + "' "
             lst_data =  db.execute(str_profile)
             for item in lst_data:
                 result.data.append({'profile_id': item.profile_id, 
-                                    'name': item.profile_type,
-                                    'description': item.description})  
+                                    'profile_name': item.profile_type,
+                                    'profile_description': item.description,
+                                    'name': item.name,
+                                    'email': item.email,
+                                    'photo': get_url_avatar(item.profile_id, item.photo, host=host, port=port),
+                                    'country_id': item.country_id if item.country_id else '', 
+                                    'country': item.country_name if item.country_name else '', 
+                                    'city_id': item.city_id if item.city_id else '', 
+                                    'city_name': item.city_name if item.city_name else ''})  
+    
+        
+        
+     
+     
+     
+     
+     
+     
      
         return result
         
