@@ -14,14 +14,16 @@ from domino.functions_jwt import get_current_user
 from domino.app import _
 from domino.services.utils import get_result_count
             
-def get_all(request:Request, username: str, db: Session):  
+def get_all(request:Request, db: Session):  
     
     result = ResultObject()
+    
+    currentUser = get_current_user(request)
     
     str_query = "Select id, name, description FROM enterprise.profile_type "
     str_profile = "SELECT DISTINCT pmem.profile_type FROM enterprise.profile_users puse " +\
         "INNER JOIN enterprise.profile_member pmem ON pmem.id = puse.profile_id " +\
-        "WHERE username = '"  + username + "' "
+        "WHERE username = '"  + currentUser['username'] + "' "
   
     lst_data = db.execute(str_query)
     

@@ -15,8 +15,8 @@ profiletype_route = APIRouter(
 )
 
 @profiletype_route.get("/profiletype", response_model=Dict, summary="Get list of Profile of System")
-def get_profiletype(request: Request, username: str, db: Session = Depends(get_db)):
-    return get_all(request=request, username=username, db=db)
+def get_profiletype(request: Request, db: Session = Depends(get_db)):
+    return get_all(request=request, db=db)
 
 @profiletype_route.post("/profiletype", response_model=ResultObject, summary="Create a new profile type.")
 def create_profiletype(request:Request, profiletype: ProfileTypeBase, db: Session = Depends(get_db)):
