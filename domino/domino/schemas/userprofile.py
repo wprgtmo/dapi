@@ -103,6 +103,8 @@ class PairProfileCreated(BaseModel):
     
     receive_notifications: Optional[bool] = False
     
+    other_profile_id: Optional[str]
+    
 class ProfileTeamPlayerBase(BaseModel):
     profile_id: str
     level: Optional[str]

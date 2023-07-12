@@ -14,8 +14,8 @@ pairprofile_route = APIRouter(
 
 @pairprofile_route.post("/profile/pair", response_model=ResultObject, summary="Create a Profile of Pair Player")
 def create_pair_profile(
-    request:Request, paireprofile: PairProfileCreated = Depends(), image: UploadFile = None, db: Session = Depends(get_db)):
-    return new_profile_pair_player(request=request, paireprofile=paireprofile.dict(), file=image, db=db)
+    request:Request, pairprofile: PairProfileCreated = Depends(), image: UploadFile = None, db: Session = Depends(get_db)):
+    return new_profile_pair_player(request=request, pairprofile=pairprofile.dict(), file=image, db=db)
 
 @pairprofile_route.get("/profile/pair/{id}", response_model=ResultObject, summary="Get a Pair Player Profile for your ID.")
 def get_pair_profile(request: Request, id: str, db: Session = Depends(get_db)):

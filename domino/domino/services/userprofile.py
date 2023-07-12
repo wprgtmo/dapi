@@ -130,8 +130,17 @@ def new_profile_pair_player(request: Request, pairprofile: PairProfileCreated, f
                               pairprofile['email'], pairprofile['city_id'], pairprofile['receive_notifications'], 
                               True, True, "USERPROFILE", currentUser['username'], currentUser['username'], file)
     
-    one_pair_player = PairProfile(profile_id=id, elo=0, level=pairprofile['level'], updated_by=currentUser['username'])
+    one_pair_player = PairProfile(profile_id=id, level=pairprofile['level'], updated_by=currentUser['username'])
     one_profile.profile_pair_player.append(one_pair_player)
+    
+    if pairprofile['other_profile_id']:   # el segundo jugador de la pareja
+        other_username = get_user_for_single_profile(pairprofile['other_profile_id'], db=db)
+        if other_username:
+            other_user_member = ProfileUsers(profile_id=pairprofile['other_profile_id'], username=other_username, 
+                                            is_principal=False, created_by=currentUser['username'])
+            one_profile.profile_users.append(other_user_member) 
+        else:
+            raise HTTPException(status_code=400, detail=_(locale, "profile.not_exist"))
     
     try:   
         db.add(one_profile)
@@ -179,7 +188,15 @@ def get_one_default_user(id: str, db: Session):
 def get_one_referee_profile(id: str, db: Session):  
     return db.query(RefereeProfile).filter(RefereeProfile.profile_id == id).first()
 
-def get_one_single_profile(id: str, db: Session):  
+def get_user_for_single_profile(profile_id: str, db: Session):  
+    
+    str_query = "Select us.username FROM enterprise.profile_member pro " +\
+        "join enterprise.profile_users us ON us.profile_id = pro.id " +\
+        "Where pro.is_active = True and pro.id='" + profile_id + "' "
+        
+    res_profile = db.execute(str_query).fetchone()
+    return res_profile[0] if res_profile else ""
+    
     return db.query(SingleProfile).filter(SingleProfile.profile_id == id).first()
 
 def get_one_pair_profile(id: str, db: Session):  
