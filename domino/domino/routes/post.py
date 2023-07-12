@@ -17,7 +17,7 @@ post_route = APIRouter(
     dependencies=[Depends(JWTBearer())]   
 )
 
-@post_route.get("/post/all", response_model=Dict, summary="Obtain a list of Post.")
+@post_route.get("/post/all/", response_model=Dict, summary="Obtain a list of Post.")
 def get_post(
     request: Request,
     page: int = 1, 
@@ -35,7 +35,7 @@ def get_last_post(
 ):
     return get_list_post(request=request, db=db)
 
-@post_route.get("/post/{id}", response_model=ResultObject, summary="Get a Post for your ID.")
+@post_route.get("/post/one/{id}", response_model=ResultObject, summary="Get a Post for your ID.")
 def get_post_by_id(id: str, db: Session = Depends(get_db)):
     return get_one_by_id(post_id=id, db=db)
 

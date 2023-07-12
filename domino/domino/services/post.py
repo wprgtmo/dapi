@@ -62,13 +62,16 @@ def get_list_post(request:Request, db: Session):
     date_find = datetime.now() - timedelta(days=4)
     currentUser = get_current_user(request)
     
-    str_query = "Select po.id, summary, us.first_name || ' ' || us.last_name as full_name, po.updated_date, us.photo, " +\
-        "us.id as user_id , po.allow_comment, po.show_count_like " +\
+    str_query = "Select po.id, summary, us.first_name || ' ' || us.last_name as full_name, po.updated_date, pmem.photo, " +\
+        "us.id as user_id, pmem.id as profile_id, po.allow_comment, po.show_count_like " +\
         "FROM post.post po JOIN enterprise.users us ON po.created_by = us.username " +\
+        "JOIN enterprise.profile_users puse ON puse.username = us.username " +\
+        "JOIN enterprise.profile_member pmem ON pmem.id = puse.profile_id AND pmem.profile_type = 'USER' " +\
         "LEFT JOIN enterprise.user_followers usf ON usf.user_follow = po.created_by " +\
         "WHERE po.is_active=True AND po.updated_date >= '" + date_find.strftime('%Y-%m-%d') + "' " +\
-        "AND (usf.username = '" + currentUser['username'] + "' or po.created_by = 'domino' or po.created_by = '" + currentUser['username'] + "')"
-    
+        "AND (usf.username = '" + currentUser['username'] + "' " +\
+        "or po.created_by = 'domino' or po.created_by = '" + currentUser['username'] + "')"
+  
     str_query += " ORDER BY updated_date DESC " 
     
     lst_data = db.execute(str_query)
@@ -84,6 +87,7 @@ def create_dict_row(item, current_date, currentUser, db: Session, host='', port=
     amount_like, amount_comments = get_amount_element_of_post(item['id'], db=db)
     return {'id': item['id'], 
             'user_id': item['user_id'],
+            'profile_id': item['profile_id'],
             'name': item['full_name'],
             'avatar': get_url_avatar(item['user_id'], item['photo'], host, port) if item['photo'] else "", 
             'elapsed': calculate_time(current_date, item['updated_date']), 
@@ -134,10 +138,13 @@ def get_amount_element_of_post(post_id, db: Session):
 
 def get_comments_of_post(post_id: str, current_date: datetime, db: Session, host='', port=''):
     
-    str_comments = "SELECT po.id, us.first_name || ' ' || us.last_name as full_name, us.photo, summary, " +\
+    str_comments = "SELECT po.id, us.first_name || ' ' || us.last_name as full_name, pmem.photo, summary, " +\
         "po.created_date, us.id as user_id, us.username FROM post.post_comments po " +\
         "LEFT JOIN enterprise.users us ON po.created_by = us.username " +\
+        "LEFT JOIN enterprise.profile_users puse ON puse.username = us.username " +\
+        "LEFT JOIN enterprise.profile_member pmem ON pmem.id = puse.profile_id  AND pmem.profile_type = 'USER' " +\
         "WHERE post_id = '" + post_id + "' ORDER BY po.created_date DESC LIMIT 3 "
+        
     lst_comments = db.execute(str_comments)
  
     lst_result = []
@@ -202,7 +209,11 @@ def get_one_like_at_comment(post_comment_id: str, user_name:str, db: Session):
 
 def get_one_by_id(post_id: str, db: Session): 
     result = ResultObject()  
+    host=str(settings.server_uri)
+    port=str(int(settings.server_port))
+    
     result.data = db.query(Post).filter(Post.id == post_id).first()
+    result.data.photos = get_files_of_post(post_id, db=db, host=host, port=port)
     return result
 
 def new(request, db: Session, post: PostCreated, files: List[File]):
