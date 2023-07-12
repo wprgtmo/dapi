@@ -173,26 +173,20 @@ def new_profile_team_player(request: Request, teamprofile: TeamProfileCreated, f
     # if int(teamprofile['amount_members']) < len(teamprofile['others_profile_id']):
     #     raise HTTPException(status_code=400, detail=_(locale, "profile.incorrect_amount_member"))
     
-    print(type(teamprofile['others_profile_id']))
     # lst_players = json.loads(teamprofile['others_profile_id'])
     
-    print(len(teamprofile['others_profile_id']))
-    print('longitud')
-    for item in teamprofile['others_profile_id']:
-        print('valores')
-        print(item)
-        print('***************')
+    if teamprofile['others_profile_id']:
+        lst_players_str = teamprofile['others_profile_id'][0]
+        lst_players = lst_players_str.split(',')
         
-        other_username = get_user_for_single_profile(item, db=db)
-        if other_username:
-            print('encontre')
-            other_user_member = ProfileUsers(profile_id=item, username=other_username, 
-                                            is_principal=False, created_by=currentUser['username'])
-            one_profile.profile_users.append(other_user_member) 
-        else:
-            print('no encomtre')
-            continue
-    
+        for item in lst_players: # teamprofile['others_profile_id']:
+            other_username = get_user_for_single_profile(item, db=db)
+            if other_username:
+                other_user_member = ProfileUsers(profile_id=item, username=other_username, 
+                                                is_principal=False, created_by=currentUser['username'])
+                one_profile.profile_users.append(other_user_member) 
+            else:
+                continue
     try:   
         db.add(one_profile)
         db.commit()
