@@ -120,10 +120,11 @@ class TeamProfileCreated(BaseModel):
     email: Optional[str]
     level: Optional[str]
     city_id: Optional[int]
-    amount_members: int
+    # amount_members: int
     
     receive_notifications: Optional[bool] = False
     
+    others_profile_id: Optional[List]
 class ProfileRefereeBase(BaseModel):
     profile_id: str
     level: Optional[str]

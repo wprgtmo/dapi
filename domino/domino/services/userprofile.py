@@ -1,5 +1,6 @@
 import math
 import uuid
+import json
 
 from datetime import datetime
 
@@ -165,8 +166,32 @@ def new_profile_team_player(request: Request, teamprofile: TeamProfileCreated, f
                               teamprofile['email'], teamprofile['city_id'], teamprofile['receive_notifications'], 
                               True, True, "USERPROFILE", currentUser['username'], currentUser['username'], file)
     
-    one_team_player = TeamProfile(profile_id=id, elo=0, level=teamprofile['level'], updated_by=currentUser['username'])
+    one_team_player = TeamProfile(profile_id=id, level=teamprofile['level'], amount_members=0, #teamprofile['amount_members'], 
+                                  updated_by=currentUser['username'])
     one_profile.profile_team_player.append(one_team_player)
+    
+    # if int(teamprofile['amount_members']) < len(teamprofile['others_profile_id']):
+    #     raise HTTPException(status_code=400, detail=_(locale, "profile.incorrect_amount_member"))
+    
+    print(type(teamprofile['others_profile_id']))
+    # lst_players = json.loads(teamprofile['others_profile_id'])
+    
+    print(len(teamprofile['others_profile_id']))
+    print('longitud')
+    for item in teamprofile['others_profile_id']:
+        print('valores')
+        print(item)
+        print('***************')
+        
+        other_username = get_user_for_single_profile(item, db=db)
+        if other_username:
+            print('encontre')
+            other_user_member = ProfileUsers(profile_id=item, username=other_username, 
+                                            is_principal=False, created_by=currentUser['username'])
+            one_profile.profile_users.append(other_user_member) 
+        else:
+            print('no encomtre')
+            continue
     
     try:   
         db.add(one_profile)

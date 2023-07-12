@@ -15,7 +15,7 @@ teamprofile_route = APIRouter(
 @teamprofile_route.post("/profile/team", response_model=ResultObject, summary="Create a Profile of Team Player")
 def create_team_profile(
     request:Request, teamprofile: TeamProfileCreated = Depends(), image: UploadFile = None, db: Session = Depends(get_db)):
-    return new_profile_team_player(request=request, teameprofile=teamprofile.dict(), file=image, db=db)
+    return new_profile_team_player(request=request, teamprofile=teamprofile.dict(), file=image, db=db)
 
 @teamprofile_route.get("/profile/team/{id}", response_model=ResultObject, summary="Get a Team Player Profile for your ID.")
 def get_team_profile(request: Request, id: str, db: Session = Depends(get_db)):
