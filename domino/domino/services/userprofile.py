@@ -20,7 +20,7 @@ from domino.auth_bearer import decodeJWT
 from domino.app import _
 from domino.services.users import get_one_by_username, get_one as get_one_user_by_id
 from domino.services.city import get_one as get_city_by_id
-from domino.services.utils import upfile, create_dir, del_image, get_ext_at_file, remove_dir, copy_image
+from domino.services.utils import get_result_count, upfile, create_dir, del_image, get_ext_at_file, remove_dir, copy_image
 
 from domino.services.auth import get_url_avatar
 from domino.services.comunprofile import new_profile
@@ -45,7 +45,7 @@ def new_profile_single_player(request: Request, singleprofile: SingleProfileCrea
     id = str(uuid.uuid4())
     one_profile = new_profile(profile_type, id, currentUser['user_id'], currentUser['username'], singleprofile['name'], 
                               singleprofile['email'], singleprofile['city_id'], singleprofile['receive_notifications'], 
-                              True, True, "USERPROFILE", currentUser['username'], currentUser['username'], file)
+                              True, True, "USERPROFILE", currentUser['username'], currentUser['username'], file, is_confirmed=True)
     
     one_single_player = SingleProfile(profile_id=id, elo=0, ranking=None, updated_by=currentUser['username'])
     one_profile.profile_single_player.append(one_single_player)
@@ -86,7 +86,7 @@ def new_profile_referee(request: Request, refereeprofile: RefereeProfileCreated,
                                 created_by=currentUser['username'], updated_by=currentUser['username'])
     
     one_user_member = ProfileUsers(profile_id=id, username=one_user.username, is_principal=True, 
-                                   created_by=currentUser['username'])
+                                   created_by=currentUser['username'], is_confirmed=True)
     one_profile.profile_users.append(one_user_member)  
     
     one_referee_user = RefereeProfile(profile_id=id, level=refereeprofile['level'], updated_by=currentUser['username'])
@@ -129,7 +129,8 @@ def new_profile_pair_player(request: Request, pairprofile: PairProfileCreated, f
     id = str(uuid.uuid4())
     one_profile = new_profile(profile_type, id, currentUser['user_id'], currentUser['username'], pairprofile['name'], 
                               pairprofile['email'], pairprofile['city_id'], pairprofile['receive_notifications'], 
-                              True, True, "USERPROFILE", currentUser['username'], currentUser['username'], file)
+                              True, True, "USERPROFILE", currentUser['username'], currentUser['username'], file, 
+                              is_confirmed=True)
     
     one_pair_player = PairProfile(profile_id=id, level=pairprofile['level'], updated_by=currentUser['username'])
     one_profile.profile_pair_player.append(one_pair_player)
@@ -138,18 +139,18 @@ def new_profile_pair_player(request: Request, pairprofile: PairProfileCreated, f
         other_username = get_user_for_single_profile(pairprofile['other_profile_id'], db=db)
         if other_username:
             other_user_member = ProfileUsers(profile_id=pairprofile['other_profile_id'], username=other_username, 
-                                            is_principal=False, created_by=currentUser['username'])
+                                            is_principal=False, created_by=currentUser['username'], is_confirmed=False)
             one_profile.profile_users.append(other_user_member) 
         else:
             raise HTTPException(status_code=400, detail=_(locale, "profile.not_exist"))
     
-    try:   
-        db.add(one_profile)
-        db.commit()
-        result.data = {'id': id}
-        return result
-    except (Exception, SQLAlchemyError) as e:
-        raise HTTPException(status_code=400, detail=_(locale, "userprofile.errorinsert"))
+    # try:   
+    db.add(one_profile)
+    db.commit()
+    result.data = {'id': id}
+    return result
+    # except (Exception, SQLAlchemyError) as e:
+    #     raise HTTPException(status_code=400, detail=_(locale, "userprofile.errorinsert"))
     
 def new_profile_team_player(request: Request, teamprofile: TeamProfileCreated, file: File, db: Session): 
     locale = request.headers["accept-language"].split(",")[0].split("-")[0];
@@ -164,7 +165,7 @@ def new_profile_team_player(request: Request, teamprofile: TeamProfileCreated, f
     id = str(uuid.uuid4())
     one_profile = new_profile(profile_type, id, currentUser['user_id'], currentUser['username'], teamprofile['name'], 
                               teamprofile['email'], teamprofile['city_id'], teamprofile['receive_notifications'], 
-                              True, True, "USERPROFILE", currentUser['username'], currentUser['username'], file)
+                              True, True, "USERPROFILE", currentUser['username'], currentUser['username'], file, is_confirmed=True)
     
     one_team_player = TeamProfile(profile_id=id, level=teamprofile['level'], amount_members=0, #teamprofile['amount_members'], 
                                   updated_by=currentUser['username'])
@@ -183,7 +184,8 @@ def new_profile_team_player(request: Request, teamprofile: TeamProfileCreated, f
             other_username = get_user_for_single_profile(item, db=db)
             if other_username:
                 other_user_member = ProfileUsers(profile_id=item, username=other_username, 
-                                                is_principal=False, created_by=currentUser['username'])
+                                                is_principal=False, created_by=currentUser['username'],
+                                                is_confirmed=False)
                 one_profile.profile_users.append(other_user_member) 
             else:
                 continue
@@ -223,6 +225,64 @@ def get_one_pair_profile(id: str, db: Session):
 
 def get_one_team_profile(id: str, db: Session):  
     return db.query(TeamProfile).filter(TeamProfile.profile_id == id).first()
+
+def get_all_single_profile(request:Request, page: int, per_page: int, criteria_key: str, criteria_value: str, db: Session):  
+    locale = request.headers["accept-language"].split(",")[0].split("-")[0];
+    
+    host = str(settings.server_uri)
+    port = str(int(settings.server_port))
+    
+    str_from = "FROM enterprise.profile_member pmem " +\
+        "JOIN enterprise.profile_single_player psin ON psin.profile_id = pmem.id " +\
+        "left join resources.city city ON city.id = pmem.city_id " +\
+        "left join resources.country pa ON pa.id = city.country_id "
+    
+    str_count = "Select count(*) " + str_from
+    str_query = "Select pmem.id profile_id, pmem.name, photo, pmem.city_id, city.name city_name, city.country_id, " +\
+        "pa.name as country_name " + str_from
+    
+    str_where = " WHERE pmem.is_active = True "  
+    
+    dict_query = {'name': " AND pmem.name ilike '%" + criteria_value + "%'"
+                #   'summary': " AND summary ilike '%" + criteria_value + "%'",
+                #   'modality': " AND modality ilike '%" + criteria_value + "%'",
+                #   'start_date': " AND start_date >= '%" + criteria_value + "%'",
+                  }
+    
+    str_count += str_where
+    str_query += str_where
+    
+    if criteria_key and criteria_key not in dict_query:
+        raise HTTPException(status_code=404, detail=_(locale, "commun.invalid_param"))
+    
+    if page and page > 0 and not per_page:
+        raise HTTPException(status_code=404, detail=_(locale, "commun.invalid_param"))
+    
+    str_count += dict_query[criteria_key] if criteria_value else "" 
+    str_query += dict_query[criteria_key] if criteria_value else "" 
+    
+    result = get_result_count(page=page, per_page=per_page, str_count=str_count, db=db)
+    
+    str_query += " ORDER BY pmem.name " 
+    
+    if page != 0:
+        str_query += "LIMIT " + str(per_page) + " OFFSET " + str(page*per_page-per_page)
+     
+    lst_data = db.execute(str_query)
+    result.data = [create_dict_row_single_player(item, page, db=db, host=host, port=port) for item in lst_data]
+    
+    return result
+
+def create_dict_row_single_player(item, page, db: Session, host="", port=""):
+    
+    new_row = {'profile_id': item['profile_id'], 'name': item['name'], 
+               'city': item['city_id'], 'city_name': item['city_name'], 
+               'country_id': item['country_id'], 'country': item['country_name'], 
+               'photo' : get_url_avatar(item['profile_id'], item['photo'], host=host, port=port)}
+    if page != 0:
+        new_row['selected'] = False
+    
+    return new_row
 
 def get_one_single_profile(request: Request, id: str, db: Session): 
     

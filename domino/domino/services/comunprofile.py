@@ -8,7 +8,7 @@ from domino.app import _
 from domino.models.userprofile import ProfileMember, ProfileUsers, SingleProfile, DefaultUserProfile
 
 def new_profile(profile_type, id, user_id, username, name, email, city_id, receive_notifications, is_ready, is_principal,
-                entity_type, created_by, updated_by, file: File): 
+                entity_type, created_by, updated_by, file: File, is_confirmed=False): 
     
     one_profile = ProfileMember(id=id, name=name, email=email, profile_type=profile_type.name, 
                                 city_id=city_id, photo=file.filename if file else None, 
@@ -16,7 +16,8 @@ def new_profile(profile_type, id, user_id, username, name, email, city_id, recei
                                 is_active=True, is_ready=is_ready, 
                                 created_by=created_by, updated_by=updated_by)
     
-    one_user_member = ProfileUsers(profile_id=id, username=username, is_principal=is_principal, created_by=created_by)
+    one_user_member = ProfileUsers(profile_id=id, username=username, is_principal=is_principal, created_by=created_by, 
+                                   is_confirmed=is_confirmed)
     one_profile.profile_users.append(one_user_member)  
     
     path = create_dir(entity_type=entity_type, user_id=str(user_id), entity_id=id)
@@ -40,7 +41,7 @@ def new_profile_default_user(profile_type, id, user_id, username, name, email, c
                              created_by, updated_by, sex, birthdate, alias, job, file: File): 
     
     one_profile = new_profile(profile_type, id, user_id, username, name, email, city_id, receive_notifications, 
-                              True, True, "USERPROFILE", created_by, updated_by, file)
+                              True, True, "USERPROFILE", created_by, updated_by, file, is_confirmed=True)
     new_default_user = DefaultUserProfile(profile_id=id, sex=sex, birthdate=birthdate,
                                           alias=alias, job=job, city_id=city_id, updated_by=updated_by)
     

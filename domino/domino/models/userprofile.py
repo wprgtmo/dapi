@@ -89,12 +89,15 @@ class ProfileUsers(Base):
     
     created_by = Column(String, ForeignKey("enterprise.users.username"), nullable=False)
     created_date = Column(Date, nullable=False, default=date.today())
-     
+    
+    is_confirmed = Column(Boolean, nullable=False, default=False)
+    
     def dict(self):
         return {
             "profile_id": self.profile_id,
             "username": self.username,
-            "is_principal": self.is_principal
+            "is_principal": self.is_principal,
+            "is_confirmed": self.is_confirmed
         }
 class SingleProfile(Base):
     """SingleProfile Class contains standard information for a Profile of Single Player"""
