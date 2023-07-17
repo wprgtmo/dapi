@@ -30,6 +30,8 @@ class Tourney(Base):
     updated_date = Column(Date, nullable=False, default=date.today())
     updated_by = Column(String, ForeignKey("enterprise.users.username"), nullable=False)
     
+    profile_id = Column(String, ForeignKey("enterprise.profile_member.id"), nullable=False)  # perfil que lo creo
+    
     def dict(self):
         return {
             "id": self.id,
@@ -38,7 +40,8 @@ class Tourney(Base):
             "name": self.name,
             "summary": self.summary,
             "start_date": self.start_date,
-            "status_id": self.status_id
+            "status_id": self.status_id,
+            "profile_id": self.profile_id
         }
     
 class Players(Base):

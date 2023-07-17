@@ -1,6 +1,6 @@
 from fastapi import APIRouter, Depends, HTTPException, Request, UploadFile, File
 from domino.schemas.userprofile import SingleProfileCreated
-from domino.schemas.result_object import ResultObject
+from domino.schemas.result_object import ResultObject, ResultData
 from sqlalchemy.orm import Session
 from domino.app import get_db
 from typing import List, Dict
@@ -13,7 +13,7 @@ singleprofile_route = APIRouter(
     dependencies=[Depends(JWTBearer())]   
 )
 
-@singleprofile_route.get("/profile/single/", response_model=Dict, summary="Obtain a list of Single Player profile")
+@singleprofile_route.get("/profile/single/", response_model=ResultData, summary="Obtain a list of Single Player profile")
 def get_profile(
     request: Request,
     page: int = 1, 

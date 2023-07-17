@@ -65,6 +65,8 @@ class PostLikes(Base):
     created_by = Column(String, ForeignKey("enterprise.users.username"), nullable=False)
     created_date = Column(DateTime, nullable=False, default=datetime.now())
     
+    profile_id = Column(String, ForeignKey("enterprise.profile_member.id"), nullable=False)  # perfil que lo creo
+    
     def dict(self):
         return {
             "id": self.id,
@@ -90,6 +92,7 @@ class PostComments(Base):
             "id": self.id,
             "post_id": self.post_id,
             'summary': self.summary,
+            "profile_id": self.profile_id,
             "created_by": self.created_by,
             "created_date": self.created_date
         }

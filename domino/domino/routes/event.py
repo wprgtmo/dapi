@@ -32,9 +32,9 @@ def get_events(
 def get_event_by_id(id: str, db: Session = Depends(get_db)):
     return get_one_by_id(event_id=id, db=db)
 
-@event_route.post("/event", response_model=ResultObject, summary="Create a Event..")
-def create_event(request:Request, event: EventBase = Depends(), image: UploadFile = None, db: Session = Depends(get_db)):
-    return new(request=request, event=event.dict(), db=db, file=image)
+@event_route.post("/event/{profile_id}", response_model=ResultObject, summary="Create a Event..")
+def create_event(request:Request, profile_id: str, event: EventBase = Depends(), image: UploadFile = None, db: Session = Depends(get_db)):
+    return new(request=request, profile_id=profile_id, event=event.dict(), db=db, file=image)
 
 @event_route.delete("/event/{id}", response_model=ResultObject, summary="Deactivate a Event by its ID.")
 def delete_event(request:Request, id: str, db: Session = Depends(get_db)):

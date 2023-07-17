@@ -33,6 +33,8 @@ class Event(Base):
     updated_by = Column(String, ForeignKey("enterprise.users.username"), nullable=False)
     updated_date = Column(Date, nullable=False, default=date.today())
     
+    profile_id = Column(String, ForeignKey("enterprise.profile_member.id"), nullable=False)  # perfil que lo creo
+    
     tourney = relationship("Tourney")
     # tourneys = relationship("Tourney", back_populates="event")
     
@@ -47,5 +49,6 @@ class Event(Base):
             "summary": self.comments,
             "image": self.image,
             "status_id": self.status,
-            "photo": self.photo
+            "photo": self.photo,
+            "profile_id": self.profile_id
         }

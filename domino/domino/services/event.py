@@ -120,7 +120,7 @@ def get_one_by_id(event_id: str, db: Session):
     
     return result
 
-def new(request: Request, event: EventBase, db: Session, file: File):
+def new(request: Request, profile_id:str, event: EventBase, db: Session, file: File):
     
     locale = request.headers["accept-language"].split(",")[0].split("-")[0];
     
@@ -145,21 +145,9 @@ def new(request: Request, event: EventBase, db: Session, file: File):
                     close_date=event['close_date'], registration_date=event['start_date'], 
                     image=file.filename if file else None, registration_price=float(0.00), 
                     city_id=event['city_id'], main_location=event['main_location'], status_id=one_status.id,
-                    created_by=currentUser['username'], updated_by=currentUser['username'])
+                    created_by=currentUser['username'], updated_by=currentUser['username'], 
+                    profile_id=profile_id)
     
-    # if event['tourney']:
-        
-    #     tourney_dictionary = json.loads(event["tourney"])
-        
-    #     for item in tourney_dictionary:
-    #         tourney_id = str(uuid.uuid4())
-    #         db_tourney = Tourney(id=tourney_id, event_id=id, modality=item['modality'], name=item['name'], 
-    #                              summary=item['summary'], start_date=item['startDate'], 
-    #                              status_id=one_status.id, created_by=currentUser['username'], 
-    #                              updated_by=currentUser['username'])
-    #         db_event.tourney.append(db_tourney)
-            
-            
     try:
         if file:
             upfile(file=file, path=path)
