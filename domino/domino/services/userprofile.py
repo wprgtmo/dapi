@@ -174,10 +174,13 @@ def new_profile_team_player(request: Request, teamprofile: TeamProfileCreated, f
     if not profile_type:
         raise HTTPException(status_code=400, detail=_(locale, "profiletype.not_found"))
     
+    me_profile_id = get_user_for_single_profile_by_user(currentUser['username'], db=db)
+    
     id = str(uuid.uuid4())
     one_profile = new_profile(profile_type, id, currentUser['user_id'], currentUser['username'], teamprofile['name'], 
                               teamprofile['email'], teamprofile['city_id'], teamprofile['receive_notifications'], 
-                              True, True, "USERPROFILE", currentUser['username'], currentUser['username'], file, is_confirmed=True)
+                              True, True, "USERPROFILE", currentUser['username'], currentUser['username'], file, is_confirmed=True,
+                              single_profile_id=me_profile_id)
     
     one_team_player = TeamProfile(profile_id=id, level=teamprofile['level'], amount_members=0, #teamprofile['amount_members'], 
                                   elo=0, ranking=None, updated_by=currentUser['username'])
@@ -190,7 +193,6 @@ def new_profile_team_player(request: Request, teamprofile: TeamProfileCreated, f
     
     if teamprofile['others_profile_id']:
         
-        me_profile_id = get_user_for_single_profile_by_user(currentUser['username'], db=db)
         if not me_profile_id:
             raise HTTPException(status_code=400, detail=_(locale, "profile.not_exist"))
         
@@ -200,12 +202,12 @@ def new_profile_team_player(request: Request, teamprofile: TeamProfileCreated, f
         for item in lst_players: # teamprofile['others_profile_id']:
             other_username = get_user_for_single_profile(item, db=db)
             if other_username:
-                if me_profile_id == pairprofile['other_profile_id']:
+                if me_profile_id == item['other_profile_id']:
                     raise HTTPException(status_code=400, detail=_(locale, "profile.not_equal"))
             
                 other_user_member = ProfileUsers(profile_id=item, username=other_username, 
                                                 is_principal=False, created_by=currentUser['username'],
-                                                is_confirmed=False)
+                                                is_confirmed=False, single_profile_id=item)
                 one_profile.profile_users.append(other_user_member) 
             else:
                 continue
@@ -447,7 +449,8 @@ def get_one_team_profile(request: Request, id: str, db: Session):
                        'country': item.country_name if item.country_name else '', 
                        'city_id': item.city_id if item.city_id else '', 
                        'city_name': item.city_name if item.city_name else '',
-                       'receive_notifications': item.receive_notifications}
+                       'receive_notifications': item.receive_notifications,
+                       'lst_users': get_lst_users_profile(item.profile_id, db=db)}
     
     return result
 
