@@ -132,7 +132,7 @@ def new_profile_pair_player(request: Request, pairprofile: PairProfileCreated, f
     one_profile = new_profile(profile_type, id, currentUser['user_id'], currentUser['username'], pairprofile['name'], 
                               pairprofile['email'], pairprofile['city_id'], pairprofile['receive_notifications'], 
                               True, True, "USERPROFILE", currentUser['username'], currentUser['username'], file, 
-                              is_confirmed=True, single_profile_id=me_profile_id)
+                              is_confirmed=True) #, single_profile_id=me_profile_id)
     
     one_pair_player = PairProfile(profile_id=id, level=pairprofile['level'], updated_by=currentUser['username'],
                                   elo=0, ranking=None)
@@ -149,8 +149,8 @@ def new_profile_pair_player(request: Request, pairprofile: PairProfileCreated, f
                 raise HTTPException(status_code=400, detail=_(locale, "profile.not_equal"))
             
             other_user_member = ProfileUsers(profile_id=pairprofile['other_profile_id'], username=other_username, 
-                                            is_principal=False, created_by=currentUser['username'], is_confirmed=False,
-                                            single_profile_id=pairprofile['other_profile_id'])
+                                            is_principal=False, created_by=currentUser['username'], is_confirmed=False) #,
+                                            # single_profile_id=pairprofile['other_profile_id'])
             one_profile.profile_users.append(other_user_member) 
         else:
             raise HTTPException(status_code=400, detail=_(locale, "profile.not_exist"))

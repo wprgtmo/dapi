@@ -92,7 +92,7 @@ class ProfileUsers(Base):
     
     is_confirmed = Column(Boolean, nullable=False, default=False)
     
-    single_profile_id = Column(String, ForeignKey("enterprise.profile_member.id"))
+    # single_profile_id = Column(String, ForeignKey("enterprise.profile_member.id"))
     
     def dict(self):
         return {
@@ -100,7 +100,7 @@ class ProfileUsers(Base):
             "username": self.username,
             "is_principal": self.is_principal,
             "is_confirmed": self.is_confirmed,
-            "single_profile_id": self.single_profile_id
+            # "single_profile_id": self.single_profile_id
         }
 class SingleProfile(Base):
     """SingleProfile Class contains standard information for a Profile of Single Player"""
