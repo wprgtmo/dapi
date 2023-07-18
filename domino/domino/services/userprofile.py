@@ -137,8 +137,16 @@ def new_profile_pair_player(request: Request, pairprofile: PairProfileCreated, f
     one_profile.profile_pair_player.append(one_pair_player)
     
     if pairprofile['other_profile_id']:   # el segundo jugador de la pareja
+        # verificar que no sea el mismo perfil que lo está creando...
+        me_profile_id = get_user_for_single_profile_by_user(currentUser['username'], db=db)
+        if not me_profile_id:
+            raise HTTPException(status_code=400, detail=_(locale, "profile.not_exist"))
+        
         other_username = get_user_for_single_profile(pairprofile['other_profile_id'], db=db)
         if other_username:
+            if me_profile_id == pairprofile['other_profile_id']:
+                raise HTTPException(status_code=400, detail=_(locale, "profile.not_equal"))
+            
             other_user_member = ProfileUsers(profile_id=pairprofile['other_profile_id'], username=other_username, 
                                             is_principal=False, created_by=currentUser['username'], is_confirmed=False)
             one_profile.profile_users.append(other_user_member) 
@@ -178,12 +186,20 @@ def new_profile_team_player(request: Request, teamprofile: TeamProfileCreated, f
     # lst_players = json.loads(teamprofile['others_profile_id'])
     
     if teamprofile['others_profile_id']:
+        
+        me_profile_id = get_user_for_single_profile_by_user(currentUser['username'], db=db)
+        if not me_profile_id:
+            raise HTTPException(status_code=400, detail=_(locale, "profile.not_exist"))
+        
         lst_players_str = teamprofile['others_profile_id'][0]
         lst_players = lst_players_str.split(',')
         
         for item in lst_players: # teamprofile['others_profile_id']:
             other_username = get_user_for_single_profile(item, db=db)
             if other_username:
+                if me_profile_id == pairprofile['other_profile_id']:
+                    raise HTTPException(status_code=400, detail=_(locale, "profile.not_equal"))
+            
                 other_user_member = ProfileUsers(profile_id=item, username=other_username, 
                                                 is_principal=False, created_by=currentUser['username'],
                                                 is_confirmed=False)
@@ -214,13 +230,20 @@ def get_user_for_single_profile(profile_id: str, db: Session):
     
     str_query = "Select us.username FROM enterprise.profile_member pro " +\
         "join enterprise.profile_users us ON us.profile_id = pro.id " +\
-        "Where pro.is_active = True and pro.id='" + profile_id + "' "
+        "Where pro.is_active = True and pro.id='" + profile_id + "' AND pro.profile_type = 'SINGLE_PLAYER'"
         
     res_profile = db.execute(str_query).fetchone()
     return res_profile[0] if res_profile else ""
     
-    return db.query(SingleProfile).filter(SingleProfile.profile_id == id).first()
-
+def get_user_for_single_profile_by_user(user_name: str, db: Session):  
+    
+    str_query = "Select pro.id profile_id FROM enterprise.profile_member pro " +\
+        "join enterprise.profile_users us ON us.profile_id = pro.id " +\
+        "Where pro.is_active = True and us.username='" + user_name + "' AND pro.profile_type = 'SINGLE_PLAYER'"
+        
+    res_profile = db.execute(str_query).fetchone()
+    return res_profile[0] if res_profile else ""
+    
 def get_one_pair_profile(id: str, db: Session):  
     return db.query(PairProfile).filter(PairProfile.profile_id == id).first()
 
@@ -381,7 +404,8 @@ def get_one_pair_profile(request: Request, id: str, db: Session):
                        'country': item.country_name if item.country_name else '', 
                        'city_id': item.city_id if item.city_id else '', 
                        'city_name': item.city_name if item.city_name else '',
-                       'receive_notifications': item.receive_notifications}
+                       'receive_notifications': item.receive_notifications,
+                       'lst_users': get_lst_users_profile(item.profile_id, db=db)}
     
     return result
 
@@ -459,6 +483,32 @@ def get_one_default_user_profile(request: Request, id: str, db: Session):
                        'receive_notifications': item.receive_notifications}
         
     return result
+
+def get_lst_users_profile(profile_id: str, db: Session): 
+    
+    lst_data = []
+    
+    host = str(settings.server_uri)
+    port = str(int(settings.server_port))
+    
+    str_query = "Select pmem.id profile_id, pmem.name, pmem.photo, pmem.city_id, is_principal, " +\
+        "city.name as city_name, city.country_id, pa.name as country_name " +\
+        "FROM enterprise.profile_users puse " +\
+        "JOIN enterprise.profile_member pmem ON pmem.id = puse.profile_id " +\
+        "left join resources.city city ON city.id = pmem.city_id " +\
+        "left join resources.country pa ON pa.id = city.country_id " +\
+        "Where pmem.id='" + profile_id + "' "
+    res_profile=db.execute(str_query)
+    
+    for item in res_profile:
+        lst_data.append({'profile_id': item.profile_id, 'name': item.name, 
+                         'photo': get_url_avatar(item.profile_id, item.photo, host=host, port=port),
+                         'country_id': item.country_id if item.country_id else '', 
+                         'country': item.country_name if item.country_name else '', 
+                         'city_id': item.city_id if item.city_id else '', 
+                         'city_name': item.city_name if item.city_name else ''})
+        
+    return lst_data
     
 def get_one_profile_id(id: str, db: Session): 
     str_query = "Select pro.id FROM enterprise.profile_member pro join enterprise.profile_users us ON us.profile_id = pro.id " +\
@@ -546,6 +596,7 @@ def update_one_single_profile(request: Request, id: str, singleprofile: SinglePr
                    singleprofile['receive_notifications'])
         
     try:
+        db_single_profile.level = singleprofile['level'] if singleprofile['level'] else None
         db.add(db_single_profile)
         db.commit()
         return result
