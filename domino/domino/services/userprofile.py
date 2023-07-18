@@ -142,19 +142,19 @@ def new_profile_pair_player(request: Request, pairprofile: PairProfileCreated, f
     if pairprofile['other_profile_id']:   # el segundo jugador de la pareja
         # verificar que no sea el mismo perfil que lo está creando...
         if not me_profile_id:
-            raise HTTPException(status_code=400, detail=_(locale, "profile.not_exist"))
+            raise HTTPException(status_code=400, detail=_(locale, "userprofile.not_exist"))
         
         other_username = get_user_for_single_profile(pairprofile['other_profile_id'], db=db)
         if other_username:
             if me_profile_id == pairprofile['other_profile_id']:
-                raise HTTPException(status_code=400, detail=_(locale, "profile.not_equal"))
+                raise HTTPException(status_code=400, detail=_(locale, "userprofile.not_equal"))
             
             other_user_member = ProfileUsers(profile_id=pairprofile['other_profile_id'], username=other_username, 
                                             is_principal=False, created_by=currentUser['username'], is_confirmed=False,
                                             single_profile_id=pairprofile['other_profile_id'])
             one_profile.profile_users.append(other_user_member) 
         else:
-            raise HTTPException(status_code=400, detail=_(locale, "profile.not_exist"))
+            raise HTTPException(status_code=400, detail=_(locale, "userprofile.not_exist"))
     
     try:   
         db.add(one_profile)
@@ -187,14 +187,14 @@ def new_profile_team_player(request: Request, teamprofile: TeamProfileCreated, f
     one_profile.profile_team_player.append(one_team_player)
     
     # if int(teamprofile['amount_members']) < len(teamprofile['others_profile_id']):
-    #     raise HTTPException(status_code=400, detail=_(locale, "profile.incorrect_amount_member"))
+    #     raise HTTPException(status_code=400, detail=_(locale, "userprofile.incorrect_amount_member"))
     
     # lst_players = json.loads(teamprofile['others_profile_id'])
     
     if teamprofile['others_profile_id']:
         
         if not me_profile_id:
-            raise HTTPException(status_code=400, detail=_(locale, "profile.not_exist"))
+            raise HTTPException(status_code=400, detail=_(locale, "userprofile.not_exist"))
         
         lst_players_str = teamprofile['others_profile_id'][0]
         lst_players = lst_players_str.split(',')
@@ -203,7 +203,7 @@ def new_profile_team_player(request: Request, teamprofile: TeamProfileCreated, f
             other_username = get_user_for_single_profile(item, db=db)
             if other_username:
                 if me_profile_id == item['other_profile_id']:
-                    raise HTTPException(status_code=400, detail=_(locale, "profile.not_equal"))
+                    raise HTTPException(status_code=400, detail=_(locale, "userprofile.not_equal"))
             
                 other_user_member = ProfileUsers(profile_id=item, username=other_username, 
                                                 is_principal=False, created_by=currentUser['username'],
@@ -383,11 +383,16 @@ def get_one_referee_profile(request: Request, id: str, db: Session):
     return result
 
 def get_one_pair_profile(request: Request, id: str, db: Session): 
+    locale = request.headers["accept-language"].split(",")[0].split("-")[0];
+    
+    currentUser = get_current_user(request)
     
     result = ResultObject() 
     
     host = str(settings.server_uri)
     port = str(int(settings.server_port))
+    
+    single_profile_id = get_user_for_single_profile_by_user(currentUser['username'], db=db)
     
     str_query = "Select pro.id profile_id, pro.name, pro.email, pro.city_id, pro.photo, pro.receive_notifications, " +\
         "eve.name as profile_type_name, eve.description as profile_type_description, " +\
@@ -414,11 +419,19 @@ def get_one_pair_profile(request: Request, id: str, db: Session):
                        'city_id': item.city_id if item.city_id else '', 
                        'city_name': item.city_name if item.city_name else '',
                        'receive_notifications': item.receive_notifications,
-                       'lst_users': get_lst_users_profile(item.profile_id, db=db)}
+                       'lst_users': get_lst_users_pair_profile(item.profile_id, single_profile_id=single_profile_id, db=db)}
+    
+    if not result.data:
+        raise HTTPException(status_code=400, detail=_(locale, "userprofile.not_found"))
     
     return result
 
 def get_one_team_profile(request: Request, id: str, db: Session): 
+    locale = request.headers["accept-language"].split(",")[0].split("-")[0];
+    
+    currentUser = get_current_user(request)
+    
+    single_profile_id = get_user_for_single_profile_by_user(currentUser['username'], db=db)
     
     result = ResultObject() 
     
@@ -450,11 +463,15 @@ def get_one_team_profile(request: Request, id: str, db: Session):
                        'city_id': item.city_id if item.city_id else '', 
                        'city_name': item.city_name if item.city_name else '',
                        'receive_notifications': item.receive_notifications,
-                       'lst_users': get_lst_users_profile(item.profile_id, db=db)}
+                       'lst_users': get_lst_users_team_profile(item.profile_id, single_profile_id=single_profile_id, db=db)}
+    
+    if not result.data:
+        raise HTTPException(status_code=400, detail=_(locale, "userprofile.not_found"))
     
     return result
 
 def get_one_default_user_profile(request: Request, id: str, db: Session): 
+    locale = request.headers["accept-language"].split(",")[0].split("-")[0];
     
     result = ResultObject() 
     
@@ -491,10 +508,13 @@ def get_one_default_user_profile(request: Request, id: str, db: Session):
                        'city_id': item.city_id if item.city_id else '', 
                        'city_name': item.city_name if item.city_name else '',
                        'receive_notifications': item.receive_notifications}
+    
+    if not result.data:
+        raise HTTPException(status_code=400, detail=_(locale, "userprofile.not_found"))
         
     return result
 
-def get_lst_users_profile(profile_id: str, db: Session): 
+def get_lst_users_team_profile(profile_id: str, single_profile_id: str, db: Session): 
     
     lst_data = []
     
@@ -511,6 +531,9 @@ def get_lst_users_profile(profile_id: str, db: Session):
     res_profile=db.execute(str_query)
     
     for item in res_profile:
+        if item.profile_id == single_profile_id:
+            continue
+        
         lst_data.append({'profile_id': item.profile_id, 'name': item.name, 
                          'is_principal': item.is_principal,
                          'photo': get_url_avatar(item.profile_id, item.photo, host=host, port=port),
@@ -520,6 +543,36 @@ def get_lst_users_profile(profile_id: str, db: Session):
                          'city_name': item.city_name if item.city_name else ''})
         
     return lst_data
+
+def get_lst_users_pair_profile(profile_id: str, single_profile_id: str, db: Session): 
+    
+    dict_data = {}
+    
+    host = str(settings.server_uri)
+    port = str(int(settings.server_port))
+    
+    str_query = "Select puse.single_profile_id profile_id, pmem.name, pmem.photo, pmem.city_id, is_principal, " +\
+        "city.name as city_name, city.country_id, pa.name as country_name " +\
+        "FROM enterprise.profile_users puse " +\
+        "JOIN enterprise.profile_member pmem ON pmem.id = puse.single_profile_id " +\
+        "left join resources.city city ON city.id = pmem.city_id " +\
+        "left join resources.country pa ON pa.id = city.country_id " +\
+        "Where pmem.is_active = True AND profile_id='" + profile_id + "' "
+    res_profile=db.execute(str_query)
+    
+    for item in res_profile:
+        if item.profile_id == single_profile_id:
+            continue
+        
+        dict_data = {'profile_id': item.profile_id, 'name': item.name, 
+                     'is_principal': item.is_principal,
+                     'photo': get_url_avatar(item.profile_id, item.photo, host=host, port=port),
+                     'country_id': item.country_id if item.country_id else '', 
+                     'country': item.country_name if item.country_name else '', 
+                     'city_id': item.city_id if item.city_id else '', 
+                     'city_name': item.city_name if item.city_name else ''}
+        
+    return dict_data
     
 def get_one_profile_id(id: str, db: Session): 
     str_query = "Select pro.id FROM enterprise.profile_member pro join enterprise.profile_users us ON us.profile_id = pro.id " +\
