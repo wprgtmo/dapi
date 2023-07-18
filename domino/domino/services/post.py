@@ -162,9 +162,11 @@ def get_comments_of_post(post_id: str, current_date: datetime, db: Session, host
 
 def get_comments_of_comment(comment_id: str, current_date: datetime, db: Session, host='', port=''):
     
-    str_comments = "SELECT co.id, us.first_name || ' ' || us.last_name as full_name, us.photo, summary,co.created_by, " +\
+    str_comments = "SELECT co.id, us.first_name || ' ' || us.last_name as full_name, pmem.photo, summary,co.created_by, " +\
         "co.created_date, us.id as user_id, us.username FROM post.comment_comments co " +\
         "LEFT JOIN enterprise.users us ON co.created_by = us.username " +\
+        "LEFT JOIN enterprise.profile_users puse ON puse.username = us.username " +\
+        "LEFT JOIN enterprise.profile_member pmem ON pmem.id = puse.profile_id  AND pmem.profile_type = 'USER' " +\
         "WHERE comment_id = '" + comment_id + "' ORDER BY co.created_date DESC LIMIT 3 "
     lst_comments = db.execute(str_comments)
  

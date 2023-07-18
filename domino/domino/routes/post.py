@@ -65,7 +65,7 @@ def update_show_count_like(request:Request, postlike: PostLikeCreate, db: Sessio
 
 @post_route.post("/postcomment", response_model=ResultObject, summary="Create a comment at Post.")
 def add_comment(request:Request, profile_id: str, postcomment: PostCommentCreate, db: Session = Depends(get_db)):
-    return add_one_comment(request=request, postcomment=postcomment, db=db)
+    return add_one_comment(request=request, profile_id=profile_id, postcomment=postcomment, db=db)
 
 @post_route.post("/postimage", response_model=ResultObject, summary="Add Path of File at Post.")
 def add_file(request:Request, postfile: PostFileCreate, db: Session = Depends(get_db)):

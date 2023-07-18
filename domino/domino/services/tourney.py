@@ -104,7 +104,7 @@ def get_all_by_event_id(event_id: str, db: Session):
     
     return result
 
-def new(request, event_id: str, tourney: TourneyCreated, db: Session):
+def new(request, profile_id: str, event_id: str, tourney: TourneyCreated, db: Session):
     locale = request.headers["accept-language"].split(",")[0].split("-")[0];
     
     result = ResultObject() 
@@ -126,9 +126,9 @@ def new(request, event_id: str, tourney: TourneyCreated, db: Session):
         raise HTTPException(status_code=404, detail=_(locale, "tourney.incorrect_startDate"))
     
     db_tourney = Tourney(id=id, event_id=event_id, modality=tourney.modality, name=tourney.name, 
-                        summary=tourney.summary, start_date=tourney.startDate, 
-                        status_id=one_status.id, created_by=currentUser['username'], 
-                        updated_by=currentUser['username'])
+                         summary=tourney.summary, start_date=tourney.startDate, 
+                         status_id=one_status.id, created_by=currentUser['username'], 
+                         updated_by=currentUser['username'], profile_id=profile_id)
     db.add(db_tourney)
     
     try:

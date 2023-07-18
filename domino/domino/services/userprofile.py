@@ -169,8 +169,7 @@ def new_profile_team_player(request: Request, teamprofile: TeamProfileCreated, f
                               True, True, "USERPROFILE", currentUser['username'], currentUser['username'], file, is_confirmed=True)
     
     one_team_player = TeamProfile(profile_id=id, level=teamprofile['level'], amount_members=0, #teamprofile['amount_members'], 
-                                  elo=0, ranking=None,
-                                  updated_by=currentUser['username'])
+                                  elo=0, ranking=None, updated_by=currentUser['username'])
     one_profile.profile_team_player.append(one_team_player)
     
     # if int(teamprofile['amount_members']) < len(teamprofile['others_profile_id']):
@@ -241,15 +240,12 @@ def get_all_single_profile(request:Request, profile_id: str, page: int, per_page
     
     str_count = "Select count(*) " + str_from
     str_query = "Select pmem.id profile_id, pmem.name, photo, pmem.city_id, city.name city_name, city.country_id, " +\
-        "pa.name as country_name " + str_from
+        "pa.name as country_name, psin.elo, psin.ranking, psin.level " + str_from
     
     str_where = " WHERE pmem.is_active = True "  
     
     dict_query = {'name': " AND pmem.name ilike '%" + criteria_value + "%'"
-                #   'summary': " AND summary ilike '%" + criteria_value + "%'",
-                #   'modality': " AND modality ilike '%" + criteria_value + "%'",
-                #   'start_date': " AND start_date >= '%" + criteria_value + "%'",
-                  }
+                 }
     
     str_count += str_where
     str_query += str_where
@@ -278,6 +274,7 @@ def get_all_single_profile(request:Request, profile_id: str, page: int, per_page
 def create_dict_row_single_player(item, page, db: Session, host="", port=""):
     
     new_row = {'profile_id': item['profile_id'], 'name': item['name'], 
+               'elo': item['elo'], 'ranking': item['ranking'], 'level': item['level'], 
                'city': item['city_id'], 'city_name': item['city_name'], 
                'country_id': item['country_id'], 'country': item['country_name'], 
                'photo' : get_url_avatar(item['profile_id'], item['photo'], host=host, port=port)}
@@ -295,7 +292,7 @@ def get_one_single_profile(request: Request, id: str, db: Session):
     
     str_query = "Select pro.id profile_id, pro.name, pro.email, pro.city_id, pro.photo, pro.receive_notifications, " +\
         "eve.name as profile_type_name, eve.description as profile_type_description, " +\
-        "city.name as city_name, city.country_id, pa.name as country_name " +\
+        "city.name as city_name, city.country_id, pa.name as country_name, sing.elo, sing.ranking, sing.level  " +\
         "FROM enterprise.profile_member pro " +\
         "inner join enterprise.profile_type eve ON eve.name = pro.profile_type " +\
         "inner join enterprise.profile_single_player sing ON sing.profile_id = pro.id " +\
@@ -310,6 +307,9 @@ def get_one_single_profile(request: Request, id: str, db: Session):
         result.data = {'id': item.profile_id, 'name': item.name, 'email': item.email,
                        'profile_type_name': item.profile_type_name, 
                        'profile_type_description': item.profile_type_description, 'photo': photo,
+                       'elo': item.elo if item.elo else '', 
+                       'ranking': item.ranking if item.ranking else '', 
+                       'level': item.level if item.level else '', 
                        'country_id': item.country_id if item.country_id else '', 
                        'country': item.country_name if item.country_name else '', 
                        'city_id': item.city_id if item.city_id else '', 
@@ -359,7 +359,7 @@ def get_one_pair_profile(request: Request, id: str, db: Session):
     
     str_query = "Select pro.id profile_id, pro.name, pro.email, pro.city_id, pro.photo, pro.receive_notifications, " +\
         "eve.name as profile_type_name, eve.description as profile_type_description, " +\
-        "city.name as city_name, city.country_id, pa.name as country_name " +\
+        "city.name as city_name, city.country_id, pa.name as country_name, sing.elo, sing.ranking, sing.level  " +\
         "FROM enterprise.profile_member pro " +\
         "inner join enterprise.profile_type eve ON eve.name = pro.profile_type " +\
         "inner join enterprise.profile_pair_player sing ON sing.profile_id = pro.id " +\
@@ -374,6 +374,9 @@ def get_one_pair_profile(request: Request, id: str, db: Session):
         result.data = {'id': item.profile_id, 'name': item.name, 'email': item.email,
                        'profile_type_name': item.profile_type_name, 
                        'profile_type_description': item.profile_type_description, 'photo': photo,
+                       'elo': item.elo if item.elo else '', 
+                       'ranking': item.ranking if item.ranking else '', 
+                       'level': item.level if item.level else '', 
                        'country_id': item.country_id if item.country_id else '', 
                        'country': item.country_name if item.country_name else '', 
                        'city_id': item.city_id if item.city_id else '', 
@@ -391,7 +394,7 @@ def get_one_team_profile(request: Request, id: str, db: Session):
     
     str_query = "Select pro.id profile_id, pro.name, pro.email, pro.city_id, pro.photo, pro.receive_notifications, " +\
         "eve.name as profile_type_name, eve.description as profile_type_description, " +\
-        "city.name as city_name, city.country_id, pa.name as country_name " +\
+        "city.name as city_name, city.country_id, pa.name as country_name, sing.elo, sing.ranking, sing.level  " +\
         "FROM enterprise.profile_member pro " +\
         "inner join enterprise.profile_type eve ON eve.name = pro.profile_type " +\
         "inner join enterprise.profile_team_player sing ON sing.profile_id = pro.id " +\
@@ -406,6 +409,9 @@ def get_one_team_profile(request: Request, id: str, db: Session):
         result.data = {'id': item.profile_id, 'name': item.name, 'email': item.email,
                        'profile_type_name': item.profile_type_name, 
                        'profile_type_description': item.profile_type_description, 'photo': photo,
+                       'elo': item.elo if item.elo else '', 
+                       'ranking': item.ranking if item.ranking else '', 
+                       'level': item.level if item.level else '', 
                        'country_id': item.country_id if item.country_id else '', 
                        'country': item.country_name if item.country_name else '', 
                        'city_id': item.city_id if item.city_id else '', 
