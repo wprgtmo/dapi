@@ -225,7 +225,7 @@ def get_one(id: str, db: Session):
 def get_one_default_user(id: str, db: Session):  
     return db.query(DefaultUserProfile).filter(DefaultUserProfile.profile_id == id).first()
 
-def get_one_referee_profile(id: str, db: Session):  
+def get_one_referee_profile_by_id(id: str, db: Session):  
     return db.query(RefereeProfile).filter(RefereeProfile.profile_id == id).first()
 
 def get_user_for_single_profile(profile_id: str, db: Session):  
@@ -672,7 +672,7 @@ def update_one_referee_profile(request: Request, id: str, refereeprofile: Refere
     update_profile(db_profile, file, currentUser, refereeprofile['name'], refereeprofile['email'], refereeprofile['city_id'], 
                    refereeprofile['receive_notifications'])
     
-    db_referee_profile = get_one_referee_profile(db_profile.id, db=db)
+    db_referee_profile = get_one_referee_profile_by_id(db_profile.id, db=db)
     db_referee_profile.level = refereeprofile['level']
         
     try:
