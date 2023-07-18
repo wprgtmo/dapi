@@ -126,11 +126,13 @@ def new_profile_pair_player(request: Request, pairprofile: PairProfileCreated, f
     if not profile_type:
         raise HTTPException(status_code=400, detail=_(locale, "profiletype.not_found"))
     
+    me_profile_id = get_user_for_single_profile_by_user(currentUser['username'], db=db)
+    
     id = str(uuid.uuid4())
     one_profile = new_profile(profile_type, id, currentUser['user_id'], currentUser['username'], pairprofile['name'], 
                               pairprofile['email'], pairprofile['city_id'], pairprofile['receive_notifications'], 
                               True, True, "USERPROFILE", currentUser['username'], currentUser['username'], file, 
-                              is_confirmed=True)
+                              is_confirmed=True, single_profile_id=me_profile_id)
     
     one_pair_player = PairProfile(profile_id=id, level=pairprofile['level'], updated_by=currentUser['username'],
                                   elo=0, ranking=None)
@@ -138,7 +140,6 @@ def new_profile_pair_player(request: Request, pairprofile: PairProfileCreated, f
     
     if pairprofile['other_profile_id']:   # el segundo jugador de la pareja
         # verificar que no sea el mismo perfil que lo está creando...
-        me_profile_id = get_user_for_single_profile_by_user(currentUser['username'], db=db)
         if not me_profile_id:
             raise HTTPException(status_code=400, detail=_(locale, "profile.not_exist"))
         
@@ -148,7 +149,8 @@ def new_profile_pair_player(request: Request, pairprofile: PairProfileCreated, f
                 raise HTTPException(status_code=400, detail=_(locale, "profile.not_equal"))
             
             other_user_member = ProfileUsers(profile_id=pairprofile['other_profile_id'], username=other_username, 
-                                            is_principal=False, created_by=currentUser['username'], is_confirmed=False)
+                                            is_principal=False, created_by=currentUser['username'], is_confirmed=False,
+                                            single_profile_id=pairprofile['other_profile_id'])
             one_profile.profile_users.append(other_user_member) 
         else:
             raise HTTPException(status_code=400, detail=_(locale, "profile.not_exist"))
@@ -664,7 +666,7 @@ def update_one_referee_profile(request: Request, id: str, refereeprofile: Refere
     currentUser = get_current_user(request)
     
     db_profile = get_one(id, db=db)
-    if not db_referee_profile:
+    if not db_profile:
         raise HTTPException(status_code=400, detail=_(locale, "userprofile.not_found"))
     
     update_profile(db_profile, file, currentUser, refereeprofile['name'], refereeprofile['email'], refereeprofile['city_id'], 

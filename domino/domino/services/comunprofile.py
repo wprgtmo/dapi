@@ -8,7 +8,7 @@ from domino.app import _
 from domino.models.userprofile import ProfileMember, ProfileUsers, SingleProfile, DefaultUserProfile
 
 def new_profile(profile_type, id, user_id, username, name, email, city_id, receive_notifications, is_ready, is_principal,
-                entity_type, created_by, updated_by, file: File, is_confirmed=False): 
+                entity_type, created_by, updated_by, file: File, is_confirmed=False, single_profile_id=None): 
     
     one_profile = ProfileMember(id=id, name=name, email=email, profile_type=profile_type.name, 
                                 city_id=city_id, photo=file.filename if file else None, 
@@ -17,7 +17,7 @@ def new_profile(profile_type, id, user_id, username, name, email, city_id, recei
                                 created_by=created_by, updated_by=updated_by)
     
     one_user_member = ProfileUsers(profile_id=id, username=username, is_principal=is_principal, created_by=created_by, 
-                                   is_confirmed=is_confirmed)
+                                   is_confirmed=is_confirmed, single_profile_id=single_profile_id)
     one_profile.profile_users.append(one_user_member)  
     
     path = create_dir(entity_type=entity_type, user_id=str(user_id), entity_id=id)

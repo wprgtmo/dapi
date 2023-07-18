@@ -35,6 +35,8 @@ class ProfileUsersBase(BaseModel):
     username: str
     is_principal: Optional[bool] = False
     
+    single_profile_id: str
+    
 class ProfileUsersSchema(ProfileUsersBase):
     
     created_by: str
