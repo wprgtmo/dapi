@@ -93,9 +93,11 @@ class ProfileUsers(Base):
     
     is_confirmed = Column(Boolean, nullable=False, default=False)
     
-    single_profile_id = Column(String) #, ForeignKey("enterprise.profile_member.id"))
+    single_profile_id = Column(String)  #, ForeignKey("enterprise.profile_member.id"))
     
-   
+    # profile = relationship("ProfileMember", foreign_keys=[profile_id])
+    # single_profile = relationship("ProfileMember", foreign_keys=[single_profile_id])
+    
     def dict(self):
         return {
             "profile_id": self.profile_id,
