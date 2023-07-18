@@ -216,7 +216,7 @@ def get_one_by_id(post_id: str, db: Session):
     result.data.photos = get_files_of_post(post_id, db=db, host=host, port=port)
     return result
 
-def new(request, db: Session, post: PostCreated, files: List[File]):
+def new(request, db: Session, profile_id: str, post: PostCreated, files: List[File]):
     locale = request.headers["accept-language"].split(",")[0].split("-")[0];
     
     result = ResultObject() 
@@ -225,7 +225,7 @@ def new(request, db: Session, post: PostCreated, files: List[File]):
     id = str(uuid.uuid4())
     
     db_post = Post(id=id, summary=post['summary'], created_by=currentUser['username'], updated_by=currentUser['username'],
-                   is_active=True, allow_comment=True, show_count_like=True)
+                   is_active=True, allow_comment=True, show_count_like=True, profile_id=profile_id)
     
     if files:
         path = create_dir(entity_type="POST", user_id=str(currentUser['user_id']), entity_id=str(id))
@@ -373,7 +373,7 @@ def remove_one_file(request: Request, db: Session, post_id: str, file_id: str):
         msg = _(locale, "post.error_remove_postfile")               
         raise HTTPException(status_code=403, detail=msg)
     
-def add_one_likes(request, db: Session, postlike: PostLikeCreate):
+def add_one_likes(request, profile_id: str, db: Session, postlike: PostLikeCreate):
     locale = request.headers["accept-language"].split(",")[0].split("-")[0];
     
     # verifico si tiene, si es positivo se lo quito, sino tiene se lo pongo.
@@ -392,7 +392,7 @@ def add_one_likes(request, db: Session, postlike: PostLikeCreate):
         if db_postlike:
             db.delete(db_postlike)
         else:
-            db_postlike = PostLikes(post_id=postlike.post_id, created_by=currentUser['username'])
+            db_postlike = PostLikes(post_id=postlike.post_id, created_by=currentUser['username'], profile_id=profile_id)
             db.add(db_postlike)
             
         db.commit()    
@@ -455,7 +455,7 @@ def update_one_show_count_like(request, db: Session, postlike: PostLikeCreate):
         msg = _(locale, "post.error_new_postallow_comment")               
         raise HTTPException(status_code=403, detail=msg)
         
-def add_one_comment(request, db: Session, postcomment: PostCommentCreate):
+def add_one_comment(request, profile_id: str, db: Session, postcomment: PostCommentCreate):
     locale = request.headers["accept-language"].split(",")[0].split("-")[0];
     
     result = ResultObject() 
@@ -468,7 +468,8 @@ def add_one_comment(request, db: Session, postcomment: PostCommentCreate):
     one_post.updated_by = currentUser['username']
     one_post.updated_date = datetime.now()
         
-    db_postcomment = PostComments(post_id=postcomment.post_id, summary=postcomment.summary, created_by=currentUser['username'])
+    db_postcomment = PostComments(post_id=postcomment.post_id, summary=postcomment.summary, created_by=currentUser['username'],
+                                  profile_id=profile_id)
     
     try:
         db.add(db_postcomment)
@@ -481,7 +482,7 @@ def add_one_comment(request, db: Session, postcomment: PostCommentCreate):
         msg = _(locale, "post.error_new_postcomment")               
         raise HTTPException(status_code=403, detail=msg)
     
-def add_one_likes_at_comment(request, db: Session, commentlike: CommentLikeCreate):
+def add_one_likes_at_comment(request, profile_id: str, db: Session, commentlike: CommentLikeCreate):
     locale = request.headers["accept-language"].split(",")[0].split("-")[0];
     
     result = ResultObject() 
@@ -507,7 +508,8 @@ def add_one_likes_at_comment(request, db: Session, commentlike: CommentLikeCreat
         if db_commentlike:
             db.delete(db_commentlike)
         else:
-            db_commentlike = CommentLikes(comment_id=commentlike.comment_id, created_by=currentUser['username'])
+            db_commentlike = CommentLikes(comment_id=commentlike.comment_id, created_by=currentUser['username'],
+                                          profile_id=profile_id)
             db.add(db_commentlike)
             
         db.commit()    
@@ -518,7 +520,7 @@ def add_one_likes_at_comment(request, db: Session, commentlike: CommentLikeCreat
         msg = _(locale, "post.error_new_postlike")               
         raise HTTPException(status_code=403, detail=msg)
     
-def add_one_comment_at_comment(request, db: Session, commentcomment: CommentCommentCreate):
+def add_one_comment_at_comment(request, profile_id: str, db: Session, commentcomment: CommentCommentCreate):
     locale = request.headers["accept-language"].split(",")[0].split("-")[0];
     
     result = ResultObject() 
@@ -535,7 +537,8 @@ def add_one_comment_at_comment(request, db: Session, commentcomment: CommentComm
     one_post.updated_by = currentUser['username']
     one_post.updated_date = datetime.now()
     
-    db_comment_comment = CommentComments(comment_id=commentcomment.comment_id, summary=commentcomment.summary, created_by=currentUser['username'])
+    db_comment_comment = CommentComments(comment_id=commentcomment.comment_id, summary=commentcomment.summary, 
+                                         created_by=currentUser['username'], profile_id=profile_id)
     
     try:
         db.add(db_comment_comment)

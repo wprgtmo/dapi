@@ -15,9 +15,9 @@ comment_route = APIRouter(
 )
 
 @comment_route.post("/commentlike", response_model=ResultObject, summary="Create a like at Comment.")
-def add_like_at_comment(request:Request, commentlike: CommentLikeCreate, db: Session = Depends(get_db)):
-    return add_one_likes_at_comment(request=request, commentlike=commentlike, db=db)
+def add_like_at_comment(request:Request, profile_id: str, commentlike: CommentLikeCreate, db: Session = Depends(get_db)):
+    return add_one_likes_at_comment(request=request, profile_id=profile_id, commentlike=commentlike, db=db)
 
 @comment_route.post("/commentcomment", response_model=ResultObject, summary="Create a comment at Comment")
-def add_comment_at_comment(request:Request, commentcomment: CommentCommentCreate, db: Session = Depends(get_db)):
-    return add_one_comment_at_comment(request=request, commentcomment=commentcomment, db=db)
+def add_comment_at_comment(request:Request, profile_id: str, commentcomment: CommentCommentCreate, db: Session = Depends(get_db)):
+    return add_one_comment_at_comment(request=request, profile_id=profile_id, commentcomment=commentcomment, db=db)

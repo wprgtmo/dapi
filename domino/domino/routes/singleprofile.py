@@ -16,13 +16,15 @@ singleprofile_route = APIRouter(
 @singleprofile_route.get("/profile/single/", response_model=ResultData, summary="Obtain a list of Single Player profile")
 def get_profile(
     request: Request,
+    profile_id: str,
     page: int = 1, 
     per_page: int = 6, 
     criteria_key: str = "",
     criteria_value: str = "",
     db: Session = Depends(get_db)
 ):
-    return get_all_single_profile(request=request, page=page, per_page=per_page, criteria_key=criteria_key, criteria_value=criteria_value, db=db)
+    return get_all_single_profile(request=request, profile_id=profile_id, page=page, per_page=per_page, 
+                                  criteria_key=criteria_key, criteria_value=criteria_value, db=db)
 
 @singleprofile_route.post("/profile/single", response_model=ResultObject, summary="Create a Single Profile of Player")
 def create_single_profile(request:Request, singleprofile: SingleProfileCreated = Depends(), image: UploadFile = None, db: Session = Depends(get_db)):

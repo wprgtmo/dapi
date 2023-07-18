@@ -40,8 +40,8 @@ def get_post_by_id(id: str, db: Session = Depends(get_db)):
     return get_one_by_id(post_id=id, db=db)
 
 @post_route.post("/post", response_model=ResultObject, summary="Create a Post.")
-def create_post(request:Request, post: PostCreated = Depends(), files: List[UploadFile] = [], db: Session = Depends(get_db)):
-    return new(request=request, post=post.dict(), db=db, files=files)
+def create_post(request:Request, profile_id: str, post: PostCreated = Depends(), files: List[UploadFile] = [], db: Session = Depends(get_db)):
+    return new(request=request, profile_id=profile_id, post=post.dict(), db=db, files=files)
 
 @post_route.delete("/post/{id}", response_model=ResultObject, summary="Deactivate a Post by its ID.")
 def delete_post(request:Request, id: str, db: Session = Depends(get_db)):
@@ -52,8 +52,8 @@ def update_post(request:Request, id: str, post: PostCreated = Depends(), files: 
     return update(request=request, db=db, post_id=str(id), post=post, files=files)
 
 @post_route.post("/postlike", response_model=ResultObject, summary="Create a like at Post.")
-def add_like(request:Request, postlike: PostLikeCreate, db: Session = Depends(get_db)):
-    return add_one_likes(request=request, postlike=postlike, db=db)
+def add_like(request:Request, profile_id: str, postlike: PostLikeCreate, db: Session = Depends(get_db)):
+    return add_one_likes(request=request, profile_id=profile_id, postlike=postlike, db=db)
 
 @post_route.post("/allow_comment", response_model=ResultObject, summary="Update allow_comment property")
 def update_allow_comment(request:Request, postlike: PostLikeCreate, db: Session = Depends(get_db)):
@@ -64,7 +64,7 @@ def update_show_count_like(request:Request, postlike: PostLikeCreate, db: Sessio
     return update_one_show_count_like(request=request, postlike=postlike, db=db)
 
 @post_route.post("/postcomment", response_model=ResultObject, summary="Create a comment at Post.")
-def add_comment(request:Request, postcomment: PostCommentCreate, db: Session = Depends(get_db)):
+def add_comment(request:Request, profile_id: str, postcomment: PostCommentCreate, db: Session = Depends(get_db)):
     return add_one_comment(request=request, postcomment=postcomment, db=db)
 
 @post_route.post("/postimage", response_model=ResultObject, summary="Add Path of File at Post.")

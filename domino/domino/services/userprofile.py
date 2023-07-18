@@ -47,7 +47,7 @@ def new_profile_single_player(request: Request, singleprofile: SingleProfileCrea
                               singleprofile['email'], singleprofile['city_id'], singleprofile['receive_notifications'], 
                               True, True, "USERPROFILE", currentUser['username'], currentUser['username'], file, is_confirmed=True)
     
-    one_single_player = SingleProfile(profile_id=id, elo=0, ranking=None, updated_by=currentUser['username'])
+    one_single_player = SingleProfile(profile_id=id, elo=0, ranking=None, level=singleprofile['level'], updated_by=currentUser['username'])
     one_profile.profile_single_player.append(one_single_player)
     
     try:   
@@ -132,7 +132,8 @@ def new_profile_pair_player(request: Request, pairprofile: PairProfileCreated, f
                               True, True, "USERPROFILE", currentUser['username'], currentUser['username'], file, 
                               is_confirmed=True)
     
-    one_pair_player = PairProfile(profile_id=id, level=pairprofile['level'], updated_by=currentUser['username'])
+    one_pair_player = PairProfile(profile_id=id, level=pairprofile['level'], updated_by=currentUser['username'],
+                                  elo=0, ranking=None)
     one_profile.profile_pair_player.append(one_pair_player)
     
     if pairprofile['other_profile_id']:   # el segundo jugador de la pareja
@@ -144,13 +145,13 @@ def new_profile_pair_player(request: Request, pairprofile: PairProfileCreated, f
         else:
             raise HTTPException(status_code=400, detail=_(locale, "profile.not_exist"))
     
-    # try:   
-    db.add(one_profile)
-    db.commit()
-    result.data = {'id': id}
-    return result
-    # except (Exception, SQLAlchemyError) as e:
-    #     raise HTTPException(status_code=400, detail=_(locale, "userprofile.errorinsert"))
+    try:   
+        db.add(one_profile)
+        db.commit()
+        result.data = {'id': id}
+        return result
+    except (Exception, SQLAlchemyError) as e:
+        raise HTTPException(status_code=400, detail=_(locale, "userprofile.errorinsert"))
     
 def new_profile_team_player(request: Request, teamprofile: TeamProfileCreated, file: File, db: Session): 
     locale = request.headers["accept-language"].split(",")[0].split("-")[0];
@@ -168,6 +169,7 @@ def new_profile_team_player(request: Request, teamprofile: TeamProfileCreated, f
                               True, True, "USERPROFILE", currentUser['username'], currentUser['username'], file, is_confirmed=True)
     
     one_team_player = TeamProfile(profile_id=id, level=teamprofile['level'], amount_members=0, #teamprofile['amount_members'], 
+                                  elo=0, ranking=None,
                                   updated_by=currentUser['username'])
     one_profile.profile_team_player.append(one_team_player)
     
@@ -226,7 +228,7 @@ def get_one_pair_profile(id: str, db: Session):
 def get_one_team_profile(id: str, db: Session):  
     return db.query(TeamProfile).filter(TeamProfile.profile_id == id).first()
 
-def get_all_single_profile(request:Request, page: int, per_page: int, criteria_key: str, criteria_value: str, db: Session):  
+def get_all_single_profile(request:Request, profile_id: str, page: int, per_page: int, criteria_key: str, criteria_value: str, db: Session):  
     locale = request.headers["accept-language"].split(",")[0].split("-")[0];
     
     host = str(settings.server_uri)

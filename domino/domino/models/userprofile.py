@@ -109,6 +109,8 @@ class SingleProfile(Base):
     elo = Column(Integer, nullable=True)
     ranking = Column(String(2), nullable=True)
     
+    level = Column(String(60), nullable=True)
+    
     updated_by = Column(String, ForeignKey("enterprise.users.username"), nullable=False)
     updated_date = Column(Date, nullable=False, default=date.today())
      
@@ -116,7 +118,8 @@ class SingleProfile(Base):
         return {
             "profile_id": self.profile_id,
             "elo": self.elo,
-            "ranking": self.ranking
+            "ranking": self.ranking,
+            "level": self.level
         }
         
 class DefaultUserProfile(Base):
@@ -172,6 +175,9 @@ class PairProfile(Base):
     
     profile_id = Column(String, ForeignKey("enterprise.profile_member.id"), primary_key=True)
     
+    elo = Column(Integer, nullable=True)
+    ranking = Column(String(2), nullable=True)
+    
     level = Column(String(60), nullable=True)
     
     updated_by = Column(String, ForeignKey("enterprise.users.username"), nullable=False)
@@ -180,7 +186,9 @@ class PairProfile(Base):
     def dict(self):
         return {
             "profile_id": self.profile_id,
-            "level": self.level   # alcance Internacional, Regional
+            "elo": self.elo,
+            "ranking": self.ranking,
+            "level": self.level
         }
 
 class TeamProfile(Base):
@@ -191,6 +199,9 @@ class TeamProfile(Base):
     
     profile_id = Column(String, ForeignKey("enterprise.profile_member.id"), primary_key=True)
     
+    elo = Column(Integer, nullable=True)
+    ranking = Column(String(2), nullable=True)
+    
     level = Column(String(60), nullable=True)
     amount_members = Column(Integer, default=4)
     
@@ -200,6 +211,8 @@ class TeamProfile(Base):
     def dict(self):
         return {
             "profile_id": self.profile_id,
-            "level": self.level,   # alcance Internacional, Regional
+            "elo": self.elo,
+            "ranking": self.ranking,
+            "level": self.level,
             "amount_members": self.amount_members
         }

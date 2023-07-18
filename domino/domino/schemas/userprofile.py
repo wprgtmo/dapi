@@ -48,6 +48,7 @@ class ProfileSinglePlayerBase(BaseModel):
     profile_id: str
     elo: int
     ranking: str
+    level: str
     
 class ProfileSinglePlayerSchema(ProfileSinglePlayerBase):
     
@@ -58,6 +59,8 @@ class SingleProfileCreated(BaseModel):
     name: str
     email: Optional[str]
     city_id: Optional[int]
+    
+    level: Optional[str]
     
     receive_notifications: Optional[bool] = False
     

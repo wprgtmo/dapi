@@ -26,6 +26,8 @@ class Post(Base):
     allow_comment = Column(Boolean, nullable=False, default=True)
     show_count_like = Column(Boolean, nullable=False, default=True)
     
+    profile_id = Column(String, ForeignKey("enterprise.profile_member.id"), nullable=False)  # perfil que lo creo
+    
     files = relationship("PostFiles")
     
     def dict(self):
@@ -35,7 +37,8 @@ class Post(Base):
             'created_by': self.created_by,
             "is_active": self.is_active,
             "allow_comment": self.allow_comment,
-            "show_count_like": self.show_count_like
+            "show_count_like": self.show_count_like,
+            "profile_id": self.profile_id
             }
 
 class PostFiles(Base):
@@ -72,7 +75,8 @@ class PostLikes(Base):
             "id": self.id,
             "post_id": self.post_id,
             "created_by": self.created_by,
-            "created_date": self.created_date
+            "created_date": self.created_date,
+            "profile_id": self.profile_id
         }
         
 class PostComments(Base):
@@ -87,6 +91,8 @@ class PostComments(Base):
     created_by = Column(String, ForeignKey("enterprise.users.username"), nullable=False)
     created_date = Column(DateTime, nullable=False, default=datetime.now())
     
+    profile_id = Column(String, ForeignKey("enterprise.profile_member.id"), nullable=False)  # perfil que lo creo
+    
     def dict(self):
         return {
             "id": self.id,
@@ -94,7 +100,8 @@ class PostComments(Base):
             'summary': self.summary,
             "profile_id": self.profile_id,
             "created_by": self.created_by,
-            "created_date": self.created_date
+            "created_date": self.created_date,
+            "profile_id": self.profile_id
         }
    
 class CommentLikes(Base):
@@ -108,12 +115,15 @@ class CommentLikes(Base):
     created_by = Column(String, ForeignKey("enterprise.users.username"), nullable=False)
     created_date = Column(DateTime, nullable=False, default=datetime.now())
     
+    profile_id = Column(String, ForeignKey("enterprise.profile_member.id"), nullable=False)  # perfil que lo creo
+    
     def dict(self):
         return {
             "id": self.id,
             "comment_id": self.comment_id,
             "created_by": self.created_by,
-            "created_date": self.created_date
+            "created_date": self.created_date,
+            "profile_id": self.profile_id
         }
         
 class CommentComments(Base):
@@ -128,12 +138,15 @@ class CommentComments(Base):
     created_by = Column(String, ForeignKey("enterprise.users.username"), nullable=False)
     created_date = Column(DateTime, nullable=False, default=datetime.now())
     
+    profile_id = Column(String, ForeignKey("enterprise.profile_member.id"), nullable=False)  # perfil que lo creo
+    
     def dict(self):
         return {
             "id": self.id,
             "comment_id": self.comment_id,
             'summary': self.summary,
             "created_by": self.created_by,
-            "created_date": self.created_date
+            "created_date": self.created_date,
+            "profile_id": self.profile_id
         }
                
