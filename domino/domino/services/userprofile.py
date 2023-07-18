@@ -329,7 +329,7 @@ def get_one_single_profile(request: Request, id: str, db: Session):
         "inner join enterprise.profile_single_player sing ON sing.profile_id = pro.id " +\
         "left join resources.city city ON city.id = pro.city_id " +\
         "left join resources.country pa ON pa.id = city.country_id " +\
-        "Where pro.id='" + id + "' "
+        "Where pro.is_active = True AND pro.id='" + id + "' "
     res_profile=db.execute(str_query)
     
     for item in res_profile:
@@ -364,7 +364,7 @@ def get_one_referee_profile(request: Request, id: str, db: Session):
         "inner join enterprise.profile_referee sing ON sing.profile_id = pro.id " +\
         "left join resources.city city ON city.id = pro.city_id " +\
         "left join resources.country pa ON pa.id = city.country_id " +\
-        "Where pro.id='" + id + "' "
+        "Where pro.is_active = True AND pro.id='" + id + "' "
     res_profile=db.execute(str_query)
     
     for item in res_profile:
@@ -397,7 +397,7 @@ def get_one_pair_profile(request: Request, id: str, db: Session):
         "inner join enterprise.profile_pair_player sing ON sing.profile_id = pro.id " +\
         "left join resources.city city ON city.id = pro.city_id " +\
         "left join resources.country pa ON pa.id = city.country_id " +\
-        "Where pro.id='" + id + "' "
+        "Where pro.is_active = True AND  pro.id='" + id + "' "
     res_profile=db.execute(str_query)
     
     for item in res_profile:
@@ -433,7 +433,7 @@ def get_one_team_profile(request: Request, id: str, db: Session):
         "inner join enterprise.profile_team_player sing ON sing.profile_id = pro.id " +\
         "left join resources.city city ON city.id = pro.city_id " +\
         "left join resources.country pa ON pa.id = city.country_id " +\
-        "Where pro.id='" + id + "' "
+        "Where pro.is_active = True AND pro.id='" + id + "' "
     res_profile=db.execute(str_query)
     
     for item in res_profile:
@@ -472,7 +472,7 @@ def get_one_default_user_profile(request: Request, id: str, db: Session):
         "inner join enterprise.users us ON us.id = pro.id " +\
         "left join resources.country pa ON pa.id = us.country_id " +\
         "left join resources.city city ON city.id = def.city_id " +\
-        "Where pro.id='" + id + "' "
+        "Where pro.is_active = True AND pro.id='" + id + "' "
     res_profile=db.execute(str_query)
     
     for item in res_profile:
@@ -507,7 +507,7 @@ def get_lst_users_profile(profile_id: str, db: Session):
         "JOIN enterprise.profile_member pmem ON pmem.id = puse.single_profile_id " +\
         "left join resources.city city ON city.id = pmem.city_id " +\
         "left join resources.country pa ON pa.id = city.country_id " +\
-        "Where profile_id='" + profile_id + "' "
+        "Where pmem.is_active = True AND profile_id='" + profile_id + "' "
     res_profile=db.execute(str_query)
     
     for item in res_profile:
@@ -523,7 +523,7 @@ def get_lst_users_profile(profile_id: str, db: Session):
     
 def get_one_profile_id(id: str, db: Session): 
     str_query = "Select pro.id FROM enterprise.profile_member pro join enterprise.profile_users us ON us.profile_id = pro.id " +\
-        "Where pro.id='" + id + "' "
+        "Where pro.is_active = True AND pro.id='" + id + "' "
         
     res_profile_id=db.execute(str_query)
     profile_id=res_profile_id[0] if res_profile_id else ""
@@ -549,7 +549,7 @@ def get_all_profile_by_user_profile_id(request: Request, profile_id: str, db: Se
     try:
         str_profile = "SELECT pus.username FROM enterprise.profile_member pme " +\
             "INNER JOIN enterprise.profile_users pus ON pus.profile_id = pme.id " +\
-            "where pme.id = '" + profile_id + "' "
+            "where pme.is_active = True AND pme.id = '" + profile_id + "' "
         user_name = db.execute(str_profile).scalar()
         if user_name:
             str_profile = "SELECT DISTINCT pme.id as profile_id, profile_type, prot.description, " +\
@@ -560,7 +560,7 @@ def get_all_profile_by_user_profile_id(request: Request, profile_id: str, db: Se
                 "INNER JOIN enterprise.profile_type prot ON prot.name = pme.profile_type " +\
                 "left join resources.city city ON city.id = pme.city_id " +\
                 "left join resources.country pa ON pa.id = city.country_id " +\
-                "where pus.username = '" + user_name + "' AND pme.id != '" + profile_id + "' "
+                "where pme.is_active = True AND pus.username = '" + user_name + "' AND pme.id != '" + profile_id + "' "
             lst_data =  db.execute(str_profile)
             for item in lst_data:
                 result.data.append({'profile_id': item.profile_id, 
@@ -573,15 +573,6 @@ def get_all_profile_by_user_profile_id(request: Request, profile_id: str, db: Se
                                     'country': item.country_name if item.country_name else '', 
                                     'city_id': item.city_id if item.city_id else '', 
                                     'city_name': item.city_name if item.city_name else ''})  
-    
-        
-        
-     
-     
-     
-     
-     
-     
      
         return result
         
