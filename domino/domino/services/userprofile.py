@@ -45,7 +45,8 @@ def new_profile_single_player(request: Request, singleprofile: SingleProfileCrea
     id = str(uuid.uuid4())
     one_profile = new_profile(profile_type, id, currentUser['user_id'], currentUser['username'], singleprofile['name'], 
                               singleprofile['email'], singleprofile['city_id'], singleprofile['receive_notifications'], 
-                              True, True, "USERPROFILE", currentUser['username'], currentUser['username'], file, is_confirmed=True)
+                              True, True, "USERPROFILE", currentUser['username'], currentUser['username'], file, is_confirmed=True,
+                              single_profile_id=id)
     
     one_single_player = SingleProfile(profile_id=id, elo=0, ranking=None, level=singleprofile['level'], updated_by=currentUser['username'])
     one_profile.profile_single_player.append(one_single_player)
@@ -132,7 +133,7 @@ def new_profile_pair_player(request: Request, pairprofile: PairProfileCreated, f
     one_profile = new_profile(profile_type, id, currentUser['user_id'], currentUser['username'], pairprofile['name'], 
                               pairprofile['email'], pairprofile['city_id'], pairprofile['receive_notifications'], 
                               True, True, "USERPROFILE", currentUser['username'], currentUser['username'], file, 
-                              is_confirmed=True) #, single_profile_id=me_profile_id)
+                              is_confirmed=True, single_profile_id=me_profile_id)
     
     one_pair_player = PairProfile(profile_id=id, level=pairprofile['level'], updated_by=currentUser['username'],
                                   elo=0, ranking=None)
@@ -149,8 +150,8 @@ def new_profile_pair_player(request: Request, pairprofile: PairProfileCreated, f
                 raise HTTPException(status_code=400, detail=_(locale, "profile.not_equal"))
             
             other_user_member = ProfileUsers(profile_id=pairprofile['other_profile_id'], username=other_username, 
-                                            is_principal=False, created_by=currentUser['username'], is_confirmed=False) #,
-                                            # single_profile_id=pairprofile['other_profile_id'])
+                                            is_principal=False, created_by=currentUser['username'], is_confirmed=False,
+                                            single_profile_id=pairprofile['other_profile_id'])
             one_profile.profile_users.append(other_user_member) 
         else:
             raise HTTPException(status_code=400, detail=_(locale, "profile.not_exist"))
@@ -221,6 +222,9 @@ def new_profile_team_player(request: Request, teamprofile: TeamProfileCreated, f
 #region Obteniendo valores    
 def get_one(id: str, db: Session):  
     return db.query(ProfileMember).filter(ProfileMember.id == id).first()
+
+def get_one_single_profile_by_id(id: str, db: Session):  
+    return db.query(SingleProfile).filter(SingleProfile.profile_id == id).first()
 
 def get_one_default_user(id: str, db: Session):  
     return db.query(DefaultUserProfile).filter(DefaultUserProfile.profile_id == id).first()
@@ -352,7 +356,7 @@ def get_one_referee_profile(request: Request, id: str, db: Session):
     
     str_query = "Select pro.id profile_id, pro.name, pro.email, pro.city_id, pro.photo, pro.receive_notifications, " +\
         "eve.name as profile_type_name, eve.description as profile_type_description, " +\
-        "city.name as city_name, city.country_id, pa.name as country_name " +\
+        "city.name as city_name, city.country_id, pa.name as country_name, sing.level " +\
         "FROM enterprise.profile_member pro " +\
         "inner join enterprise.profile_type eve ON eve.name = pro.profile_type " +\
         "inner join enterprise.profile_referee sing ON sing.profile_id = pro.id " +\
@@ -368,6 +372,7 @@ def get_one_referee_profile(request: Request, id: str, db: Session):
                        'profile_type_name': item.profile_type_name, 
                        'profile_type_description': item.profile_type_description, 'photo': photo,
                        'country_id': item.country_id if item.country_id else '', 
+                       'level': item.level if item.level else '',
                        'country': item.country_name if item.country_name else '', 
                        'city_id': item.city_id if item.city_id else '', 
                        'city_name': item.city_name if item.city_name else '',
@@ -493,17 +498,18 @@ def get_lst_users_profile(profile_id: str, db: Session):
     host = str(settings.server_uri)
     port = str(int(settings.server_port))
     
-    str_query = "Select pmem.id profile_id, pmem.name, pmem.photo, pmem.city_id, is_principal, " +\
+    str_query = "Select puse.single_profile_id profile_id, pmem.name, pmem.photo, pmem.city_id, is_principal, " +\
         "city.name as city_name, city.country_id, pa.name as country_name " +\
         "FROM enterprise.profile_users puse " +\
-        "JOIN enterprise.profile_member pmem ON pmem.id = puse.profile_id " +\
+        "JOIN enterprise.profile_member pmem ON pmem.id = puse.single_profile_id " +\
         "left join resources.city city ON city.id = pmem.city_id " +\
         "left join resources.country pa ON pa.id = city.country_id " +\
-        "Where pmem.id='" + profile_id + "' "
+        "Where profile_id='" + profile_id + "' "
     res_profile=db.execute(str_query)
     
     for item in res_profile:
         lst_data.append({'profile_id': item.profile_id, 'name': item.name, 
+                         'is_principal': item.is_principal,
                          'photo': get_url_avatar(item.profile_id, item.photo, host=host, port=port),
                          'country_id': item.country_id if item.country_id else '', 
                          'country': item.country_name if item.country_name else '', 
@@ -590,16 +596,23 @@ def update_one_single_profile(request: Request, id: str, singleprofile: SinglePr
     result = ResultObject() 
     currentUser = get_current_user(request)
     
-    db_single_profile = get_one(id, db=db)
-    if not db_single_profile:
+    db_member_profile = get_one(id, db=db)
+    if not db_member_profile:
         raise HTTPException(status_code=400, detail=_(locale, "userprofile.not_found"))
     
-    update_profile(db_single_profile, file, currentUser, singleprofile['name'], singleprofile['email'], singleprofile['city_id'], 
+    update_profile(db_member_profile, file, currentUser, singleprofile['name'], singleprofile['email'], singleprofile['city_id'], 
                    singleprofile['receive_notifications'])
-        
+    
+    db_single_profile = get_one_single_profile_by_id(id, db=db) 
+    if not db_single_profile:
+        raise HTTPException(status_code=400, detail=_(locale, "userprofile.not_found"))
+     
     try:
         db_single_profile.level = singleprofile['level'] if singleprofile['level'] else None
+        
+        db.add(db_member_profile)
         db.add(db_single_profile)
+        
         db.commit()
         return result
     except (Exception, SQLAlchemyError) as e:
