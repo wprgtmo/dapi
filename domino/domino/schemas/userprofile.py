@@ -129,7 +129,7 @@ class TeamProfileCreated(BaseModel):
     
     receive_notifications: Optional[bool] = False
     
-    others_profile_id: Optional[List]
+    others_profile_id: Optional[str]
 class ProfileRefereeBase(BaseModel):
     profile_id: str
     level: Optional[str]

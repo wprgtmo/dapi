@@ -191,26 +191,14 @@ def new_profile_team_player(request: Request, teamprofile: TeamProfileCreated, f
     
     # lst_players = json.loads(teamprofile['others_profile_id'])
     
-    print('parametrors')
-    print(type(teamprofile['others_profile_id']))
-    print('****************')
-    
     if teamprofile['others_profile_id']:
         
         if not me_profile_id:
             raise HTTPException(status_code=400, detail=_(locale, "userprofile.not_exist"))
         
-        print('valores')
-        print(teamprofile['others_profile_id'][0])
-        lst_players_str = teamprofile['others_profile_id'][0]
-        lst_players = lst_players_str.split(',')
-        print('haciendo split')
-        print(lst_players)
+        lst_players = teamprofile['others_profile_id'].split(',')
         
         for item in lst_players: # teamprofile['others_profile_id']:
-            print('dentro del for')
-            print(item)
-            print('**************')
             
             other_username = get_user_for_single_profile(item, db=db)
             if other_username:
