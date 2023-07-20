@@ -26,7 +26,7 @@ from domino.services.utils import get_result_count, upfile, create_dir, del_imag
 from fastapi.responses import FileResponse
 from os import getcwd
             
-def get_all(request:Request, page: int, per_page: int, criteria_key: str, criteria_value: str, db: Session):  
+def get_all(request:Request, profile_id:str, page: int, per_page: int, criteria_key: str, criteria_value: str, db: Session):  
     locale = request.headers["accept-language"].split(",")[0].split("-")[0];
     
     str_from = "FROM events.events eve " +\
@@ -41,6 +41,10 @@ def get_all(request:Request, page: int, per_page: int, criteria_key: str, criter
         "users.id as user_id " + str_from
     
     str_where = " WHERE sta.name != 'CANCELLED' "  
+    
+    if profile_id:
+        str_where += "AND profile_id = '" + profile_id + "' "
+    # debo incluir los de los perfiles que el sigue
     
     dict_query = {'name': " AND eve.name ilike '%" + criteria_value + "%'",
                   'summary': " AND summary ilike '%" + criteria_value + "%'",
@@ -65,7 +69,7 @@ def get_all(request:Request, page: int, per_page: int, criteria_key: str, criter
     str_query += " ORDER BY start_date DESC " 
     if page != 0:
         str_query += "LIMIT " + str(per_page) + " OFFSET " + str(page*per_page-per_page)
-     
+    
     lst_data = db.execute(str_query)
     result.data = [create_dict_row(item, page, db=db, incluye_tourney=True, 
                                    host=str(settings.server_uri), port=str(int(settings.server_port))) for item in lst_data]
@@ -335,7 +339,7 @@ def get_lst_tourney_by_event_id(event_id: str, db: Session):
 
 def get_number_people_at_event(id: str, type_event: str, db: Session): 
     
-    str_select = "SELECT profile_id, tourney_id, tor.event_id "
+    str_select = "SELECT eve_r.profile_id, tourney_id, tor.event_id "
     str_from_ref = "FROM events.referees eve_r "
     str_from_play = "FROM events.players eve_r "
     str_inner = "INNER JOIN events.tourney tor ON tor.id = eve_r.tourney_id "

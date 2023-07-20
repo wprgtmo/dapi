@@ -198,11 +198,10 @@ def new_profile_team_player(request: Request, teamprofile: TeamProfileCreated, f
         
         lst_players_str = teamprofile['others_profile_id'][0]
         lst_players = lst_players_str.split(',')
-        
         for item in lst_players: # teamprofile['others_profile_id']:
             other_username = get_user_for_single_profile(item, db=db)
             if other_username:
-                if me_profile_id == item['other_profile_id']:
+                if me_profile_id == item:
                     raise HTTPException(status_code=400, detail=_(locale, "userprofile.not_equal"))
             
                 other_user_member = ProfileUsers(profile_id=item, username=other_username, 
