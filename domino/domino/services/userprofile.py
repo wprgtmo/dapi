@@ -692,6 +692,13 @@ def update_one_pair_profile(request: Request, id: str, pairprofile: PairProfileC
     result = ResultObject() 
     currentUser = get_current_user(request)
     
+    me_profile_id = get_user_for_single_profile_by_user(currentUser['username'], db=db)
+    if not me_profile_id:
+        raise HTTPException(status_code=400, detail=_(locale, "userprofile.not_exist"))
+    
+    if pairprofile['other_profile_id'] and pairprofile['other_profile_id'] == me_profile_id: 
+        raise HTTPException(status_code=400, detail=_(locale, "userprofile.not_equal"))
+    
     db_profile = get_one(id, db=db)
     if not db_profile:
         raise HTTPException(status_code=400, detail=_(locale, "userprofile.not_found"))
@@ -707,7 +714,28 @@ def update_one_pair_profile(request: Request, id: str, pairprofile: PairProfileC
     
     db_profile.updated_by = currentUser['username']
     db_profile.updated_date = datetime.now()
+    
+    # actualizando la pareja
+    dicc_player = get_dicc_users_team_profile(profile_id=id, db=db)
+    
+    if pairprofile['other_profile_id']:
+        # if el jugador que viene es distinto al que tengo ya salvado, borrar primero
+        if pairprofile['other_profile_id'] not in dicc_player:   # es nuevo
+            # borrar el que esta
+            for item_key in dicc_player:
+                if me_profile_id == item_key:
+                    continue   # el principal no se puede borrar
+                
+                db_user = db.query(ProfileUsers).filter_by(profile_id = id, single_profile_id=item_key).first()
+                db.delete(db_user)
             
+            other_username = get_user_for_single_profile(pairprofile['other_profile_id'], db=db)
+            if other_username:
+                other_user_member = ProfileUsers(profile_id=id, username=other_username, 
+                                                is_principal=False, created_by=currentUser['username'],
+                                                is_confirmed=False, single_profile_id=pairprofile['other_profile_id'])
+                db_profile.profile_users.append(other_user_member) 
+                            
     try:
         db.add(db_profile)
         db.add(db_pair_profile)
