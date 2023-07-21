@@ -3,7 +3,7 @@ from domino.schemas.userprofile import TeamProfileCreated
 from domino.schemas.result_object import ResultObject
 from sqlalchemy.orm import Session
 from domino.app import get_db
-from domino.services.userprofile import new_profile_team_player, get_one_team_profile, update_one_team_profile, delete_one_profile
+from domino.services.userprofile import new_profile_team_player, get_one_team_profile_by_id, update_one_team_profile, delete_one_profile
 from starlette import status
 from domino.auth_bearer import JWTBearer
   
@@ -19,7 +19,7 @@ def create_team_profile(
 
 @teamprofile_route.get("/profile/team/{id}", response_model=ResultObject, summary="Get a Team Player Profile for your ID.")
 def get_team_profile(request: Request, id: str, db: Session = Depends(get_db)):
-    return get_one_team_profile(request, id=id, db=db)
+    return get_one_team_profile_by_id(request, id=id, db=db)
 
 @teamprofile_route.delete("/profile/team/{id}", response_model=ResultObject, summary="Remove Team player Profile for your ID")
 def delete_team_profile(request:Request, id: str, db: Session = Depends(get_db)):

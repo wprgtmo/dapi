@@ -239,7 +239,6 @@ def get_user_for_single_profile(profile_id: str, db: Session):
     str_query = "Select us.username FROM enterprise.profile_member pro " +\
         "join enterprise.profile_users us ON us.profile_id = pro.id " +\
         "Where pro.is_active = True and pro.id='" + profile_id + "' AND pro.profile_type = 'SINGLE_PLAYER'"
-        
     res_profile = db.execute(str_query).fetchone()
     return res_profile[0] if res_profile else ""
     
@@ -426,7 +425,7 @@ def get_one_pair_profile(request: Request, id: str, db: Session):
     
     return result
 
-def get_one_team_profile(request: Request, id: str, db: Session): 
+def get_one_team_profile_by_id(request: Request, id: str, db: Session): 
     locale = request.headers["accept-language"].split(",")[0].split("-")[0];
     
     currentUser = get_current_user(request)
@@ -513,6 +512,22 @@ def get_one_default_user_profile(request: Request, id: str, db: Session):
         raise HTTPException(status_code=400, detail=_(locale, "userprofile.not_found"))
         
     return result
+
+def get_dicc_users_team_profile(profile_id: str, db: Session): 
+    
+    dicc_data = {}
+    
+    str_query = "Select puse.single_profile_id profile_id, pmem.name " +\
+        "FROM enterprise.profile_users puse " +\
+        "JOIN enterprise.profile_member pmem ON pmem.id = puse.single_profile_id " +\
+        "Where pmem.is_active = True AND profile_id='" + profile_id + "' "
+    res_profile=db.execute(str_query)
+    
+    for item in res_profile:
+        if item.profile_id not in dicc_data:
+            dicc_data[item.profile_id] = item.name
+        
+    return dicc_data
 
 def get_lst_users_team_profile(profile_id: str, single_profile_id: str, db: Session): 
     
@@ -657,6 +672,9 @@ def update_one_single_profile(request: Request, id: str, singleprofile: SinglePr
     try:
         db_single_profile.level = singleprofile['level'] if singleprofile['level'] else None
         
+        db_member_profile.updated_by = currentUser['username']
+        db_member_profile.updated_date = datetime.now()
+        
         db.add(db_member_profile)
         db.add(db_single_profile)
         
@@ -682,7 +700,10 @@ def update_one_pair_profile(request: Request, id: str, pairprofile: PairProfileC
     
     db_pair_profile = get_one_pair_profile(db_profile.id, db=db)
     db_pair_profile.level = pairprofile['level']
-        
+    
+    db_profile.updated_by = currentUser['username']
+    db_profile.updated_date = datetime.now()
+            
     try:
         db.add(db_profile)
         db.add(db_pair_profile)
@@ -699,16 +720,51 @@ def update_one_team_profile(request: Request, id: str, teamprofile: TeamProfileC
     result = ResultObject() 
     currentUser = get_current_user(request)
     
+    me_profile_id = get_user_for_single_profile_by_user(currentUser['username'], db=db)
+    if not me_profile_id:
+            raise HTTPException(status_code=400, detail=_(locale, "userprofile.not_exist"))
+    
     db_profile = get_one(id, db=db)
-    if not db_team_profile:
+    if not db_profile:
         raise HTTPException(status_code=400, detail=_(locale, "userprofile.not_found"))
     
     update_profile(db_profile, file, currentUser, teamprofile['name'], teamprofile['email'], teamprofile['city_id'], 
                    teamprofile['receive_notifications'])
     
     db_team_profile = get_one_team_profile(db_profile.id, db=db)
+    if not db_team_profile:
+        raise HTTPException(status_code=400, detail=_(locale, "userprofile.not_found"))
+    
     db_team_profile.level = teamprofile['level']
+    db_profile.updated_by = currentUser['username']
+    db_profile.updated_date = datetime.now()
+    
+    dicc_player = get_dicc_users_team_profile(profile_id=id, db=db)
+    
+    if teamprofile['others_profile_id']:
+        lst_players = teamprofile['others_profile_id'].split(',')
         
+        for item in lst_players:
+            if item not in dicc_player:   # es nuevo
+                other_username = get_user_for_single_profile(item, db=db)
+                if other_username:
+                    if me_profile_id == item:
+                        continue
+                
+                    other_user_member = ProfileUsers(profile_id=item, username=other_username, 
+                                                    is_principal=False, created_by=currentUser['username'],
+                                                    is_confirmed=False, single_profile_id=item)
+                    db_profile.profile_users.append(other_user_member) 
+                else:
+                    continue
+            else:
+                continue  # es el mismo, se mantiene
+            
+        for item_key in dicc_player:
+            if item_key not in lst_players:    # eliminar
+                db_user = db.query(ProfileUsers).filter_by(profile_id = id, single_profile_id=item_key).first()
+                db.delete(db_user)
+                
     try:
         db.add(db_profile)
         db.add(db_team_profile)
@@ -734,6 +790,9 @@ def update_one_referee_profile(request: Request, id: str, refereeprofile: Refere
     
     db_referee_profile = get_one_referee_profile_by_id(db_profile.id, db=db)
     db_referee_profile.level = refereeprofile['level']
+    
+    db_profile.updated_by = currentUser['username']
+    db_profile.updated_date = datetime.now()
         
     try:
         db.add(db_profile)
