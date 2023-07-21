@@ -763,8 +763,10 @@ def update_one_team_profile(request: Request, id: str, teamprofile: TeamProfileC
             
         for item_key in dicc_player:
             if item_key not in lst_players:    # eliminar
-                db_user = db.query(ProfileUsers).filter_by(profile_id = id, single_profile_id=item_key).first()
-                db.delete(db_user)
+                # si es el principal no se puede eliminar
+                if me_profile_id != item_key:
+                    db_user = db.query(ProfileUsers).filter_by(profile_id = id, single_profile_id=item_key).first()
+                    db.delete(db_user)
                 
     try:
         db.add(db_profile)
