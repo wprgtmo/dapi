@@ -577,8 +577,8 @@ def get_lst_users_pair_profile(profile_id: str, single_profile_id: str, db: Sess
     res_profile=db.execute(str_query)
     
     for item in res_profile:
-        if item.profile_id == single_profile_id:
-            continue
+        # if item.profile_id == single_profile_id:
+        #     continue
         
         dict_data = {'profile_id': item.profile_id, 'name': item.name, 
                      'is_principal': item.is_principal,
