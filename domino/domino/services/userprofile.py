@@ -693,13 +693,16 @@ def update_one_pair_profile(request: Request, id: str, pairprofile: PairProfileC
     currentUser = get_current_user(request)
     
     db_profile = get_one(id, db=db)
-    if not db_pair_profile:
+    if not db_profile:
         raise HTTPException(status_code=400, detail=_(locale, "userprofile.not_found"))
     
     update_profile(db_profile, file, currentUser, pairprofile['name'], pairprofile['email'], pairprofile['city_id'], 
                    pairprofile['receive_notifications'])
     
     db_pair_profile = get_one_pair_profile(db_profile.id, db=db)
+    if not db_pair_profile:
+        raise HTTPException(status_code=400, detail=_(locale, "userprofile.not_found"))
+    
     db_pair_profile.level = pairprofile['level']
     
     db_profile.updated_by = currentUser['username']
