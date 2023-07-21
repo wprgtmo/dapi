@@ -3,7 +3,7 @@ from domino.schemas.userprofile import PairProfileCreated
 from domino.schemas.result_object import ResultObject
 from sqlalchemy.orm import Session
 from domino.app import get_db
-from domino.services.userprofile import new_profile_pair_player, get_one_pair_profile, update_one_pair_profile, delete_one_profile
+from domino.services.userprofile import new_profile_pair_player, get_one_pair_profile_by_id, update_one_pair_profile, delete_one_profile
 from starlette import status
 from domino.auth_bearer import JWTBearer
   
@@ -19,7 +19,7 @@ def create_pair_profile(
 
 @pairprofile_route.get("/profile/pair/{id}", response_model=ResultObject, summary="Get a Pair Player Profile for your ID.")
 def get_pair_profile(request: Request, id: str, db: Session = Depends(get_db)):
-    return get_one_pair_profile(request, id=id, db=db)
+    return get_one_pair_profile_by_id(request, id=id, db=db)
 
 @pairprofile_route.delete("/profile/pair/{id}", response_model=ResultObject, summary="Remove Pair player Profile for your ID")
 def delete_pair_profile(request:Request, id: str, db: Session = Depends(get_db)):

@@ -381,7 +381,7 @@ def get_one_referee_profile(request: Request, id: str, db: Session):
     
     return result
 
-def get_one_pair_profile(request: Request, id: str, db: Session): 
+def get_one_pair_profile_by_id(request: Request, id: str, db: Session): 
     locale = request.headers["accept-language"].split(",")[0].split("-")[0];
     
     currentUser = get_current_user(request)
