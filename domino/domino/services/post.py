@@ -54,7 +54,7 @@ def get_all(request:Request, page: int, per_page: int, criteria_key: str, criter
     
     return result
 
-def get_list_post(request:Request, db: Session):  
+def get_list_post(request:Request, profile_id:str, db: Session):  
     locale = request.headers["accept-language"].split(",")[0].split("-")[0];
     
     result = ResultObject() 
@@ -69,8 +69,7 @@ def get_list_post(request:Request, db: Session):
         "JOIN enterprise.profile_member pmem ON pmem.id = puse.profile_id AND pmem.profile_type = 'USER' " +\
         "LEFT JOIN enterprise.user_followers usf ON usf.user_follow = po.created_by " +\
         "WHERE po.is_active=True AND po.updated_date >= '" + date_find.strftime('%Y-%m-%d') + "' " +\
-        "AND (usf.username = '" + currentUser['username'] + "' " +\
-        "or po.created_by = 'domino' or po.created_by = '" + currentUser['username'] + "')"
+        "AND (po.profile_id = '" + profile_id + "' or po.created_by = 'domino' )"
   
     str_query += " ORDER BY updated_date DESC " 
     

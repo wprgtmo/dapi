@@ -225,6 +225,9 @@ def new_profile_team_player(request: Request, teamprofile: TeamProfileCreated, f
 def get_one(id: str, db: Session):  
     return db.query(ProfileMember).filter(ProfileMember.id == id).first()
 
+def get_profile_user_ids(profile_id: str, single_profile_id:str, db: Session):  
+    return db.query(ProfileUsers).filter_by(profile_id=profile_id, single_profile_id=single_profile_id).first()
+
 def get_one_single_profile_by_id(id: str, db: Session):  
     return db.query(SingleProfile).filter(SingleProfile.profile_id == id).first()
 
@@ -233,6 +236,14 @@ def get_one_default_user(id: str, db: Session):
 
 def get_one_referee_profile_by_id(id: str, db: Session):  
     return db.query(RefereeProfile).filter(RefereeProfile.profile_id == id).first()
+
+def get_count_user_for_status(profile_id: str, confirmed: bool, db: Session):  
+    
+    str_query = "Select count(us.username) FROM enterprise.profile_member pro " +\
+        "join enterprise.profile_users us ON us.profile_id = pro.id " +\
+        "Where pro.is_active = True and pro.id='" + profile_id + "' AND is_confirmed = " + confirmed
+    res_profile = db.execute(str_query).fetchone()
+    return res_profile[0] if res_profile else ""
 
 def get_user_for_single_profile(profile_id: str, db: Session):  
     
@@ -247,6 +258,15 @@ def get_user_for_single_profile_by_user(user_name: str, db: Session):
     str_query = "Select pro.id profile_id FROM enterprise.profile_member pro " +\
         "join enterprise.profile_users us ON us.profile_id = pro.id " +\
         "Where pro.is_active = True and us.username='" + user_name + "' AND pro.profile_type = 'SINGLE_PLAYER'"
+        
+    res_profile = db.execute(str_query).fetchone()
+    return res_profile[0] if res_profile else ""
+
+def get_single_profile_id_for_profile_by_user(user_name: str, profile_id: str, db: Session):  
+    
+    str_query = "Select us.single_profile_id FROM enterprise.profile_member pro " +\
+        "join enterprise.profile_users us ON us.profile_id = pro.id " +\
+        "Where pro.is_active = True and us.username='" + user_name + "' AND us.profile_id = '" + profile_id + "' "
         
     res_profile = db.execute(str_query).fetchone()
     return res_profile[0] if res_profile else ""

@@ -31,9 +31,10 @@ def get_post(
 @post_route.get("/post", response_model=Dict, summary="Obtain a list of Post.")
 def get_last_post(
     request: Request,
+    profile_id: str,
     db: Session = Depends(get_db)
 ):
-    return get_list_post(request=request, db=db)
+    return get_list_post(request=request, profile_id=profile_id, db=db)
 
 @post_route.get("/post/one/{id}", response_model=ResultObject, summary="Get a Post for your ID.")
 def get_post_by_id(id: str, db: Session = Depends(get_db)):
