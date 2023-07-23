@@ -132,7 +132,7 @@ def new_profile_pair_player(request: Request, pairprofile: PairProfileCreated, f
     id = str(uuid.uuid4())
     one_profile = new_profile(profile_type, id, currentUser['user_id'], currentUser['username'], pairprofile['name'], 
                               pairprofile['email'], pairprofile['city_id'], pairprofile['receive_notifications'], 
-                              True, True, "USERPROFILE", currentUser['username'], currentUser['username'], file, 
+                              False, True, "USERPROFILE", currentUser['username'], currentUser['username'], file, 
                               is_confirmed=True, single_profile_id=me_profile_id)
     
     one_pair_player = PairProfile(profile_id=id, level=pairprofile['level'], updated_by=currentUser['username'],
@@ -179,7 +179,7 @@ def new_profile_team_player(request: Request, teamprofile: TeamProfileCreated, f
     id = str(uuid.uuid4())
     one_profile = new_profile(profile_type, id, currentUser['user_id'], currentUser['username'], teamprofile['name'], 
                               teamprofile['email'], teamprofile['city_id'], teamprofile['receive_notifications'], 
-                              True, True, "USERPROFILE", currentUser['username'], currentUser['username'], file, is_confirmed=True,
+                              False, True, "USERPROFILE", currentUser['username'], currentUser['username'], file, is_confirmed=True,
                               single_profile_id=me_profile_id)
     
     one_team_player = TeamProfile(profile_id=id, level=teamprofile['level'], amount_members=0, #teamprofile['amount_members'], 

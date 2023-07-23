@@ -70,33 +70,28 @@ def update(request: Request, profile_id:str, requestprofile: RequestAccepted, db
     if not db_user_profile:
         raise HTTPException(status_code=400, detail=_(locale, "userprofile.not_found"))
     
-    # si todos los integrantes están confirmados la pareja o equipo están listos
+    db_user_profile.is_confirmed = True if requestprofile.accept else False
+    db_user_profile.updated_by = currentUser['username']
+    db_user_profile.updated_date = datetime.now()
     
+    try:
+        db.add(db_user_profile)
+        db.commit()
+        db.refresh(db_user_profile)
+    except:
+        raise HTTPException(status_code=400, detail=_(locale, "userprofile.already_exist"))
+    
+    # si todos los integrantes están confirmados la pareja o equipo están listos
     db_member_profile = get_one_profile(id=profile_id, db=db)
     if not db_member_profile:
         raise HTTPException(status_code=400, detail=_(locale, "userprofile.not_found"))
             
-    if requestprofile.accept:
-        db_user_profile.is_confirmed = True
-        count_user = get_count_user_for_status(profile_id, False, db=db)
-        print('cantidad jugadores')
-        print(count_user)
-        if count_user == 0:  # equipo o pareja todos confirmados
-            print('cero jugadores')
-            db_member_profile.is_ready = True
-            
-    else:
-        db_user_profile.is_confirmed = False
-        db_member_profile.is_ready = False
-            
-    db_user_profile.updated_by = currentUser['username']
-    db_user_profile.updated_date = datetime.now()
-    
+    count_user = get_count_user_for_status(profile_id, False, db=db)
+    db_member_profile.is_ready = True if count_user == 0 else False
     db_member_profile.updated_by = currentUser['username']
     db_member_profile.updated_date = datetime.now()
         
     try:
-        db.add(db_user_profile)
         db.add(db_member_profile)
         db.commit()
         return result
