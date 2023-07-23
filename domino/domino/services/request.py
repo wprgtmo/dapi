@@ -31,7 +31,7 @@ def get_request_to_confirm_at_profile(request:Request, profile_id: str, db: Sess
     host = str(settings.server_uri)
     port = str(int(settings.server_port))
     
-    db_member_profile = get_one_profile(profile_id=profile_id, db=db)
+    db_member_profile = get_one_profile(id=profile_id, db=db)
     if not db_member_profile:
         raise HTTPException(status_code=400, detail=_(locale, "userprofile.not_found"))
     
@@ -60,13 +60,13 @@ def create_dict_row(item, single_profile_id, host="", port=""):
             'profile_description': item['description'],  
             'photo' : get_url_avatar(item['id'], item['photo'], host=host, port=port)}
     
-def update(request: Request, profile_id:str, single_profile_id:str, requestprofile: RequestAccepted, db: Session):
+def update(request: Request, profile_id:str, requestprofile: RequestAccepted, db: Session):
     locale = request.headers["accept-language"].split(",")[0].split("-")[0];
     
     result = ResultObject() 
     currentUser = get_current_user(request) 
        
-    db_user_profile = get_profile_user_ids(profile_id=profile_id, single_profile_id=single_profile_id, db=db)
+    db_user_profile = get_profile_user_ids(profile_id=profile_id, single_profile_id=requestprofile['single_profile_id'], db=db)
     if not db_user_profile:
         raise HTTPException(status_code=400, detail=_(locale, "userprofile.not_found"))
     

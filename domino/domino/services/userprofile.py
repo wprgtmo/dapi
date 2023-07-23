@@ -700,7 +700,10 @@ def update_one_single_profile(request: Request, id: str, singleprofile: SinglePr
         db.add(db_single_profile)
         
         db.commit()
+        
+        result.data = get_url_avatar(db_single_profile.id, db_member_profile.photo)
         return result
+    
     except (Exception, SQLAlchemyError) as e:
         print(e.code)
         if e.code == "gkpj":
@@ -760,6 +763,8 @@ def update_one_pair_profile(request: Request, id: str, pairprofile: PairProfileC
         db.add(db_profile)
         db.add(db_pair_profile)
         db.commit()
+        
+        result.data = get_url_avatar(db_profile.id, db_profile.photo)
         return result
     except (Exception, SQLAlchemyError) as e:
         print(e.code)
@@ -823,6 +828,8 @@ def update_one_team_profile(request: Request, id: str, teamprofile: TeamProfileC
         db.add(db_profile)
         db.add(db_team_profile)
         db.commit()
+        result.data = get_url_avatar(db_profile.id, db_profile.photo)
+        
         return result
     except (Exception, SQLAlchemyError) as e:
         print(e.code)
@@ -852,6 +859,7 @@ def update_one_referee_profile(request: Request, id: str, refereeprofile: Refere
         db.add(db_profile)
         db.add(db_referee_profile)
         db.commit()
+        result.data = get_url_avatar(db_profile.id, db_profile.photo)
         return result
     except (Exception, SQLAlchemyError) as e:
         print(e.code)
