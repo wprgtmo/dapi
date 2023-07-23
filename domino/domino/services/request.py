@@ -66,20 +66,23 @@ def update(request: Request, profile_id:str, requestprofile: RequestAccepted, db
     result = ResultObject() 
     currentUser = get_current_user(request) 
        
-    db_user_profile = get_profile_user_ids(profile_id=profile_id, single_profile_id=requestprofile['single_profile_id'], db=db)
+    db_user_profile = get_profile_user_ids(profile_id=profile_id, single_profile_id=requestprofile.single_profile_id, db=db)
     if not db_user_profile:
         raise HTTPException(status_code=400, detail=_(locale, "userprofile.not_found"))
     
     # si todos los integrantes están confirmados la pareja o equipo están listos
     
-    db_member_profile = get_one_profile(profile_id=profile_id, db=db)
+    db_member_profile = get_one_profile(id=profile_id, db=db)
     if not db_member_profile:
         raise HTTPException(status_code=400, detail=_(locale, "userprofile.not_found"))
             
     if requestprofile.accept:
         db_user_profile.is_confirmed = True
         count_user = get_count_user_for_status(profile_id, False, db=db)
+        print('cantidad jugadores')
+        print(count_user)
         if count_user == 0:  # equipo o pareja todos confirmados
+            print('cero jugadores')
             db_member_profile.is_ready = True
             
     else:
@@ -100,6 +103,6 @@ def update(request: Request, profile_id:str, requestprofile: RequestAccepted, db
     except (Exception, SQLAlchemyError) as e:
         print(e.code)
         if e.code == "gkpj":
-            raise HTTPException(status_code=400, detail=_(locale, "invitation.already_exist"))
+            raise HTTPException(status_code=400, detail=_(locale, "userprofile.already_exist"))
             
     

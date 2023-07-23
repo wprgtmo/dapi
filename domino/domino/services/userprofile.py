@@ -241,8 +241,9 @@ def get_count_user_for_status(profile_id: str, confirmed: bool, db: Session):
     
     str_query = "Select count(us.username) FROM enterprise.profile_member pro " +\
         "join enterprise.profile_users us ON us.profile_id = pro.id " +\
-        "Where pro.is_active = True and pro.id='" + profile_id + "' AND is_confirmed = " + confirmed
+        "Where pro.is_active = True and pro.id='" + profile_id + "' AND is_confirmed = " + str(confirmed)
     res_profile = db.execute(str_query).fetchone()
+    print(str_query)
     return res_profile[0] if res_profile else ""
 
 def get_user_for_single_profile(profile_id: str, db: Session):  
