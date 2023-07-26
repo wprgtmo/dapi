@@ -64,10 +64,9 @@ def get_list_post(request:Request, profile_id:str, db: Session):
     
     str_query = "Select po.id, summary, us.first_name || ' ' || us.last_name as full_name, po.updated_date, pmem.photo, " +\
         "us.id as user_id, pmem.id as profile_id, po.allow_comment, po.show_count_like " +\
-        "FROM post.post po JOIN enterprise.users us ON po.created_by = us.username " +\
-        "JOIN enterprise.profile_users puse ON puse.username = us.username " +\
-        "JOIN enterprise.profile_member pmem ON pmem.id = puse.profile_id AND pmem.profile_type = 'USER' " +\
-        "LEFT JOIN enterprise.user_followers usf ON usf.user_follow = po.created_by " +\
+        "FROM post.post po " +\
+        "JOIN enterprise.profile_member pmem ON pmem.id = po.profile_id " +\
+        "JOIN enterprise.users us ON po.created_by = us.username " +\
         "WHERE po.is_active=True AND po.updated_date >= '" + date_find.strftime('%Y-%m-%d') + "' " +\
         "AND (po.profile_id = '" + profile_id + "' or po.created_by = 'domino' )"
   
