@@ -72,6 +72,7 @@ def get_list_post(request:Request, profile_id:str, db: Session):
   
     str_query += " ORDER BY updated_date DESC " 
     
+    # aqui me falta incluir todos los post de los profile que yo sigo, cuando Migue ponga esa parte
     lst_data = db.execute(str_query)
     host=str(settings.server_uri)
     port=str(int(settings.server_port))
