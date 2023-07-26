@@ -138,18 +138,17 @@ def get_amount_element_of_post(post_id, db: Session):
 def get_comments_of_post(post_id: str, current_date: datetime, db: Session, host='', port=''):
     
     str_comments = "SELECT po.id, us.first_name || ' ' || us.last_name as full_name, pmem.photo, summary, " +\
-        "po.created_date, us.id as user_id, us.username FROM post.post_comments po " +\
-        "LEFT JOIN enterprise.users us ON po.created_by = us.username " +\
-        "LEFT JOIN enterprise.profile_users puse ON puse.username = us.username " +\
-        "LEFT JOIN enterprise.profile_member pmem ON pmem.id = puse.profile_id  AND pmem.profile_type = 'USER' " +\
+        "po.created_date, us.id as user_id, us.username, po.profile_id FROM post.post_comments po " +\
+        "JOIN enterprise.profile_member pmem ON pmem.id = po.profile_id " +\
+        "JOIN enterprise.users us ON po.created_by = us.username " +\
         "WHERE post_id = '" + post_id + "' ORDER BY po.created_date DESC LIMIT 3 "
-        
+    
     lst_comments = db.execute(str_comments)
- 
     lst_result = []
     for item_comment in lst_comments:
         one_like_comment = get_one_like_at_comment(item_comment['id'], item_comment['username'], db=db)
         lst_result.append({'id': item_comment['id'], 'name': item_comment['full_name'], 
+                           'profile_id': item_comment['profile_id'],
                            'user_id': item_comment['user_id'],
                            'avatar': get_url_avatar(item_comment['user_id'], item_comment['photo'], host, port) if item_comment['photo'] else "",
                            'comment': item_comment['summary'] if item_comment['summary'] else "", 
@@ -162,10 +161,9 @@ def get_comments_of_post(post_id: str, current_date: datetime, db: Session, host
 def get_comments_of_comment(comment_id: str, current_date: datetime, db: Session, host='', port=''):
     
     str_comments = "SELECT co.id, us.first_name || ' ' || us.last_name as full_name, pmem.photo, summary,co.created_by, " +\
-        "co.created_date, us.id as user_id, us.username FROM post.comment_comments co " +\
-        "LEFT JOIN enterprise.users us ON co.created_by = us.username " +\
-        "LEFT JOIN enterprise.profile_users puse ON puse.username = us.username " +\
-        "LEFT JOIN enterprise.profile_member pmem ON pmem.id = puse.profile_id  AND pmem.profile_type = 'USER' " +\
+        "co.created_date, us.id as user_id, us.username, co.profile_id FROM post.comment_comments co " +\
+        "JOIN enterprise.profile_member pmem ON pmem.id = co.profile_id " +\
+        "JOIN enterprise.users us ON co.created_by = us.username " +\
         "WHERE comment_id = '" + comment_id + "' ORDER BY co.created_date DESC LIMIT 3 "
     lst_comments = db.execute(str_comments)
  
@@ -173,6 +171,7 @@ def get_comments_of_comment(comment_id: str, current_date: datetime, db: Session
     for item_comment in lst_comments:
         one_like_comment = get_one_like_at_comment(item_comment['id'], item_comment['username'], db=db)
         lst_result.append({'id': item_comment['id'], 'name': item_comment['full_name'], 
+                           'profile_id': item_comment['profile_id'],
                            'user_id': item_comment['user_id'],
                            'avatar': get_url_avatar(item_comment['user_id'], item_comment['photo'], host, port) if item_comment['photo'] else "",
                            'comment': item_comment['summary'] if item_comment['summary'] else "", 
@@ -557,6 +556,7 @@ def get_ext_type(path: str):
     dict_ext = {'bmp': 'image', 'gif': 'image', 'jpg': 'image', 'jpeg': 'image', 'png': 'image', 'tif': 'image', 'tiff': 'image',
                 'mp4': 'video', 'mov': 'video', 'wmv': 'video', 'avi': 'video', 'mkv': 'video', 'flv': 'video', 'webm': 'video', 'html5': 'video'} 
     
+    path = path.lower()
     pos_ext = path.rfind('.')
    
     ext = dict_ext[path[pos_ext+1:]] if pos_ext > 0 else 'no type'
