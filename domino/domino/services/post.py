@@ -57,6 +57,9 @@ def get_all(request:Request, page: int, per_page: int, criteria_key: str, criter
 def get_list_post(request:Request, profile_id:str, db: Session):  
     locale = request.headers["accept-language"].split(",")[0].split("-")[0];
     
+    print('profile')
+    print(profile_id)
+    
     result = ResultObject() 
     current_date = datetime.now()
     date_find = datetime.now() - timedelta(days=4)
@@ -73,6 +76,7 @@ def get_list_post(request:Request, profile_id:str, db: Session):
     str_query += " ORDER BY updated_date DESC " 
     
     # aqui me falta incluir todos los post de los profile que yo sigo, cuando Migue ponga esa parte
+    print(str_query)
     lst_data = db.execute(str_query)
     host=str(settings.server_uri)
     port=str(int(settings.server_port))
@@ -88,7 +92,7 @@ def create_dict_row(item, current_date, currentUser, db: Session, host='', port=
             'user_id': item['user_id'],
             'profile_id': item['profile_id'],
             'name': item['full_name'],
-            'avatar': get_url_avatar(item['user_id'], item['photo'], host, port) if item['photo'] else "", 
+            'avatar': get_url_avatar(item['profile_id'], item['photo'], host, port) if item['photo'] else "", 
             'elapsed': calculate_time(current_date, item['updated_date']), 
             'comment': item['summary'] if item['summary'] else "",
             'amountLike': amount_like, 'amountComment': amount_comments, 
@@ -150,7 +154,7 @@ def get_comments_of_post(post_id: str, current_date: datetime, db: Session, host
         lst_result.append({'id': item_comment['id'], 'name': item_comment['full_name'], 
                            'profile_id': item_comment['profile_id'],
                            'user_id': item_comment['user_id'],
-                           'avatar': get_url_avatar(item_comment['user_id'], item_comment['photo'], host, port) if item_comment['photo'] else "",
+                           'avatar': get_url_avatar(item_comment['profile_id'], item_comment['photo'], host, port) if item_comment['photo'] else "",
                            'comment': item_comment['summary'] if item_comment['summary'] else "", 
                            'comments': get_comments_of_comment(item_comment['id'], current_date, db=db),
                            'like': True if one_like_comment else False,
@@ -173,7 +177,7 @@ def get_comments_of_comment(comment_id: str, current_date: datetime, db: Session
         lst_result.append({'id': item_comment['id'], 'name': item_comment['full_name'], 
                            'profile_id': item_comment['profile_id'],
                            'user_id': item_comment['user_id'],
-                           'avatar': get_url_avatar(item_comment['user_id'], item_comment['photo'], host, port) if item_comment['photo'] else "",
+                           'avatar': get_url_avatar(item_comment['profile_id'], item_comment['photo'], host, port) if item_comment['photo'] else "",
                            'comment': item_comment['summary'] if item_comment['summary'] else "", 
                            'like': True if one_like_comment else False,
                            'elapsed': calculate_time(current_date, item_comment['created_date'])})
