@@ -12,7 +12,7 @@ from domino.schemas.resources.result_object import ResultObject
 from domino.services.enterprise.profiletype import get_all, new
   
 profiletype_route = APIRouter(
-    tags=["ProfileType"],
+    tags=["Nomenclators"],  # tags=["ProfileType"],
     dependencies=[Depends(JWTBearer())]   
 )
 

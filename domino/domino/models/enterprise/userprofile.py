@@ -223,3 +223,30 @@ class TeamProfile(Base):
             "level": self.level,
             "amount_members": self.amount_members
         }
+       
+class ProfileFollowers(Base):
+    """ProfileFollowers Class contains standard information for a Profile of Followers."""
+ 
+    __tablename__ = "profile_followers"
+    __table_args__ = {'schema' : 'enterprise'}
+    
+    profile_id = Column(String, ForeignKey("enterprise.profile_member.id"), primary_key=True)
+    username = Column(String, nullable=False)
+    
+    profile_follow_id = Column(String, ForeignKey("enterprise.profile_member.id"), primary_key=True)
+    username_follow = Column(String, nullable=False)
+    
+    created_by = Column(String, nullable=False)
+    created_date = Column(Date, nullable=False, default=date.today())
+    
+    is_active = Column(Boolean, nullable=False, default=False)
+    
+    def dict(self):
+        return {
+            "profile_id": self.profile_id,
+            "username": self.username,
+            "profile_follow_id": self.profile_follow_id,
+            "username_follow": self.username_follow,
+            "created_date": self.created_date,
+            "is_active": self.is_active
+        }

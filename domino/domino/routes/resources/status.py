@@ -11,7 +11,7 @@ from domino.auth_bearer import JWTBearer
 from domino.services.resources.status import get_all, new
   
 status_route = APIRouter(
-    tags=["Status"],
+    tags=["Nomenclators"], # tags=["Status"],
     dependencies=[Depends(JWTBearer())]   
 )
 

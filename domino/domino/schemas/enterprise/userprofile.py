@@ -146,3 +146,22 @@ class RefereeProfileCreated(BaseModel):
     city_id: Optional[int]
     
     receive_notifications: Optional[bool] = False
+    
+    
+
+class ProfileFollowersBase(BaseModel):
+    profile_id: str
+    profile_follow_id: str
+    
+class ProfileFollowersSchema(ProfileFollowersBase):
+    
+    username: str
+    username_follow: str
+    
+    created_by: str
+    created_date: datetime = datetime.today()
+    
+    is_active: bool = True
+    
+    class Config:
+        orm_mode = True 

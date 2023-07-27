@@ -61,27 +61,27 @@ def reset_password(
 ):
     return change_password(request=request, db=db, password=password)
 
-@user_route.post("/users/followers", response_model=ResultObject, summary="Add Followers at User")
-def add_followers(request:Request, userfollower: UserFollowerBase, db: Session = Depends(get_db)):
-    return add_one_followers(request=request, db=db, userfollower=userfollower)
+# @user_route.post("/users/followers", response_model=ResultObject, summary="Add Followers at User")
+# def add_followers(request:Request, userfollower: UserFollowerBase, db: Session = Depends(get_db)):
+#     return add_one_followers(request=request, db=db, userfollower=userfollower)
 
-@user_route.delete("/users/followers/{user_name_follower}", response_model=ResultObject, summary="Remove Followers at User")
-def delete_followers(request:Request, user_name_follower: str, db: Session = Depends(get_db)):
-    return remove_one_followers(request=request, db=db, user_follower=user_name_follower)
+# @user_route.delete("/users/followers/{user_name_follower}", response_model=ResultObject, summary="Remove Followers at User")
+# def delete_followers(request:Request, user_name_follower: str, db: Session = Depends(get_db)):
+#     return remove_one_followers(request=request, db=db, user_follower=user_name_follower)
 
-@user_route.get("/users/followers/", response_model=Dict, summary="Get list of Followers.")
-def get_followers(
-    request: Request,
-    db: Session = Depends(get_db)
-):
-    return get_all_followers(request=request, db=db)
+# @user_route.get("/users/followers/", response_model=Dict, summary="Get list of Followers.")
+# def get_followers(
+#     request: Request,
+#     db: Session = Depends(get_db)
+# ):
+#     return get_all_followers(request=request, db=db)
 
-@user_route.get("/users/not_followers/", response_model=Dict, summary="Get list of followers suggestion.")
-def get_followers_suggestion(
-    request: Request,
-    db: Session = Depends(get_db)
-):
-    return get_all_not_followers(request=request, db=db)
+# @user_route.get("/users/not_followers/", response_model=Dict, summary="Get list of followers suggestion.")
+# def get_followers_suggestion(
+#     request: Request,
+#     db: Session = Depends(get_db)
+# ):
+#     return get_all_not_followers(request=request, db=db)
 
 @user_route.get("/{user_id}/{name}", summary="Mostrar la imagen de perfil de un usuario")
 def getprofile(user_id: str, file_name: str):

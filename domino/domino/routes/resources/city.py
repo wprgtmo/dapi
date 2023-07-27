@@ -12,7 +12,7 @@ from domino.schemas.resources.result_object import ResultObject, ResultData
 from domino.services.resources.city import get_all, new, get_one_by_id, delete, update
   
 city_route = APIRouter(
-    tags=["Cities"],
+    tags=["Nomenclators"],   # tags=["Cities"],
     dependencies=[Depends(JWTBearer())]   
 )
 

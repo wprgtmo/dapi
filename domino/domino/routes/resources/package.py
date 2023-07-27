@@ -12,7 +12,7 @@ from domino.schemas.resources.result_object import ResultObject, ResultData
 from domino.services.resources.package import get_all, new, get_one_by_id, delete, update
   
 packages_route = APIRouter(
-    tags=["Packages"],
+    tags=["Nomenclators"], # tags=["Packages"],
     dependencies=[Depends(JWTBearer())]   
 )
 
