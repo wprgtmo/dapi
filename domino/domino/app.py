@@ -5,7 +5,6 @@ from fastapi.responses import FileResponse, JSONResponse, StreamingResponse
 from os import getcwd, remove, path, stat
 import aiofiles
 
-
 from pyi18n import PyI18n
 from domino.config.config import settings
 from fastapi.middleware.cors import CORSMiddleware
@@ -16,7 +15,6 @@ from fastapi.openapi.docs import (get_redoc_html, get_swagger_ui_html, get_swagg
 from fastapi.staticfiles import StaticFiles
 from typing import BinaryIO, Callable, List, Optional
 import shutil
-
 
 dictConfig(settings.log_config)
 
@@ -44,27 +42,27 @@ def get_db():
 app.add_middleware(CORSMiddleware, allow_origins=["*"], allow_methods=["*"], allow_headers=["*"])
 app.add_middleware(SessionMiddleware, secret_key=settings.secret)
 
-from domino.routes.auth import auth_routes
-from domino.routes.user import user_route
-from domino.routes.country import country_route
-from domino.routes.city import city_route
-from domino.routes.package import packages_route
-from domino.routes.status import status_route
-from domino.routes.post import post_route
-from domino.routes.comment import comment_route
-from domino.routes.event import event_route
-from domino.routes.tourney import tourney_route
-from domino.routes.images import image_route
-from domino.routes.profiletype import profiletype_route
-from domino.routes.invitations import invitation_route
-from domino.routes.player import player_route
-from domino.routes.referee import referee_route
-from domino.routes.singleprofile import singleprofile_route
-from domino.routes.defaultprofile import defaultprofile_route
-from domino.routes.pairprofile import pairprofile_route
-from domino.routes.teamprofile import teamprofile_route
-from domino.routes.referee_profile import refereeprofile_route
-from domino.routes.request import request_route
+from domino.routes.enterprise.auth import auth_routes
+from domino.routes.enterprise.user import user_route
+from domino.routes.resources.country import country_route
+from domino.routes.resources.city import city_route
+from domino.routes.resources.package import packages_route
+from domino.routes.resources.status import status_route
+from domino.routes.post.post import post_route
+from domino.routes.post.comment import comment_route
+from domino.routes.events.event import event_route
+from domino.routes.events.tourney import tourney_route
+from domino.routes.resources.images import image_route
+from domino.routes.enterprise.profiletype import profiletype_route
+from domino.routes.events.invitations import invitation_route
+from domino.routes.events.player import player_route
+from domino.routes.events.referee import referee_route
+from domino.routes.enterprise.singleprofile import singleprofile_route
+from domino.routes.enterprise.defaultprofile import defaultprofile_route
+from domino.routes.enterprise.pairprofile import pairprofile_route
+from domino.routes.enterprise.teamprofile import teamprofile_route
+from domino.routes.enterprise.referee_profile import refereeprofile_route
+from domino.routes.enterprise.request import request_route
 
 @app.get("/docs", include_in_schema=False)
 async def custom_swagger_ui_html():
