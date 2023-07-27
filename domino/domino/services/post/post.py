@@ -67,10 +67,6 @@ def get_list_post(request:Request, profile_id:str, db: Session):
     date_find = datetime.now() - timedelta(days=4)
     currentUser = get_current_user(request)
     
-    print('profile pasado')
-    print(profile_id)
-    print('******************')
-    
     # str_query = "Select po.id, summary, us.first_name || ' ' || us.last_name as full_name, po.updated_date, pmem.photo, " +\
         
     str_query = "Select po.id, summary, pmem.name as full_name, po.updated_date, pmem.photo, " +\
