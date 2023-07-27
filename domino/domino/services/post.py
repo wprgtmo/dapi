@@ -20,6 +20,7 @@ from domino.functions_jwt import get_current_user
 from domino.services.users import get_one_by_username, get_url_avatar
 from domino.app import _
 from domino.services.utils import get_result_count, upfile, create_dir, del_image, get_ext_at_file
+from domino.services.userprofile import get_single_profile_id_for_profile_by_user
             
 def get_all(request:Request, page: int, per_page: int, criteria_key: str, criteria_value: str, db: Session):  
     locale = request.headers["accept-language"].split(",")[0].split("-")[0];
@@ -65,13 +66,17 @@ def get_list_post(request:Request, profile_id:str, db: Session):
     date_find = datetime.now() - timedelta(days=4)
     currentUser = get_current_user(request)
     
+    # obtneer el user_name del profile e incluir todos los post hechos por el. 
+    me_profile_user = get_single_profile_id_for_profile_by_user(currentUser['username'], profile_id, db=db)
+    
     str_query = "Select po.id, summary, us.first_name || ' ' || us.last_name as full_name, po.updated_date, pmem.photo, " +\
         "us.id as user_id, pmem.id as profile_id, po.allow_comment, po.show_count_like " +\
         "FROM post.post po " +\
         "JOIN enterprise.profile_member pmem ON pmem.id = po.profile_id " +\
         "JOIN enterprise.users us ON po.created_by = us.username " +\
         "WHERE po.is_active=True AND po.updated_date >= '" + date_find.strftime('%Y-%m-%d') + "' " +\
-        "AND (po.profile_id = '" + profile_id + "' or po.created_by = 'domino' )"
+        "AND (po.profile_id = '" + profile_id + "' or po.created_by = 'domino' " +\
+        "or po.created_by = '" + currentUser['username'] + "')"
   
     str_query += " ORDER BY updated_date DESC " 
     
