@@ -206,8 +206,14 @@ def get_one_postcomment(comment_id: str, db: Session):
 def get_one_like_by_user(post_id: str, user_name:str, db: Session): 
     return db.query(PostLikes).filter(PostLikes.post_id == post_id, PostLikes.created_by == user_name).first()
 
+def get_one_like_by_profile(post_id: str, profile_id:str, db: Session): 
+    return db.query(PostLikes).filter(PostLikes.post_id == post_id, PostLikes.profile_id == profile_id).first()
+
 def get_one_like_at_comment(post_comment_id: str, user_name:str, db: Session): 
     return db.query(CommentLikes).filter(CommentLikes.comment_id == post_comment_id, CommentLikes.created_by == user_name).first()
+
+def get_one_like_at_comment_by_profile(post_comment_id: str, profile_id:str, db: Session): 
+    return db.query(CommentLikes).filter(CommentLikes.comment_id == post_comment_id, CommentLikes.profile_id == profile_id).first()
 
 def get_one_by_id(post_id: str, db: Session): 
     result = ResultObject()  
@@ -386,7 +392,8 @@ def add_one_likes(request, profile_id: str, db: Session, postlike: PostLikeCreat
     if not one_post:
         raise HTTPException(status_code=404, detail=_(locale, "post.not_found"))
     
-    db_postlike = get_one_like_by_user(postlike.post_id, currentUser['username'], db=db)
+    db_postlike = get_one_like_by_profile(postlike.post_id, profile_id, db=db)
+    
     try:
         one_post.updated_by = currentUser['username']
         one_post.updated_date = datetime.now()
@@ -498,7 +505,7 @@ def add_one_likes_at_comment(request, profile_id: str, db: Session, commentlike:
     if not one_post:
         raise HTTPException(status_code=404, detail=_(locale, "post.not_found"))
     
-    db_commentlike = get_one_like_at_comment(commentlike.comment_id, currentUser['username'], db=db)
+    db_commentlike = get_one_like_at_comment_by_profile(commentlike.comment_id, profile_id, db=db)
     
     try:
         one_post.updated_by = currentUser['username']
