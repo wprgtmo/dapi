@@ -67,7 +67,13 @@ def get_list_post(request:Request, profile_id:str, db: Session):
     date_find = datetime.now() - timedelta(days=4)
     currentUser = get_current_user(request)
     
-    str_query = "Select po.id, summary, us.first_name || ' ' || us.last_name as full_name, po.updated_date, pmem.photo, " +\
+    print('profile pasado')
+    print(profile_id)
+    print('******************')
+    
+    # str_query = "Select po.id, summary, us.first_name || ' ' || us.last_name as full_name, po.updated_date, pmem.photo, " +\
+        
+    str_query = "Select po.id, summary, pmem.name as full_name, po.updated_date, pmem.photo, " +\
         "us.id as user_id, pmem.id as profile_id, po.allow_comment, po.show_count_like " +\
         "FROM post.post po " +\
         "JOIN enterprise.profile_member pmem ON pmem.id = po.profile_id " +\
@@ -83,11 +89,11 @@ def get_list_post(request:Request, profile_id:str, db: Session):
     host=str(settings.server_uri)
     port=str(int(settings.server_port))
     
-    result.data = [create_dict_row(item, current_date, currentUser, db=db, host=host, port=port) for item in lst_data]
+    result.data = [create_dict_row(item, current_date, profile_id, db=db, host=host, port=port) for item in lst_data]
     
     return result
 
-def create_dict_row(item, current_date, currentUser, db: Session, host='', port=''):
+def create_dict_row(item, current_date, profile_id, db: Session, host='', port=''):
     
     amount_like, amount_comments = get_amount_element_of_post(item['id'], db=db)
     return {'id': item['id'], 
@@ -100,7 +106,7 @@ def create_dict_row(item, current_date, currentUser, db: Session, host='', port=
             'amountLike': amount_like, 'amountComment': amount_comments, 
             'comments': get_comments_of_post(item['id'], current_date, db=db, host=host, port=port),
             'photos': get_files_of_post(item['id'], db=db, host=host, port=port),
-            'like': verify_likes(str(item['id']), currentUser['username'], db=db),
+            'like': verify_likes(str(item['id']), profile_id, db=db),
             "allowComment": item['allow_comment'], "showCountLike": item['show_count_like']
             }
 
@@ -120,12 +126,13 @@ def calculate_time(current_date, star_date):
             else:
                 return str(diferencia.seconds) + ' s'
 
-def verify_likes(post_id, username, db: Session):
+def verify_likes(post_id, profile_id, db: Session):
     
     str_count = "SELECT count(id) FROM post.post_likes Where post_id = '" +\
-        post_id + "' and created_by = '" + username + "'"
+        post_id + "' and profile_id = '" + profile_id + "'"
     
-    exist_like = db.execute(str_count).scalar()    
+    exist_like = db.execute(str_count).scalar()   
+    
     return True if exist_like else False
  
 def get_amount_element_of_post(post_id, db: Session):
