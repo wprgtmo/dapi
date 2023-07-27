@@ -58,16 +58,10 @@ def get_all(request:Request, page: int, per_page: int, criteria_key: str, criter
 def get_list_post(request:Request, profile_id:str, db: Session):  
     locale = request.headers["accept-language"].split(",")[0].split("-")[0];
     
-    print('profile')
-    print(profile_id)
-    
     result = ResultObject() 
     current_date = datetime.now()
     date_find = datetime.now() - timedelta(days=4)
     currentUser = get_current_user(request)
-    
-    # obtneer el user_name del profile e incluir todos los post hechos por el. 
-    me_profile_user = get_single_profile_id_for_profile_by_user(currentUser['username'], profile_id, db=db)
     
     str_query = "Select po.id, summary, us.first_name || ' ' || us.last_name as full_name, po.updated_date, pmem.photo, " +\
         "us.id as user_id, pmem.id as profile_id, po.allow_comment, po.show_count_like " +\
@@ -81,7 +75,6 @@ def get_list_post(request:Request, profile_id:str, db: Session):
     str_query += " ORDER BY updated_date DESC " 
     
     # aqui me falta incluir todos los post de los profile que yo sigo, cuando Migue ponga esa parte
-    print(str_query)
     lst_data = db.execute(str_query)
     host=str(settings.server_uri)
     port=str(int(settings.server_port))
