@@ -17,7 +17,7 @@ from domino.config.config import settings
 from domino.models.enterprise.userprofile import ProfileFollowers
 
 from domino.schemas.enterprise.userprofile import ProfileFollowersBase
-from domino.schemas.resources.result_object import ResultObject
+from domino.schemas.resources.result_object import ResultObject, ResultData
 
 from domino.services.enterprise.userprofile import get_one as get_one_profile
 
@@ -27,7 +27,7 @@ from domino.services.enterprise.auth import get_url_avatar
 def get_follower_suggestions_at_profile(request:Request, profile_id: str, db: Session):  
     locale = request.headers["accept-language"].split(",")[0].split("-")[0];
     
-    result = ResultObject() 
+    result = ResultData() 
     
     host = str(settings.server_uri)
     port = str(int(settings.server_port))
@@ -37,12 +37,16 @@ def get_follower_suggestions_at_profile(request:Request, profile_id: str, db: Se
         raise HTTPException(status_code=400, detail=_(locale, "userprofile.not_found"))
     
     #En dependencia del tipo de perfil, sugerir los 10 primeros
-    
-    str_query = "SELECT id, name, photo, profile_type FROM enterprise.profile_member " +\
+    str_from = "FROM enterprise.profile_member " +\
         "WHERE is_active = True and profile_type = '" + db_member_profile.profile_type + "' " +\
         "and city_id = " + str(db_member_profile.city_id) +\
         "AND id NOT IN (Select profile_id FROM enterprise.profile_followers where is_active= True " +\
-        "AND profile_id = '" + profile_id + "') LIMIT 10"
+        "AND profile_id = '" + profile_id + "') ORDER BY name LIMIT 10 "
+        
+    str_count = "SELECT count(id) " + str_from
+    str_query = "SELECT id, name, photo, profile_type " + str_from
+    
+    result.total = db.execute(str_count).scalar()
      
     lst_data = db.execute(str_query)
     result.data = [create_dict_row(item, host=host, port=port) for item in lst_data]
@@ -58,18 +62,24 @@ def create_dict_row(item, host="", port=""):
 def get_all_follower_by_profile(profile_id: str, db: Session):  
     return db.query(ProfileFollowers).filter(ProfileFollowers.profile_id == profile_id, ProfileFollowers.is_active == True).all()
 
-def get_all_followers(request: Request, db: Session):
+def get_all_followers(request: Request, profile_id: str, db: Session):
     locale = request.headers["accept-language"].split(",")[0].split("-")[0];
     
-    currentUser = get_current_user(request)
-    result = ResultObject()
+    result = ResultData() 
     
-    str_query = "Select us.username, us.first_name || ' ' || us.last_name as full_name, us.photo " +\
-        "FROM enterprise.user_followers usf JOIN enterprise.users us ON usf.user_follow = us.username " +\
-        "WHERE usf.is_active = True and usf.username = '" + currentUser['username'] + "' ORDER BY created_date DESC "
+    host = str(settings.server_uri)
+    port = str(int(settings.server_port))
     
+    str_from = "FROM enterprise.profile_followers " +\
+        "INNER JOIN enterprise.profile_member ON profile_member.id = profile_followers.profile_follow_id "
+    
+    str_count = "Select count(profile_follow_id) " + str_from
+    str_query = "SELECT profile_follow_id id, name, photo, profile_type " + str_from +\
+        "ORDER BY name ASC " 
+
+    result.total = db.execute(str_count).scalar()
     lst_data = db.execute(str_query)
-    result.data = [create_dict_row(item) for item in lst_data]
+    result.data = [create_dict_row(item, host=host, port=port) for item in lst_data]
     
     return result
 
@@ -82,48 +92,37 @@ def add_one_followers(request: Request, db: Session, profilefollower: ProfileFol
     currentUser = get_current_user(request)
     result = ResultObject()
     
-    print('perfiles')
-    print(profilefollower.profile_id)
-    print(profilefollower.profile_follow_id)
-    print('*****************')
     db_member_profile = get_one_profile(profilefollower.profile_id, db=db)
     if not db_member_profile:
         raise HTTPException(status_code=400, detail=_(locale, "userprofile.not_found"))
-        
+    
     db_member_profile_foll = get_one_profile(profilefollower.profile_follow_id, db=db)
-    if db_member_profile_foll:
+    if not db_member_profile_foll:
         raise HTTPException(status_code=400, detail=_(locale, "userprofile.not_found"))
     
     # verificar que no exista ya como seguidor   
-    print('encontre perfiles')
-     
     db_profile_follower = get_one_follower(profilefollower.profile_id, profilefollower.profile_follow_id, db=db)
     if db_profile_follower:
-        print('existe seguidor')
         db_profile_follower.created_date=datetime.datetime.now()
         db_profile_follower.is_active = True
     else:
-        print('no existe seguidor')
-        db_profile_follower = ProfileFollowers(profilefollower.profile_id, username=db_member_profile.created_by, 
-                                               profile_follow_id=profilefollower.profile_follow_id, 
-                                               username_follow=currentUser['username'], created_by=currentUser['username'],
-                                               created_date=datetime.now(), is_active=True)
+        db_profile_follower = ProfileFollowers(
+            profile_id=profilefollower.profile_id, username=db_member_profile.created_by, 
+            profile_follow_id=profilefollower.profile_follow_id, username_follow=db_member_profile_foll.created_by, 
+            created_by=currentUser['username'], created_date=datetime.now(), is_active=True)
         
-    # try:
-    print('adicionando en BD')
-    db.add(db_profile_follower)
-    db.commit()
-    print('hice commit')
-    return result
-    # except (Exception, SQLAlchemyError, IntegrityError) as e:
-    #     print(e)
-    #     msg = _(locale, "users.new_user_error")
-    #     if e.code == 'gkpj':
-    #         field_name = str(e.__dict__['orig']).split('"')[1].split('_')[1]
-    #         if field_name == 'username':
-    #             msg = msg + _(locale, "users.already_exist")
+    try:
+        db.add(db_profile_follower)
+        db.commit()
+        return result
+    except (Exception, SQLAlchemyError, IntegrityError) as e:
+        msg = _(locale, "users.new_user_error")
+        if e.code == 'gkpj':
+            field_name = str(e.__dict__['orig']).split('"')[1].split('_')[1]
+            if field_name == 'username':
+                msg = msg + _(locale, "users.already_exist")
         
-    #     raise HTTPException(status_code=403, detail=msg) 
+        raise HTTPException(status_code=403, detail=msg) 
     
 def remove_one_followers(request: Request, db: Session, profile_id: str, profilefollower_id: str):  
     locale = request.headers["accept-language"].split(",")[0].split("-")[0];

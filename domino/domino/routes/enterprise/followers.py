@@ -27,13 +27,13 @@ def get_followers(
     profile_id: str,
     db: Session = Depends(get_db)
 ):
-    return get_all_followers(request=request, db=db)
+    return get_all_followers(request=request, profile_id=profile_id, db=db)
 
 @follower_route.post("/profile/followers", response_model=ResultObject, summary="Add Followers at Profile")
 def add_followers(request:Request, profilefollower: ProfileFollowersBase, db: Session = Depends(get_db)):
     return add_one_followers(request=request, db=db, profilefollower=profilefollower)
 
-@follower_route.delete("/profile/followers/{user_name_follower}", response_model=ResultObject, summary="Remove Followers at Profile")
+@follower_route.delete("/profile/followers/", response_model=ResultObject, summary="Remove Followers at Profile")
 def delete_followers(request:Request, profile_id: str, profile_follower_id: str, db: Session = Depends(get_db)):
     return remove_one_followers(request=request, db=db, profile_id=profile_id, profile_follower_id=profile_follower_id)
 
