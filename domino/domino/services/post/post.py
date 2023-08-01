@@ -67,9 +67,7 @@ def get_list_post(request:Request, profile_id:str, db: Session):
     date_find = datetime.now() - timedelta(days=4)
     currentUser = get_current_user(request)
     
-    # str_query = "Select po.id, summary, us.first_name || ' ' || us.last_name as full_name, po.updated_date, pmem.photo, " +\
-        
-    str_query = "Select po.id, summary, pmem.name as full_name, po.updated_date, pmem.photo, " +\
+    str_query = "Select po.id, summary, pmem.name as full_name, po.created_date, pmem.photo, " +\
         "us.id as user_id, pmem.id as profile_id, po.allow_comment, po.show_count_like " +\
         "FROM post.post po " +\
         "JOIN enterprise.profile_member pmem ON pmem.id = po.profile_id " +\
@@ -97,7 +95,7 @@ def create_dict_row(item, current_date, profile_id, db: Session, host='', port='
             'profile_id': item['profile_id'],
             'name': item['full_name'],
             'avatar': get_url_avatar(item['profile_id'], item['photo'], host, port) if item['photo'] else "", 
-            'elapsed': calculate_time(current_date, item['updated_date']), 
+            'elapsed': calculate_time(current_date, item['created_date']), 
             'comment': item['summary'] if item['summary'] else "",
             'amountLike': amount_like, 'amountComment': amount_comments, 
             'comments': get_comments_of_post(item['id'], current_date, db=db, host=host, port=port),
@@ -118,9 +116,9 @@ def calculate_time(current_date, star_date):
         else:
             minutes = diferencia.seconds // 60
             if minutes > 0:
-                return str(minutes) + ' m'
+                return str(minutes) + ' min'
             else:
-                return str(diferencia.seconds) + ' s'
+                return str(diferencia.seconds) + ' seg'
 
 def verify_likes(post_id, profile_id, db: Session):
     

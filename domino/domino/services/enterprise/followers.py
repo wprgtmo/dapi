@@ -129,7 +129,7 @@ def add_one_followers(request: Request, db: Session, profilefollower: ProfileFol
     # verificar que no exista ya como seguidor   
     db_profile_follower = get_one_follower(profilefollower.profile_id, profilefollower.profile_follow_id, db=db)
     if db_profile_follower:
-        db_profile_follower.created_date=datetime.datetime.now()
+        db_profile_follower.created_date=datetime.now()
         db_profile_follower.is_active = True
     else:
         db_profile_follower = ProfileFollowers(
