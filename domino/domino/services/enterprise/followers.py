@@ -32,7 +32,6 @@ def get_follower_suggestions_at_profile(request:Request, profile_id:str, page: i
     host = str(settings.server_uri)
     port = str(int(settings.server_port))
     
-    print('***********DENTRO*********')
     db_member_profile = get_one_profile(id=profile_id, db=db)
     if not db_member_profile:
         raise HTTPException(status_code=400, detail=_(locale, "userprofile.not_found"))
@@ -59,9 +58,6 @@ def get_follower_suggestions_at_profile(request:Request, profile_id:str, page: i
     str_query += " ORDER BY name ASC " 
     if page != 0:
         str_query += "LIMIT " + str(per_page) + " OFFSET " + str(page*per_page-per_page)
-    print('Consulta')
-    print(str_query)
-    print('********************')
         
     lst_data = db.execute(str_query)
     result.data = [create_dict_row(item, host=host, port=port) for item in lst_data]
