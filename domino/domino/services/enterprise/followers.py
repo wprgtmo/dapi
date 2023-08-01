@@ -40,7 +40,7 @@ def get_follower_suggestions_at_profile(request:Request, profile_id:str, page: i
     str_from = "FROM enterprise.profile_member " +\
         "WHERE is_active = True and profile_type = '" + db_member_profile.profile_type + "' " +\
         "and city_id = " + str(db_member_profile.city_id) +\
-        "AND id NOT IN (Select profile_id FROM enterprise.profile_followers where is_active= True " +\
+        "AND id NOT IN (Select profile_follow_id FROM enterprise.profile_followers where is_active= True " +\
         "AND profile_id = '" + profile_id + "') "
         
     str_count = "SELECT count(id) " + str_from

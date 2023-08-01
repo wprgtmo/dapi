@@ -76,7 +76,7 @@ def get_list_post(request:Request, profile_id:str, db: Session):
         "AND (po.profile_id = '" + profile_id + "' or po.created_by = 'domino' " +\
         "or po.created_by = '" + currentUser['username'] + "')"
   
-    str_query += " ORDER BY updated_date DESC " 
+    str_query += " ORDER BY created_date DESC " 
     
     # aqui me falta incluir todos los post de los profile que yo sigo, cuando Migue ponga esa parte
     lst_data = db.execute(str_query)
