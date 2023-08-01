@@ -22,9 +22,9 @@ from domino.schemas.resources.result_object import ResultObject, ResultData
 from domino.services.enterprise.userprofile import get_one as get_one_profile
 
 from domino.services.enterprise.auth import get_url_avatar
+from domino.services.resources.utils import get_result_count
 
-
-def get_follower_suggestions_at_profile(request:Request, profile_id: str, db: Session):  
+def get_follower_suggestions_at_profile(request:Request, profile_id:str, page: int, per_page: int, criteria_key: str, criteria_value: str, db: Session):  
     locale = request.headers["accept-language"].split(",")[0].split("-")[0];
     
     result = ResultData() 
@@ -41,13 +41,24 @@ def get_follower_suggestions_at_profile(request:Request, profile_id: str, db: Se
         "WHERE is_active = True and profile_type = '" + db_member_profile.profile_type + "' " +\
         "and city_id = " + str(db_member_profile.city_id) +\
         "AND id NOT IN (Select profile_id FROM enterprise.profile_followers where is_active= True " +\
-        "AND profile_id = '" + profile_id + "') ORDER BY name LIMIT 10 "
+        "AND profile_id = '" + profile_id + "') "
         
     str_count = "SELECT count(id) " + str_from
     str_query = "SELECT id, name, photo, profile_type " + str_from
     
-    result.total = db.execute(str_count).scalar()
-     
+    dict_query = {'name': " AND name ilike '%" + criteria_value + "%'",
+                  'profile_type': " AND profile_type = '" + criteria_value + "'"
+                  }
+    
+    str_count += dict_query[criteria_key] if criteria_value else "" 
+    str_query += dict_query[criteria_key] if criteria_value else "" 
+    
+    result = get_result_count(page=page, per_page=per_page, str_count=str_count, db=db)
+    
+    str_query += " ORDER BY name ASC " 
+    if page != 0:
+        str_query += "LIMIT " + str(per_page) + " OFFSET " + str(page*per_page-per_page)
+        
     lst_data = db.execute(str_query)
     result.data = [create_dict_row(item, host=host, port=port) for item in lst_data]
     
@@ -62,7 +73,7 @@ def create_dict_row(item, host="", port=""):
 def get_all_follower_by_profile(profile_id: str, db: Session):  
     return db.query(ProfileFollowers).filter(ProfileFollowers.profile_id == profile_id, ProfileFollowers.is_active == True).all()
 
-def get_all_followers(request: Request, profile_id: str, db: Session):
+def get_all_followers(request:Request, profile_id:str, page: int, per_page: int, criteria_key: str, criteria_value: str, db: Session):
     locale = request.headers["accept-language"].split(",")[0].split("-")[0];
     
     result = ResultData() 
@@ -70,14 +81,29 @@ def get_all_followers(request: Request, profile_id: str, db: Session):
     host = str(settings.server_uri)
     port = str(int(settings.server_port))
     
-    str_from = "FROM enterprise.profile_followers " +\
-        "INNER JOIN enterprise.profile_member ON profile_member.id = profile_followers.profile_follow_id "
+    db_member_profile = get_one_profile(id=profile_id, db=db)
+    if not db_member_profile:
+        raise HTTPException(status_code=400, detail=_(locale, "userprofile.not_found"))
     
-    str_count = "Select count(profile_follow_id) " + str_from
-    str_query = "SELECT profile_follow_id id, name, photo, profile_type " + str_from +\
-        "ORDER BY name ASC " 
-
-    result.total = db.execute(str_count).scalar()
+    str_from = "FROM enterprise.profile_followers " +\
+        "INNER JOIN enterprise.profile_member ON profile_member.id = profile_followers.profile_follow_id " +\
+        "WHERE profile_id = '" + profile_id + "' "
+    
+    str_count = "SELECT count(id) " + str_from
+    str_query = "SELECT id, name, photo, profile_type " + str_from
+    
+    dict_query = {'name': " AND name ilike '%" + criteria_value + "%'",
+                  'profile_type': " AND profile_type = '" + criteria_value + "'"
+                  }
+    
+    str_count += dict_query[criteria_key] if criteria_value else "" 
+    str_query += dict_query[criteria_key] if criteria_value else "" 
+    result = get_result_count(page=page, per_page=per_page, str_count=str_count, db=db)
+    
+    str_query += " ORDER BY name ASC " 
+    if page != 0:
+        str_query += "LIMIT " + str(per_page) + " OFFSET " + str(page*per_page-per_page)
+        
     lst_data = db.execute(str_query)
     result.data = [create_dict_row(item, host=host, port=port) for item in lst_data]
     
@@ -124,18 +150,18 @@ def add_one_followers(request: Request, db: Session, profilefollower: ProfileFol
         
         raise HTTPException(status_code=403, detail=msg) 
     
-def remove_one_followers(request: Request, db: Session, profile_id: str, profilefollower_id: str):  
+def remove_one_followers(request: Request, db: Session, profile_id: str, profile_follower_id: str):  
     locale = request.headers["accept-language"].split(",")[0].split("-")[0];
     
     currentUser = get_current_user(request)
     result = ResultObject()
     
-    db_profile_follower = get_one_follower(profile_id, profilefollower_id, db=db)
+    db_profile_follower = get_one_follower(profile_id, profile_follower_id, db=db)
     if not db_profile_follower:
         raise HTTPException(status_code=404, detail=_(locale, "users.folowers_not_found"))
     
     if db_profile_follower:
-        db_profile_follower.created_date=datetime.datetime.now()
+        db_profile_follower.created_date=datetime.now()
         db_profile_follower.is_active = False
     
     try:

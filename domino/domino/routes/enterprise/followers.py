@@ -18,16 +18,31 @@ follower_route = APIRouter(
 )
 
 @follower_route.get("/profile/suggestions/{profile_id}", response_model=Dict, summary="Get list of Profile Suggestions")
-def get_follower_suggestions(request: Request, profile_id: str, db: Session = Depends(get_db)):
-    return get_follower_suggestions_at_profile(request=request, profile_id=profile_id, db=db)
+def get_follower_suggestions(
+    request: Request,
+    profile_id: str,
+    page: int = 1, 
+    per_page: int = 6, 
+    criteria_key: str = "",
+    criteria_value: str = "",
+    db: Session = Depends(get_db)
+):
+    return get_follower_suggestions_at_profile(request=request, profile_id=profile_id, page=page, 
+                                               per_page=per_page, criteria_key=criteria_key, criteria_value=criteria_value, db=db)
+
 
 @follower_route.get("/profile/followers/", response_model=Dict, summary="Get list of Followers.")
 def get_followers(
     request: Request,
     profile_id: str,
+    page: int = 1, 
+    per_page: int = 6, 
+    criteria_key: str = "",
+    criteria_value: str = "",
     db: Session = Depends(get_db)
 ):
-    return get_all_followers(request=request, profile_id=profile_id, db=db)
+    return get_all_followers(request=request, profile_id=profile_id, page=page, 
+                             per_page=per_page, criteria_key=criteria_key, criteria_value=criteria_value, db=db)
 
 @follower_route.post("/profile/followers", response_model=ResultObject, summary="Add Followers at Profile")
 def add_followers(request:Request, profilefollower: ProfileFollowersBase, db: Session = Depends(get_db)):
