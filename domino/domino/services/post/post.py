@@ -64,7 +64,7 @@ def get_list_post(request:Request, profile_id:str, db: Session):
     
     result = ResultObject() 
     current_date = datetime.now()
-    date_find = datetime.now() - timedelta(days=4)
+    date_find = datetime.now() - timedelta(days=40)
     currentUser = get_current_user(request)
     
     str_query = "Select po.id, summary, pmem.name as full_name, po.created_date, pmem.photo, " +\
@@ -74,11 +74,12 @@ def get_list_post(request:Request, profile_id:str, db: Session):
         "JOIN enterprise.users us ON po.created_by = us.username " +\
         "WHERE po.is_active=True AND po.updated_date >= '" + date_find.strftime('%Y-%m-%d') + "' " +\
         "AND (po.profile_id = '" + profile_id + "' or po.created_by = 'domino' " +\
-        "or po.created_by = '" + currentUser['username'] + "')"
+        "or po.created_by = '" + currentUser['username'] + "' or " +\
+        "po.profile_id IN (SELECT profile_follow_id FROM enterprise.profile_followers " +\
+        "where profile_id = '" + profile_id + "'))"
   
     str_query += " ORDER BY created_date DESC " 
     
-    # aqui me falta incluir todos los post de los profile que yo sigo, cuando Migue ponga esa parte
     lst_data = db.execute(str_query)
     host=str(settings.server_uri)
     port=str(int(settings.server_port))
