@@ -277,6 +277,23 @@ def get_single_profile_id_for_profile_by_user(user_name: str, profile_id: str, d
         
     res_profile = db.execute(str_query).fetchone()
     return res_profile[0] if res_profile else ""
+
+def get_info_owner_profile(profile_id: str, db: Session):  
+    
+    str_query = "Select pmem.id, pmem.name, pmem.photo , psin.elo, psin.ranking " +\
+        "from enterprise.profile_users us " +\
+        "JOIN enterprise.profile_member pmem ON pmem.id = us.single_profile_id " + \
+        "JOIN enterprise.profile_single_player psin ON psin.profile_id = pmem.id " +\
+        "WHERE us.profile_id = '" + profile_id + "' AND us.is_principal = True "
+        
+    res_profile = db.execute(str_query)
+    profile_id, name, photo, elo, ranking = '', '', '', '', ''
+    for item in res_profile:
+        profile_id = item.id
+        name, photo = item.name, item.photo
+        elo, ranking = item.elo if item.elo else '', item.ranking if item.ranking else ''
+        
+    return profile_id, name, photo, elo, ranking
     
 def get_one_pair_profile(id: str, db: Session):  
     return db.query(PairProfile).filter(PairProfile.profile_id == id).first()

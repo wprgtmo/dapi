@@ -19,8 +19,8 @@ from domino.config.config import settings
 from domino.schemas.enterprise.request import RequestAccepted
 from domino.schemas.resources.result_object import ResultObject
 
-from domino.services.enterprise.userprofile import get_one as get_one_profile, get_single_profile_id_for_profile_by_user, \
-    get_profile_user_ids, get_count_user_for_status
+from domino.services.enterprise.userprofile import get_one as get_one_profile, get_user_for_single_profile_by_user, \
+    get_profile_user_ids, get_count_user_for_status, get_info_owner_profile
 
 from domino.services.enterprise.auth import get_url_avatar
 
@@ -38,11 +38,14 @@ def get_request_to_confirm_at_profile(request:Request, profile_id: str, db: Sess
         raise HTTPException(status_code=400, detail=_(locale, "userprofile.not_found"))
     
     # si el profile no es jugador simple, buscarlo
-    single_profile_id = get_single_profile_id_for_profile_by_user(
-        currentUser['username'], profile_id=profile_id, db=db) if \
+    single_profile_id = get_user_for_single_profile_by_user(
+        currentUser['username'], db=db) if \
             db_member_profile.profile_type != 'SINGLE_PLAYER' else db_member_profile.id
     
-    str_query = "SELECT profile_member.id, profile_member.photo, profile_member.profile_type, " +\
+    if not single_profile_id:
+        raise HTTPException(status_code=400, detail=_(locale, "userprofile.sigle_profile_not_exist"))
+    
+    str_query = "SELECT profile_member.id, profile_member.profile_type, " +\
         "profile_member.name, enterprise.profile_type.description " +\
         "FROM enterprise.profile_users us " +\
         "JOIN enterprise.profile_member ON profile_member.id = us.profile_id " +\
@@ -51,16 +54,20 @@ def get_request_to_confirm_at_profile(request:Request, profile_id: str, db: Sess
         "AND us.single_profile_id = '" + single_profile_id + "' "
     
     lst_data = db.execute(str_query)
-    result.data = [create_dict_row(item, single_profile_id, host=host, port=port) for item in lst_data]
+    result.data = [create_dict_row(item, single_profile_id, db=db, host=host, port=port) for item in lst_data]
     
     return result
 
-def create_dict_row(item, single_profile_id, host="", port=""):
+def create_dict_row(item, single_profile_id, db: Session, host="", port=""):
+    # buscar datos del creador de ese perfil
+    profile_id, name, photo, elo, ranking = get_info_owner_profile(item['id'], db=db)
+    
     return {'profile_id': item['id'], 'name': item['name'], 
             'single_profile_id': single_profile_id,
             'profile_type': item['profile_type'],  
             'profile_description': item['description'],  
-            'photo' : get_url_avatar(item['id'], item['photo'], host=host, port=port)}
+            'owner_name': name, 'owner_elo': elo, 'owner_ranking': ranking,
+            'photo' : get_url_avatar(profile_id, photo, host=host, port=port)}
     
 def update(request: Request, profile_id:str, requestprofile: RequestAccepted, db: Session):
     locale = request.headers["accept-language"].split(",")[0].split("-")[0];
