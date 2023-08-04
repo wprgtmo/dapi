@@ -73,10 +73,29 @@ def create_dict_row(item, single_profile_id, db: Session, host="", port=""):
 def update(request: Request, profile_id:str, requestprofile: RequestAccepted, db: Session):
     locale = request.headers["accept-language"].split(",")[0].split("-")[0];
     
+    print('entre a actualizar')
     result = ResultObject() 
     currentUser = get_current_user(request) 
+    
+    #buscar el perfil de jugador individual del usuario
        
-    db_user_profile = get_profile_user_ids(profile_id=requestprofile.profile_id, single_profile_id=profile_id, db=db)
+    db_profile_request = get_one_profile(id=requestprofile.profile_id, db=db)
+    if not db_profile_request:
+        raise HTTPException(status_code=400, detail=_(locale, "userprofile.not_found"))
+    
+    db_me_profile = get_one_profile(id=profile_id, db=db)
+    if not db_me_profile:
+        raise HTTPException(status_code=400, detail=_(locale, "userprofile.not_found"))
+    
+    # si el profile no es jugador simple, buscarlo
+    single_profile_id = get_user_for_single_profile_by_user(
+        currentUser['username'], db=db) if \
+            db_me_profile.profile_type != 'SINGLE_PLAYER' else db_me_profile.id
+    
+    if not single_profile_id:
+        raise HTTPException(status_code=400, detail=_(locale, "userprofile.sigle_profile_not_exist"))    
+       
+    db_user_profile = get_profile_user_ids(profile_id=db_profile_request.id, single_profile_id=single_profile_id, db=db)
     if not db_user_profile:
         raise HTTPException(status_code=400, detail=_(locale, "userprofile.not_found"))
     
@@ -92,17 +111,14 @@ def update(request: Request, profile_id:str, requestprofile: RequestAccepted, db
         raise HTTPException(status_code=400, detail=_(locale, "userprofile.already_exist"))
     
     # si todos los integrantes están confirmados la pareja o equipo están listos
-    db_member_profile = get_one_profile(id=requestprofile.profile_id, db=db)
-    if not db_member_profile:
-        raise HTTPException(status_code=400, detail=_(locale, "userprofile.not_found"))
             
     count_user = get_count_user_for_status(requestprofile.profile_id, False, db=db)
-    db_member_profile.is_ready = True if count_user == 0 else False
-    db_member_profile.updated_by = currentUser['username']
-    db_member_profile.updated_date = datetime.now()
+    db_profile_request.is_ready = True if count_user == 0 else False
+    db_profile_request.updated_by = currentUser['username']
+    db_profile_request.updated_date = datetime.now()
         
     try:
-        db.add(db_member_profile)
+        db.add(db_profile_request)
         db.commit()
         return result
     except (Exception, SQLAlchemyError) as e:

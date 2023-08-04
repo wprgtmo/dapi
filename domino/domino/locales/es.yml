@@ -86,7 +86,7 @@ es:
     already_exist: 'Error insertnado perfil indicado'
     imposible_delete: 'Imposible desactivar'
     not_equal: 'No puede incluir su mismo perfil'
-    sigle_profile_not_exist: 'No tiene perfil de jugador creado'
+    sigle_profile_not_exist: 'No tiene perfil de jugador individual creado'
   player:
     not_found: 'Jugador no encontrado'
     already_exist: 'Perfil ya incluido como jugador en el torneo'

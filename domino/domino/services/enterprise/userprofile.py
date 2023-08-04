@@ -134,6 +134,8 @@ def new_profile_pair_player(request: Request, pairprofile: PairProfileCreated, f
         raise HTTPException(status_code=400, detail=_(locale, "profiletype.not_found"))
     
     me_profile_id = get_user_for_single_profile_by_user(currentUser['username'], db=db)
+    if not me_profile_id:
+        raise  HTTPException(status_code=400, detail=_(locale, "userprofile.sigle_profile_not_exist"))
     
     id = str(uuid.uuid4())
     one_profile = new_profile(profile_type, id, currentUser['user_id'], currentUser['username'], pairprofile['name'], 
