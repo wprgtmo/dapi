@@ -73,7 +73,6 @@ def create_dict_row(item, single_profile_id, db: Session, host="", port=""):
 def update(request: Request, profile_id:str, requestprofile: RequestAccepted, db: Session):
     locale = request.headers["accept-language"].split(",")[0].split("-")[0];
     
-    print('entre a actualizar')
     result = ResultObject() 
     currentUser = get_current_user(request) 
     
@@ -116,6 +115,9 @@ def update(request: Request, profile_id:str, requestprofile: RequestAccepted, db
     db_profile_request.is_ready = True if count_user == 0 else False
     db_profile_request.updated_by = currentUser['username']
     db_profile_request.updated_date = datetime.now()
+    
+    profile_type = " de la pareja: " if db_profile_request.profile_type == "PAIR_PLAYER" else " del equipo: "
+    result.data = "Ahora formas parte" + profile_type + db_profile_request.name
         
     try:
         db.add(db_profile_request)
