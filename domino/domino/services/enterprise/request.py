@@ -68,14 +68,15 @@ def create_dict_row(item, single_profile_id, db: Session, host="", port=""):
             'profile_description': item['description'],  
             'owner_name': name, 'owner_elo': elo, 'owner_ranking': ranking,
             'photo' : get_url_avatar(profile_id, photo, host=host, port=port)}
-    
+
+#profile id es del que esta aceptando...dentro es el perfil de la pareja..    
 def update(request: Request, profile_id:str, requestprofile: RequestAccepted, db: Session):
     locale = request.headers["accept-language"].split(",")[0].split("-")[0];
     
     result = ResultObject() 
     currentUser = get_current_user(request) 
        
-    db_user_profile = get_profile_user_ids(profile_id=profile_id, single_profile_id=requestprofile.single_profile_id, db=db)
+    db_user_profile = get_profile_user_ids(profile_id=requestprofile.profile_id, single_profile_id=profile_id, db=db)
     if not db_user_profile:
         raise HTTPException(status_code=400, detail=_(locale, "userprofile.not_found"))
     
@@ -91,11 +92,11 @@ def update(request: Request, profile_id:str, requestprofile: RequestAccepted, db
         raise HTTPException(status_code=400, detail=_(locale, "userprofile.already_exist"))
     
     # si todos los integrantes están confirmados la pareja o equipo están listos
-    db_member_profile = get_one_profile(id=profile_id, db=db)
+    db_member_profile = get_one_profile(id=requestprofile.profile_id, db=db)
     if not db_member_profile:
         raise HTTPException(status_code=400, detail=_(locale, "userprofile.not_found"))
             
-    count_user = get_count_user_for_status(profile_id, False, db=db)
+    count_user = get_count_user_for_status(requestprofile.profile_id, False, db=db)
     db_member_profile.is_ready = True if count_user == 0 else False
     db_member_profile.updated_by = currentUser['username']
     db_member_profile.updated_date = datetime.now()

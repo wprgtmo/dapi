@@ -20,6 +20,7 @@ request_route = APIRouter(
 def get_request_to_confirm(request:Request, profile_id: str, db: Session = Depends(get_db)):
     return get_request_to_confirm_at_profile(request=request, profile_id=profile_id, db=db)
 
+#profile id es del que esta aceptando...dentro es el perfil de la pareja..
 @request_route.put("/requestplayer/{profile_id}", response_model=ResultObject, summary="Acept or Refuse Request to play")
 def update_request(request:Request, profile_id:str, requestprofile: RequestAccepted,  db: Session = Depends(get_db)):
     return update(request=request, db=db, profile_id=profile_id, requestprofile=requestprofile)
