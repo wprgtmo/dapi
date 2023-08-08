@@ -653,6 +653,7 @@ def get_one_profile_by_user(username: str, profile_type: str, db: Session):
     
 def get_all_profile_by_user_profile_id(request: Request, profile_id: str, db: Session):
     locale = request.headers["accept-language"].split(",")[0].split("-")[0];
+    currentUser = get_current_user(request)
     
     result = ResultObject() 
     result.data = []
@@ -660,33 +661,40 @@ def get_all_profile_by_user_profile_id(request: Request, profile_id: str, db: Se
     host = str(settings.server_uri)
     port = str(int(settings.server_port))
     
+    db_profile = get_one(id=profile_id, db=db)
+    if not db_profile:
+        raise HTTPException(status_code=400, detail=_(locale, "userprofile.not_found"))
+    
+    # devolver todas las creadas por el ussuario
+    # devolver el resto de los perfiles que el forma parte como usuario
+    
     try:
-        str_profile = "SELECT pus.username FROM enterprise.profile_member pme " +\
+       
+        str_profile = "SELECT DISTINCT pme.id as profile_id, profile_type, prot.description, " +\
+            "pme.name, pme.photo, pme.city_id, city.country_id, pa.name as country_name, " +\
+            "city.name as city_name, pme.name, pme.email, pme.photo " +\
+            "FROM enterprise.profile_member pme " +\
             "INNER JOIN enterprise.profile_users pus ON pus.profile_id = pme.id " +\
-            "where pme.is_active = True AND pme.id = '" + profile_id + "' "
-        user_name = db.execute(str_profile).scalar()
-        if user_name:
-            str_profile = "SELECT DISTINCT pme.id as profile_id, profile_type, prot.description, " +\
-                "pme.name, pme.photo, pme.city_id, city.country_id, pa.name as country_name, " +\
-                "city.name as city_name, pme.name, pme.email, pme.photo " +\
-                "FROM enterprise.profile_member pme " +\
-                "INNER JOIN enterprise.profile_users pus ON pus.profile_id = pme.id " +\
-                "INNER JOIN enterprise.profile_type prot ON prot.name = pme.profile_type " +\
-                "left join resources.city city ON city.id = pme.city_id " +\
-                "left join resources.country pa ON pa.id = city.country_id " +\
-                "where pme.is_active = True AND pus.username = '" + user_name + "' AND pme.id != '" + profile_id + "' "
-            lst_data =  db.execute(str_profile)
-            for item in lst_data:
-                result.data.append({'profile_id': item.profile_id, 
-                                    'profile_name': item.profile_type,
-                                    'profile_description': item.description,
-                                    'name': item.name,
-                                    'email': item.email,
-                                    'photo': get_url_avatar(item.profile_id, item.photo, host=host, port=port),
-                                    'country_id': item.country_id if item.country_id else '', 
-                                    'country': item.country_name if item.country_name else '', 
-                                    'city_id': item.city_id if item.city_id else '', 
-                                    'city_name': item.city_name if item.city_name else ''})  
+            "INNER JOIN enterprise.profile_type prot ON prot.name = pme.profile_type " +\
+            "left join resources.city city ON city.id = pme.city_id " +\
+            "left join resources.country pa ON pa.id = city.country_id " +\
+            "where pme.is_active = True and (pme.created_by = '" + currentUser['username'] + "' " +\
+            "or pus.username = '" + currentUser['username'] + "' and pus.is_confirmed = True) " +\
+            "AND pme.id != '" + profile_id + "' "
+        
+        lst_data =  db.execute(str_profile)
+        
+        for item in lst_data:
+            result.data.append({'profile_id': item.profile_id, 
+                                'profile_name': item.profile_type,
+                                'profile_description': item.description,
+                                'name': item.name,
+                                'email': item.email,
+                                'photo': get_url_avatar(item.profile_id, item.photo, host=host, port=port),
+                                'country_id': item.country_id if item.country_id else '', 
+                                'country': item.country_name if item.country_name else '', 
+                                'city_id': item.city_id if item.city_id else '', 
+                                'city_name': item.city_name if item.city_name else ''})  
      
         return result
         
@@ -909,22 +917,22 @@ def update_one_default_profile(request: Request, id: str, defaultuserprofile: De
     if not db_default_profile_user:
         raise HTTPException(status_code=400, detail=_(locale, "userprofile.not_found"))
     
-    if defaultuserprofile['first_name'] and one_user.first_name != defaultuserprofile['first_name']:
+    if defaultuserprofile['first_name'] and defaultuserprofile['first_name'] != '' and one_user.first_name != defaultuserprofile['first_name']:
         one_user.first_name = defaultuserprofile['first_name']
         
-    if defaultuserprofile['last_name'] and one_user.last_name != defaultuserprofile['last_name']:
+    if defaultuserprofile['last_name'] and defaultuserprofile['last_name'] != '' and one_user.last_name != defaultuserprofile['last_name']:
         one_user.last_name = defaultuserprofile['last_name']
         
     db_default_profile.name = defaultuserprofile['first_name'] + ' ' + defaultuserprofile['last_name'] if defaultuserprofile['last_name'] else one_user.last_name
     
-    if defaultuserprofile['email'] and one_user.email != defaultuserprofile['email']:
+    if defaultuserprofile['email'] and defaultuserprofile['email'] != '' and one_user.email != defaultuserprofile['email']:
         one_user.email = defaultuserprofile['email']
         db_default_profile.email = defaultuserprofile['email']
     
-    if defaultuserprofile['phone'] and one_user.phone != defaultuserprofile['phone']:
+    if defaultuserprofile['phone'] and defaultuserprofile['phone'] != '' and one_user.phone != defaultuserprofile['phone']:
         one_user.phone = defaultuserprofile['phone']
     
-    if defaultuserprofile['city_id'] and db_default_profile_user.city_id != defaultuserprofile['city_id']:
+    if defaultuserprofile['city_id'] and defaultuserprofile['city_id'] != '' and db_default_profile_user.city_id != defaultuserprofile['city_id']:
         one_city = get_city_by_id(defaultuserprofile['city_id'], db=db)
         if not one_city:
             raise HTTPException(status_code=404, detail=_(locale, "city.not_found"))
@@ -932,16 +940,16 @@ def update_one_default_profile(request: Request, id: str, defaultuserprofile: De
         db_default_profile_user.city_id = defaultuserprofile['city_id']
         one_user.country_id = one_city.country_id
         
-    if defaultuserprofile['sex'] and db_default_profile_user.sex != defaultuserprofile['sex']:
+    if defaultuserprofile['sex'] and defaultuserprofile['sex'] != '' and db_default_profile_user.sex != defaultuserprofile['sex']:
         db_default_profile_user.sex = defaultuserprofile['sex']
         
-    if defaultuserprofile['birthdate'] and db_default_profile_user.birthdate != defaultuserprofile['birthdate']:
+    if defaultuserprofile['birthdate'] and defaultuserprofile['birthdate']  != '' and db_default_profile_user.birthdate != defaultuserprofile['birthdate']:
         db_default_profile_user.birthdate = defaultuserprofile['birthdate']
         
-    if defaultuserprofile['alias'] and db_default_profile_user.alias != defaultuserprofile['alias']:
+    if defaultuserprofile['alias'] and defaultuserprofile['alias'] != '' and db_default_profile_user.alias != defaultuserprofile['alias']:
         db_default_profile_user.alias = defaultuserprofile['alias']
         
-    if defaultuserprofile['job'] and db_default_profile_user.job != defaultuserprofile['job']:
+    if defaultuserprofile['job'] and defaultuserprofile['job'] != '' and db_default_profile_user.job != defaultuserprofile['job']:
         db_default_profile_user.job = defaultuserprofile['job']
         
     db_default_profile.receive_notifications = defaultuserprofile['receive_notifications'] 

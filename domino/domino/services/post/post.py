@@ -22,7 +22,7 @@ from domino.schemas.post.postelement import PostFileCreate, PostLikeCreate, Post
 from domino.schemas.resources.result_object import ResultObject, ResultData
 
 from domino.services.resources.utils import get_result_count, upfile, create_dir, del_image, get_ext_at_file
-from domino.services.enterprise.userprofile import get_single_profile_id_for_profile_by_user
+from domino.services.enterprise.userprofile import get_one as get_one_profile, get_single_profile_id_for_profile_by_user
 
 from domino.services.enterprise.users import get_one_by_username, get_url_avatar
             
@@ -67,15 +67,25 @@ def get_list_post(request:Request, profile_id:str, db: Session):
     date_find = datetime.now() - timedelta(days=40)
     currentUser = get_current_user(request)
     
+    # si el perfil es de usuario, mostrar todos los post creado por sus perfile. 
+    # si estoy en otro perfil, solo los de ese perfil y mis seguidores.
+    
+    db_profile = get_one_profile(id=profile_id, db=db)
+    if not db_profile:
+        raise HTTPException(status_code=400, detail=_(locale, "userprofile.not_found"))
+    
     str_query = "Select po.id, summary, pmem.name as full_name, po.created_date, pmem.photo, " +\
         "us.id as user_id, pmem.id as profile_id, po.allow_comment, po.show_count_like " +\
         "FROM post.post po " +\
         "JOIN enterprise.profile_member pmem ON pmem.id = po.profile_id " +\
         "JOIN enterprise.users us ON po.created_by = us.username " +\
         "WHERE po.is_active=True AND po.updated_date >= '" + date_find.strftime('%Y-%m-%d') + "' " +\
-        "AND (po.profile_id = '" + profile_id + "' or po.created_by = 'domino' " +\
-        "or po.created_by = '" + currentUser['username'] + "' or " +\
-        "po.profile_id IN (SELECT profile_follow_id FROM enterprise.profile_followers " +\
+        "AND (po.profile_id = '" + profile_id + "' or po.created_by = 'domino' or " 
+    
+    if  db_profile.profile_type == 'USER':
+        str_query += "po.created_by = '" + currentUser['username'] + "' or "  
+        
+    str_query += "po.profile_id IN (SELECT profile_follow_id FROM enterprise.profile_followers " +\
         "where profile_id = '" + profile_id + "'))"
   
     str_query += " ORDER BY created_date DESC " 
@@ -83,7 +93,7 @@ def get_list_post(request:Request, profile_id:str, db: Session):
     lst_data = db.execute(str_query)
     host=str(settings.server_uri)
     port=str(int(settings.server_port))
-    
+  
     result.data = [create_dict_row(item, current_date, profile_id, db=db, host=host, port=port) for item in lst_data]
     
     return result
