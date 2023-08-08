@@ -92,7 +92,7 @@ def get_all_followers(request:Request, profile_id:str, page: int, per_page: int,
     
     str_from = "FROM enterprise.profile_followers " +\
         "INNER JOIN enterprise.profile_member ON profile_member.id = profile_followers.profile_follow_id " +\
-        "WHERE profile_id = '" + profile_id + "' "
+        "WHERE profile_id = '" + profile_id + "' AND profile_followers.is_active=True "
     
     str_count = "SELECT count(id) " + str_from
     str_query = "SELECT id, name, photo, profile_type " + str_from
