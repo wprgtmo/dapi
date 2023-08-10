@@ -21,6 +21,8 @@ from domino.services.events.tourney import get_one as get_tourney_by_id
 from domino.services.enterprise.users import get_one_by_username
 from domino.services.resources.status import get_one_by_name as get_status_by_name
 
+from domino.services.enterprise.auth import get_url_avatar
+
 def get_one_by_id(invitation_id: str, db: Session):  
     return db.query(Invitations).filter(Invitations.id == invitation_id).first()
            
@@ -59,7 +61,7 @@ def get_all_invitations_by_tourney(request, tourney_id: str, status_name:str, db
     
     return result
 
-def get_all_invitations_by_user(request, status_name:str, db: Session):  
+def get_all_invitations_by_user(request, profile_id: str, status_name:str, db: Session):  
     locale = request.headers["accept-language"].split(",")[0].split("-")[0];
     
     result = ResultObject() 
@@ -72,16 +74,15 @@ def get_all_invitations_by_user(request, status_name:str, db: Session):
     str_query = "SELECT invitations.id, tourney.name as tourney_name, tourney.modality, tourney.start_date, " + \
         "events.name as event_name, events.close_date, events.main_location, city.name as city_name, " + \
         "country.name country_name, eve.description as rolevent_name, events.id as event_id, " +\
-        "events.image " +\
+        "events.image, pro.photo, events.invitations.profile_id " +\
         "FROM events.invitations " + \
         "inner join enterprise.profile_member pro ON pro.id = invitations.profile_id " + \
-        "inner join enterprise.profile_users use ON use.profile_id = pro.id " +\
         "inner join events.tourney ON tourney.id = invitations.tourney_id " + \
         "inner join events.events ON events.id = tourney.event_id " + \
         "inner join enterprise.profile_type eve ON eve.name = pro.profile_type " +\
         "left join resources.city ON city.id = events.city_id " +\
         "left join resources.country ON country.id = city.country_id " +\
-        "WHERE use.username = '" + currentUser['username'] + "' "
+        "WHERE events.invitations.profile_id = '" + profile_id + "' "
 
     if status_name != 'ALL':
         str_query += " AND invitations.status_name = '" + status_name + "' "
@@ -104,7 +105,7 @@ def create_dict_row_invitation(item, user_id, host="", port=""):
                'tourney_name': item['tourney_name'], 
                'modality': item['modality'], 
                'startDate': item['start_date'], 'endDate': item['close_date'], 
-               'photo' : image}
+               'photo' : image, 'avatar': get_url_avatar(item['profile_id'], item['photo'], host=host, port=port)}
     
     return new_row
            
