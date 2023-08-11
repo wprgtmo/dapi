@@ -120,13 +120,12 @@ def generate_all_user(request, db: Session, tourney_id: str):
         
     str_users = "SELECT profile_member.id profile_id, eve.name as rolevent_name  " + \
         "FROM enterprise.profile_member " +\
-        "inner join enterprise.profile_users ON profile_users.profile_id = profile_member.id " +\
+        "inner join enterprise.profile_users ON profile_users.profile_id = profile_member.id and profile_users.is_principal is True " +\
         "inner join enterprise.profile_type eve ON eve.name = profile_member.profile_type " +\
         "where profile_member.is_active=True and profile_member.is_ready=True and eve.name IN (" + str_profile + ") " +\
         "and profile_member.id NOT IN (Select profile_id FROM events.invitations where tourney_id = '" + tourney_id + "') "
 
     lst_data = db.execute(str_users)
-    
     try:
         for item in lst_data:
             one_invitation = Invitations(tourney_id=db_tourney.id, profile_id=item.profile_id, 
