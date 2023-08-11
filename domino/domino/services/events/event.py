@@ -26,6 +26,7 @@ from domino.services.resources.status import get_one_by_name, get_one as get_one
 from domino.services.enterprise.users import get_one_by_username
 
 from domino.services.resources.utils import get_result_count, upfile, create_dir, del_image, get_ext_at_file, remove_dir
+from domino.services.enterprise.userprofile import get_one as get_one_profile
             
 def get_all(request:Request, profile_id:str, page: int, per_page: int, criteria_key: str, criteria_value: str, db: Session):  
     locale = request.headers["accept-language"].split(",")[0].split("-")[0];
@@ -33,13 +34,12 @@ def get_all(request:Request, profile_id:str, page: int, per_page: int, criteria_
     str_from = "FROM events.events eve " +\
         "JOIN resources.entities_status sta ON sta.id = eve.status_id " +\
         "JOIN resources.city city ON city.id = eve.city_id " +\
-        "JOIN resources.country country ON country.id = city.country_id " +\
-        "JOIN enterprise.users users ON users.username = eve.created_by "
+        "JOIN resources.country country ON country.id = city.country_id " 
         
     str_count = "Select count(*) " + str_from
     str_query = "Select eve.id, eve.name, start_date, close_date, registration_date, registration_price, city.name as city_name, " +\
         "main_location, summary, image, eve.status_id, sta.name as status_name, country.id as country_id, city.id  as city_id, " +\
-        "users.id as user_id " + str_from
+        "eve.profile_id as profile_id " + str_from
     
     str_where = " WHERE sta.name != 'CANCELLED' "  
     
@@ -79,7 +79,7 @@ def get_all(request:Request, profile_id:str, page: int, per_page: int, criteria_
 
 def create_dict_row(item, page, db: Session, incluye_tourney=False, host="", port=""):
     
-    image = "http://" + host + ":" + port + "/api/image/" + str(item['user_id']) + "/" + item['id'] + "/" + item['image']
+    image = "http://" + host + ":" + port + "/api/image/" + str(item['profile_id']) + "/" + item['id'] + "/" + item['image']
     
     new_row = {'id': item['id'], 'name': item['name'], 
                'startDate': item['start_date'], 'endDate': item['close_date'], 
@@ -105,12 +105,11 @@ def get_one_by_id(event_id: str, db: Session):
     
     str_query = "Select eve.id, eve.name, start_date, close_date, registration_date, registration_price, city.name as city_name, " +\
         "main_location, summary, image, eve.status_id, sta.name as status_name, country.id as country_id, city.id  as city_id, " +\
-        "users.id as user_id " +\
+        "eve.profile_id as profile_id " +\
         "FROM events.events eve " +\
         "JOIN resources.entities_status sta ON sta.id = eve.status_id " +\
         "JOIN resources.city city ON city.id = eve.city_id " +\
         "JOIN resources.country country ON country.id = city.country_id " +\
-        "JOIN enterprise.users users ON users.username = eve.created_by " +\
         " WHERE eve.id = '" + str(event_id) + "' "  
     lst_data = db.execute(str_query) 
     
@@ -132,6 +131,10 @@ def new(request: Request, profile_id:str, event: EventBase, db: Session, file: F
     result = ResultObject() 
     currentUser = get_current_user(request)
     
+    db_member_profile = get_one_profile(id=profile_id, db=db)
+    if not db_member_profile:
+        raise HTTPException(status_code=400, detail=_(locale, "userprofile.not_found"))
+    
     one_status = get_one_by_name('CREATED', db=db)
     if not one_status:
         raise HTTPException(status_code=404, detail=_(locale, "status.not_found"))
@@ -144,7 +147,7 @@ def new(request: Request, profile_id:str, event: EventBase, db: Session, file: F
         ext = get_ext_at_file(file.filename)
         file.filename = str(id) + "." + ext
         
-        path = create_dir(entity_type="EVENT", user_id=str(currentUser['user_id']), entity_id=str(id))
+        path = create_dir(entity_type="EVENT", user_id=str(db_member_profile.id), entity_id=str(id))
     
     db_event = Event(id=id, name=event['name'], summary=event['summary'], start_date=event['start_date'], 
                     close_date=event['close_date'], registration_date=event['start_date'], 
