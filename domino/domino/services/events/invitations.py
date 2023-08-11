@@ -31,7 +31,6 @@ def get_all_invitations_by_tourney(request, tourney_id: str, status_name:str, db
     
     result = ResultObject() 
     currentUser = get_current_user(request)
-    user_id=currentUser['user_id']
     
     host=str(settings.server_uri)
     port=str(int(settings.server_port))
@@ -40,13 +39,10 @@ def get_all_invitations_by_tourney(request, tourney_id: str, status_name:str, db
                                            
     str_query = "SELECT invitations.id, tourney.name as tourney_name, tourney.modality, tourney.start_date, " + \
         "events.name as event_name, events.close_date, events.main_location, city.name as city_name, " + \
-        "country.name country_name, eve.description as rolevent_name, events.id as event_id, events.image " +\
+        "country.name country_name, events.id as event_id, events.image, events.profile_id " +\
         "FROM events.invitations " + \
-        "inner join enterprise.profile_member pro ON pro.id = invitations.profile_id " + \
-        "inner join enterprise.profile_users use ON use.profile_id = pro.id " +\
         "inner join events.tourney ON tourney.id = invitations.tourney_id " + \
         "inner join events.events ON events.id = tourney.event_id " + \
-        "inner join enterprise.profile_type eve ON eve.name = pro.profile_type " +\
         "left join resources.city ON city.id = events.city_id " +\
         "left join resources.country ON country.id = city.country_id " +\
         "WHERE invitations.tourney_id = '" + tourney_id + "' "
@@ -57,7 +53,7 @@ def get_all_invitations_by_tourney(request, tourney_id: str, status_name:str, db
     str_query += "ORDER BY tourney.start_date ASC "
         
     lst_inv = db.execute(str_query)
-    result.data = [create_dict_row_invitation(item, user_id, host=host, port=port) for item in lst_inv]
+    result.data = [create_dict_row_invitation(item, host=host, port=port) for item in lst_inv]
     
     return result
 
@@ -66,20 +62,16 @@ def get_all_invitations_by_user(request, profile_id: str, status_name:str, db: S
     
     result = ResultObject() 
     currentUser = get_current_user(request)
-    user_id=currentUser['user_id']
     
     host=str(settings.server_uri)
     port=str(int(settings.server_port))
                                             
     str_query = "SELECT invitations.id, tourney.name as tourney_name, tourney.modality, tourney.start_date, " + \
         "events.name as event_name, events.close_date, events.main_location, city.name as city_name, " + \
-        "country.name country_name, eve.description as rolevent_name, events.id as event_id, " +\
-        "events.image, pro.photo, events.invitations.profile_id " +\
+        "country.name country_name, events.id as event_id, events.image, events.profile_id " +\
         "FROM events.invitations " + \
-        "inner join enterprise.profile_member pro ON pro.id = invitations.profile_id " + \
         "inner join events.tourney ON tourney.id = invitations.tourney_id " + \
         "inner join events.events ON events.id = tourney.event_id " + \
-        "inner join enterprise.profile_type eve ON eve.name = pro.profile_type " +\
         "left join resources.city ON city.id = events.city_id " +\
         "left join resources.country ON country.id = city.country_id " +\
         "WHERE events.invitations.profile_id = '" + profile_id + "' "
@@ -88,24 +80,22 @@ def get_all_invitations_by_user(request, profile_id: str, status_name:str, db: S
         str_query += " AND invitations.status_name = '" + status_name + "' "
         
     str_query += "ORDER BY tourney.start_date ASC "
-        
     lst_inv = db.execute(str_query)
-    result.data = [create_dict_row_invitation(item, user_id, host=host, port=port) for item in lst_inv]
+    result.data = [create_dict_row_invitation(item, host=host, port=port) for item in lst_inv]
     
     return result
  
-def create_dict_row_invitation(item, user_id, host="", port=""):
+def create_dict_row_invitation(item, host="", port=""):
     
-    image = "http://" + host + ":" + port + "/api/image/" + str(user_id) + "/" + item['event_id'] + "/" + item['image']
+    image = "http://" + host + ":" + port + "/api/image/" + str(item['profile_id']) + "/" + item['event_id'] + "/" + item['image']
     
     new_row = {'id': item['id'], 'event_name': item['event_name'], 
-               'rolevent_name': item['rolevent_name'],
                'country': item['country_name'], 'city_name': item['city_name'],
                'campus': item['main_location'], 
                'tourney_name': item['tourney_name'], 
                'modality': item['modality'], 
                'startDate': item['start_date'], 'endDate': item['close_date'], 
-               'photo' : image, 'avatar': get_url_avatar(item['profile_id'], item['photo'], host=host, port=port)}
+               'photo' : image}
     
     return new_row
            
