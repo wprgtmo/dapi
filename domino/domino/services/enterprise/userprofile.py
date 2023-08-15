@@ -16,10 +16,10 @@ from domino.auth_bearer import decodeJWT
 from domino.app import _
 
 from domino.models.enterprise.userprofile import ProfileMember, ProfileUsers, SingleProfile, \
-    DefaultUserProfile, RefereeProfile, PairProfile, TeamProfile
+    DefaultUserProfile, RefereeProfile, PairProfile, TeamProfile, EventAdmonProfile
     
 from domino.schemas.enterprise.userprofile import SingleProfileCreated, DefaultUserProfileBase, \
-    RefereeProfileCreated, PairProfileCreated, TeamProfileCreated
+    RefereeProfileCreated, PairProfileCreated, TeamProfileCreated, EventAdmonProfileCreated
 from domino.schemas.resources.result_object import ResultObject, ResultData
 
 from domino.services.enterprise.profiletype import get_one as get_profile_type_by_id, get_one_by_name as get_profile_type_by_name
@@ -226,7 +226,62 @@ def new_profile_team_player(request: Request, teamprofile: TeamProfileCreated, f
         return result
     except (Exception, SQLAlchemyError) as e:
         raise HTTPException(status_code=400, detail=_(locale, "userprofile.errorinsert"))
+
+def new_profile_event_admon(request: Request, eventadmonprofile: EventAdmonProfileCreated, file: File, db: Session): 
+    locale = request.headers["accept-language"].split(",")[0].split("-")[0];
+    
+    result = ResultObject() 
+    currentUser = get_current_user(request)
+    
+    profile_type = get_profile_type_by_name("EVENTADMON", db=db)
+    if not profile_type:
+        raise HTTPException(status_code=400, detail=_(locale, "profiletype.not_found"))
+    
+    me_profile_id = get_user_for_single_profile_by_user(currentUser['username'], db=db)
+    
+    id = str(uuid.uuid4())
+    one_profile = new_profile(profile_type, id, currentUser['user_id'], currentUser['username'], teamprofile['name'], 
+                              teamprofile['email'], teamprofile['city_id'], teamprofile['receive_notifications'], 
+                              False, True, "USERPROFILE", currentUser['username'], currentUser['username'], file, is_confirmed=True,
+                              single_profile_id=me_profile_id)
+    
+    one_team_player = TeamProfile(profile_id=id, level=teamprofile['level'], amount_members=0, #teamprofile['amount_members'], 
+                                  elo=0, ranking=None, updated_by=currentUser['username'])
+    one_profile.profile_team_player.append(one_team_player)
+    
+    # if int(teamprofile['amount_members']) < len(teamprofile['others_profile_id']):
+    #     raise HTTPException(status_code=400, detail=_(locale, "userprofile.incorrect_amount_member"))
+    
+    # lst_players = json.loads(teamprofile['others_profile_id'])
+    
+    if teamprofile['others_profile_id']:
         
+        if not me_profile_id:
+            raise HTTPException(status_code=400, detail=_(locale, "userprofile.not_exist"))
+        
+        lst_players = teamprofile['others_profile_id'].split(',')
+        
+        for item in lst_players: # teamprofile['others_profile_id']:
+            
+            other_username = get_user_for_single_profile(item, db=db)
+            if other_username:
+                if me_profile_id == item:
+                    raise HTTPException(status_code=400, detail=_(locale, "userprofile.not_equal"))
+            
+                other_user_member = ProfileUsers(profile_id=item, username=other_username, 
+                                                is_principal=False, created_by=currentUser['username'],
+                                                is_confirmed=False, single_profile_id=item)
+                one_profile.profile_users.append(other_user_member) 
+            else:
+                continue
+    try:   
+        db.add(one_profile)
+        db.commit()
+        result.data = {'id': id}
+        return result
+    except (Exception, SQLAlchemyError) as e:
+        raise HTTPException(status_code=400, detail=_(locale, "userprofile.errorinsert"))
+            
 #endregion
  
 #region Obteniendo valores    
@@ -507,7 +562,49 @@ def get_one_team_profile_by_id(request: Request, id: str, db: Session):
                        'city_id': item.city_id if item.city_id else '', 
                        'city_name': item.city_name if item.city_name else '',
                        'receive_notifications': item.receive_notifications,
-                       'lst_users': get_lst_users_team_profile(item.profile_id, single_profile_id=single_profile_id, db=db)}
+                       'lst_users': get_lst_users_team_profile(item.profile_id, db=db)}
+    
+    if not result.data:
+        raise HTTPException(status_code=400, detail=_(locale, "userprofile.not_found"))
+    
+    return result
+
+def get_one_eventadmon_profile_by_id(request: Request, id: str, db: Session): 
+    locale = request.headers["accept-language"].split(",")[0].split("-")[0];
+    
+    currentUser = get_current_user(request)
+    
+    result = ResultObject() 
+    
+    host = str(settings.server_uri)
+    port = str(int(settings.server_port))
+    
+    str_query = "Select pro.id profile_id, pro.name, pro.email, pro.city_id, pro.photo, pro.receive_notifications, " +\
+        "eve.name as profile_type_name, eve.description as profile_type_description, " +\
+        "city.name as city_name, city.country_id, pa.name as country_name, sing.elo, sing.ranking, sing.level  " +\
+        "FROM enterprise.profile_member pro " +\
+        "inner join enterprise.profile_type eve ON eve.name = pro.profile_type " +\
+        "inner join enterprise.profile_event_admon sing ON sing.profile_id = pro.id " +\
+        "left join resources.city city ON city.id = pro.city_id " +\
+        "left join resources.country pa ON pa.id = city.country_id " +\
+        "Where pro.is_active = True AND pro.id='" + id + "' "
+    res_profile=db.execute(str_query)
+    
+    for item in res_profile:
+        photo = get_url_avatar(item.profile_id, item.photo, host=host, port=port)
+        
+        result.data = {'id': item.profile_id, 'name': item.name, 'email': item.email,
+                       'profile_type_name': item.profile_type_name, 
+                       'profile_type_description': item.profile_type_description, 'photo': photo,
+                       'elo': item.elo if item.elo else '', 
+                       'ranking': item.ranking if item.ranking else '', 
+                       'level': item.level if item.level else '', 
+                       'country_id': item.country_id if item.country_id else '', 
+                       'country': item.country_name if item.country_name else '', 
+                       'city_id': item.city_id if item.city_id else '', 
+                       'city_name': item.city_name if item.city_name else '',
+                       'receive_notifications': item.receive_notifications,
+                       'lst_users': get_lst_users_team_profile(item.profile_id, db=db)}
     
     if not result.data:
         raise HTTPException(status_code=400, detail=_(locale, "userprofile.not_found"))
@@ -574,7 +671,7 @@ def get_dicc_users_team_profile(profile_id: str, db: Session):
         
     return dicc_data
 
-def get_lst_users_team_profile(profile_id: str, single_profile_id: str, db: Session): 
+def get_lst_users_team_profile(profile_id: str, db: Session): 
     
     lst_data = []
     
@@ -591,10 +688,6 @@ def get_lst_users_team_profile(profile_id: str, single_profile_id: str, db: Sess
     res_profile=db.execute(str_query)
     
     for item in res_profile:
-        # migue volvio a pedir que se incluyera
-        # if item.profile_id == single_profile_id:
-        #     continue
-        
         lst_data.append({'profile_id': item.profile_id, 'name': item.name, 
                          'is_principal': item.is_principal,
                          'photo': get_url_avatar(item.profile_id, item.photo, host=host, port=port),

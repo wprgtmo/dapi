@@ -25,8 +25,57 @@ from domino.services.enterprise.auth import get_url_avatar
 
 def get_one_by_id(invitation_id: str, db: Session):  
     return db.query(Invitations).filter(Invitations.id == invitation_id).first()
+
+def get_all(request:Request, profile_id:str, page: int, per_page: int, criteria_key: str, criteria_value: str, db: Session):  
+    locale = request.headers["accept-language"].split(",")[0].split("-")[0];
+    
+    str_from = "FROM events.events eve " +\
+        "JOIN resources.entities_status sta ON sta.id = eve.status_id " +\
+        "JOIN resources.city city ON city.id = eve.city_id " +\
+        "JOIN resources.country country ON country.id = city.country_id " 
+        
+    str_count = "Select count(*) " + str_from
+    str_query = "Select eve.id, eve.name, start_date, close_date, registration_date, registration_price, city.name as city_name, " +\
+        "main_location, summary, image, eve.status_id, sta.name as status_name, country.id as country_id, city.id  as city_id, " +\
+        "eve.profile_id as profile_id " + str_from
+    
+    str_where = " WHERE sta.name != 'CANCELLED' "  
+    
+    if profile_id:
+        str_where += "AND profile_id = '" + profile_id + "' "
+    # debo incluir los de los perfiles que el sigue
+    
+    dict_query = {'name': " AND eve.name ilike '%" + criteria_value + "%'",
+                  'summary': " AND summary ilike '%" + criteria_value + "%'",
+                  'city_name': " AND city_name ilike '%" + criteria_value + "%'",
+                  'start_date': " AND start_date >= '%" + criteria_value + "%'",
+                  }
+    
+    str_count += str_where
+    str_query += str_where
+    
+    if criteria_key and criteria_key not in dict_query:
+        raise HTTPException(status_code=404, detail=_(locale, "commun.invalid_param"))
+    
+    if page and page > 0 and not per_page:
+        raise HTTPException(status_code=404, detail=_(locale, "commun.invalid_param"))
+    
+    str_count += dict_query[criteria_key] if criteria_value else "" 
+    str_query += dict_query[criteria_key] if criteria_value else "" 
+    
+    result = get_result_count(page=page, per_page=per_page, str_count=str_count, db=db)
+    
+    str_query += " ORDER BY start_date DESC " 
+    if page != 0:
+        str_query += "LIMIT " + str(per_page) + " OFFSET " + str(page*per_page-per_page)
+    
+    lst_data = db.execute(str_query)
+    result.data = [create_dict_row(item, page, db=db, incluye_tourney=True, 
+                                   host=str(settings.server_uri), port=str(int(settings.server_port))) for item in lst_data]
+    
+    return result
            
-def get_all_invitations_by_tourney(request, tourney_id: str, db: Session):  
+def get_all_invitations_by_tourney(request, tourney_id: str, page: int, per_page: int, criteria_key: str, criteria_value: str, db: Session):  
     locale = request.headers["accept-language"].split(",")[0].split("-")[0];
     
     result = ResultObject() 
@@ -34,20 +83,40 @@ def get_all_invitations_by_tourney(request, tourney_id: str, db: Session):
     host=str(settings.server_uri)
     port=str(int(settings.server_port))
     
-    str_query = "SELECT invitations.id, invitations.profile_id, profile_member.name, profile_member.photo, " + \
-        "city.name as city_name, country.name country_name " +\
-        "FROM events.invitations " + \
+    str_from = "FROM events.invitations " + \
         "inner join enterprise.profile_member ON profile_member.id = invitations.profile_id " + \
         "left join resources.city ON city.id = profile_member.city_id " +\
         "left join resources.country ON country.id = city.country_id " +\
         "WHERE invitations.tourney_id = '" + tourney_id + "' " +\
         " AND status_name = 'ACCEPTED' and profile_member.is_active = True and profile_member.is_ready = True "
-
-    str_query += "ORDER BY profile_member.name ASC "
+        
+    str_count = "Select count(*) " + str_from
+    str_query = "SELECT invitations.id, invitations.profile_id, profile_member.name, profile_member.photo, " + \
+        "city.name as city_name, country.name country_name " + str_from
     
-    print(str_query)    
-    lst_inv = db.execute(str_query)
-    result.data = [create_dict_row_for_tourney(item, host=host, port=port) for item in lst_inv]
+    dict_query = {'name': " AND eve.name ilike '%" + criteria_value + "%'",
+                  'summary': " AND summary ilike '%" + criteria_value + "%'",
+                  'city_name': " AND city_name ilike '%" + criteria_value + "%'",
+                  'start_date': " AND start_date >= '%" + criteria_value + "%'",
+                  }
+    
+    if criteria_key and criteria_key not in dict_query:
+        raise HTTPException(status_code=404, detail=_(locale, "commun.invalid_param"))
+    
+    if page and page > 0 and not per_page:
+        raise HTTPException(status_code=404, detail=_(locale, "commun.invalid_param"))
+    
+    str_count += dict_query[criteria_key] if criteria_value else "" 
+    str_query += dict_query[criteria_key] if criteria_value else "" 
+    
+    result = get_result_count(page=page, per_page=per_page, str_count=str_count, db=db)
+    
+    str_query += " ORDER BY profile_member.name ASC " 
+    if page != 0:
+        str_query += "LIMIT " + str(per_page) + " OFFSET " + str(page*per_page-per_page)
+    
+    lst_data = db.execute(str_query)
+    result.data = [create_dict_row_for_tourney(item, host=host, port=port) for item in lst_data]
     
     return result
 

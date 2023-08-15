@@ -147,8 +147,7 @@ class RefereeProfileCreated(BaseModel):
     
     receive_notifications: Optional[bool] = False
     
-    
-
+   
 class ProfileFollowersBase(BaseModel):
     profile_id: str
     profile_follow_id: str
@@ -165,3 +164,11 @@ class ProfileFollowersSchema(ProfileFollowersBase):
     
     class Config:
         orm_mode = True 
+
+
+class EventAdmonProfileCreated(BaseModel):
+    name: str
+    email: Optional[str]
+    city_id: Optional[int]
+    
+    others_profile_id: Optional[str]
