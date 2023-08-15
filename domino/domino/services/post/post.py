@@ -25,6 +25,7 @@ from domino.services.resources.utils import get_result_count, upfile, create_dir
 from domino.services.enterprise.userprofile import get_one as get_one_profile, get_single_profile_id_for_profile_by_user
 
 from domino.services.enterprise.users import get_one_by_username, get_url_avatar
+from domino.services.resources.type_ext import get_one_by_ext_type
             
 def get_all(request:Request, page: int, per_page: int, criteria_key: str, criteria_value: str, db: Session):  
     locale = request.headers["accept-language"].split(",")[0].split("-")[0];
@@ -214,7 +215,7 @@ def get_files_of_post(post_id: str, db: Session, host='', port=''):
     
     for item_file in lst_files:
         path_file = path + post_id + "/" + item_file['path']
-        lst_result.append({'file_id': item_file['id'], 'path': path_file, 'type': get_ext_type(item_file['path'])})
+        lst_result.append({'file_id': item_file['id'], 'path': path_file, 'type': get_ext_type(item_file['path'], db=db)})
     
     return lst_result
 
@@ -581,15 +582,12 @@ def add_one_comment_at_comment(request, profile_id: str, db: Session, commentcom
         msg = _(locale, "post.error_new_commentcomment")               
         raise HTTPException(status_code=403, detail=msg)
     
-def get_ext_type(path: str):
-    
-    dict_ext = {'bmp': 'image', 'gif': 'image', 'jpg': 'image', 'jpeg': 'image', 'png': 'image', 'tif': 'image', 'tiff': 'image',
-                'mp4': 'video', 'mov': 'video', 'wmv': 'video', 'avi': 'video', 'mkv': 'video', 'flv': 'video', 'webm': 'video', 'html5': 'video'} 
+def get_ext_type(path: str, db: Session):
     
     path = path.lower()
     pos_ext = path.rfind('.')
-   
-    ext = dict_ext[path[pos_ext+1:]] if pos_ext > 0 else 'no type'
-
-    return ext
+    
+    ext = get_one_by_ext_type(path[pos_ext+1:], db=db)
+    
+    return ext.type_file if ext else 'no type'
 

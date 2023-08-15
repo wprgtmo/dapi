@@ -64,6 +64,9 @@ from domino.routes.enterprise.teamprofile import teamprofile_route
 from domino.routes.enterprise.referee_profile import refereeprofile_route
 from domino.routes.enterprise.request import request_route
 from domino.routes.enterprise.followers import follower_route
+from domino.routes.enterprise.eventadmon_profile import eventadmonprofile_route
+from domino.routes.resources.ext_type import type_ext_route
+
 @app.get("/docs", include_in_schema=False)
 async def custom_swagger_ui_html():
     return get_swagger_ui_html(
@@ -109,8 +112,10 @@ app.include_router(pairprofile_route, prefix="/api")
 app.include_router(teamprofile_route, prefix="/api")
 app.include_router(refereeprofile_route, prefix="/api")
 app.include_router(request_route, prefix="/api")
-
+app.include_router(eventadmonprofile_route, prefix="/api")
 app.include_router(follower_route, prefix="/api")
+app.include_router(type_ext_route, prefix="/api")
+
 
 @app.post("/file")
 def upfile(file: UploadFile = File(...)):

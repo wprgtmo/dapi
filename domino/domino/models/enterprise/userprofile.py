@@ -66,6 +66,7 @@ class ProfileMember(Base):
     profile_referee_player = relationship("RefereeProfile")
     profile_pair_player = relationship("PairProfile")
     profile_team_player = relationship("TeamProfile")
+    profile_event_admon = relationship("EventAdmonProfile")
      
     def dict(self):
         return {
