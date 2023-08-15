@@ -29,7 +29,7 @@ def new_profile(profile_type, id, user_id, username, name, email, city_id, recei
         upfile(file=file, path=path)
         
     else:
-        image_domino="public/profile/user-vector.jpg"
+        image_domino="public/user-vector.jpg"
         filename = str(id) + ".jpg"
         image_destiny = path + filename
         copy_image(image_domino, image_destiny)
