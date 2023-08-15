@@ -250,3 +250,19 @@ class ProfileFollowers(Base):
             "created_date": self.created_date,
             "is_active": self.is_active
         }
+        
+class EventAdmonProfile(Base):
+    """EventAdmonProfile Class contains standard information for a Profile of Event Admon"""
+ 
+    __tablename__ = "profile_event_admon"
+    __table_args__ = {'schema' : 'enterprise'}
+    
+    profile_id = Column(String, ForeignKey("enterprise.profile_member.id"), primary_key=True)
+    
+    updated_by = Column(String, ForeignKey("enterprise.users.username"), nullable=False)
+    updated_date = Column(Date, nullable=False, default=date.today())
+     
+    def dict(self):
+        return {
+            "profile_id": self.profile_id,
+            }

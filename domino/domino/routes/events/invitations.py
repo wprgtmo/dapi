@@ -20,8 +20,8 @@ def get_all(request:Request, profile_id: str, status_name:str, db: Session = Dep
     return get_all_invitations_by_user(request=request, profile_id=profile_id, status_name=status_name, db=db)
 
 @invitation_route.get("/invitation/tourney/", response_model=ResultObject, summary="Get All Invitations for tourney.")
-def get_for_tourney(request:Request, tourney_id: str, status_name:str='', db: Session = Depends(get_db)):
-    return get_all_invitations_by_tourney(request=request, tourney_id=tourney_id, status_name=status_name, db=db)
+def get_for_tourney(request:Request, tourney_id: str, db: Session = Depends(get_db)):
+    return get_all_invitations_by_tourney(request=request, tourney_id=tourney_id, db=db)
 
 @invitation_route.post("/invitation", response_model=ResultObject, summary="Generate user invitations")
 def generate(request:Request, tourney_id: str, db: Session = Depends(get_db)):

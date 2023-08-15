@@ -26,36 +26,39 @@ from domino.services.enterprise.auth import get_url_avatar
 def get_one_by_id(invitation_id: str, db: Session):  
     return db.query(Invitations).filter(Invitations.id == invitation_id).first()
            
-def get_all_invitations_by_tourney(request, tourney_id: str, status_name:str, db: Session):  
+def get_all_invitations_by_tourney(request, tourney_id: str, db: Session):  
     locale = request.headers["accept-language"].split(",")[0].split("-")[0];
     
     result = ResultObject() 
-    currentUser = get_current_user(request)
     
     host=str(settings.server_uri)
     port=str(int(settings.server_port))
     
-    status_name = 'ALL' if not status_name else status_name
-                                           
-    str_query = "SELECT invitations.id, tourney.name as tourney_name, tourney.modality, tourney.start_date, " + \
-        "events.name as event_name, events.close_date, events.main_location, city.name as city_name, " + \
-        "country.name country_name, events.id as event_id, events.image, events.profile_id " +\
+    str_query = "SELECT invitations.id, invitations.profile_id, profile_member.name, profile_member.photo, " + \
+        "city.name as city_name, country.name country_name " +\
         "FROM events.invitations " + \
-        "inner join events.tourney ON tourney.id = invitations.tourney_id " + \
-        "inner join events.events ON events.id = tourney.event_id " + \
-        "left join resources.city ON city.id = events.city_id " +\
+        "inner join enterprise.profile_member ON profile_member.id = invitations.profile_id " + \
+        "left join resources.city ON city.id = profile_member.city_id " +\
         "left join resources.country ON country.id = city.country_id " +\
-        "WHERE invitations.tourney_id = '" + tourney_id + "' "
+        "WHERE invitations.tourney_id = '" + tourney_id + "' " +\
+        " AND status_name = 'ACCEPTED' and profile_member.is_active = True and profile_member.is_ready = True "
 
-    if status_name != 'ALL':
-        str_query += " AND invitations.status_name = '" + status_name + "' "
-        
-    str_query += "ORDER BY tourney.start_date ASC "
-        
+    str_query += "ORDER BY profile_member.name ASC "
+    
+    print(str_query)    
     lst_inv = db.execute(str_query)
-    result.data = [create_dict_row_invitation(item, host=host, port=port) for item in lst_inv]
+    result.data = [create_dict_row_for_tourney(item, host=host, port=port) for item in lst_inv]
     
     return result
+
+def create_dict_row_for_tourney(item, host="", port=""):
+    
+    new_row = {'id': item.id, 'profile_id': item.profile_id, 
+               'country': item.country_name, 'city_name': item.city_name,
+               'name': item['name'], 
+               'photo' : get_url_avatar(item.profile_id, item.photo, host=host, port=port)}
+    
+    return new_row
 
 def get_all_invitations_by_user(request, profile_id: str, status_name:str, db: Session):  
     locale = request.headers["accept-language"].split(",")[0].split("-")[0];

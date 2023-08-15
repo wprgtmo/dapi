@@ -9,3 +9,4 @@ from ..models.post.post import *
 from ..models.events.tourney import *
 from ..models.events.invitations import *
 from ..models.enterprise.userprofile import *
+from ..models.resources.type_ext import *
