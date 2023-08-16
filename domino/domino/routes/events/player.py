@@ -29,7 +29,7 @@ def get_for_tourney(
 def confirm_player(request:Request, invitation_id: str, db: Session = Depends(get_db)):
     return new(request=request, invitation_id=str(invitation_id), db=db)
 
-@player_route.put("/player/{invitation_id}", response_model=ResultObject, summary="Reject invitation to player")
+@player_route.put("/player/rejected/{invitation_id}", response_model=ResultObject, summary="Reject invitation to player")
 def reject_player(request:Request, invitation_id: str, db: Session = Depends(get_db)):
     return reject_one_invitation(request=request, invitation_id=str(invitation_id), db=db)
 

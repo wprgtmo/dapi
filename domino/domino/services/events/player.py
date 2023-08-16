@@ -59,17 +59,17 @@ def new(request: Request, invitation_id: str, db: Session):
     if status_confirmed:
         one_invitation.updated_by = currentUser['username']
         one_invitation.updated_date = datetime.now()
-        one_invitation.status_id = status_confirmed.id 
+        one_invitation.status_name = status_confirmed.name
     else:
         raise HTTPException(status_code=404, detail=_(locale, "status.not_found"))
     
-    try:
-        db.add(one_player)
-        db.add(one_invitation)
-        db.commit()
-        return result
-    except (Exception, SQLAlchemyError) as e:
-        return False
+    # try:
+    db.add(one_player)
+    db.add(one_invitation)
+    db.commit()
+    return result
+    # except (Exception, SQLAlchemyError) as e:
+    #     return False
  
 def reject_one_invitation(request: Request, invitation_id: str, db: Session):
     locale = request.headers["accept-language"].split(",")[0].split("-")[0];
@@ -96,7 +96,7 @@ def reject_one_invitation(request: Request, invitation_id: str, db: Session):
     if status_confirmed:
         one_invitation.updated_by = currentUser['username']
         one_invitation.updated_date = datetime.now()
-        one_invitation.status_id = status_confirmed.id 
+        one_invitation.status_name = status_confirmed.name
     else:
         raise HTTPException(status_code=404, detail=_(locale, "status.not_found"))
     
