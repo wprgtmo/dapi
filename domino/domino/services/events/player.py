@@ -43,7 +43,8 @@ def new(request: Request, invitation_id: str, db: Session):
     if not db_tourney:
         raise HTTPException(status_code=404, detail=_(locale, "tourney.not_found"))
     
-    if db_tourney.status.name != 'CREATED':
+    status_created = get_one_by_name('CREATED', db=db)
+    if db_tourney.status_id != status_created.id:
         raise HTTPException(status_code=404, detail=_(locale, "tourney.status_incorrect"))
         
     one_player = get_one_by_invitation_id(invitation_id, db=db)
@@ -87,7 +88,8 @@ def reject_one_invitation(request: Request, invitation_id: str, db: Session):
     if not db_tourney:
         raise HTTPException(status_code=404, detail=_(locale, "tourney.not_found"))
     
-    if db_tourney.status.name != 'CREATED':
+    status_created = get_one_by_name('CREATED', db=db)
+    if db_tourney.status_id != status_created.id:
         raise HTTPException(status_code=404, detail=_(locale, "tourney.status_incorrect"))
     
     status_confirmed = get_one_by_name('REFUTED', db=db)
@@ -120,7 +122,8 @@ def remove_player(request: Request, player_id: str, db: Session):
             if not db_tourney:
                 raise HTTPException(status_code=404, detail=_(locale, "tourney.not_found"))
             
-            if db_tourney.status.name != 'CREATED':
+            status_created = get_one_by_name('CREATED', db=db)
+            if db_tourney.status_id != status_created.id:
                 raise HTTPException(status_code=404, detail=_(locale, "tourney.status_incorrect"))
     
             db_player.is_active = False
@@ -144,7 +147,8 @@ def get_all_players_by_tourney(request:Request, page: int, per_page: int, tourne
     if not db_tourney:
         raise HTTPException(status_code=404, detail=_(locale, "tourney.not_found"))
     
-    if db_tourney.status.name != 'CREATED':
+    status_created = get_one_by_name('CREATED', db=db)
+    if db_tourney.status_id != status_created.id:
         raise HTTPException(status_code=404, detail=_(locale, "tourney.status_incorrect"))
             
     str_from = "FROM events.players " +\
