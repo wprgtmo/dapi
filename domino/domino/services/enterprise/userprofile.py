@@ -109,7 +109,7 @@ def new_profile_referee(request: Request, refereeprofile: RefereeProfileCreated,
         upfile(file=file, path=path)
         
     else:
-        image_domino="public/profile/user-vector.jpg"
+        image_domino="public/user-vector.jpg"
         filename = str(id) + ".jpg"
         image_destiny = path + filename
         copy_image(image_domino, image_destiny)
@@ -1004,22 +1004,27 @@ def update_one_default_profile(request: Request, id: str, defaultuserprofile: De
     if not db_default_profile_user:
         raise HTTPException(status_code=400, detail=_(locale, "userprofile.not_found"))
     
-    if defaultuserprofile['first_name'] and defaultuserprofile['first_name'] != '' and one_user.first_name != defaultuserprofile['first_name']:
+    if 'first_name' in defaultuserprofile and defaultuserprofile['first_name'] and \
+        defaultuserprofile['first_name'] != '' and one_user.first_name != defaultuserprofile['first_name']:
         one_user.first_name = defaultuserprofile['first_name']
         
-    if defaultuserprofile['last_name'] and defaultuserprofile['last_name'] != '' and one_user.last_name != defaultuserprofile['last_name']:
+    if 'last_name' in defaultuserprofile and defaultuserprofile['last_name'] and defaultuserprofile['last_name'] != '' \
+        and one_user.last_name != defaultuserprofile['last_name']:
         one_user.last_name = defaultuserprofile['last_name']
         
     db_default_profile.name = defaultuserprofile['first_name'] + ' ' + defaultuserprofile['last_name'] if defaultuserprofile['last_name'] else one_user.last_name
     
-    if defaultuserprofile['email'] and defaultuserprofile['email'] != '' and one_user.email != defaultuserprofile['email']:
+    if 'email' in defaultuserprofile and defaultuserprofile['email'] and defaultuserprofile['email'] != '' \
+        and one_user.email != defaultuserprofile['email']:
         one_user.email = defaultuserprofile['email']
         db_default_profile.email = defaultuserprofile['email']
     
-    if defaultuserprofile['phone'] and defaultuserprofile['phone'] != '' and one_user.phone != defaultuserprofile['phone']:
+    if 'phone' in defaultuserprofile and defaultuserprofile['phone'] and defaultuserprofile['phone'] != '' \
+        and one_user.phone != defaultuserprofile['phone']:
         one_user.phone = defaultuserprofile['phone']
     
-    if defaultuserprofile['city_id'] and defaultuserprofile['city_id'] != '' and db_default_profile_user.city_id != defaultuserprofile['city_id']:
+    if 'city_id' in defaultuserprofile and defaultuserprofile['city_id'] and defaultuserprofile['city_id'] != '' \
+        and db_default_profile_user.city_id != defaultuserprofile['city_id']:
         one_city = get_city_by_id(defaultuserprofile['city_id'], db=db)
         if not one_city:
             raise HTTPException(status_code=404, detail=_(locale, "city.not_found"))
@@ -1027,16 +1032,20 @@ def update_one_default_profile(request: Request, id: str, defaultuserprofile: De
         db_default_profile_user.city_id = defaultuserprofile['city_id']
         one_user.country_id = one_city.country_id
         
-    if defaultuserprofile['sex'] and defaultuserprofile['sex'] != '' and db_default_profile_user.sex != defaultuserprofile['sex']:
+    if 'sex' in defaultuserprofile and defaultuserprofile['sex'] and defaultuserprofile['sex'] != '' \
+        and db_default_profile_user.sex != defaultuserprofile['sex']:
         db_default_profile_user.sex = defaultuserprofile['sex']
         
-    if defaultuserprofile['birthdate'] and defaultuserprofile['birthdate']  != '' and db_default_profile_user.birthdate != defaultuserprofile['birthdate']:
+    if 'birthdate' in defaultuserprofile and defaultuserprofile['birthdate'] and defaultuserprofile['birthdate']  != '' \
+        and db_default_profile_user.birthdate != defaultuserprofile['birthdate']:
         db_default_profile_user.birthdate = defaultuserprofile['birthdate']
         
-    if defaultuserprofile['alias'] and defaultuserprofile['alias'] != '' and db_default_profile_user.alias != defaultuserprofile['alias']:
+    if 'alias' in defaultuserprofile and defaultuserprofile['alias'] and defaultuserprofile['alias'] != '' \
+        and db_default_profile_user.alias != defaultuserprofile['alias']:
         db_default_profile_user.alias = defaultuserprofile['alias']
         
-    if defaultuserprofile['job'] and defaultuserprofile['job'] != '' and db_default_profile_user.job != defaultuserprofile['job']:
+    if 'job' in defaultuserprofile and defaultuserprofile['job'] and defaultuserprofile['job'] != '' \
+        and db_default_profile_user.job != defaultuserprofile['job']:
         db_default_profile_user.job = defaultuserprofile['job']
         
     db_default_profile.receive_notifications = defaultuserprofile['receive_notifications'] 
@@ -1063,7 +1072,7 @@ def update_one_default_profile(request: Request, id: str, defaultuserprofile: De
         except:
             pass
         
-        image_domino="public/profile/user-vector.jpg"
+        image_domino="public/user-vector.jpg"
         filename = str(db_default_profile.id) + ".jpg"
         image_destiny = "public/profile/" + str(db_default_profile.id) + "/" + str(filename)
     
@@ -1127,7 +1136,7 @@ def update_profile(profile_member: ProfileMember, file: File, currentUser, name:
         except:
             pass
         
-        image_domino="public/profile/user-vector.jpg"
+        image_domino="public/user-vector.jpg"
         filename = str(profile_member.id) + ".jpg"
         image_destiny = "public/profile/" + str(profile_member.id) + "/" + str(filename)
     
@@ -1136,58 +1145,6 @@ def update_profile(profile_member: ProfileMember, file: File, currentUser, name:
         
     return True
 
-def new_profile_event_admon(request: Request, eventadmonprofile: EventAdmonProfileCreated, file: File, db: Session): 
-    locale = request.headers["accept-language"].split(",")[0].split("-")[0];
-    
-    result = ResultObject() 
-    currentUser = get_current_user(request)
-    
-    profile_type = get_profile_type_by_name("EVENTADMON", db=db)
-    if not profile_type:
-        raise HTTPException(status_code=400, detail=_(locale, "profiletype.not_found"))
-    
-    me_profile_id = get_user_for_single_profile_by_user(currentUser['username'], db=db, profile_type='EVENTADMON')
-    if me_profile_id:
-        raise HTTPException(status_code=400, detail=_(locale, "userprofile.already_exist"))
-    
-    default_profile_id = get_one_profile_by_user(currentUser['username'], db=db, profile_type='USER')
-    if not default_profile_id:
-        raise HTTPException(status_code=400, detail=_(locale, "userprofile.not_exist"))
-        
-    id = str(uuid.uuid4())
-    one_profile = new_profile(profile_type, id, currentUser['user_id'], currentUser['username'], eventadmonprofile['name'], 
-                              eventadmonprofile['email'], eventadmonprofile['city_id'], True, 
-                              True, True, "USERPROFILE", currentUser['username'], currentUser['username'], file, is_confirmed=True,
-                              single_profile_id=default_profile_id)
-    
-    one_eventadmon = EventAdmonProfile(profile_id=id, updated_by=currentUser['username'])
-    one_profile.profile_event_admon.append(one_eventadmon)
-    
-    if eventadmonprofile['others_profile_id']:
-        
-        lst_collaborators = eventadmonprofile['others_profile_id'].split(',')
-        
-        for item in lst_collaborators:
-            
-            other_username = get_one_default_user(item, db=db)
-            if other_username:
-                if default_profile_id == item:
-                    raise HTTPException(status_code=400, detail=_(locale, "userprofile.not_equal"))
-            
-                other_user_member = ProfileUsers(profile_id=item, username=other_username.updated_by, 
-                                                is_principal=False, created_by=currentUser['username'],
-                                                is_confirmed=True, single_profile_id=item)
-                one_profile.profile_users.append(other_user_member) 
-            else:
-                continue
-    try:   
-        db.add(one_profile)
-        db.commit()
-        result.data = {'id': id}
-        return result
-    except (Exception, SQLAlchemyError) as e:
-        raise HTTPException(status_code=400, detail=_(locale, "userprofile.errorinsert"))
-    
 def update_one_event_admon_profile(request: Request, id: str, eventadmonprofile: EventAdmonProfileCreated, file: File, db: Session):
     locale = request.headers["accept-language"].split(",")[0].split("-")[0];
     
