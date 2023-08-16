@@ -164,7 +164,7 @@ def get_all_players_by_tourney(request:Request, page: int, per_page: int, tourne
     str_from += dict_modality[db_tourney.modality]
        
     str_count = "Select count(*) " + str_from
-    str_query = "SELECT players.id, pro.name as name, prot.description as profile_type, pro.photo, pro.profile_id, " +\
+    str_query = "SELECT players.id, pro.name as name, prot.description as profile_type, pro.photo, pro.id as profile_id, " +\
         "city.name as city_name, country.name as country_name, player.level, player.elo, player.ranking " + str_from
     
     str_where = "WHERE pro.is_ready is True and players.is_active is " + str(is_active) 
