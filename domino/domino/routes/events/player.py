@@ -25,11 +25,11 @@ def get_for_tourney(
 ):
     return get_all_players_by_tourney(request=request, page=page, per_page=per_page, tourney_id=tourney_id, is_active=is_active, db=db)
 
-@player_route.put("/player/confirmed/{invitation_id}", response_model=ResultObject, summary="Create new player")
+@player_route.post("/player/confirmed/{invitation_id}", response_model=ResultObject, summary="Create new player")
 def confirm_player(request:Request, invitation_id: str, db: Session = Depends(get_db)):
     return new(request=request, invitation_id=str(invitation_id), db=db)
 
-@player_route.put("/player/rejected/{invitation_id}", response_model=ResultObject, summary="Reject invitation to player")
+@player_route.post("/player/rejected/{invitation_id}", response_model=ResultObject, summary="Reject invitation to player")
 def reject_player(request:Request, invitation_id: str, db: Session = Depends(get_db)):
     return reject_one_invitation(request=request, invitation_id=str(invitation_id), db=db)
 
