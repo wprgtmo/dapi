@@ -22,10 +22,10 @@ def get_all(request:Request, db: Session):
     
     currentUser = get_current_user(request)
     
-    str_query = "Select id, name, description FROM enterprise.profile_type "
+    str_query = "Select id, name, description FROM enterprise.profile_type where by_default is False "
     str_profile = "SELECT DISTINCT pmem.profile_type FROM enterprise.profile_users puse " +\
         "INNER JOIN enterprise.profile_member pmem ON pmem.id = puse.profile_id " +\
-        "WHERE username = '"  + currentUser['username'] + "' "
+        "WHERE profile_type != 'USER' AND username = '"  + currentUser['username'] + "' "
   
     lst_data = db.execute(str_query)
     
