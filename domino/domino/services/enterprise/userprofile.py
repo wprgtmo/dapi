@@ -398,17 +398,66 @@ def get_all_single_profile(request:Request, profile_id: str, page: int, per_page
     
     return result
 
-def create_dict_row_single_player(item, page, db: Session, host="", port=""):
+def get_all_eventadmon_profile(request:Request, profile_id: str, page: int, per_page: int, criteria_key: str, criteria_value: str, db: Session):  
+    locale = request.headers["accept-language"].split(",")[0].split("-")[0];
     
-    new_row = {'profile_id': item['profile_id'], 'name': item['name'], 
-               'elo': item['elo'], 'ranking': item['ranking'], 'level': item['level'], 
+    host = str(settings.server_uri)
+    port = str(int(settings.server_port))
+    
+    str_from = "FROM enterprise.profile_member pmem " +\
+        "JOIN enterprise.profile_event_admon pevent ON pevent.profile_id = pmem.id " +\
+        "left join resources.city city ON city.id = pmem.city_id " +\
+        "left join resources.country pa ON pa.id = city.country_id "
+    
+    str_count = "Select count(*) " + str_from
+    str_query = "Select pmem.id profile_id, pmem.name, photo, pmem.city_id, city.name city_name, city.country_id, " +\
+        "pa.name as country_name " + str_from
+    
+    str_where = " WHERE pmem.is_active = True "  
+    
+    dict_query = {'name': " AND pmem.name ilike '%" + criteria_value + "%'"
+                 }
+    
+    str_count += str_where
+    str_query += str_where
+    
+    if criteria_key and criteria_key not in dict_query:
+        raise HTTPException(status_code=404, detail=_(locale, "commun.invalid_param"))
+    
+    if page and page > 0 and not per_page:
+        raise HTTPException(status_code=404, detail=_(locale, "commun.invalid_param"))
+    
+    str_count += dict_query[criteria_key] if criteria_value else "" 
+    str_query += dict_query[criteria_key] if criteria_value else "" 
+    
+    result = get_result_count(page=page, per_page=per_page, str_count=str_count, db=db)
+    
+    str_query += " ORDER BY pmem.name " 
+    
+    if page != 0:
+        str_query += "LIMIT " + str(per_page) + " OFFSET " + str(page*per_page-per_page)
+     
+    lst_data = db.execute(str_query)
+    result.data = [create_dict_row_single_player(item, page, db=db, host=host, port=port, profile_type='EVENTADMON_PROLILE') for item in lst_data]
+    
+    return result
+
+def create_dict_row_single_player(item, page, db: Session, host="", port="", profile_type='SINGLE_PLAYER'):
+    
+    dict_row = {'profile_id': item['profile_id'], 'name': item['name'], 
                'city': item['city_id'], 'city_name': item['city_name'], 
                'country_id': item['country_id'], 'country': item['country_name'], 
                'photo' : get_url_avatar(item['profile_id'], item['photo'], host=host, port=port)}
-    if page != 0:
-        new_row['selected'] = False
     
-    return new_row
+    if profile_type == 'SINGLE_PLAYER':
+        dict_row['elo'] = item['elo'] if item['elo'] else '' 
+        dict_row['ranking'] = item['ranking'] if item['ranking'] else '' 
+        dict_row['level'] = item['level'] if item['level'] else '' 
+    
+    if page != 0:
+        dict_row['selected'] = False
+    
+    return dict_row
 
 def get_one_single_profile(request: Request, id: str, db: Session): 
     

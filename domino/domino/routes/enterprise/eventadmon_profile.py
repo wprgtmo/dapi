@@ -5,16 +5,29 @@ from starlette import status
 from domino.auth_bearer import JWTBearer
 
 from domino.schemas.enterprise.userprofile import EventAdmonProfileCreated
-from domino.schemas.resources.result_object import ResultObject
+from domino.schemas.resources.result_object import ResultObject, ResultData
 
 from domino.services.enterprise.userprofile import new_profile_event_admon, get_one_eventadmon_profile_by_id, \
-    update_one_event_admon_profile, delete_one_profile
+    update_one_event_admon_profile, delete_one_profile, get_all_eventadmon_profile
   
 eventadmonprofile_route = APIRouter(
     tags=["Profile"],
     dependencies=[Depends(JWTBearer())]   
 )
 
+@eventadmonprofile_route.get("/profile/eventadmon/", response_model=ResultData, summary="Obtain a list of Eventy Admon profile")
+def get_profile(
+    request: Request,
+    profile_id: str,
+    page: int = 1, 
+    per_page: int = 6, 
+    criteria_key: str = "",
+    criteria_value: str = "",
+    db: Session = Depends(get_db)
+):
+    return get_all_eventadmon_profile(request=request, profile_id=profile_id, page=page, per_page=per_page, 
+                                      criteria_key=criteria_key, criteria_value=criteria_value, db=db)
+    
 @eventadmonprofile_route.post("/profile/eventadmon", response_model=ResultObject, summary="Create a Profile of Event Admon")
 def create_eventadmon_profile(
     request:Request, eventadmonprofile: EventAdmonProfileCreated = Depends(), image: UploadFile = None, db: Session = Depends(get_db)):
