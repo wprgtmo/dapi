@@ -5,16 +5,29 @@ from starlette import status
 from domino.auth_bearer import JWTBearer
 
 from domino.schemas.enterprise.userprofile import DefaultUserProfileBase
-from domino.schemas.resources.result_object import ResultObject
+from domino.schemas.resources.result_object import ResultObject, ResultData
 
 from domino.services.enterprise.userprofile import get_one_default_user_profile, \
-    update_one_default_profile, delete_one_default_profile, get_all_profile_by_user_profile_id
+    update_one_default_profile, delete_one_default_profile, get_all_profile_by_user_profile_id, get_all_default_profile
 
 defaultprofile_route = APIRouter(
     tags=["Profile"],
     dependencies=[Depends(JWTBearer())]   
 )
 
+@defaultprofile_route.get("/profile/default/", response_model=ResultData, summary="Obtain a list of Default profile")
+def get_profile(
+    request: Request,
+    profile_id: str,
+    page: int = 1, 
+    per_page: int = 6, 
+    criteria_key: str = "",
+    criteria_value: str = "",
+    db: Session = Depends(get_db)
+):
+    return get_all_default_profile(request=request, profile_id=profile_id, page=page, per_page=per_page, 
+                                   criteria_key=criteria_key, criteria_value=criteria_value, db=db)
+    
 @defaultprofile_route.get("/profile/default/{id}", response_model=ResultObject, summary="Get a Default User Profile for your ID.")
 def get_default_profile(request: Request, id: str, db: Session = Depends(get_db)):
     return get_one_default_user_profile(request, id=id, db=db)
