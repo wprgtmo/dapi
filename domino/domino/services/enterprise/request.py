@@ -30,8 +30,7 @@ def get_request_to_confirm_at_profile(request:Request, profile_id: str, db: Sess
     result = ResultObject() 
     currentUser = get_current_user(request)
     
-    host = str(settings.server_uri)
-    port = str(int(settings.server_port))
+    api_uri = str(settings.api_uri) 
     
     db_member_profile = get_one_profile(id=profile_id, db=db)
     if not db_member_profile:
@@ -54,11 +53,11 @@ def get_request_to_confirm_at_profile(request:Request, profile_id: str, db: Sess
         "AND us.single_profile_id = '" + single_profile_id + "' "
     
     lst_data = db.execute(str_query)
-    result.data = [create_dict_row(item, single_profile_id, db=db, host=host, port=port) for item in lst_data]
+    result.data = [create_dict_row(item, single_profile_id, db=db, api_uri=api_uri) for item in lst_data]
     
     return result
 
-def create_dict_row(item, single_profile_id, db: Session, host="", port=""):
+def create_dict_row(item, single_profile_id, db: Session, api_uri=''):
     # buscar datos del creador de ese perfil
     profile_id, name, photo, elo, ranking = get_info_owner_profile(item['id'], db=db)
     
@@ -67,7 +66,7 @@ def create_dict_row(item, single_profile_id, db: Session, host="", port=""):
             'profile_type': item['profile_type'],  
             'profile_description': item['description'],  
             'owner_name': name, 'owner_elo': elo, 'owner_ranking': ranking,
-            'photo' : get_url_avatar(profile_id, photo, host=host, port=port)}
+            'photo' : get_url_avatar(profile_id, photo, api_uri=api_uri)}
 
 #profile id es del que esta aceptando...dentro es el perfil de la pareja..    
 def update(request: Request, profile_id:str, requestprofile: RequestAccepted, db: Session):

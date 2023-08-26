@@ -4,6 +4,7 @@ class Settings(BaseSettings):
     env: str
     server_uri: str
     server_port: str
+    api_uri: str
     database_uri: str
     secret: str
     access_token_expire_minutes: int    

@@ -68,6 +68,8 @@ def get_list_post(request:Request, profile_id:str, db: Session):
     date_find = datetime.now() - timedelta(days=40)
     currentUser = get_current_user(request)
     
+    api_uri = str(settings.api_uri)
+    
     # si el perfil es de usuario, mostrar todos los post creado por sus perfile. 
     # si estoy en otro perfil, solo los de ese perfil y mis seguidores.
     
@@ -92,26 +94,23 @@ def get_list_post(request:Request, profile_id:str, db: Session):
     str_query += " ORDER BY created_date DESC " 
     
     lst_data = db.execute(str_query)
-    host=str(settings.server_uri)
-    port=str(int(settings.server_port))
-  
-    result.data = [create_dict_row(item, current_date, profile_id, db=db, host=host, port=port) for item in lst_data]
+    result.data = [create_dict_row(item, current_date, profile_id, db=db, api_uri=api_uri) for item in lst_data]
     
     return result
 
-def create_dict_row(item, current_date, profile_id, db: Session, host='', port=''):
+def create_dict_row(item, current_date, profile_id, db: Session, api_uri=''):
     
     amount_like, amount_comments = get_amount_element_of_post(item['id'], db=db)
     return {'id': item['id'], 
             'user_id': item['user_id'],
             'profile_id': item['profile_id'],
             'name': item['full_name'],
-            'avatar': get_url_avatar(item['profile_id'], item['photo'], host, port) if item['photo'] else "", 
+            'avatar': get_url_avatar(item['profile_id'], item['photo'], api_uri=api_uri) if item['photo'] else "", 
             'elapsed': calculate_time(current_date, item['created_date']), 
             'comment': item['summary'] if item['summary'] else "",
             'amountLike': amount_like, 'amountComment': amount_comments, 
-            'comments': get_comments_of_post(item['id'], current_date, db=db, host=host, port=port),
-            'photos': get_files_of_post(item['id'], db=db, host=host, port=port),
+            'comments': get_comments_of_post(item['id'], current_date, db=db, api_uri=api_uri),
+            'photos': get_files_of_post(item['id'], db=db, api_uri=api_uri),
             'like': verify_likes(str(item['id']), profile_id, db=db),
             "allowComment": item['allow_comment'], "showCountLike": item['show_count_like']
             }
@@ -154,7 +153,7 @@ def get_amount_element_of_post(post_id, db: Session):
     
     return amount_like, amount_comments
 
-def get_comments_of_post(post_id: str, current_date: datetime, db: Session, host='', port=''):
+def get_comments_of_post(post_id: str, current_date: datetime, db: Session, api_uri=''):
     
     # no devolver datos del usuario sino del profile...
     # str_comments = "SELECT po.id, us.first_name || ' ' || us.last_name as full_name, pmem.photo, summary, " +\
@@ -172,7 +171,7 @@ def get_comments_of_post(post_id: str, current_date: datetime, db: Session, host
         lst_result.append({'id': item_comment['id'], 'name': item_comment['full_name'], 
                            'profile_id': item_comment['profile_id'],
                            'user_id': item_comment['user_id'],
-                           'avatar': get_url_avatar(item_comment['profile_id'], item_comment['photo'], host, port) if item_comment['photo'] else "",
+                           'avatar': get_url_avatar(item_comment['profile_id'], item_comment['photo'], api_uri=api_uri) if item_comment['photo'] else "",
                            'comment': item_comment['summary'] if item_comment['summary'] else "", 
                            'comments': get_comments_of_comment(item_comment['id'], current_date, db=db),
                            'like': True if one_like_comment else False,
@@ -180,7 +179,7 @@ def get_comments_of_post(post_id: str, current_date: datetime, db: Session, host
     
     return lst_result
 
-def get_comments_of_comment(comment_id: str, current_date: datetime, db: Session, host='', port=''):
+def get_comments_of_comment(comment_id: str, current_date: datetime, db: Session, api_uri=''):
     
     # str_comments = "SELECT co.id, us.first_name || ' ' || us.last_name as full_name, pmem.photo, summary,co.created_by, " +\
         
@@ -197,21 +196,21 @@ def get_comments_of_comment(comment_id: str, current_date: datetime, db: Session
         lst_result.append({'id': item_comment['id'], 'name': item_comment['full_name'], 
                            'profile_id': item_comment['profile_id'],
                            'user_id': item_comment['user_id'],
-                           'avatar': get_url_avatar(item_comment['profile_id'], item_comment['photo'], host, port) if item_comment['photo'] else "",
+                           'avatar': get_url_avatar(item_comment['profile_id'], item_comment['photo'], api_uri=api_uri) if item_comment['photo'] else "",
                            'comment': item_comment['summary'] if item_comment['summary'] else "", 
                            'like': True if one_like_comment else False,
                            'elapsed': calculate_time(current_date, item_comment['created_date'])})
     
     return lst_result
 
-def get_files_of_post(post_id: str, db: Session, host='', port=''):
+def get_files_of_post(post_id: str, db: Session, api_uri=''):
     
     str_files = "SELECT id, path FROM post.post_files WHERE post_id = '" + post_id + "' "
     lst_files = db.execute(str_files)
  
     lst_result = []
-    if host:
-        path = "http://" + host + ":" + port + "/api/pictures/post/" #+ str(item['user_id']) + "/" + item['id'] + "/" + item['image']
+    if api_uri:
+        path = api_uri + "/api/pictures/post/" #+ str(item['user_id']) + "/" + item['id'] + "/" + item['image']
     
     for item_file in lst_files:
         path_file = path + post_id + "/" + item_file['path']
@@ -239,11 +238,10 @@ def get_one_like_at_comment_by_profile(post_comment_id: str, profile_id:str, db:
 
 def get_one_by_id(post_id: str, db: Session): 
     result = ResultObject()  
-    host=str(settings.server_uri)
-    port=str(int(settings.server_port))
+    api_uri = str(settings.api_uri)
     
     result.data = db.query(Post).filter(Post.id == post_id).first()
-    result.data.photos = get_files_of_post(post_id, db=db, host=host, port=port)
+    result.data.photos = get_files_of_post(post_id, db=db, api_uri=api_uri)
     return result
 
 def new(request, db: Session, profile_id: str, post: PostCreated, files: List[File]):

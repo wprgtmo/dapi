@@ -29,8 +29,7 @@ def get_follower_suggestions_at_profile(request:Request, profile_id:str, page: i
     
     result = ResultData() 
     
-    host = str(settings.server_uri)
-    port = str(int(settings.server_port))
+    api_uri = str(settings.api_uri)
     
     db_member_profile = get_one_profile(id=profile_id, db=db)
     if not db_member_profile:
@@ -63,16 +62,16 @@ def get_follower_suggestions_at_profile(request:Request, profile_id:str, page: i
         str_query += "LIMIT " + str(per_page) + " OFFSET " + str(page*per_page-per_page)
         
     lst_data = db.execute(str_query)
-    result.data = [create_dict_row(profile_id, item, db=db, host=host, port=port) for item in lst_data]
+    result.data = [create_dict_row(profile_id, item, db=db, api_uri=api_uri) for item in lst_data]
     
     return result
 
-def create_dict_row(profile_id, item, db: Session, host="", port=""):
+def create_dict_row(profile_id, item, db: Session, api_uri=""):
     follower_me = get_one_follower(item['id'], profile_id, db=db)
     return {'profile_id': item['id'], 'name': item['name'], 
             'profile_type': item['profile_type'],  
             'follower_me': True if follower_me else False,
-            'photo' : get_url_avatar(item['id'], item['photo'], host=host, port=port)}
+            'photo' : get_url_avatar(item['id'], item['photo'], api_uri=api_uri)}
     
 
 def get_all_follower_by_profile(profile_id: str, db: Session):  
@@ -83,8 +82,7 @@ def get_all_followers(request:Request, profile_id:str, page: int, per_page: int,
     
     result = ResultData() 
     
-    host = str(settings.server_uri)
-    port = str(int(settings.server_port))
+    api_uri = str(settings.api_uri)
     
     db_member_profile = get_one_profile(id=profile_id, db=db)
     if not db_member_profile:
@@ -110,7 +108,7 @@ def get_all_followers(request:Request, profile_id:str, page: int, per_page: int,
         str_query += "LIMIT " + str(per_page) + " OFFSET " + str(page*per_page-per_page)
         
     lst_data = db.execute(str_query)
-    result.data = [create_dict_row(profile_id, item, db=db, host=host, port=port) for item in lst_data]
+    result.data = [create_dict_row(profile_id, item, db=db, api_uri=api_uri) for item in lst_data]
     
     return result
 

@@ -357,8 +357,7 @@ def get_one_team_profile(id: str, db: Session):
 def get_all_default_profile(request:Request, profile_id: str, page: int, per_page: int, criteria_key: str, criteria_value: str, db: Session):  
     locale = request.headers["accept-language"].split(",")[0].split("-")[0];
     
-    host = str(settings.server_uri)
-    port = str(int(settings.server_port))
+    api_uri = str(settings.api_uri)
     
     str_from = "FROM enterprise.profile_member pmem " +\
         "JOIN enterprise.profile_default_user psin ON psin.profile_id = pmem.id " +\
@@ -394,15 +393,14 @@ def get_all_default_profile(request:Request, profile_id: str, page: int, per_pag
         str_query += "LIMIT " + str(per_page) + " OFFSET " + str(page*per_page-per_page)
      
     lst_data = db.execute(str_query)
-    result.data = [create_dict_row_single_player(item, page, db=db, host=host, port=port, profile_type='USER') for item in lst_data]
+    result.data = [create_dict_row_single_player(item, page, db=db, api_uri=api_uri, profile_type='USER') for item in lst_data]
     
     return result
 
 def get_all_single_profile(request:Request, profile_id: str, page: int, per_page: int, criteria_key: str, criteria_value: str, db: Session):  
     locale = request.headers["accept-language"].split(",")[0].split("-")[0];
     
-    host = str(settings.server_uri)
-    port = str(int(settings.server_port))
+    api_uri = str(settings.api_uri)
     
     str_from = "FROM enterprise.profile_member pmem " +\
         "JOIN enterprise.profile_single_player psin ON psin.profile_id = pmem.id " +\
@@ -438,15 +436,14 @@ def get_all_single_profile(request:Request, profile_id: str, page: int, per_page
         str_query += "LIMIT " + str(per_page) + " OFFSET " + str(page*per_page-per_page)
      
     lst_data = db.execute(str_query)
-    result.data = [create_dict_row_single_player(item, page, db=db, host=host, port=port) for item in lst_data]
+    result.data = [create_dict_row_single_player(item, page, db=db, api_uri=api_uri) for item in lst_data]
     
     return result
 
 def get_all_eventadmon_profile(request:Request, profile_id: str, page: int, per_page: int, criteria_key: str, criteria_value: str, db: Session):  
     locale = request.headers["accept-language"].split(",")[0].split("-")[0];
     
-    host = str(settings.server_uri)
-    port = str(int(settings.server_port))
+    api_uri = str(settings.api_uri)
     
     str_from = "FROM enterprise.profile_member pmem " +\
         "JOIN enterprise.profile_event_admon pevent ON pevent.profile_id = pmem.id " +\
@@ -482,16 +479,16 @@ def get_all_eventadmon_profile(request:Request, profile_id: str, page: int, per_
         str_query += "LIMIT " + str(per_page) + " OFFSET " + str(page*per_page-per_page)
      
     lst_data = db.execute(str_query)
-    result.data = [create_dict_row_single_player(item, page, db=db, host=host, port=port, profile_type='EVENTADMON_PROLILE') for item in lst_data]
+    result.data = [create_dict_row_single_player(item, page, db=db, api_uri=api_uri, profile_type='EVENTADMON_PROLILE') for item in lst_data]
     
     return result
 
-def create_dict_row_single_player(item, page, db: Session, host="", port="", profile_type='SINGLE_PLAYER'):
+def create_dict_row_single_player(item, page, db: Session, api_uri="", profile_type='SINGLE_PLAYER'):
     
     dict_row = {'profile_id': item['profile_id'], 'name': item['name'], 
                'city': item['city_id'], 'city_name': item['city_name'], 
                'country_id': item['country_id'], 'country': item['country_name'], 
-               'photo' : get_url_avatar(item['profile_id'], item['photo'], host=host, port=port)}
+               'photo' : get_url_avatar(item['profile_id'], item['photo'], api_uri=api_uri)}
     
     if profile_type == 'SINGLE_PLAYER':
         dict_row['elo'] = item['elo'] if item['elo'] else '' 
@@ -507,8 +504,7 @@ def get_one_single_profile(request: Request, id: str, db: Session):
     
     result = ResultObject() 
     
-    host = str(settings.server_uri)
-    port = str(int(settings.server_port))
+    api_uri = str(settings.api_uri)
     
     str_query = "Select pro.id profile_id, pro.name, pro.email, pro.city_id, pro.photo, pro.receive_notifications, " +\
         "eve.name as profile_type_name, eve.description as profile_type_description, " +\
@@ -522,7 +518,7 @@ def get_one_single_profile(request: Request, id: str, db: Session):
     res_profile=db.execute(str_query)
     
     for item in res_profile:
-        photo = get_url_avatar(item.profile_id, item.photo, host=host, port=port)
+        photo = get_url_avatar(item.profile_id, item.photo, api_uri=api_uri)
         
         result.data = {'id': item.profile_id, 'name': item.name, 'email': item.email,
                        'profile_type_name': item.profile_type_name, 
@@ -542,8 +538,7 @@ def get_one_referee_profile(request: Request, id: str, db: Session):
     
     result = ResultObject() 
     
-    host = str(settings.server_uri)
-    port = str(int(settings.server_port))
+    api_uri = str(settings.api_uri)
     
     str_query = "Select pro.id profile_id, pro.name, pro.email, pro.city_id, pro.photo, pro.receive_notifications, " +\
         "eve.name as profile_type_name, eve.description as profile_type_description, " +\
@@ -557,7 +552,7 @@ def get_one_referee_profile(request: Request, id: str, db: Session):
     res_profile=db.execute(str_query)
     
     for item in res_profile:
-        photo = get_url_avatar(item.profile_id, item.photo, host=host, port=port)
+        photo = get_url_avatar(item.profile_id, item.photo, api_uri=api_uri)
         
         result.data = {'id': item.profile_id, 'name': item.name, 'email': item.email,
                        'profile_type_name': item.profile_type_name, 
@@ -578,8 +573,7 @@ def get_one_pair_profile_by_id(request: Request, id: str, db: Session):
     
     result = ResultObject() 
     
-    host = str(settings.server_uri)
-    port = str(int(settings.server_port))
+    api_uri = str(settings.api_uri)
     
     single_profile_id = get_user_for_single_profile_by_user(currentUser['username'], db=db)
     
@@ -595,7 +589,7 @@ def get_one_pair_profile_by_id(request: Request, id: str, db: Session):
     res_profile=db.execute(str_query)
     
     for item in res_profile:
-        photo = get_url_avatar(item.profile_id, item.photo, host=host, port=port)
+        photo = get_url_avatar(item.profile_id, item.photo, api_uri=api_uri)
         
         result.data = {'id': item.profile_id, 'name': item.name, 'email': item.email,
                        'profile_type_name': item.profile_type_name, 
@@ -620,12 +614,9 @@ def get_one_team_profile_by_id(request: Request, id: str, db: Session):
     
     currentUser = get_current_user(request)
     
-    single_profile_id = get_user_for_single_profile_by_user(currentUser['username'], db=db)
-    
     result = ResultObject() 
     
-    host = str(settings.server_uri)
-    port = str(int(settings.server_port))
+    api_uri = str(settings.api_uri)
     
     str_query = "Select pro.id profile_id, pro.name, pro.email, pro.city_id, pro.photo, pro.receive_notifications, " +\
         "eve.name as profile_type_name, eve.description as profile_type_description, " +\
@@ -639,7 +630,7 @@ def get_one_team_profile_by_id(request: Request, id: str, db: Session):
     res_profile=db.execute(str_query)
     
     for item in res_profile:
-        photo = get_url_avatar(item.profile_id, item.photo, host=host, port=port)
+        photo = get_url_avatar(item.profile_id, item.photo, api_uri=api_uri)
         
         result.data = {'id': item.profile_id, 'name': item.name, 'email': item.email,
                        'profile_type_name': item.profile_type_name, 
@@ -666,8 +657,7 @@ def get_one_eventadmon_profile_by_id(request: Request, id: str, db: Session):
     
     result = ResultObject() 
     
-    host = str(settings.server_uri)
-    port = str(int(settings.server_port))
+    api_uri = str(settings.api_uri)
     
     str_query = "Select pro.id profile_id, pro.name, pro.email, pro.city_id, pro.photo, pro.receive_notifications, " +\
         "eve.name as profile_type_name, eve.description as profile_type_description, " +\
@@ -681,7 +671,7 @@ def get_one_eventadmon_profile_by_id(request: Request, id: str, db: Session):
     res_profile=db.execute(str_query)
     
     for item in res_profile:
-        photo = get_url_avatar(item.profile_id, item.photo, host=host, port=port)
+        photo = get_url_avatar(item.profile_id, item.photo, api_uri=api_uri)
         
         result.data = {'id': item.profile_id, 'name': item.name, 'email': item.email,
                        'profile_type_name': item.profile_type_name, 
@@ -703,8 +693,7 @@ def get_one_default_user_profile(request: Request, id: str, db: Session):
     
     result = ResultObject() 
     
-    host = str(settings.server_uri)
-    port = str(int(settings.server_port))
+    api_uri = str(settings.api_uri)
     
     str_query = "Select pro.id profile_id, username, pro.name, pro.email, def.city_id, pro.photo, pro.receive_notifications, " +\
         "eve.name as profile_type_name, eve.description as profile_type_description, " +\
@@ -730,7 +719,7 @@ def get_one_default_user_profile(request: Request, id: str, db: Session):
                        'birthdate': item.birthdate if item.birthdate else '',
                        'profile_type_name': item.profile_type_name, 
                        'profile_type_description': item.profile_type_description, 
-                       'photo': get_url_avatar(item.profile_id, item.photo, host=host, port=port),
+                       'photo': get_url_avatar(item.profile_id, item.photo, api_uri=api_uri),
                        'country_id': item.country_id if item.country_id else '', 
                        'country': item.country_name if item.country_name else '', 
                        'city_id': item.city_id if item.city_id else '', 
@@ -762,8 +751,7 @@ def get_lst_users_team_profile(profile_id: str, db: Session):
     
     lst_data = []
     
-    host = str(settings.server_uri)
-    port = str(int(settings.server_port))
+    api_uri = str(settings.api_uri)
     
     str_query = "Select puse.single_profile_id profile_id, pmem.name, pmem.photo, pmem.city_id, is_principal, " +\
         "city.name as city_name, city.country_id, pa.name as country_name " +\
@@ -777,7 +765,7 @@ def get_lst_users_team_profile(profile_id: str, db: Session):
     for item in res_profile:
         lst_data.append({'profile_id': item.profile_id, 'name': item.name, 
                          'is_principal': item.is_principal,
-                         'photo': get_url_avatar(item.profile_id, item.photo, host=host, port=port),
+                         'photo': get_url_avatar(item.profile_id, item.photo, api_uri=api_uri),
                          'country_id': item.country_id if item.country_id else '', 
                          'country': item.country_name if item.country_name else '', 
                          'city_id': item.city_id if item.city_id else '', 
@@ -789,8 +777,7 @@ def get_lst_users_pair_profile(profile_id: str, single_profile_id: str, db: Sess
     
     dict_data = {}
     
-    host = str(settings.server_uri)
-    port = str(int(settings.server_port))
+    api_uri = str(settings.api_uri)
     
     str_query = "Select puse.single_profile_id profile_id, pmem.name, pmem.photo, pmem.city_id, is_principal, " +\
         "city.name as city_name, city.country_id, pa.name as country_name " +\
@@ -807,7 +794,7 @@ def get_lst_users_pair_profile(profile_id: str, single_profile_id: str, db: Sess
         
         dict_data = {'profile_id': item.profile_id, 'name': item.name, 
                      'is_principal': item.is_principal,
-                     'photo': get_url_avatar(item.profile_id, item.photo, host=host, port=port),
+                     'photo': get_url_avatar(item.profile_id, item.photo, api_uri=api_uri),
                      'country_id': item.country_id if item.country_id else '', 
                      'country': item.country_name if item.country_name else '', 
                      'city_id': item.city_id if item.city_id else '', 
@@ -838,15 +825,11 @@ def get_all_profile_by_user_profile_id(request: Request, profile_id: str, db: Se
     result = ResultObject() 
     result.data = []
     
-    host = str(settings.server_uri)
-    port = str(int(settings.server_port))
+    api_uri = str(settings.api_uri)
     
     db_profile = get_one(id=profile_id, db=db)
     if not db_profile:
         raise HTTPException(status_code=400, detail=_(locale, "userprofile.not_found"))
-    
-    # devolver todas las creadas por el ussuario
-    # devolver el resto de los perfiles que el forma parte como usuario
     
     try:
        
@@ -870,7 +853,7 @@ def get_all_profile_by_user_profile_id(request: Request, profile_id: str, db: Se
                                 'profile_description': item.description,
                                 'name': item.name,
                                 'email': item.email,
-                                'photo': get_url_avatar(item.profile_id, item.photo, host=host, port=port),
+                                'photo': get_url_avatar(item.profile_id, item.photo, api_uri=api_uri),
                                 'country_id': item.country_id if item.country_id else '', 
                                 'country': item.country_name if item.country_name else '', 
                                 'city_id': item.city_id if item.city_id else '', 

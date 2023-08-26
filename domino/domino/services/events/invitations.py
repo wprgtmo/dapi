@@ -29,6 +29,8 @@ def get_one_by_id(invitation_id: str, db: Session):
 def get_all(request:Request, profile_id:str, page: int, per_page: int, criteria_key: str, criteria_value: str, db: Session):  
     locale = request.headers["accept-language"].split(",")[0].split("-")[0];
     
+    api_uri = str(settings.api_uri)
+    
     str_from = "FROM events.events eve " +\
         "JOIN resources.entities_status sta ON sta.id = eve.status_id " +\
         "JOIN resources.city city ON city.id = eve.city_id " +\
@@ -70,8 +72,7 @@ def get_all(request:Request, profile_id:str, page: int, per_page: int, criteria_
         str_query += "LIMIT " + str(per_page) + " OFFSET " + str(page*per_page-per_page)
     
     lst_data = db.execute(str_query)
-    result.data = [create_dict_row(item, page, db=db, incluye_tourney=True, 
-                                   host=str(settings.server_uri), port=str(int(settings.server_port))) for item in lst_data]
+    result.data = [create_dict_row_invitation(item, page, db=db, incluye_tourney=True, api_uri=api_uri) for item in lst_data]
     
     return result
            
@@ -80,8 +81,7 @@ def get_all_invitations_by_tourney(request, tourney_id: str, page: int, per_page
     
     result = ResultObject() 
     
-    host=str(settings.server_uri)
-    port=str(int(settings.server_port))
+    api_uri = str(settings.api_uri)
     
     str_from = "FROM events.invitations " + \
         "inner join enterprise.profile_member ON profile_member.id = invitations.profile_id " + \
@@ -116,16 +116,16 @@ def get_all_invitations_by_tourney(request, tourney_id: str, page: int, per_page
         str_query += "LIMIT " + str(per_page) + " OFFSET " + str(page*per_page-per_page)
     
     lst_data = db.execute(str_query)
-    result.data = [create_dict_row_for_tourney(item, host=host, port=port) for item in lst_data]
+    result.data = [create_dict_row_for_tourney(item, api_uri=api_uri) for item in lst_data]
     
     return result
 
-def create_dict_row_for_tourney(item, host="", port=""):
+def create_dict_row_for_tourney(item, api_uri=""):
     
     new_row = {'id': item.id, 'profile_id': item.profile_id, 
                'country': item.country_name, 'city_name': item.city_name,
                'name': item['name'], 
-               'photo' : get_url_avatar(item.profile_id, item.photo, host=host, port=port)}
+               'photo' : get_url_avatar(item.profile_id, item.photo, api_uri=api_uri)}
     
     return new_row
 
@@ -135,8 +135,7 @@ def get_all_invitations_by_user(request, profile_id: str, status_name:str, db: S
     result = ResultObject() 
     currentUser = get_current_user(request)
     
-    host=str(settings.server_uri)
-    port=str(int(settings.server_port))
+    api_uri = str(settings.api_uri)
                                             
     str_query = "SELECT invitations.id, tourney.name as tourney_name, tourney.modality, tourney.start_date, " + \
         "events.name as event_name, events.close_date, events.main_location, city.name as city_name, " + \
@@ -153,13 +152,13 @@ def get_all_invitations_by_user(request, profile_id: str, status_name:str, db: S
         
     str_query += "ORDER BY tourney.start_date ASC "
     lst_inv = db.execute(str_query)
-    result.data = [create_dict_row_invitation(item, host=host, port=port) for item in lst_inv]
+    result.data = [create_dict_row_invitation(item, api_uri=api_uri) for item in lst_inv]
     
     return result
  
-def create_dict_row_invitation(item, host="", port=""):
+def create_dict_row_invitation(item, api_uri=""):
     
-    image = "http://" + host + ":" + port + "/api/image/" + str(item['profile_id']) + "/" + item['event_id'] + "/" + item['image']
+    image = api_uri + "/api/image/" + str(item['profile_id']) + "/" + item['event_id'] + "/" + item['image']
     
     new_row = {'id': item['id'], 'event_name': item['event_name'], 
                'country': item['country_name'], 'city_name': item['city_name'],

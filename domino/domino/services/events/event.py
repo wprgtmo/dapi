@@ -31,6 +31,8 @@ from domino.services.enterprise.userprofile import get_one as get_one_profile
 def get_all(request:Request, profile_id:str, page: int, per_page: int, criteria_key: str, criteria_value: str, db: Session):  
     locale = request.headers["accept-language"].split(",")[0].split("-")[0];
     
+    api_uri = str(settings.api_uri)
+    
     str_from = "FROM events.events eve " +\
         "JOIN resources.entities_status sta ON sta.id = eve.status_id " +\
         "JOIN resources.city city ON city.id = eve.city_id " +\
@@ -72,14 +74,13 @@ def get_all(request:Request, profile_id:str, page: int, per_page: int, criteria_
         str_query += "LIMIT " + str(per_page) + " OFFSET " + str(page*per_page-per_page)
     
     lst_data = db.execute(str_query)
-    result.data = [create_dict_row(item, page, db=db, incluye_tourney=True, 
-                                   host=str(settings.server_uri), port=str(int(settings.server_port))) for item in lst_data]
+    result.data = [create_dict_row(item, page, db=db, incluye_tourney=True, api_uri=api_uri) for item in lst_data]
     
     return result
 
-def create_dict_row(item, page, db: Session, incluye_tourney=False, host="", port=""):
+def create_dict_row(item, page, db: Session, incluye_tourney=False, api_uri=""):
     
-    image = "http://" + host + ":" + port + "/api/image/" + str(item['profile_id']) + "/" + item['id'] + "/" + item['image']
+    image = api_uri + "/api/image/" + str(item['profile_id']) + "/" + item['id'] + "/" + item['image']
     
     new_row = {'id': item['id'], 'name': item['name'], 
                'startDate': item['start_date'], 'endDate': item['close_date'], 
@@ -103,6 +104,8 @@ def get_one(event_id: str, db: Session):
 def get_one_by_id(event_id: str, db: Session): 
     result = ResultObject()  
     
+    api_uri = str(settings.api_uri)
+    
     str_query = "Select eve.id, eve.name, start_date, close_date, registration_date, registration_price, city.name as city_name, " +\
         "main_location, summary, image, eve.status_id, sta.name as status_name, country.id as country_id, city.id  as city_id, " +\
         "eve.profile_id as profile_id " +\
@@ -115,8 +118,7 @@ def get_one_by_id(event_id: str, db: Session):
     
     if lst_data: 
         for item in lst_data: 
-            result.data = create_dict_row(item, 0, db=db, incluye_tourney=True, 
-                                        host=str(settings.server_uri), port=str(int(settings.server_port)))
+            result.data = create_dict_row(item, 0, db=db, incluye_tourney=True, api_uri=api_uri)
         if not result.data:
             raise HTTPException(status_code=404, detail="event.not_found")
     else:
@@ -268,47 +270,6 @@ def update(request: Request, event_id: str, event: EventBase, db: Session, file:
         for item in db_event.tourney:
             dict_tourney[item.id] = item
         
-        # if event['tourney']:
-        #     one_status = get_one_by_name('CREATED', db=db)
-        #     one_status_canc = get_one_by_name('CANCELLED', db=db)
-            
-        #     tourney_dictionary = json.loads(event["tourney"])
-            
-        #     for item in tourney_dictionary:
-        #         if 'id' not in item or not item['id']:  # viene el torneo pero vacio, es nuevo
-        #             tourney_id = str(uuid.uuid4())
-        #             db_tourney = Tourney(id=tourney_id, event_id=event_id, modality=item['modality'], name=item['name'], 
-        #                                 summary=item['summary'], start_date=item['startDate'], 
-        #                                 status_id=one_status.id, created_by=currentUser['username'], 
-        #                                 updated_by=currentUser['username'])
-        #             db_event.tourney.append(db_tourney)
-                    
-        #         else:
-        #             str_tourney_iface += " " + item['id']
-        #             if item['id'] in dict_tourney:  # modificar datos del torneo
-        #                 db_tourney = dict_tourney[item['id']]
-        #                 if db_tourney.status_id == 4:  # FINALIZED
-        #                     raise HTTPException(status_code=400, detail=_(locale, "tourney.tourney_closed"))
-                    
-        #                 if 'name' in item and item['name'] and db_tourney.name != item['name']:
-        #                     db_tourney.name = item['name']
-                        
-        #                 if 'summary' in item and item['summary'] and db_tourney.summary != item['summary']:    
-        #                     db_tourney.summary = item['summary']
-                            
-        #                 if 'modality' in item and item['modality'] and db_tourney.modality != item['modality']:    
-        #                     db_tourney.modality = item['modality']
-                            
-        #                 if 'startDate' in item and item['startDate'] and db_tourney.start_date != item['startDate']:    
-        #                     db_tourney.start_date = item['startDate']
-                            
-        #                 db_tourney.updated_by = currentUser['username']
-        #                 db_tourney.updated_date = datetime.now()
-            
-        #     for item_key, item_value in dict_tourney.items():
-        #         if item_key not in str_tourney_iface:
-        #             item_value.status_id = one_status_canc.id
-                
         db_event.updated_by = currentUser['username']
         db_event.updated_date = datetime.now()
                 

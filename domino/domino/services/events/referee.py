@@ -79,6 +79,8 @@ def remove_referee(request: Request, referee_id: str, db: Session):
 def get_all_referees_by_tourney(request:Request, page: int, per_page: int, tourney_id: str, is_active: bool, db: Session):  
     locale = request.headers["accept-language"].split(",")[0].split("-")[0];
     
+    api_uri = str(settings.api_uri)
+    
     str_from = "FROM events.referees " +\
         "inner join enterprise.profile_member pro ON pro.id = players.profile_id " +\
         "inner join enterprise.profile_type prot ON prot.name = pro.profile_type " +\
@@ -105,14 +107,13 @@ def get_all_referees_by_tourney(request:Request, page: int, per_page: int, tourn
         str_query += "LIMIT " + str(per_page) + " OFFSET " + str(page*per_page-per_page)
      
     lst_data = db.execute(str_query)
-    result.data = [create_dict_row(item, page, db=db, host=str(settings.server_uri), 
-                                   port=str(int(settings.server_port))) for item in lst_data]
+    result.data = [create_dict_row(item, page, db=db, api_uri=api_uri) for item in lst_data]
     
     return result
 
-def create_dict_row(item, page, db: Session, host="", port=""):
+def create_dict_row(item, page, db: Session, api_uri=""):
     
-    image = ''  #"http://" + host + ":" + port + "/api/image/" + str(item['user_id']) + "/" + item['id'] + "/" + item['image']
+    image = api_uri + "/api/image/" + str(item['user_id']) + "/" + item['id'] + "/" + item['image']
     
     new_row = {'id': item['id'], 'name': item['name'], 
                'profile_type': item['profile_type'],   

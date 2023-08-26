@@ -75,8 +75,7 @@ def password_check(passwd, min_len, max_len):
 def get_all(request:Request, page: int, per_page: int, criteria_key: str, criteria_value: str, db: Session):    
     locale = request.headers["accept-language"].split(",")[0].split("-")[0];
     
-    host=str(settings.server_uri)
-    port=str(int(settings.server_port))
+    api_uri = str(settings.api_uri)
     
     str_where = "WHERE use.is_active=True " 
     str_count = "Select count(*) FROM enterprise.users use "
@@ -110,17 +109,17 @@ def get_all(request:Request, page: int, per_page: int, criteria_key: str, criter
         str_query += "LIMIT " + str(per_page) + " OFFSET " + str(page*per_page-per_page)
     
     lst_data = db.execute(str_query)
-    result.data = [create_dict_row(item, page, host=host, port=port) for item in lst_data]
+    result.data = [create_dict_row(item, page, api_uri=api_uri) for item in lst_data]
     
     return result
 
-def create_dict_row(item, page, host='', port=''):
+def create_dict_row(item, page, api_uri=''):
     
     new_row = {'id': item['id'], 'username' : item['username'], 'first_name': item['first_name'], 
                'last_name': item['last_name'], 'email': item['email'], 'phone': item['phone'], 
                'country_id': item['country_id'], 'country': item['country'], 
                'receive_notifications': item['receive_notifications'],
-               'photo': get_url_avatar(item['id'], item['photo'], host=host, port=port)}
+               'photo': get_url_avatar(item['id'], item['photo'], api_uri=api_uri)}
     if page != 0:
         new_row['selected'] = False
     return new_row
@@ -180,8 +179,7 @@ def get_one_by_id(request: Request, user_id: str, db: Session):
     locale = request.headers["accept-language"].split(",")[0].split("-")[0];
     result = ResultObject() 
     
-    host = str(settings.server_uri)
-    port = str(int(settings.server_port))
+    api_uri = str(settings.api_uri)
     
     str_query = "Select use.id user_id, username, first_name, last_name, pro.email, phone, password, use.is_active, use.country_id, " \
         "pa.name as country_name, pro.photo, pro.receive_notifications, def.job, def.sex, def.birthdate, def.alias, " \
@@ -221,7 +219,7 @@ def get_one_by_id(request: Request, user_id: str, db: Session):
                    'alias': alias if alias else '',
                    'city_id': city_id if city_id else '', 'city_name': city_name if city_name else '',
                    'receive_notifications': receive_notifications,  
-                   'photo': get_url_avatar(user_id, photo, host=host, port=port)} 
+                   'photo': get_url_avatar(user_id, photo, api_uri=api_uri)} 
     return result
 
 def get_one_by_username(username: str, db: Session):  

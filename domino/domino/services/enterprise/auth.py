@@ -77,12 +77,11 @@ def auth(request: Request, db: Session, user: UserLogin):
             locale, "auth.wrong_password"))
 
 
-def get_url_avatar(user_id: str, file_name: str, host='', port=''):
+def get_url_avatar(user_id: str, file_name: str, api_uri=''):
 
-    host = str(settings.server_uri) if not host else host
-    port = str(int(settings.server_port)) if not port else port
-
-    photo = "http://" + host + ":" + port + "/api/avatar/" + str(user_id) + "/" + file_name if \
-        file_name else "http://" + host + ":" + port + "/api/avatar/user-vector.jpg"
+    api_uri = str(settings.api_uri) if not api_uri else api_uri
+    
+    photo =  api_uri + "/api/avatar/" + str(user_id) + "/" + file_name if \
+        file_name else api_uri + "/api/avatar/user-vector.jpg"
 
     return photo
