@@ -6,6 +6,7 @@ from datetime import date
 from sqlalchemy import Column, ForeignKey
 from sqlalchemy.sql.sqltypes import String, Boolean, Integer, Date, Text, Float
 from ...config.db import Base
+from sqlalchemy.orm import relationship
 
 def generate_uuid():
     return str(uuid.uuid4())
@@ -31,6 +32,8 @@ class Tourney(Base):
     updated_by = Column(String, ForeignKey("enterprise.users.username"), nullable=False)
     
     profile_id = Column(String, ForeignKey("enterprise.profile_member.id"), nullable=False)  # perfil que lo creo
+    
+    # settingtourney = relationship("SettingTourney")
     
     def dict(self):
         return {
@@ -136,7 +139,40 @@ class GameRules(Base):
             "amount_points": self.amount_points,
             "amount_time": self.amount_time
         }
-        
+
+class SettingTourney(Base):
+    """Setting Tourney Class contains standard information for setting of Tourney.""" 
+
+    __tablename__ = "setting_tourney"
+    __table_args__ = {'schema' : 'events'}
+    
+    tourney_id = Column(String, ForeignKey("events.tourney.id"), primary_key=True)
+    amount_tables = Column(Integer, nullable=False, default=1)
+    amount_smart_tables = Column(Integer, nullable=False, default=0)
+    amount_bonus_tables = Column(Integer, nullable=False, default=0)
+    amount_bonus_points = Column(Integer, nullable=False, default=0)
+    number_bonus_round = Column(Integer, nullable=False, default=0)
+    image = Column(Text, nullable=True)
+    amount_rounds = Column(Integer, nullable=False, default=1)
+    number_points_to_win = Column(Integer, nullable=False, default=0)
+    time_to_win = Column(Integer, nullable=False, default=0)
+    game_system = Column(String(120), nullable=False)
+    
+    
+    def dict(self):
+        return {
+            "tourney_id": self.tourney_id,
+            "amount_tables": self.amount_tables,
+            "amount_smart_tables": self.amount_smart_tables,
+            "amount_bonus_tables": self.amount_bonus_tables,
+            "amount_bonus_points": self.amount_bonus_points,
+            "number_bonus_round": self.number_bonus_round,
+            "amount_rounds": self.amount_rounds,
+            "number_points_to_win": self.number_points_to_win,
+            "time_to_win": self.time_to_win,
+            "game_system": self.game_system
+        }
+            
 # class Pairs(Base):
 #     """Pairs Class contains standard information for Pairs of domino of Tourney.""" 
 

@@ -101,6 +101,9 @@ def create_dict_row(item, page, db: Session, incluye_tourney=False, api_uri=""):
 def get_one(event_id: str, db: Session):  
     return db.query(Event).filter(Event.id == event_id).first()
 
+def get_one_by_name(event_name: str, db: Session):  
+    return db.query(Event).filter(Event.name == event_name).first()
+
 def get_one_by_id(event_id: str, db: Session): 
     result = ResultObject()  
     
@@ -133,9 +136,14 @@ def new(request: Request, profile_id:str, event: EventBase, db: Session, file: F
     result = ResultObject() 
     currentUser = get_current_user(request)
     
+    # si el perfil no es de administrador de eventos, no lo puede crear
+    
     db_member_profile = get_one_profile(id=profile_id, db=db)
     if not db_member_profile:
         raise HTTPException(status_code=400, detail=_(locale, "userprofile.not_found"))
+   
+    if db_member_profile.profile_type != 'EVENTADMON':
+        raise HTTPException(status_code=400, detail=_(locale, "userprofile.user_not_event_admon"))
     
     one_status = get_one_by_name('CREATED', db=db)
     if not one_status:

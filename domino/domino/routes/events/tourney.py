@@ -1,14 +1,15 @@
-from fastapi import APIRouter, Depends, HTTPException, Request
+from fastapi import APIRouter, Depends, HTTPException, Request, UploadFile, File
 from sqlalchemy.orm import Session
 from domino.app import get_db
 from typing import List, Dict
 from starlette import status
 from domino.auth_bearer import JWTBearer
 
-from domino.schemas.events.tourney import TourneyBase, TourneyCreated
+from domino.schemas.events.tourney import TourneyBase, TourneyCreated, SettingTourneyCreated
 from domino.schemas.resources.result_object import ResultObject
 
-from domino.services.events.tourney import get_all, new, get_one_by_id, delete, update, get_all_by_event_id
+from domino.services.events.tourney import get_all, new, get_one_by_id, delete, update, get_all_by_event_id, \
+    get_amount_tables, configure_one_tourney
   
 tourney_route = APIRouter(
     tags=["Tourney"],
@@ -45,3 +46,15 @@ def delete_tourney(request:Request, id: str, db: Session = Depends(get_db)):
 @tourney_route.put("/tourney/{id}", response_model=ResultObject, summary="Update a Tourney by its ID")
 def update_tourney(request:Request, id: str, tourney: TourneyCreated, db: Session = Depends(get_db)):
     return update(request=request, db=db, tourney_id=id, tourney=tourney)
+
+@tourney_route.post("/tourney/setting/tables/{id}", response_model=ResultObject, summary="Get amount tables")
+def amount_tables(id: str, db: Session = Depends(get_db)):
+    return get_amount_tables(tourney_id=id, db=db)
+
+@tourney_route.post("/tourney/setting/{profile_id}", response_model=ResultObject, summary="Configure Tourney..")
+def configure_tourney(request:Request, profile_id: str, id: str, settingtourney: SettingTourneyCreated = Depends(), 
+                      image: UploadFile = None, db: Session = Depends(get_db)):
+    return configure_one_tourney(request=request, profile_id=profile_id, tourney_id=id,
+                                 settingtourney=settingtourney.dict(), file=image, db=db)
+
+

@@ -130,6 +130,12 @@ def new(request: Request, db: Session, user: UserCreate):
     
     result = ResultObject() 
     
+    #verificar que el nombre de usuario no existe en Base de Datos
+    str_user = "SELECT count(username) FROM enterprise.users where username = '" + user.username + "' "
+    amount_user = db.execute(str_user).fetchone()[0]
+    if amount_user > 0:
+        raise HTTPException(status_code=404, detail=_(locale, "users.already_exist"))  
+    
     pass_check = password_check(user.password, 8, 15)   
     if not pass_check['success']:
         raise HTTPException(status_code=404, detail=_(locale, "users.data_error") + pass_check['message'])             

@@ -68,6 +68,9 @@ def create_dict_row(item, page, db: Session):
 def get_one(city_id: int, db: Session):  
     return db.query(City).filter(City.id == city_id).first()
 
+def get_one_by_name(city_name: str, db: Session):  
+    return db.query(City).filter(City.name == city_name).first()
+
 def get_one_by_id(city_id: int, db: Session):  
     result = ResultObject() 
     result.data = db.query(City).filter(City.id == city_id).first()

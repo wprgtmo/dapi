@@ -47,3 +47,18 @@ class TourneyCreated(BaseModel):
     modality: Optional[str]
     summary: Optional[str]
     startDate: Optional[date]
+    
+class SettingTourneyCreated(BaseModel):
+    
+    amount_tables: int
+    amount_smart_tables: int
+    amount_bonus_tables: int
+    amount_bonus_points: int
+    number_bonus_round: int
+    amount_rounds: int
+    number_points_to_win: int
+    time_to_win: int
+    game_system: str
+    
+    class Config:
+        orm_mode = True

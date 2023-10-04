@@ -123,6 +123,16 @@ def new_profile_referee(request: Request, refereeprofile: RefereeProfileCreated,
     except (Exception, SQLAlchemyError) as e:
         raise HTTPException(status_code=400, detail=_(locale, "userprofile.errorinsert"))
 
+def verify_exist_pair_player(profile_principal_id: str, profile_secundary_id: str, db: Session):
+    
+    str_query = "Select count(*) from enterprise.profile_users Where single_profile_id = '" + \
+        profile_secundary_id + "' and is_principal=False AND profile_id IN (Select profile_id " +\
+        "from enterprise.profile_users where single_profile_id = '" + profile_principal_id + "' and is_principal=True) "
+        
+    amount = db.execute(str_query).fetchone()[0]
+    return True if amount > 0 else False
+    
+    return True
 def new_profile_pair_player(request: Request, pairprofile: PairProfileCreated, file: File, db: Session): 
     locale = request.headers["accept-language"].split(",")[0].split("-")[0];
     
@@ -136,6 +146,12 @@ def new_profile_pair_player(request: Request, pairprofile: PairProfileCreated, f
     me_profile_id = get_user_for_single_profile_by_user(currentUser['username'], db=db)
     if not me_profile_id:
         raise  HTTPException(status_code=400, detail=_(locale, "userprofile.sigle_profile_not_exist"))
+    
+    # verificar si existe una pareja con esos dos perfles no creala..
+    if pairprofile['other_profile_id']: 
+        exist_profile = verify_exist_pair_player(me_profile_id, pairprofile['other_profile_id'], db=db)
+        if exist_profile:
+            raise HTTPException(status_code=400, detail=_(locale, "userprofile.already_exist"))
     
     id = str(uuid.uuid4())
     one_profile = new_profile(profile_type, id, currentUser['user_id'], currentUser['username'], pairprofile['name'], 
