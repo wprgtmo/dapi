@@ -6,7 +6,8 @@ from domino.app import get_db
 from starlette import status
 from domino.auth_bearer import JWTBearer
 
-from domino.services.enterprise.exampledata import insert_user_examples, insert_others_profiles, create_events
+from domino.services.enterprise.exampledata import insert_user_examples, insert_others_profiles, create_events, \
+    create_tourneys, created_invitations_tourneys, accepted_invitations_tourneys, created_players
   
 exampledata_route = APIRouter(
     tags=["Nomenclators"]   # tags=["Cities"],
@@ -27,4 +28,16 @@ def insert_event_data(request:Request, db: Session = Depends(get_db)):
 
 @exampledata_route.post("/exampledata/step_4_tourneys", summary="Create two Tourneys")
 def insert_tourney_data(request:Request, db: Session = Depends(get_db)):
-    return create_tourney(request, db=db)
+    return create_tourneys(request, db=db)
+
+@exampledata_route.post("/exampledata/step_5_invitations", summary="Create invitations for Tourneys")
+def insert_invitations_tourney_data(request:Request, db: Session = Depends(get_db)):
+    return created_invitations_tourneys(request, db=db)
+
+@exampledata_route.post("/exampledata/step_6_invitations", summary="Acepted invitations for Tourneys")
+def acepted_invitations_tourney_data(request:Request, db: Session = Depends(get_db)):
+    return accepted_invitations_tourneys(request, db=db)
+
+@exampledata_route.post("/exampledata/step_7_players", summary="Created Players")
+def insert_players_data(request:Request, db: Session = Depends(get_db)):
+    return created_players(request, db=db)

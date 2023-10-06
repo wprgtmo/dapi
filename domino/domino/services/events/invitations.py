@@ -12,7 +12,10 @@ from domino.auth_bearer import decodeJWT
 from domino.functions_jwt import get_current_user
 from domino.app import _
 
+from domino.models.resources.status import StatusElement
 from domino.models.events.invitations import Invitations
+from domino.models.events.tourney import Tourney
+
 from domino.schemas.events.invitations import InvitationBase, InvitationAccepted
 from domino.schemas.resources.result_object import ResultObject, ResultData
 
@@ -180,9 +183,22 @@ def generate_all_user(request, db: Session, tourney_id: str):
     if not db_tourney:
         raise HTTPException(status_code=404, detail=_(locale, "tourney.not_exist"))
     
-    db_status = get_status_by_name('SEND', db=db)
-    if not db_status:
+    one_status = get_status_by_name('CREATED', db=db)
+    if not one_status:
         raise HTTPException(status_code=404, detail=_(locale, "status.not_exist"))
+    
+    if db_tourney.status_id != one_status.id:
+        raise HTTPException(status_code=404, detail=_(locale, "status.incorrect"))
+    
+    db_status_send = get_status_by_name('SEND', db=db)
+    if not db_status_send:
+        raise HTTPException(status_code=404, detail=_(locale, "status.not_exist"))
+    
+    result = generate_for_tourney(db_tourney, db_status_send, currentUser['username'], db=db)
+    
+    return result
+    
+def generate_for_tourney(db_tourney:Tourney, db_status: StatusElement, username: str, db: Session):
     
     dict_modality = {'Individual': "'SINGLE_PLAYER', 'REFEREE'",
                      'Parejas': "'PAIR_PLAYER', 'REFEREE'",
@@ -194,19 +210,19 @@ def generate_all_user(request, db: Session, tourney_id: str):
         "inner join enterprise.profile_users ON profile_users.profile_id = profile_member.id and profile_users.is_principal is True " +\
         "inner join enterprise.profile_type eve ON eve.name = profile_member.profile_type " +\
         "where profile_member.is_active=True and profile_member.is_ready=True and eve.name IN (" + str_profile + ") " +\
-        "and profile_member.id NOT IN (Select profile_id FROM events.invitations where tourney_id = '" + tourney_id + "') "
+        "and profile_member.id NOT IN (Select profile_id FROM events.invitations where tourney_id = '" + db_tourney.id + "') "
 
     lst_data = db.execute(str_users)
     try:
         for item in lst_data:
             one_invitation = Invitations(tourney_id=db_tourney.id, profile_id=item.profile_id, 
                                          modality=db_tourney.modality,
-                                         status_name=db_status.name, created_by=currentUser['username'], 
-                                         updated_by=currentUser['username'])
+                                         status_name=db_status.name, created_by=username, updated_by=username)
             db.add(one_invitation)
-            db.commit()
         
-        return result
+        db.commit()
+        return ResultObject()
+     
     except (Exception, SQLAlchemyError, IntegrityError) as e:
         # print(e)
         # print(e.__dict__)
@@ -215,6 +231,8 @@ def generate_all_user(request, db: Session, tourney_id: str):
             # msg = msg + _(locale, "invitation.already_exist")
         
         raise HTTPException(status_code=403, detail=e)
+    
+    return True
     
 def update(request: Request, invitation_id: str, invitation: InvitationAccepted, db: Session):
     locale = request.headers["accept-language"].split(",")[0].split("-")[0];

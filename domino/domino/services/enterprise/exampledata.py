@@ -19,7 +19,7 @@ from domino.config.config import settings
 
 from domino.models.enterprise.userprofile import ProfileUsers, SingleProfile, RefereeProfile, PairProfile, EventAdmonProfile
 from domino.models.events.events import Event
-from domino.models.events.tourney import Tourney
+from domino.models.events.tourney import Tourney, Players
     
 from domino.schemas.enterprise.user import UserCreate
 
@@ -34,6 +34,9 @@ from domino.services.enterprise.comunprofile import new_profile
 from domino.services.enterprise.userprofile import get_one_profile_by_user
 
 from domino.services.events.event import get_one_by_name as get_event_by_name
+from domino.services.events.tourney import get_one_by_name as get_tourney_by_name
+from domino.services.events.invitations import generate_for_tourney, get_one_by_id as get_invitation_by_id
+from domino.services.events.player import get_one_by_invitation_id as get_one_player_by_invitation_id
 
 pwd_context = CryptContext(schemes=["bcrypt"], deprecated="auto")
 
@@ -355,6 +358,11 @@ def create_events(request:Request, db: Session):
     id = str(uuid.uuid4())
     city = get_city_by_name('La Habana', db=db)
     
+    str_query = "SELECT count(id) FROM events.events Where name = 'Serie Nacional del Domino'"
+    amount = db.execute(str_query).fetchone()[0]
+    if amount > 0:
+        return True
+    
     db_event = Event(id=id, name='Serie Nacional del Domino', summary='Evento de Pruebas', start_date=start_date, 
                      close_date=close_date, registration_date=start_date, image=None, registration_price=float(0.00), 
                      city_id=city.id, main_location='Sede Principal Edificio UNO', status_id=one_status.id,
@@ -385,40 +393,196 @@ def create_tourneys(request:Request, db: Session):
     if one_event.status_id != one_status.id:
         return True
     
+    str_query = "SELECT count(id) FROM events.tourney Where name = 'Serie Nacional del Domino.Torneo Individual'"
+    amount = db.execute(str_query).fetchone()[0]
+    if amount > 0:
+        return True
     
-    # start_date = datetime.today()
-    # close_date = start_date + timedelta(days=60)
+    id_1 = str(uuid.uuid4())
     
-    id = str(uuid.uuid4())
-    city = get_city_by_name('La Habana', db=db)
+    db_tourney_ind = Tourney(id=id_1, event_id=one_event.id, modality='Individual', name='Serie Nacional del Domino.Torneo Individual', 
+                         summary='Torneo para jugadores individuales', start_date=one_event.start_date, 
+                         status_id=one_status.id, created_by='miry', updated_by='miry', profile_id=one_event.profile_id)
     
-    db_tourney = Tourney(id=id, event_id=one_event.id, modality='Individual', name='Torneo Individual', 
-                         summary='Torneo para jugadores individuales', start_date=one_event.startDate, 
+    str_query = "SELECT count(id) FROM events.tourney Where name = 'Serie Nacional del Domino.Torneo Por Parejas'"
+    amount = db.execute(str_query).fetchone()[0]
+    if amount > 0:
+        return True
+    
+    id_2 = str(uuid.uuid4())
+    db_tourney_pair = Tourney(id=id_2, event_id=one_event.id, modality='Parejas', name='Serie Nacional del Domino.Torneo Por Parejas', 
+                         summary='Torneo para jugadores de parejas', start_date=one_event.start_date, 
                          status_id=one_status.id, created_by='miry', updated_by='miry', profile_id=one_event.profile_id)
     
     try:
-        db.add(db_tourney)
+        db.add(db_tourney_ind)
+        db.add(db_tourney_pair)
         db.commit()
         return True
        
     except: 
         return True
     
+def created_invitations_tourneys(request:Request, db: Session):
     
+    me_profile_id = get_user_for_single_profile_by_user('miry', db=db)
+    if not me_profile_id:
+        return True
+
+    one_status = get_one_status_by_name('CREATED', db=db)
+    if not one_status:
+        return True
     
+    tourney_ind = get_tourney_by_name(tourney_name='Serie Nacional del Domino.Torneo Individual', db=db)
+    if not tourney_ind:
+        return True
     
+    tourney_pair = get_tourney_by_name(tourney_name='Serie Nacional del Domino.Torneo Por Parejas', db=db)
+    if not tourney_pair:
+        return True
+    
+    if tourney_ind.status_id != one_status.id:
+        return True
+    
+    if tourney_pair.status_id != one_status.id:
+        return True
+    
+    db_status_send = get_one_status_by_name('SEND', db=db)
+    if not db_status_send:
+        return True
     
     try:
+        generate_for_tourney(tourney_ind, db_status_send, 'miry', db=db)
+        generate_for_tourney(tourney_pair, db_status_send, 'miry', db=db)
         
-        db.commit()
-        result.data = {'event_id': event_id}
-        return result
+        return True
        
-    except (Exception, SQLAlchemyError, IntegrityError) as e:
-        print(e)
-        msg = _(locale, "tourney.error_new_tourney")               
-        raise HTTPException(status_code=403, detail=msg)
+    except: 
+        return True
     
+def accepted_invitations_tourneys(request:Request, db: Session):
+    
+    status_created = get_one_status_by_name('CREATED', db=db)
+    if not status_created:
+        return True
+    
+    status_acepted = get_one_status_by_name('ACCEPTED', db=db)
+    if not status_acepted:
+        return True
+    
+    str_query_sel = "SELECT inv.id invitation_id FROM events.invitations inv join events.tourney tney ON tney.id = inv.tourney_id " \
+        "Where status_name = 'SEND' and tney.status_id = " + str(status_created.id)
+
+    str_query_ind = str_query_sel + " AND tney.name = 'Serie Nacional del Domino.Torneo Individual' "
+    str_query_pair = str_query_sel + " AND tney.name = 'Serie Nacional del Domino.Torneo Por Parejas' "
+    
+    lst_data_ind = db.execute(str_query_ind)
+    lst_data_pair = db.execute(str_query_pair)
+    
+    for item in lst_data_ind:
+        db_invitation = get_invitation_by_id(item.invitation_id, db=db)
+        if not db_invitation:
+            continue
+        
+        db_invitation.status_name = status_acepted.name
+        db_invitation.updated_by = 'miry'
+        db_invitation.updated_date = datetime.now()
+        
+        db.add(db_invitation)
+    
+    for item in lst_data_pair:
+        db_invitation = get_invitation_by_id(item.invitation_id, db=db)
+        if not db_invitation:
+            continue
+        
+        db_invitation.status_name = status_acepted.name
+        db_invitation.updated_by = 'miry'
+        db_invitation.updated_date = datetime.now()
+        
+        db.add(db_invitation)
+    
+    db.commit()
+        
+    return True
+
+#endregion
+
+#region Players
+
+def created_players(request:Request, db: Session):
+    
+    one_status = get_one_status_by_name('CREATED', db=db)
+    if not one_status:
+        return True
+    
+    tourney_ind = get_tourney_by_name(tourney_name='Serie Nacional del Domino.Torneo Individual', db=db)
+    if not tourney_ind:
+        return True
+    
+    tourney_pair = get_tourney_by_name(tourney_name='Serie Nacional del Domino.Torneo Por Parejas', db=db)
+    if not tourney_pair:
+        return True
+    
+    if tourney_ind.status_id != one_status.id:
+        return True
+    
+    if tourney_pair.status_id != one_status.id:
+        return True
+    
+    status_confirmed = get_one_status_by_name('CONFIRMED', db=db)
+    if not status_confirmed:
+        return True
+    
+    str_invs = "Select invitation_id invitation_id from events.players Where tourney_id = '"
+    str_invs_ind = "SELECT * FROM events.invitations inv WHERE status_name = 'ACCEPTED' "
+    
+    str_query_ind = str_invs_ind + "AND tourney_id = '" + str(tourney_ind.id) + "' "
+    str_query_ind += " AND inv.id NOT IN (" + str_invs + " " + str(tourney_ind.id) + "') "
+    
+    str_query_pair = str_invs_ind + "AND tourney_id = '" + str(tourney_pair.id) + "' "
+    str_query_pair += " AND inv.id NOT IN (" + str_invs + " " + str(tourney_pair.id) + "') "
+    
+    lst_data_ind = db.execute(str_query_ind)
+    lst_data_pair = db.execute(str_query_pair)
+    
+    for item in lst_data_ind:
+        one_invitation = get_invitation_by_id(invitation_id=item.id, db=db)
+        if not one_invitation:
+            continue
+        
+        one_player = Players(id=str(uuid.uuid4()), tourney_id=one_invitation.tourney_id, 
+                            profile_id=one_invitation.profile_id, nivel='NORMAL', invitation_id=one_invitation.id,
+                            created_by='miry', updated_by='miry', is_active=True)
+        
+        one_invitation.updated_by = 'miry'
+        one_invitation.updated_date = datetime.now()
+        one_invitation.status_name = status_confirmed.name
+        
+        db.add(one_player)
+        db.add(one_invitation)
+        
+    for item in lst_data_pair:
+        one_invitation = get_invitation_by_id(invitation_id=item.id, db=db)
+        if not one_invitation:
+            continue
+        
+        one_player = Players(id=str(uuid.uuid4()), tourney_id=one_invitation.tourney_id, 
+                            profile_id=one_invitation.profile_id, nivel='NORMAL', invitation_id=one_invitation.id,
+                            created_by='miry', updated_by='miry', is_active=True)
+        
+        one_invitation.updated_by = 'miry'
+        one_invitation.updated_date = datetime.now()
+        one_invitation.status_name = status_confirmed.name
+        
+        db.add(one_player)
+        db.add(one_invitation)
+        
+    
+    # try:
+    db.commit()
+    return True
+    # except (Exception, SQLAlchemyError) as e:
+    #     return False
     
     
 #endregion

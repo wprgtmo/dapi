@@ -22,7 +22,7 @@ from domino.schemas.events.tourney import TourneyCreated
 from domino.schemas.events.events import EventBase, EventSchema
 from domino.schemas.resources.result_object import ResultObject, ResultData
 
-from domino.services.resources.status import get_one_by_name, get_one as get_one_status
+from domino.services.resources.status import get_one_by_name as get_one_status_by_name, get_one as get_one_status
 from domino.services.enterprise.users import get_one_by_username
 
 from domino.services.resources.utils import get_result_count, upfile, create_dir, del_image, get_ext_at_file, remove_dir
@@ -140,20 +140,24 @@ def new(request: Request, profile_id:str, event: EventBase, db: Session, file: F
     
     db_member_profile = get_one_profile(id=profile_id, db=db)
     if not db_member_profile:
+        print('1')
         raise HTTPException(status_code=400, detail=_(locale, "userprofile.not_found"))
    
     if db_member_profile.profile_type != 'EVENTADMON':
+        print('2')
         raise HTTPException(status_code=400, detail=_(locale, "userprofile.user_not_event_admon"))
     
-    one_status = get_one_by_name('CREATED', db=db)
+    one_status = get_one_status_by_name('CREATED', db=db)
     if not one_status:
+        print('one_status')
         raise HTTPException(status_code=404, detail=_(locale, "status.not_found"))
     
     verify_dates(event['start_date'], event['close_date'], locale)
     
     id = str(uuid.uuid4())
-    
+    print('4')
     if file:
+        print('5')
         ext = get_ext_at_file(file.filename)
         file.filename = str(id) + "." + ext
         
@@ -166,10 +170,12 @@ def new(request: Request, profile_id:str, event: EventBase, db: Session, file: F
                     created_by=currentUser['username'], updated_by=currentUser['username'], 
                     profile_id=profile_id)
     
+    print('6')
     try:
         if file:
             upfile(file=file, path=path)
-            
+        
+        print('7')    
         db.add(db_event)
         db.commit()
         result.data = {'id': id}
@@ -193,7 +199,7 @@ def delete(request: Request, event_id: str, db: Session):
     result = ResultObject() 
     currentUser = get_current_user(request)
     
-    one_status = get_one_by_name('CANCELLED', db=db)
+    one_status = get_one_status_by_name('CANCELLED', db=db)
     if not one_status:
         raise HTTPException(status_code=404, detail=_(locale, "status.not_found"))
     

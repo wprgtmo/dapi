@@ -16,7 +16,7 @@ from domino.models.events.tourney import Tourney, SettingTourney
 from domino.schemas.events.tourney import TourneyBase, TourneySchema, TourneyCreated, SettingTourneyCreated
 from domino.schemas.resources.result_object import ResultObject, ResultData
 
-from domino.services.resources.status import get_one_by_name, get_one as get_one_status
+from domino.services.resources.status import get_one_by_name as get_one_status_by_name, get_one as get_one_status
 
 from domino.services.resources.utils import get_result_count
 from domino.services.events.event import get_one as get_one_event, get_all as get_all_event
@@ -80,6 +80,9 @@ def create_dict_row(item, page, db: Session):
 def get_one(tourney_id: str, db: Session):  
     return db.query(Tourney).filter(Tourney.id == tourney_id).first()
 
+def get_one_by_name(tourney_name: str, db: Session):  
+    return db.query(Tourney).filter(Tourney.name == tourney_name).first()
+
 def get_one_by_id(tourney_id: str, db: Session): 
     result = ResultObject()  
     str_query = "Select tou.id, event_id, eve.name as event_name, tou.modality, tou.name, tou.summary, tou.start_date, " +\
@@ -116,7 +119,7 @@ def new(request, event_id: str, tourney: TourneyCreated, db: Session):
     result = ResultObject() 
     currentUser = get_current_user(request)
     
-    one_status = get_one_by_name('CREATED', db=db)
+    one_status = get_one_status_by_name('CREATED', db=db)
     if not one_status:
         raise HTTPException(status_code=404, detail=_(locale, "status.not_found"))
     
@@ -154,7 +157,7 @@ def delete(request: Request, tourney_id: str, db: Session):
     result = ResultObject() 
     currentUser = get_current_user(request)
     
-    one_status = get_one_by_name('CANCELLED', db=db)
+    one_status = get_one_status_by_name('CANCELLED', db=db)
     if not one_status:
         raise HTTPException(status_code=404, detail=_(locale, "status.not_found"))
     
@@ -179,9 +182,9 @@ def update(request: Request, tourney_id: str, tourney: TourneyCreated, db: Sessi
     result = ResultObject() 
     currentUser = get_current_user(request) 
     
-    one_status_end = get_one_by_name('FINALIZED', db=db)
-    one_status_new = get_one_by_name('CREATED', db=db)
-    one_status_canc = get_one_by_name('CANCELLED', db=db)
+    one_status_end = get_one_status_by_name('FINALIZED', db=db)
+    one_status_new = get_one_status_by_name('CREATED', db=db)
+    one_status_canc = get_one_status_by_name('CANCELLED', db=db)
     
     db_tourney = get_one(tourney_id, db=db)
     if not db_tourney:
@@ -254,8 +257,8 @@ def configure_one_tourney(request, profile_id:str, tourney_id: str, settingtourn
     # if db_member_profile.profile_type != 'EVENTADMON':
     #     raise HTTPException(status_code=400, detail=_(locale, "userprofile.user_not_event_admon"))
     
-    one_status_init = get_one_by_name('INITIADED', db=db)
-    one_status_new = get_one_by_name('CREATED', db=db)
+    one_status_init = get_one_status_by_name('INITIADED', db=db)
+    one_status_new = get_one_status_by_name('CREATED', db=db)
     
     db_tourney = get_one(tourney_id, db=db)
     if not db_tourney:
