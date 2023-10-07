@@ -48,8 +48,8 @@ def update_tourney(request:Request, id: str, tourney: TourneyCreated, db: Sessio
     return update(request=request, db=db, tourney_id=id, tourney=tourney)
 
 @tourney_route.post("/tourney/setting/tables/{id}", response_model=ResultObject, summary="Get amount tables")
-def amount_tables(id: str, db: Session = Depends(get_db)):
-    return get_amount_tables(tourney_id=id, db=db)
+def amount_tables(request:Request, id: str, db: Session = Depends(get_db)):
+    return get_amount_tables(request=request, tourney_id=id, db=db)
 
 @tourney_route.post("/tourney/setting/{profile_id}", response_model=ResultObject, summary="Configure Tourney..")
 def configure_tourney(request:Request, profile_id: str, id: str, settingtourney: SettingTourneyCreated = Depends(), 

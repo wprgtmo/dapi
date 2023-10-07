@@ -217,48 +217,57 @@ def update(request: Request, tourney_id: str, tourney: TourneyCreated, db: Sessi
         if e.code == "gkpj":
             raise HTTPException(status_code=400, detail=_(locale, "tourney.already_exist"))
    
-def get_amount_tables(tourney_id: str, db: Session): 
+def get_amount_tables(request: Request, tourney_id: str, db: Session): 
+    locale = request.headers["accept-language"].split(",")[0].split("-")[0];
+    
     result = ResultObject()
     
-    result.data = get_amount_tables_of_tourney(tourney_id, db=db)
+    db_tourney = get_one(tourney_id, db=db)
+    if not db_tourney:
+        raise HTTPException(status_code=404, detail=_(locale, "tourney.not_found"))
+    
+    result.data = calculate_amount_tables(tourney_id, db_tourney.modality, db=db)
     
     return result
 
-def get_amount_tables_of_tourney(tourney_id: str, db: Session): 
+def calculate_amount_tables(tourney_id: str, modality: str, db: Session):
     
-    # buscar la cantidad de mesas dependiendo de la cantidad de jugadores  
-    # str_query = "Select tou.id, event_id, eve.name as event_name, tou.modality, tou.name, tou.summary, tou.start_date, " +\
-    #     "tou.status_id, sta.name as status_name FROM events.tourney tou " +\
-    #     "JOIN events.events eve ON eve.id = tou.event_id " +\
-    #     "JOIN resources.entities_status sta ON sta.id = tou.status_id " +\
-    #     " WHERE tou.id = '" + str(tourney_id)  + "' "
-        
-    # lst_data = db.execute(str_query)
-    # if lst_data:
-    #     for item in lst_data:
-    #         result.data = create_dict_row(item, 0, db=db)
-    # return result
+    str_query = "Select count(*) From events.players Where tourney_id = '" + tourney_id + "' "
+    amount_players = db.execute(str_query).fetchone()[0]
     
-    return 10
-
+    if amount_players == 0:
+        return int(0)
+    
+    if modality == 'Individual':
+        mod_play = divmod(int(amount_players),4) 
+    elif modality == 'Parejas':
+        mod_play = divmod(int(amount_players),2) 
+    elif modality == 'Equipo':
+        mod_play = divmod(int(amount_players),2) 
+    
+    if not mod_play:
+        return int(0)
+    
+    return int(mod_play[0]) + 1 if mod_play[1] > 0 else int(mod_play[0])
+    
 def configure_one_tourney(request, profile_id:str, tourney_id: str, settingtourney: SettingTourneyCreated, file: File, db: Session):
     locale = request.headers["accept-language"].split(",")[0].split("-")[0];
     
     result = ResultObject() 
     currentUser = get_current_user(request)
     
-    amount_tables = get_amount_tables_of_tourney(tourney_id, db=db)
-    
     # verificar si el profile es admon de eventos
     db_member_profile = get_one_profile(id=profile_id, db=db)
     if not db_member_profile:
         raise HTTPException(status_code=400, detail=_(locale, "userprofile.not_found"))
    
-    # if db_member_profile.profile_type != 'EVENTADMON':
-    #     raise HTTPException(status_code=400, detail=_(locale, "userprofile.user_not_event_admon"))
+    if db_member_profile.profile_type != 'EVENTADMON':
+        raise HTTPException(status_code=400, detail=_(locale, "userprofile.user_not_event_admon"))
     
     one_status_init = get_one_status_by_name('INITIADED', db=db)
     one_status_new = get_one_status_by_name('CREATED', db=db)
+    
+    # verificar si ya tiene configuración no permitir volver a hacerlo.
     
     db_tourney = get_one(tourney_id, db=db)
     if not db_tourney:
@@ -266,6 +275,8 @@ def configure_one_tourney(request, profile_id:str, tourney_id: str, settingtourn
     
     if db_tourney.status_id != one_status_new.id:
         raise HTTPException(status_code=404, detail=_(locale, "tourney.tourney_closed"))
+    
+    amount_tables = calculate_amount_tables(db_tourney.id, db_tourney.modality, db=db)
     
     try:
         amount_smart_tables = int(settingtourney['amount_smart_tables'])
@@ -285,9 +296,9 @@ def configure_one_tourney(request, profile_id:str, tourney_id: str, settingtourn
     
     if file:
         ext = get_ext_at_file(file.filename)
-        file.filename = str(id) + "." + ext
+        file.filename = str(db_tourney.id) + "." + ext
         
-        path = create_dir(entity_type="SETTOURNEY", user_id=str(db_member_profile.id), entity_id=str(id))
+        path = create_dir(entity_type="SETTOURNEY", user_id=str(db_member_profile.id), entity_id=str(db_tourney.id))
         
     sett_tourney = SettingTourney(amount_tables=amount_tables, amount_smart_tables=amount_smart_tables, 
                                   amount_bonus_tables=amount_bonus_tables, amount_bonus_points=amount_bonus_points, 
@@ -295,6 +306,7 @@ def configure_one_tourney(request, profile_id:str, tourney_id: str, settingtourn
                                   number_points_to_win=number_points_to_win, time_to_win=time_to_win, game_system=game_system)
     
     sett_tourney.tourney_id = db_tourney.id
+    sett_tourney.image = file.filename
     db_tourney.status_id = one_status_init.id
     db_tourney.updated_by = currentUser['username']
     

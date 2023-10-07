@@ -50,6 +50,11 @@ def create_dir(entity_type: str, user_id: str, entity_id: str):
         if not os.path.isdir("public/profile"):
             os.mkdir("public/profile")
         path = "public/profile/"
+    
+    elif entity_type == 'SETTOURNEY':
+        if not os.path.isdir("public/advertising"):
+            os.mkdir("public/advertising")
+        path = "public/advertising/"
         
     if entity_type == 'EVENT' or entity_type == 'USER':
         path += str(user_id) 

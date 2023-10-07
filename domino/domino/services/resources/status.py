@@ -57,10 +57,6 @@ def get_one(status_id: str, db: Session):
     return db.query(StatusElement).filter(StatusElement.id == status_id).first()
 
 def get_one_by_name(name: str, db: Session):  
-    print('nanme')
-    print(name)
-    print('**************')
-    
     return db.query(StatusElement).filter(StatusElement.name == name).first()
       
 def new(request, db: Session, status: StatusBase):
