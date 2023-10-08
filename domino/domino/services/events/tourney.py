@@ -21,6 +21,9 @@ from domino.services.resources.status import get_one_by_name as get_one_status_b
 from domino.services.resources.utils import get_result_count
 from domino.services.events.event import get_one as get_one_event, get_all as get_all_event
 
+from domino.services.events.domino_table import configure_domino_tables
+from domino.services.events.domino_round import configure_domino_round
+
 from domino.services.resources.utils import get_result_count, upfile, create_dir, del_image, get_ext_at_file, remove_dir
 from domino.services.enterprise.userprofile import get_one as get_one_profile
             
@@ -82,6 +85,9 @@ def get_one(tourney_id: str, db: Session):
 
 def get_one_by_name(tourney_name: str, db: Session):  
     return db.query(Tourney).filter(Tourney.name == tourney_name).first()
+
+def get_setting_tourney(tourney_id: str, db: Session):  
+    return db.query(SettingTourney).filter(SettingTourney.tourney_id == tourney_id).first()
 
 def get_one_by_id(tourney_id: str, db: Session): 
     result = ResultObject()  
@@ -249,7 +255,40 @@ def calculate_amount_tables(tourney_id: str, modality: str, db: Session):
         return int(0)
     
     return int(mod_play[0]) + 1 if mod_play[1] > 0 else int(mod_play[0])
+
+def initializes_tourney(db_tourney, amount_tables, amount_smart_tables, amount_bonus_tables, 
+                        amount_bonus_points, number_bonus_round, amount_rounds, number_points_to_win, 
+                        time_to_win, game_system, status_init, created_by, file: File, db: Session):
     
+    if file:
+        ext = get_ext_at_file(file.filename)
+        file.filename = str(db_tourney.id) + "." + ext
+        
+        path = create_dir(entity_type="SETTOURNEY", user_id=None, entity_id=str(db_tourney.id))
+        
+    sett_tourney = SettingTourney(amount_tables=amount_tables, amount_smart_tables=amount_smart_tables, 
+                                  amount_bonus_tables=amount_bonus_tables, amount_bonus_points=amount_bonus_points, 
+                                  number_bonus_round=number_bonus_round, amount_rounds=amount_rounds,
+                                  number_points_to_win=number_points_to_win, time_to_win=time_to_win, game_system=game_system)
+    
+    sett_tourney.tourney_id = db_tourney.id
+    sett_tourney.image = file.filename
+    db_tourney.status_id = status_init.id
+    db_tourney.updated_by = created_by
+    
+    try:
+        if file:
+            upfile(file=file, path=path)
+            
+        db.add(sett_tourney)
+        db.add(db_tourney)
+        
+        db.commit()
+        return True
+       
+    except (Exception, SQLAlchemyError, IntegrityError) as e:
+        return False
+        
 def configure_one_tourney(request, profile_id:str, tourney_id: str, settingtourney: SettingTourneyCreated, file: File, db: Session):
     locale = request.headers["accept-language"].split(",")[0].split("-")[0];
     
@@ -267,7 +306,10 @@ def configure_one_tourney(request, profile_id:str, tourney_id: str, settingtourn
     one_status_init = get_one_status_by_name('INITIADED', db=db)
     one_status_new = get_one_status_by_name('CREATED', db=db)
     
-    # verificar si ya tiene configuración no permitir volver a hacerlo.
+    str_query = "SELECT count(tourney_id) FROM events.setting_tourney where tourney_id = '" + tourney_id + "' "
+    amount = db.execute(str_query).fetchone()[0]
+    if amount > 0:
+        raise HTTPException(status_code=404, detail=_(locale, "tourney.is_configurated"))
     
     db_tourney = get_one(tourney_id, db=db)
     if not db_tourney:
@@ -294,33 +336,30 @@ def configure_one_tourney(request, profile_id:str, tourney_id: str, settingtourn
     if amount_smart_tables > amount_tables:
         raise HTTPException(status_code=404, detail=_(locale, "tourney.smarttable_incorrect"))
     
-    if file:
-        ext = get_ext_at_file(file.filename)
-        file.filename = str(db_tourney.id) + "." + ext
-        
-        path = create_dir(entity_type="SETTOURNEY", user_id=str(db_member_profile.id), entity_id=str(db_tourney.id))
-        
-    sett_tourney = SettingTourney(amount_tables=amount_tables, amount_smart_tables=amount_smart_tables, 
-                                  amount_bonus_tables=amount_bonus_tables, amount_bonus_points=amount_bonus_points, 
-                                  number_bonus_round=number_bonus_round, amount_rounds=amount_rounds,
-                                  number_points_to_win=number_points_to_win, time_to_win=time_to_win, game_system=game_system)
+    result_init = initializes_tourney(
+        db_tourney, amount_tables, amount_smart_tables, amount_bonus_tables, amount_bonus_points, number_bonus_round, 
+        amount_rounds, number_points_to_win, time_to_win, game_system, one_status_init, currentUser['username'], file=file, db=db)
     
-    sett_tourney.tourney_id = db_tourney.id
-    sett_tourney.image = file.filename
-    db_tourney.status_id = one_status_init.id
-    db_tourney.updated_by = currentUser['username']
+    if not result_init:
+        raise HTTPException(status_code=404, detail=_(locale, "tourney.setting_tourney_failed"))
     
-    try:
-        if file:
-            upfile(file=file, path=path)
-            
-        db.add(sett_tourney)
-        db.add(db_tourney)
-        
-        db.commit()
-        return result
-       
-    except (Exception, SQLAlchemyError, IntegrityError) as e:
-        print(e)
-        msg = _(locale, "tourney.error_configure_tourney")               
-        raise HTTPException(status_code=403, detail=msg)
+    one_settingtourney = get_setting_tourney(db_tourney.id, db=db)
+      
+    # crear las mesas y sus ficheros
+    result_init = configure_domino_tables(
+        db_tourney, one_settingtourney, db, currentUser['username'], file=file)
+    
+    if not result_init:
+        raise HTTPException(status_code=404, detail=_(locale, "tourney.setting_tables_failed"))
+    
+    # crear la primera ronda
+    # result_init = configure_domino_round(
+    #     db_tourney, amount_tables, amount_smart_tables, amount_bonus_tables, amount_bonus_points, number_bonus_round, 
+    #     amount_rounds, number_points_to_win, time_to_win, game_system, one_status_init, currentUser['username'], file=file, db=db)
+    
+    # if not result_init:
+    #     raise HTTPException(status_code=404, detail=_(locale, "tourney.setting_rounds_failed"))
+    
+    return result
+    
+    

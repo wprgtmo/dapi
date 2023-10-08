@@ -10,7 +10,7 @@ from domino.services.enterprise.exampledata import insert_user_examples, insert_
     create_tourneys, created_invitations_tourneys, accepted_invitations_tourneys, created_players
   
 exampledata_route = APIRouter(
-    tags=["Nomenclators"]   # tags=["Cities"],
+    tags=["ExampleData"],
     # dependencies=[Depends(JWTBearer())]   
 )
 

@@ -10,3 +10,5 @@ from ..models.events.tourney import *
 from ..models.events.invitations import *
 from ..models.enterprise.userprofile import *
 from ..models.resources.type_ext import *
+from ..models.events.domino_tables import *
+from ..models.events.domino_round import *
