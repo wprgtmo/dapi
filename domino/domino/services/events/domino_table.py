@@ -17,8 +17,7 @@ from fastapi.responses import FileResponse
 from os import getcwd
 
 from domino.models.events.domino_tables import DominoTables, FilesTables
-from domino.models.events.tourney import Tourney
-from domino.models.events.tourney import Tourney, SettingTourney
+from domino.models.events.tourney import SettingTourney
 
 from domino.schemas.events.tourney import TourneyCreated, SettingTourneyCreated
 from domino.schemas.events.events import EventBase, EventSchema
@@ -26,7 +25,6 @@ from domino.schemas.resources.result_object import ResultObject, ResultData
 
 from domino.services.resources.status import get_one_by_name as get_one_status_by_name, get_one as get_one_status
 from domino.services.resources.utils import get_result_count, upfile, create_dir, del_image, get_ext_at_file, remove_dir
-from domino.services.enterprise.users import get_one_by_username
 from domino.services.enterprise.userprofile import get_one as get_one_profile
                          
 def get_all(request:Request, profile_id:str, tourney_id:str, page: int, per_page: int, criteria_key: str, criteria_value: str, db: Session):  
@@ -231,15 +229,15 @@ def created_one_domino_tables(db_tourney, table_number:int, is_smart:bool, amoun
             db_files = FilesTables(id=file_id, position=i, is_ready=False)
             db_table.filestable.append(db_files)
         
-    # try:
-    if file:
-        upfile(file=file, path=path)
-    
-    db.add(db_table)
-    db.commit()
-    return True
-    # except (Exception, SQLAlchemyError, IntegrityError) as e:
-    #     raise HTTPException(status_code=403, detail='dominotable.error_insert_dominotable')
+    try:
+        if file:
+            upfile(file=file, path=path)
+        
+        db.add(db_table)
+        db.commit()
+        return True
+    except (Exception, SQLAlchemyError, IntegrityError) as e:
+        raise HTTPException(status_code=403, detail='dominotable.error_insert_dominotable')
     
 def delete(request: Request, table_id: str, db: Session):
     locale = request.headers["accept-language"].split(",")[0].split("-")[0];

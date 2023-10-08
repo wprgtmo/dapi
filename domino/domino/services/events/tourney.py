@@ -22,7 +22,7 @@ from domino.services.resources.utils import get_result_count
 from domino.services.events.event import get_one as get_one_event, get_all as get_all_event
 
 from domino.services.events.domino_table import configure_domino_tables
-from domino.services.events.domino_round import configure_domino_round
+from domino.services.events.domino_round import configure_new_rounds
 
 from domino.services.resources.utils import get_result_count, upfile, create_dir, del_image, get_ext_at_file, remove_dir
 from domino.services.enterprise.userprofile import get_one as get_one_profile
@@ -353,12 +353,12 @@ def configure_one_tourney(request, profile_id:str, tourney_id: str, settingtourn
         raise HTTPException(status_code=404, detail=_(locale, "tourney.setting_tables_failed"))
     
     # crear la primera ronda
-    # result_init = configure_domino_round(
-    #     db_tourney, amount_tables, amount_smart_tables, amount_bonus_tables, amount_bonus_points, number_bonus_round, 
-    #     amount_rounds, number_points_to_win, time_to_win, game_system, one_status_init, currentUser['username'], file=file, db=db)
+    result_init = configure_new_rounds(db_tourney, 'Ronda Inicial del Torneo', db=db, created_by=currentUser['username'])
     
-    # if not result_init:
-    #     raise HTTPException(status_code=404, detail=_(locale, "tourney.setting_rounds_failed"))
+    if not result_init:
+        raise HTTPException(status_code=404, detail=_(locale, "tourney.setting_rounds_failed"))
+    
+    # distribuir aleatoriamente los jugadores
     
     return result
     

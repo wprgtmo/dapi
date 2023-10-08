@@ -16,46 +16,41 @@ from domino.app import _
 from fastapi.responses import FileResponse
 from os import getcwd
 
-from domino.models.events.domino_tables import DominoTables
-from domino.models.events.tourney import Tourney
-from domino.models.events.tourney import Tourney, SettingTourney
+from domino.models.events.domino_round import DominoRounds
+from domino.models.events.tourney import SettingTourney
 
-from domino.schemas.events.tourney import TourneyCreated, SettingTourneyCreated
 from domino.schemas.events.events import EventBase, EventSchema
-from domino.schemas.resources.result_object import ResultObject, ResultData
+from domino.schemas.resources.result_object import ResultObject
 
 from domino.services.resources.status import get_one_by_name as get_one_status_by_name, get_one as get_one_status
-from domino.services.enterprise.users import get_one_by_username
-
 from domino.services.resources.utils import get_result_count, upfile, create_dir, del_image, get_ext_at_file, remove_dir
+from domino.services.enterprise.users import get_one_by_username
 from domino.services.enterprise.userprofile import get_one as get_one_profile
-            
-def get_all(request:Request, profile_id:str, page: int, per_page: int, criteria_key: str, criteria_value: str, db: Session):  
+                         
+def get_all(request:Request, profile_id:str, tourney_id:str, page: int, per_page: int, criteria_key: str, criteria_value: str, db: Session):  
     locale = request.headers["accept-language"].split(",")[0].split("-")[0];
     
     api_uri = str(settings.api_uri)
     
-    str_from = "FROM events.events eve " +\
-        "JOIN resources.entities_status sta ON sta.id = eve.status_id " +\
-        "JOIN resources.city city ON city.id = eve.city_id " +\
-        "JOIN resources.country country ON country.id = city.country_id " 
+    # verificar que el perfil sea admon del evento al cual pertenece el torneo.
+    db_member_profile = get_one_profile(id=profile_id, db=db)
+    if not db_member_profile:
+        raise HTTPException(status_code=400, detail=_(locale, "userprofile.not_found"))
+   
+    if db_member_profile.profile_type != 'EVENTADMON':
+        raise HTTPException(status_code=400, detail=_(locale, "userprofile.user_not_event_admon"))
+    
+    str_from = "FROM events.domino_tables dtab " +\
+        "JOIN events.tourney dtou ON dtou.id = dtab.tourney_id " +\
+        "JOIN events.setting_tourney stou ON stou.tourney_id = dtou.id "  
         
     str_count = "Select count(*) " + str_from
-    str_query = "Select eve.id, eve.name, start_date, close_date, registration_date, registration_price, city.name as city_name, " +\
-        "main_location, summary, image, eve.status_id, sta.name as status_name, country.id as country_id, city.id  as city_id, " +\
-        "eve.profile_id as profile_id " + str_from
+    str_query = "Select dtab.id, table_number, is_smart, amount_bonus, dtab.image, dtab.is_active, " +\
+        "dtou.id as tourney_id, dtou.name, stou.image as image_tourney " + str_from
     
-    str_where = " WHERE sta.name != 'CANCELLED' "  
+    str_where = " WHERE dtab.tourney_id = '" + tourney_id + "' "  
     
-    if profile_id:
-        str_where += "AND profile_id = '" + profile_id + "' "
-    # debo incluir los de los perfiles que el sigue
-    
-    dict_query = {'name': " AND eve.name ilike '%" + criteria_value + "%'",
-                  'summary': " AND summary ilike '%" + criteria_value + "%'",
-                  'city_name': " AND city_name ilike '%" + criteria_value + "%'",
-                  'start_date': " AND start_date >= '%" + criteria_value + "%'",
-                  }
+    dict_query = {'table_number': " AND table_number = " + criteria_value}
     
     str_count += str_where
     str_query += str_where
@@ -71,277 +66,138 @@ def get_all(request:Request, profile_id:str, page: int, per_page: int, criteria_
     
     result = get_result_count(page=page, per_page=per_page, str_count=str_count, db=db)
     
-    str_query += " ORDER BY start_date DESC " 
+    str_query += " ORDER BY table_number " 
     if page != 0:
         str_query += "LIMIT " + str(per_page) + " OFFSET " + str(page*per_page-per_page)
     
     lst_data = db.execute(str_query)
-    result.data = [create_dict_row(item, page, db=db, incluye_tourney=True, api_uri=api_uri) for item in lst_data]
+    result.data = [create_dict_row(item, tourney_id, page, db=db, api_uri=api_uri) for item in lst_data]
     
     return result
 
-def create_dict_row(item, page, db: Session, incluye_tourney=False, api_uri=""):
+def create_dict_row(item, tourney_id, page, db: Session, api_uri=""):
     
-    image = api_uri + "/api/image/" + str(item['profile_id']) + "/" + item['id'] + "/" + item['image']
+    image_name = item['image'] if item['image'] else item['image_tourney']
+    image = api_uri + "/api/public/advertising/" + str(item['tourney_id']) + "/" + image_name
     
-    new_row = {'id': item['id'], 'name': item['name'], 
-               'startDate': item['start_date'], 'endDate': item['close_date'], 
-               'country': item['country_id'], 'city': item['city_id'],
-               'city_name': item['city_name'], 'campus': item['main_location'], 
-               'summary' : item['summary'],
-               'photo' : image, 'tourney':[]}
+    new_row = {'id': item['id'], 'table_number': item['table_number'], 
+               'is_smart': item['is_smart'], 'amount_bonus': item['amount_bonus'], 
+               'tourney_name': item['name'], 'is_active': item['is_active'],
+               'photo' : image, 'filetables':[]}
     if page != 0:
         new_row['selected'] = False
+        
+    if item['is_smart']:
+        str_files = "Select id, position, is_ready from events.files_tables Where table_id = '" + item['id'] + "' "
+        lst_files = db.execute(str_files)
+        for item_f in lst_files:
+            new_row['filetables'].append({'file_id': item_f.id, 'position': item_f.position, 'is_ready': item_f.is_ready})
     
     return new_row
 
-def get_one(table_id: str, db: Session):  
-    return db.query(DominoTables).filter(DominoTables.id == table_id).first()
+def get_one(round_id: str, db: Session):  
+    return db.query(DominoRounds).filter(DominoRounds.id == round_id).first()
 
-def get_one_by_id(table_id: str, db: Session): 
+def get_one_by_id(round_id: str, db: Session): 
     result = ResultObject()  
     
-    api_uri = str(settings.api_uri)
-    
-    one_table = get_one(table_id, db=db)
-    if not one_table:
-        raise HTTPException(status_code=404, detail="dominotable.not_found")
+    one_round = get_one(round_id, db=db)
+    if not one_round:
+        raise HTTPException(status_code=404, detail="dominoround.not_found")
     
     str_query = "SELECT dtab.id, dtab.tourney_id, table_number, is_smart, amount_bonus, dtab.image, dtab.is_active, tourney.name " +\
         "FROM events.domino_tables dtab " + \
         "Join events.tourney ON tourney.id = dtab.tourney_id " +\
-        " WHERE dtab.id = '" + str(table_id) + "' "  
+        " WHERE dtab.id = '" + str(round_id) + "' "  
     lst_data = db.execute(str_query) 
     
     for item in lst_data: 
-        result.data = create_dict_row(item, 0, db=db, incluye_tourney=True, api_uri=api_uri)
+        result.data = [create_dict_row(item, one_round.tourney_id, 0, db=db) for item in lst_data]
         
     if not result.data:
-        raise HTTPException(status_code=404, detail="event.not_found")
+        raise HTTPException(status_code=404, detail="dominoround.not_found")
     
     return result
 
-def new(request: Request, profile_id:str, event: EventBase, db: Session, file: File):
+def configure_new_rounds(db_tourney, summary:str, db:Session, created_by:str):
+  
+    str_number = "SELECT round_number FROM events.domino_rounds where tourney_id = '45454' ORDER BY round_number DESC LIMIT 1; "
+    last_number = db.execute(str_number).fetchone()
     
+    round_number = 1 if not last_number else int(last_number) + 1
+    
+    status_creat = get_one_status_by_name('CREATED', db=db)
+    
+    id = str(uuid.uuid4())
+    db_round = DominoRounds(id=id, tourney_id=db_tourney.id, round_number=round_number, summary=summary,
+                            start_date=datetime.now(), close_date=datetime.now(), created_by=created_by, 
+                            updated_by=created_by, created_date=datetime.now(), updated_date=datetime.now(),
+                            status_id=status_creat.id)
+    
+    try:
+        db.add(db_round)
+        db.commit()
+        return True
+    except (Exception, SQLAlchemyError, IntegrityError) as e:
+        return False
+    
+def delete(request: Request, round_id: str, db: Session):
     locale = request.headers["accept-language"].split(",")[0].split("-")[0];
     
     result = ResultObject() 
     currentUser = get_current_user(request)
     
-    # si el perfil no es de administrador de eventos, no lo puede crear
+    db_round = get_one(round_id, db=db)
+    if not db_round:
+        raise HTTPException(status_code=404, detail=_(locale, "dominoround.not_found"))
     
-    db_member_profile = get_one_profile(id=profile_id, db=db)
-    if not db_member_profile:
-        raise HTTPException(status_code=400, detail=_(locale, "userprofile.not_found"))
-   
-    if db_member_profile.profile_type != 'EVENTADMON':
-        raise HTTPException(status_code=400, detail=_(locale, "userprofile.user_not_event_admon"))
-    
-    one_status = get_one_status_by_name('CREATED', db=db)
-    if not one_status:
-        raise HTTPException(status_code=404, detail=_(locale, "status.not_found"))
-    
-    verify_dates(event['start_date'], event['close_date'], locale)
-    
-    id = str(uuid.uuid4())
-    if file:
-        ext = get_ext_at_file(file.filename)
-        file.filename = str(id) + "." + ext
+    status_canc = get_one_status_by_name('CANCELLED', db=db)
         
-        path = create_dir(entity_type="EVENT", user_id=str(db_member_profile.id), entity_id=str(id))
+    change_status_round(db_round, status_canc, currentUser['username'], db=db)
     
-    db_event = Event(id=id, name=event['name'], summary=event['summary'], start_date=event['start_date'], 
-                    close_date=event['close_date'], registration_date=event['start_date'], 
-                    image=file.filename if file else None, registration_price=float(0.00), 
-                    city_id=event['city_id'], main_location=event['main_location'], status_id=one_status.id,
-                    created_by=currentUser['username'], updated_by=currentUser['username'], 
-                    profile_id=profile_id)
-    
-    try:
-        if file:
-            upfile(file=file, path=path)
-        
-        db.add(db_event)
-        db.commit()
-        result.data = {'id': id}
-        return result
-       
-    except (Exception, SQLAlchemyError, IntegrityError) as e:
-        print(e)
-        msg = _(locale, "event.error_new_event")               
-        raise HTTPException(status_code=403, detail=msg)
+    return result
 
-def verify_dates(start_date, close_date, locale):
-    
-    if start_date > close_date:
-        raise HTTPException(status_code=404, detail=_(locale, "dominotable.start_date_incorrect"))
-    
-    return True
-
-def configure_domino_round(settingtourney: SettingTourneyCreated, db: Session, created_by:str, file=None):
-   
-    
-    # verificar que no exista ese numero de mesa en ese torneo
-    str_query = "SELECT count(dtab.id) FROM events.domino_tables dtab " +\
-        "where dtab.tourney_id = '" + tourney_id + "' and table_number = " + str(table_number)
-        
-    amount = db.execute(str_query).fetchone()[0]
-    if amount > 0:
-        return False
-    
-    id = str(uuid.uuid4())
-    if file:
-        ext = get_ext_at_file(file.filename)
-        file.filename = str(id) + "." + ext
-        
-        path = create_dir(entity_type="SETTOURNEY", user_id=None, entity_id=str(id))
-        
-    
-    db_table = DominoTables(id=id, tourney_id=tourney_id, table_number=table_number, is_smart=is_smart,
-                            amount_bonus=amount_bonus, is_active=True, created_by=created_by,
-                            image=file.filename if file else None,
-                            updated_by=created_by, created_date=datetime.now(), updated_date=datetime.now())
-        
-    try:
-        if file:
-            upfile(file=file, path=path)
-        
-        db.add(db_table)
-        db.commit()
-        return True
-    except (Exception, SQLAlchemyError, IntegrityError) as e:
-        raise HTTPException(status_code=403, detail='dominotable.error_insert_dominotable')
-    
-def created_one_domino_round(tourney_id:str, table_number:int, is_smart:bool, amount_bonus:int, db: Session, 
-                              created_by:str, file=None):
-    
-    # verificar que no exista ese numero de mesa en ese torneo
-    str_query = "SELECT count(dtab.id) FROM events.domino_tables dtab " +\
-        "where dtab.tourney_id = '" + tourney_id + "' and table_number = " + str(table_number)
-        
-    amount = db.execute(str_query).fetchone()[0]
-    if amount > 0:
-        return False
-    
-    id = str(uuid.uuid4())
-    if file:
-        ext = get_ext_at_file(file.filename)
-        file.filename = str(id) + "." + ext
-        
-        path = create_dir(entity_type="SETTOURNEY", user_id=None, entity_id=str(id))
-        
-    
-    db_table = DominoTables(id=id, tourney_id=tourney_id, table_number=table_number, is_smart=is_smart,
-                            amount_bonus=amount_bonus, is_active=True, created_by=created_by,
-                            image=file.filename if file else None,
-                            updated_by=created_by, created_date=datetime.now(), updated_date=datetime.now())
-        
-    try:
-        if file:
-            upfile(file=file, path=path)
-        
-        db.add(db_table)
-        db.commit()
-        return True
-    except (Exception, SQLAlchemyError, IntegrityError) as e:
-        raise HTTPException(status_code=403, detail='dominotable.error_insert_dominotable')
-    
-def delete(request: Request, table_id: str, db: Session):
-    locale = request.headers["accept-language"].split(",")[0].split("-")[0];
-    
-    result = ResultObject() 
-    currentUser = get_current_user(request)
-    
-    db_table = get_one(table_id, db=db)
-    if not db_table:
-        raise HTTPException(status_code=404, detail=_(locale, "dominotable.not_found"))
-        
-    try:
-        db_table.is_active = False
-        db_table.updated_by = currentUser['username']
-        db_table.updated_date = datetime.now()
-        db.commit()
-            
-        if db_table.image:
-            
-            path = "/public/advertising/"
-            try:
-                del_image(path=path, name=str(db_table.image))
-            except:
-                pass
-            return result
-        else:
-            raise HTTPException(status_code=404, detail=_(locale, "dominotable.not_found"))
-        
-    except (Exception, SQLAlchemyError) as e:
-        print(e)
-        raise HTTPException(status_code=404, detail=_(locale, "dominotable.imposible_delete"))
-    
-def update(request: Request, event_id: str, event: EventBase, db: Session, file: File):
+def start_round(request: Request, round_id: str, db: Session):
     locale = request.headers["accept-language"].split(",")[0].split("-")[0];
     
     result = ResultObject() 
     currentUser = get_current_user(request) 
-       
-    db_event = db.query(Event).filter(Event.id == event_id).first()
     
-    if db_event:
-        
-        if db_event.status_id == 4:  # FINALIZED
-            raise HTTPException(status_code=400, detail=_(locale, "event.event_closed"))
+    db_round = get_one(round_id, db=db)
+    if not db_round:
+        raise HTTPException(status_code=404, detail=_(locale, "dominoround.not_found"))
     
-        if event['name'] and db_event.name != event['name']:
-            db_event.name = event['name']
-        
-        if event['summary'] and db_event.summary != event['summary']:    
-            db_event.summary = event['summary']
-        
-        if file:
-            ext = get_ext_at_file(file.filename)
+    status_init = get_one_status_by_name('INITIADED', db=db)
+    
+    change_status_round(db_round, status_init, currentUser['username'], db=db)
+    
+    return result
+
+def close_round(request: Request, round_id: str, db: Session):
+    locale = request.headers["accept-language"].split(",")[0].split("-")[0];
+    
+    result = ResultObject() 
+    currentUser = get_current_user(request) 
+    
+    db_round = get_one(round_id, db=db)
+    if not db_round:
+        raise HTTPException(status_code=404, detail=_(locale, "dominoround.not_found"))
+    
+    status_init = get_one_status_by_name('FINALIZED', db=db)
+    
+    change_status_round(db_round, status_init, currentUser['username'], db=db)
+    
+    return result
             
-            current_image = db_event.image
-            file.filename = str(uuid.uuid4()) + "." + ext if ext else str(uuid.uuid4())
-            path = create_dir(entity_type="EVENT", user_id=str(currentUser['user_id']), entity_id=str(db_event.id))
+def change_status_round(db_round, status, username, db: Session):
+    
+    db_round.sttaus_id = status.id
+    db_round.updated_by = username
+    db_round.updated_date = datetime.now()
             
-            user_created = get_one_by_username(db_event.created_by, db=db)
-            path_del = "/public/events/" + str(user_created.id) + "/" + str(db_event.id) + "/"
-            try:
-                del_image(path=path_del, name=str(current_image))
-            except:
-                pass
-            upfile(file=file, path=path)
-            db_event.image = file.filename
-        
-        if event['start_date'] and db_event.start_date != event['start_date']:    
-            db_event.start_date = event['start_date']
-            
-        if event['close_date'] and db_event.close_date != event['close_date']:    
-            db_event.close_date = event['close_date']
-            
-        if event['city_id'] and db_event.city_id != event['city_id']:    
-            db_event.city_id = event['city_id']
-            
-        if event['main_location'] and db_event.main_location != event['main_location']:    
-            db_event.main_location = event['main_location']
-        
-        #desde la interfaz, los que no vengan borrarlos, si vienen nuevos insertarlos, si coinciden modificarlos
-        str_tourney_iface = ""
-        dict_tourney = {}
-        for item in db_event.tourney:
-            dict_tourney[item.id] = item
-        
-        db_event.updated_by = currentUser['username']
-        db_event.updated_date = datetime.now()
-                
-        try:
-            db.add(db_event)
-            db.commit()
-            db.refresh(db_event)
-            return result
-        except (Exception, SQLAlchemyError) as e:
-            print(e.code)
-            if e.code == "gkpj":
-                raise HTTPException(status_code=400, detail=_(locale, "event.already_exist"))
-            
-    else:
-        pass
+    try:
+        db.add(db_round)
+        db.commit()
+        return True
+    except (Exception, SQLAlchemyError) as e:
+        return False
