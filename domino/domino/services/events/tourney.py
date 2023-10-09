@@ -272,7 +272,7 @@ def initializes_tourney(db_tourney, amount_tables, amount_smart_tables, amount_b
                                   number_points_to_win=number_points_to_win, time_to_win=time_to_win, game_system=game_system)
     
     sett_tourney.tourney_id = db_tourney.id
-    sett_tourney.image = file.filename
+    sett_tourney.image = file.filename if file else None
     db_tourney.status_id = status_init.id
     db_tourney.updated_by = created_by
     
@@ -291,6 +291,10 @@ def initializes_tourney(db_tourney, amount_tables, amount_smart_tables, amount_b
         
 def configure_one_tourney(request, profile_id:str, tourney_id: str, settingtourney: SettingTourneyCreated, file: File, db: Session):
     locale = request.headers["accept-language"].split(",")[0].split("-")[0];
+    
+    print('informacion')
+    print(settingtourney)
+    print('***************')
     
     result = ResultObject() 
     currentUser = get_current_user(request)
@@ -320,18 +324,18 @@ def configure_one_tourney(request, profile_id:str, tourney_id: str, settingtourn
     
     amount_tables = calculate_amount_tables(db_tourney.id, db_tourney.modality, db=db)
     
-    try:
-        amount_smart_tables = int(settingtourney['amount_smart_tables'])
-        amount_bonus_tables = int(settingtourney['amount_bonus_tables'])
-        amount_bonus_points = int(settingtourney['amount_bonus_points'])
-        number_bonus_round = int(settingtourney['number_bonus_round'])
-        amount_rounds = int(settingtourney['amount_rounds'])
-        number_points_to_win = int(settingtourney['number_points_to_win'])
-        time_to_win = int(settingtourney['time_to_win'])
-        game_system = str(settingtourney['game_system'])
+    # try:
+    amount_smart_tables = int(settingtourney['amount_smart_tables'])
+    amount_bonus_tables = int(settingtourney['amount_bonus_tables'])
+    amount_bonus_points = int(settingtourney['amount_bonus_points'])
+    number_bonus_round = int(settingtourney['number_bonus_round'])
+    amount_rounds = int(settingtourney['amount_rounds'])
+    number_points_to_win = int(settingtourney['number_points_to_win'])
+    time_to_win = int(settingtourney['time_to_win'])
+    game_system = str(settingtourney['game_system'])
         
-    except:
-        raise HTTPException(status_code=404, detail=_(locale, "tourney.setting_incorrect"))
+    # except:
+    #     raise HTTPException(status_code=404, detail=_(locale, "tourney.setting_incorrect"))
     
     if amount_smart_tables > amount_tables:
         raise HTTPException(status_code=404, detail=_(locale, "tourney.smarttable_incorrect"))

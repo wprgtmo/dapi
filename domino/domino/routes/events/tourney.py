@@ -54,6 +54,12 @@ def amount_tables(request:Request, id: str, db: Session = Depends(get_db)):
 @tourney_route.post("/tourney/setting/{profile_id}", response_model=ResultObject, summary="Configure Tourney..")
 def configure_tourney(request:Request, profile_id: str, id: str, settingtourney: SettingTourneyCreated = Depends(), 
                       image: UploadFile = None, db: Session = Depends(get_db)):
+    print('informacion')
+    print(settingtourney)
+    print(profile_id)
+    print(id)
+    print(settingtourney.dict())
+    print('***************')
     return configure_one_tourney(request=request, profile_id=profile_id, tourney_id=id,
                                  settingtourney=settingtourney.dict(), file=image, db=db)
 
