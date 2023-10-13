@@ -1,5 +1,35 @@
 
+DROP TABLE IF EXISTS events.setting_tourney;
 
+CREATE TABLE IF NOT EXISTS events.setting_tourney
+(
+    tourney_id character varying COLLATE pg_catalog."default" NOT NULL,
+    amount_tables integer NOT NULL,
+    amount_smart_tables integer NOT NULL,
+    amount_rounds integer NOT NULL,
+    use_bonus boolean NOT NULL,
+    amount_bonus_tables integer NOT NULL,
+    amount_bonus_points integer NOT NULL,
+    number_bonus_round integer NOT NULL,
+    image text COLLATE pg_catalog."default",
+    number_points_to_win integer NOT NULL,
+    time_to_win integer NOT NULL,
+    game_system character varying(120) COLLATE pg_catalog."default" NOT NULL,
+    lottery_type character varying(120) COLLATE pg_catalog."default" NOT NULL,
+    penalties_limit integer NOT NULL,
+    CONSTRAINT setting_tourney_pkey PRIMARY KEY (tourney_id),
+    CONSTRAINT setting_tourney_tourney_id_fkey FOREIGN KEY (tourney_id)
+        REFERENCES events.tourney (id) MATCH SIMPLE
+        ON UPDATE NO ACTION
+        ON DELETE NO ACTION
+)
+
+TABLESPACE pg_default;
+
+ALTER TABLE IF EXISTS events.setting_tourney
+    OWNER to postgres;
+
+    
 --Para borrar configuracion de un torneo
 DELETE FROM events.files_tables 
 where table_id IN (Select id from events.domino_tables where tourney_id = 'ce894036-e52f-4dbf-a07a-21a802948612')
