@@ -149,9 +149,9 @@ def get_all_players_by_tourney(request:Request, page: int, per_page: int, tourne
     if not db_tourney:
         raise HTTPException(status_code=404, detail=_(locale, "tourney.not_found"))
     
-    status_created = get_one_by_name('CREATED', db=db)
-    if db_tourney.status_id != status_created.id:
-        raise HTTPException(status_code=404, detail=_(locale, "tourney.status_incorrect"))
+    # status_created = get_one_by_name('CREATED', db=db)
+    # if db_tourney.status_id != status_created.id:
+    #     raise HTTPException(status_code=404, detail=_(locale, "tourney.status_incorrect"))
             
     str_from = "FROM events.players " +\
         "inner join enterprise.profile_member pro ON pro.id = players.profile_id " +\
