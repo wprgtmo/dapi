@@ -1,4 +1,6 @@
 
+
+--Subiendo mas
 DROP TABLE IF EXISTS events.setting_tourney;
 
 CREATE TABLE IF NOT EXISTS events.setting_tourney
@@ -29,7 +31,7 @@ TABLESPACE pg_default;
 ALTER TABLE IF EXISTS events.setting_tourney
     OWNER to postgres;
 
-    
+
 --Para borrar configuracion de un torneo
 DELETE FROM events.files_tables 
 where table_id IN (Select id from events.domino_tables where tourney_id = 'ce894036-e52f-4dbf-a07a-21a802948612')
