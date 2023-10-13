@@ -149,15 +149,20 @@ class SettingTourney(Base):
     tourney_id = Column(String, ForeignKey("events.tourney.id"), primary_key=True)
     amount_tables = Column(Integer, nullable=False, default=1)
     amount_smart_tables = Column(Integer, nullable=False, default=0)
+    amount_rounds = Column(Integer, nullable=False, default=1)
+    
+    use_bonus = Column(Boolean, nullable=False, default=False)
     amount_bonus_tables = Column(Integer, nullable=False, default=0)
     amount_bonus_points = Column(Integer, nullable=False, default=0)
     number_bonus_round = Column(Integer, nullable=False, default=0)
     image = Column(Text, nullable=True)
-    amount_rounds = Column(Integer, nullable=False, default=1)
+    
     number_points_to_win = Column(Integer, nullable=False, default=0)
     time_to_win = Column(Integer, nullable=False, default=0)
     game_system = Column(String(120), nullable=False)
+    lottery_type = Column(String(120), nullable=False)
     
+    penalties_limit = Column(Integer, nullable=False, default=0)
     
     def dict(self):
         return {
@@ -170,7 +175,9 @@ class SettingTourney(Base):
             "amount_rounds": self.amount_rounds,
             "number_points_to_win": self.number_points_to_win,
             "time_to_win": self.time_to_win,
-            "game_system": self.game_system
+            "game_system": self.game_system,
+            'lottery_type': self.lottery_type,
+            'penalties_limit': self.penalties_limit
         }
             
 # class Pairs(Base):

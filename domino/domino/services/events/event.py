@@ -25,7 +25,7 @@ from domino.schemas.resources.result_object import ResultObject, ResultData
 from domino.services.resources.status import get_one_by_name as get_one_status_by_name, get_one as get_one_status
 from domino.services.enterprise.users import get_one_by_username
 
-from domino.services.resources.utils import get_result_count, upfile, create_dir, del_image, get_ext_at_file, remove_dir
+from domino.services.resources.utils import get_result_count, upfile, create_dir, del_image, get_ext_at_file, remove_dir, copy_image
 from domino.services.enterprise.userprofile import get_one as get_one_profile
             
 def get_all(request:Request, profile_id:str, page: int, per_page: int, criteria_key: str, criteria_value: str, db: Session):  
@@ -80,7 +80,7 @@ def get_all(request:Request, profile_id:str, page: int, per_page: int, criteria_
 
 def create_dict_row(item, page, db: Session, incluye_tourney=False, api_uri=""):
     
-    image = api_uri + "/api/image/" + str(item['profile_id']) + "/" + item['id'] + "/" + item['image']
+    image = api_uri + "/api/image/" + str(item['profile_id']) + "/" + item['id'] + "/" + item['image'] if item['image'] else None
     
     new_row = {'id': item['id'], 'name': item['name'], 
                'startDate': item['start_date'], 'endDate': item['close_date'], 
@@ -151,13 +151,16 @@ def new(request: Request, profile_id:str, event: EventBase, db: Session, file: F
     
     verify_dates(event['start_date'], event['close_date'], locale)
     
+    path = create_dir(entity_type="EVENT", user_id=str(db_member_profile.id), entity_id=str(id))
+    
     id = str(uuid.uuid4())
     if file:
         ext = get_ext_at_file(file.filename)
         file.filename = str(id) + "." + ext
         
-        path = create_dir(entity_type="EVENT", user_id=str(db_member_profile.id), entity_id=str(id))
-    
+    else:
+        file.filename = str(id) + ".jpg"
+        
     db_event = Event(id=id, name=event['name'], summary=event['summary'], start_date=event['start_date'], 
                     close_date=event['close_date'], registration_date=event['start_date'], 
                     image=file.filename if file else None, registration_price=float(0.00), 
@@ -168,7 +171,12 @@ def new(request: Request, profile_id:str, event: EventBase, db: Session, file: F
     try:
         if file:
             upfile(file=file, path=path)
-        
+        else:
+            image_domino="public/user-vector.jpg"
+            filename = str(id) + ".jpg"
+            image_destiny = path + filename
+            copy_image(image_domino, image_destiny)
+            
         db.add(db_event)
         db.commit()
         result.data = {'id': id}

@@ -920,6 +920,32 @@ def update_one_single_profile(request: Request, id: str, singleprofile: SinglePr
         print(e.code)
         if e.code == "gkpj":
             raise HTTPException(status_code=400, detail=_(locale, "userprofile.already_exist"))
+        
+def update_elo_single_profile(request: Request, profile_id: str, elo: float, db: Session):
+    locale = request.headers["accept-language"].split(",")[0].split("-")[0];
+    
+    result = ResultObject() 
+    currentUser = get_current_user(request)
+    
+    db_single_profile = get_one_single_profile_by_id(profile_id, db=db) 
+    if not db_single_profile:
+        raise HTTPException(status_code=400, detail=_(locale, "userprofile.not_found"))
+    
+    try:
+        db_single_profile.elo = elo
+        
+        db_single_profile.updated_by = currentUser['username']
+        db_single_profile.updated_date = datetime.now()
+        
+        db.add(db_single_profile)
+        db.commit()
+        
+        return result
+    
+    except (Exception, SQLAlchemyError) as e:
+        print(e.code)
+        if e.code == "gkpj":
+            raise HTTPException(status_code=400, detail=_(locale, "userprofile.already_exist"))
 
 def update_one_pair_profile(request: Request, id: str, pairprofile: PairProfileCreated, file: File, db: Session):
     locale = request.headers["accept-language"].split(",")[0].split("-")[0];

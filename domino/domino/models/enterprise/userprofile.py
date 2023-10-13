@@ -5,7 +5,7 @@ import uuid
 
 from datetime import datetime, date
 from sqlalchemy import Column, ForeignKey
-from sqlalchemy.sql.sqltypes import String, Boolean, Integer, Date, DateTime
+from sqlalchemy.sql.sqltypes import String, Boolean, Integer, Date, DateTime, Float
 from ...config.db import Base
 from sqlalchemy.orm import relationship
 
@@ -114,7 +114,7 @@ class SingleProfile(Base):
     __table_args__ = {'schema' : 'enterprise'}
     
     profile_id = Column(String, ForeignKey("enterprise.profile_member.id"), primary_key=True)
-    elo = Column(Integer, nullable=True)
+    elo = Column(Float, nullable=True)
     ranking = Column(String(2), nullable=True)
     
     level = Column(String(60), nullable=True)
@@ -183,7 +183,7 @@ class PairProfile(Base):
     
     profile_id = Column(String, ForeignKey("enterprise.profile_member.id"), primary_key=True)
     
-    elo = Column(Integer, nullable=True)
+    elo = Column(Float, nullable=True)
     ranking = Column(String(2), nullable=True)
     
     level = Column(String(60), nullable=True)
@@ -207,7 +207,7 @@ class TeamProfile(Base):
     
     profile_id = Column(String, ForeignKey("enterprise.profile_member.id"), primary_key=True)
     
-    elo = Column(Integer, nullable=True)
+    elo = Column(Float, nullable=True)
     ranking = Column(String(2), nullable=True)
     
     level = Column(String(60), nullable=True)

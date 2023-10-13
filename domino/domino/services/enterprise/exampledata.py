@@ -29,7 +29,8 @@ from domino.services.resources.utils import create_dir, copy_image
 
 from domino.services.enterprise.profiletype import get_one as get_profile_type_by_id, get_one_by_name as get_profile_type_by_name
 from domino.services.enterprise.users import new as new_user, get_one as get_user_by_id
-from domino.services.enterprise.userprofile import get_one_default_user, get_user_for_single_profile_by_user, verify_exist_pair_player
+from domino.services.enterprise.userprofile import get_one_default_user, get_user_for_single_profile_by_user, verify_exist_pair_player, \
+    get_one_single_profile_by_id
 from domino.services.enterprise.comunprofile import new_profile
 from domino.services.enterprise.userprofile import get_one_profile_by_user
 
@@ -80,7 +81,7 @@ def insert_user_examples(request:Request, db: Session):
     
     #usuarios aleatorios.
     lst_user = []
-    lst_name = ['uno', 'dos', 'tres', 'cuatro', 'cinco', 'seis', 'siete', 'ocho']
+    lst_name = ['uno', 'dos', 'tres', 'cuatro', 'cinco', 'seis', 'siete', 'ocho', 'nueve', 'diez']
     for item in lst_name:
         username, first_name, last_name = 'usuario.' + item, item, item
         email = 'user.' + item + '@gmail.com'
@@ -88,7 +89,7 @@ def insert_user_examples(request:Request, db: Session):
     data = [create_generic_user(request, item, 'La Habana', db=db) for item in lst_user]
     
     lst_user = []
-    lst_name = ['uno_a', 'dos_a', 'tres_a', 'cuatro_a', 'cinco_a', 'seis_a', 'siete_a', 'ocho_a']
+    lst_name = ['uno_a', 'dos_a', 'tres_a', 'cuatro_a', 'cinco_a', 'seis_a', 'siete_a', 'ocho_a', 'nueve_a', 'diez_a']
     for item in lst_name:
         username, first_name, last_name = 'usuario.' + item, item, item
         email = 'user.' + item + '@gmail.com'
@@ -96,7 +97,31 @@ def insert_user_examples(request:Request, db: Session):
     data = [create_generic_user(request, item, 'Artemisa', db=db) for item in lst_user]
     
     lst_user = []
-    lst_name = ['uno_e', 'dos_e', 'tres_e', 'cuatro_e', 'cinco_e', 'seis_e', 'siete_e', 'ocho_e']
+    lst_name = ['uno_b', 'dos_b', 'tres_b', 'cuatro_b', 'cinco_b', 'seis_b', 'siete_b', 'ocho_b', 'nueve_b', 'diez_b']
+    for item in lst_name:
+        username, first_name, last_name = 'usuario.' + item, item, item
+        email = 'user.' + item + '@gmail.com'
+        lst_user.append(UserCreate(username=username, first_name=first_name, last_name=last_name, email=email, country_id=1, password='Pi=3.1418'))
+    data = [create_generic_user(request, item, 'Mayabeque', db=db) for item in lst_user]
+    
+    lst_user = []
+    lst_name = ['uno_e', 'dos_e', 'tres_e', 'cuatro_e', 'cinco_e', 'seis_e', 'siete_e', 'ocho_e', 'nueve_e', 'diez_e']
+    for item in lst_name:
+        username, first_name, last_name = 'usuario.' + item, item, item
+        email = 'user.' + item + '@gmail.com'
+        lst_user.append(UserCreate(username=username, first_name=first_name, last_name=last_name, email=email, country_id=1, password='Pi=3.1418'))
+    data = [create_generic_user(request, item, 'Mayabeque', db=db) for item in lst_user]
+    
+    lst_user = []
+    lst_name = ['uno_o', 'dos_o', 'tres_o', 'cuatro_o', 'cinco_o', 'seis_o', 'siete_o', 'ocho_o', 'nueve_o', 'diez_o']
+    for item in lst_name:
+        username, first_name, last_name = 'usuario.' + item, item, item
+        email = 'user.' + item + '@gmail.com'
+        lst_user.append(UserCreate(username=username, first_name=first_name, last_name=last_name, email=email, country_id=1, password='Pi=3.1418'))
+    data = [create_generic_user(request, item, 'Mayabeque', db=db) for item in lst_user]
+    
+    lst_user = []
+    lst_name = ['uno_u', 'dos_u', 'tres_u', 'cuatro_u', 'cinco_u', 'seis_u', 'siete_u', 'ocho_u', 'nueve_u', 'diez_u']
     for item in lst_name:
         username, first_name, last_name = 'usuario.' + item, item, item
         email = 'user.' + item + '@gmail.com'
@@ -167,9 +192,12 @@ def insert_others_profiles(request:Request, db: Session):
     data = [create_event_admon(request, item, 'Guantánamo', db=db) for item in lst_admon]
     
     lst_user_singles = []
-    lst_name = ['uno', 'dos', 'tres', 'cuatro', 'cinco', 'seis', 'siete', 'ocho']
-    lst_name_a = ['uno_a', 'dos_a', 'tres_a', 'cuatro_a', 'cinco_a', 'seis_a', 'siete_a', 'ocho_a']
-    lst_name_b = ['uno_e', 'dos_e', 'tres_e', 'cuatro_e', 'cinco_e', 'seis_e', 'siete_e', 'ocho_e']
+    lst_name = ['uno', 'dos', 'tres', 'cuatro', 'cinco', 'seis', 'siete', 'ocho', 'nueve', 'diez']
+    lst_name_a = ['uno_a', 'dos_a', 'tres_a', 'cuatro_a', 'cinco_a', 'seis_a', 'siete_a', 'ocho_a', 'nueve_a', 'diez_a']
+    lst_name_b = ['uno_b', 'dos_b', 'tres_b', 'cuatro_b', 'cinco_b', 'seis_b', 'siete_b', 'ocho_b', 'nueve_b', 'diez_b']
+    lst_name_e = ['uno_e', 'dos_e', 'tres_e', 'cuatro_e', 'cinco_e', 'seis_e', 'siete_e', 'ocho_e', 'nueve_e', 'diez_e']
+    lst_name_o = ['uno_o', 'dos_o', 'tres_o', 'cuatro_o', 'cinco_o', 'seis_o', 'siete_o', 'ocho_o', 'nueve_o', 'diez_o']
+    lst_name_u = ['uno_u', 'dos_u', 'tres_u', 'cuatro_u', 'cinco_u', 'seis_u', 'siete_u', 'ocho_u', 'nueve_u', 'diez_u']
     
     for item in lst_name:
         lst_user_singles.append('usuario.' + item)
@@ -177,18 +205,60 @@ def insert_others_profiles(request:Request, db: Session):
         lst_user_singles.append('usuario.' + item)
     for item in lst_name_b:
         lst_user_singles.append('usuario.' + item)
+    for item in lst_name_e:
+        lst_user_singles.append('usuario.' + item)
+    for item in lst_name_o:
+        lst_user_singles.append('usuario.' + item)
+    for item in lst_name_u:
+        lst_user_singles.append('usuario.' + item)
     data = [create_single_player(request, item, 'Artemisa', db=db) for item in lst_user_singles]
     
     lst_user_pair = []
-    for num in range(7):
+    for num in range(9):
         one_player = 'usuario.' + lst_name[num]
         two_player = 'usuario.' + lst_name_a[num]
+        lst_user_pair.append({'one_player': one_player, 'two_player': two_player})
+        one_player = 'usuario.' + lst_name_b[num]
+        two_player = 'usuario.' + lst_name_e[num]
+        lst_user_pair.append({'one_player': one_player, 'two_player': two_player})
+        one_player = 'usuario.' + lst_name_o[num]
+        two_player = 'usuario.' + lst_name_u[num]
         lst_user_pair.append({'one_player': one_player, 'two_player': two_player})
     
     data = [create_pair_player(request, item, 'La Habana', db=db) for item in lst_user_pair]
     
     return True
 
+def update_elo(request:Request, db: Session):
+    
+    str_query = "SELECT profile_id FROM enterprise.profile_single_player sin " +\
+        "join enterprise.profile_member mem ON mem.id = sin.profile_id " +\
+        "Where profile_type = 'SINGLE_PLAYER' and is_active=True"
+        
+    lst_data = db.execute(str_query)
+    
+    elo, inc_elo = 1700.00, 0.0025
+    for item in lst_data:
+        inc_elo+=0.005
+        update_elo_single_profile(item.profile_id, float(elo + (elo*inc_elo)), db=db) 
+        
+    return True
+
+def update_elo_single_profile(profile_id:str, elo:float, db: Session):
+    
+    db_single_profile = get_one_single_profile_by_id(profile_id, db=db) 
+    if not db_single_profile:
+       return True
+    
+    try:
+        db_single_profile.elo = elo
+        db.add(db_single_profile)
+        db.commit()
+        return True
+    
+    except (Exception, SQLAlchemyError) as e:
+        return False
+        
 def create_single_player(request:Request, item, city_name:str, db: Session):
     
     city = get_city_by_name(city_name, db=db)
@@ -342,18 +412,20 @@ def create_event_admon(request:Request, item, city_name:str, db: Session):
 
 #region Events
 
-def create_events(request:Request, db: Session):
+def create_events(request:Request, username, db: Session):
     
-    profile_admon_id = get_one_profile_by_user('miry', 'EVENTADMON', db=db)
+    profile_admon_id = get_one_profile_by_user(username, 'EVENTADMON', db=db)
     if not profile_admon_id:
+        print('not admon')
         return True
 
     one_status = get_one_status_by_name('CREATED', db=db)
     if not one_status:
+        print('not status')
         return True
     
     start_date = datetime.today()
-    close_date = start_date + timedelta(days=60)
+    close_date = start_date + timedelta(days=90)
     
     id = str(uuid.uuid4())
     city = get_city_by_name('La Habana', db=db)
@@ -361,14 +433,20 @@ def create_events(request:Request, db: Session):
     str_query = "SELECT count(id) FROM events.events Where name = 'Serie Nacional del Domino'"
     amount = db.execute(str_query).fetchone()[0]
     if amount > 0:
+        print('amount > 0')
         return True
     
+    filename = str(id) + ".jpg"
     db_event = Event(id=id, name='Serie Nacional del Domino', summary='Evento de Pruebas', start_date=start_date, 
-                     close_date=close_date, registration_date=start_date, image=None, registration_price=float(0.00), 
+                     close_date=close_date, registration_date=start_date, image=filename, registration_price=float(0.00), 
                      city_id=city.id, main_location='Sede Principal Edificio UNO', status_id=one_status.id,
                     created_by='miry', updated_by='miry', profile_id=profile_admon_id                                                    )
     
     try:
+        image_domino="public/user-vector.jpg"
+        path = create_dir(entity_type="EVENT", user_id=str(profile_admon_id), entity_id=str(id))
+        image_destiny = path + filename
+        copy_image(image_domino, image_destiny)
         db.add(db_event)
         db.commit()
         return True
