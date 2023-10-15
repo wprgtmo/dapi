@@ -121,7 +121,8 @@ def get_one_by_id(round_id: str, db: Session):
 
 def configure_new_rounds(db_tourney, summary:str, db:Session, created_by:str):
   
-    str_number = "SELECT round_number FROM events.domino_rounds where tourney_id = '45454' ORDER BY round_number DESC LIMIT 1; "
+    str_number = "SELECT round_number FROM events.domino_rounds where tourney_id = '" + db_tourney.id + "' " +\
+        "ORDER BY round_number DESC LIMIT 1; "
     last_number = db.execute(str_number).fetchone()
     
     round_number = 1 if not last_number else int(last_number) + 1

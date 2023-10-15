@@ -180,7 +180,7 @@ def verify_dates(start_date, close_date, locale):
 
 def configure_domino_tables(db_tourney, settingtourney: SettingTourney, db: Session, created_by:str, file=None):
     
-    bonus = settingtourney.amount_bonus_points // settingtourney.amount_bonus_tables
+    bonus = settingtourney.amount_bonus_points
     table_number = 0
     amount_trad_tables = settingtourney.amount_tables - settingtourney.amount_smart_tables
    
@@ -189,13 +189,13 @@ def configure_domino_tables(db_tourney, settingtourney: SettingTourney, db: Sess
         for i in range(settingtourney.amount_smart_tables):
             table_number += 1
             created_one_domino_tables(db_tourney, table_number, True, bonus, db, created_by)
-            bonus -= 1
+            bonus -= 2
     
     # crear las mesas tradicionales
     for i in range(amount_trad_tables):
         table_number += 1
         created_one_domino_tables(db_tourney, table_number, False, bonus, db, created_by)
-        bonus -= 1
+        bonus -= 2
         
     return True
    

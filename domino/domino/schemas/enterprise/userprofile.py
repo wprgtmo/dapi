@@ -48,8 +48,8 @@ class ProfileUsersSchema(ProfileUsersBase):
 
 class ProfileSinglePlayerBase(BaseModel):
     profile_id: str
-    elo: int
-    ranking: str
+    elo: float
+    ranking: int
     level: str
     
 class ProfileSinglePlayerSchema(ProfileSinglePlayerBase):

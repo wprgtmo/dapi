@@ -180,10 +180,10 @@ def get_all_players_by_tourney(request:Request, page: int, per_page: int, tourne
     
     result = get_result_count(page=page, per_page=per_page, str_count=str_count, db=db)
     
-    str_query += " ORDER BY players.updated_date DESC " 
+    str_query += " ORDER BY player.ranking ASC " 
     if page != 0:
         str_query += "LIMIT " + str(per_page) + " OFFSET " + str(page*per_page-per_page)
-     
+    
     lst_data = db.execute(str_query)
     result.data = [create_dict_row(item, page, db=db, api_uri=api_uri) for item in lst_data]
     

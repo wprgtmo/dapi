@@ -356,18 +356,17 @@ def configure_one_tourney(request, profile_id:str, tourney_id: str, settingtourn
         raise HTTPException(status_code=404, detail=_(locale, "tourney.setting_tourney_failed"))
       
     # crear las mesas y sus ficheros
-    # result_init = configure_domino_tables(
-    #     db_tourney, one_settingtourney, db, currentUser['username'], file=file)
-    # if not result_init:
-    #     raise HTTPException(status_code=404, detail=_(locale, "tourney.setting_tables_failed"))
+    result_init = configure_domino_tables(
+        db_tourney, one_settingtourney, db, currentUser['username'], file=file)
+    if not result_init:
+        raise HTTPException(status_code=404, detail=_(locale, "tourney.setting_tables_failed"))
     
     # crear la primera ronda
-    # result_init = configure_new_rounds(db_tourney, 'Ronda Inicial del Torneo', db=db, created_by=currentUser['username'])
+    result_init = configure_new_rounds(db_tourney, 'Ronda Inicial del Torneo', db=db, created_by=currentUser['username'])
+    if not result_init:
+        raise HTTPException(status_code=404, detail=_(locale, "tourney.setting_rounds_failed"))
     
-    # if not result_init:
-    #     raise HTTPException(status_code=404, detail=_(locale, "tourney.setting_rounds_failed"))
-    
-    # distribuir aleatoriamente los jugadores
+    # distribuir aleatoriamente los jugadores, esto se hace en el sorteo
     
     return result
     

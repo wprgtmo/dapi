@@ -115,7 +115,7 @@ class SingleProfile(Base):
     
     profile_id = Column(String, ForeignKey("enterprise.profile_member.id"), primary_key=True)
     elo = Column(Float, nullable=True)
-    ranking = Column(String(2), nullable=True)
+    ranking = Column(Integer, nullable=True)
     
     level = Column(String(60), nullable=True)
     
@@ -184,7 +184,7 @@ class PairProfile(Base):
     profile_id = Column(String, ForeignKey("enterprise.profile_member.id"), primary_key=True)
     
     elo = Column(Float, nullable=True)
-    ranking = Column(String(2), nullable=True)
+    ranking = Column(Integer, nullable=True)
     
     level = Column(String(60), nullable=True)
     
@@ -208,7 +208,7 @@ class TeamProfile(Base):
     profile_id = Column(String, ForeignKey("enterprise.profile_member.id"), primary_key=True)
     
     elo = Column(Float, nullable=True)
-    ranking = Column(String(2), nullable=True)
+    ranking = Column(Integer, nullable=True)
     
     level = Column(String(60), nullable=True)
     amount_members = Column(Integer, default=4)

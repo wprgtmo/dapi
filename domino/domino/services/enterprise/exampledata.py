@@ -30,7 +30,7 @@ from domino.services.resources.utils import create_dir, copy_image
 from domino.services.enterprise.profiletype import get_one as get_profile_type_by_id, get_one_by_name as get_profile_type_by_name
 from domino.services.enterprise.users import new as new_user, get_one as get_user_by_id
 from domino.services.enterprise.userprofile import get_one_default_user, get_user_for_single_profile_by_user, verify_exist_pair_player, \
-    get_one_single_profile_by_id
+    get_one_single_profile_by_id, get_one_pair_profile
 from domino.services.enterprise.comunprofile import new_profile
 from domino.services.enterprise.userprofile import get_one_profile_by_user
 
@@ -231,34 +231,77 @@ def insert_others_profiles(request:Request, db: Session):
 
 def update_elo(request:Request, db: Session):
     
+    update_single_elo(db=db)
+    update_pair_elo(db=db)
+    
+    return True
+
+def update_single_elo(db: Session):
+    
+    # dict_level = {'Beginner': 'Principiante', 'Intermediate': 'Intermedio', 'Advanced': '', 'Expert': 'Experto'} 
+    dict_level = {'0': 'Experto', '1': 'Experto', '2': 'Experto',  
+                  '3': 'Avanzado', '4': 'Avanzado', '5': 'Avanzado', 
+                  '6': 'Intermedio', '7': 'Intermedio',  
+                  '8': 'Principiante', '9': 'Principiante'} 
+    
     str_query = "SELECT profile_id FROM enterprise.profile_single_player sin " +\
         "join enterprise.profile_member mem ON mem.id = sin.profile_id " +\
         "Where profile_type = 'SINGLE_PLAYER' and is_active=True"
         
     lst_data = db.execute(str_query)
     
-    elo, inc_elo = 1700.00, 0.0025
+    elo, inc_elo = 2700.00, 0.0025
+    ranking = 0
     for item in lst_data:
-        inc_elo+=0.005
-        update_elo_single_profile(item.profile_id, float(elo + (elo*inc_elo)), db=db) 
+        db_single_profile = get_one_single_profile_by_id(item.profile_id, db=db) 
+        if not db_single_profile:
+            continue
+   
+        inc_elo-=0.005
+        ranking += 1
+        db_single_profile.elo = float(elo + (elo*inc_elo))
+        db_single_profile.level = dict_level[str(ranking)[-1:]]
+        db_single_profile.ranking = ranking
         
+        db.commit()
+     
     return True
 
-def update_elo_single_profile(profile_id:str, elo:float, db: Session):
+def update_pair_elo(db: Session):
     
-    db_single_profile = get_one_single_profile_by_id(profile_id, db=db) 
-    if not db_single_profile:
-       return True
+    # el Elo de la Pareja es el promedio de la de sus integrantes.
     
-    try:
-        db_single_profile.elo = elo
-        db.add(db_single_profile)
-        db.commit()
-        return True
+    # dict_level = {'Beginner': 'Principiante', 'Intermediate': 'Intermedio', 'Advanced': '', 'Expert': 'Experto'} 
+    dict_level = {'0': 'Experto', '1': 'Experto', '2': 'Experto',  
+                  '3': 'Avanzado', '4': 'Avanzado', '5': 'Avanzado', 
+                  '6': 'Intermedio', '7': 'Intermedio',  
+                  '8': 'Principiante', '9': 'Principiante'} 
     
-    except (Exception, SQLAlchemyError) as e:
-        return False
+    str_query = "SELECT pair.profile_id, SUM(sin.elo) as elo FROM enterprise.profile_pair_player pair " +\
+        "join enterprise.profile_member mem ON mem.id = pair.profile_id " +\
+        "join enterprise.profile_users users ON users.profile_id = pair.profile_id " +\
+        "join enterprise.profile_single_player sin ON sin.profile_id = users.single_profile_id " +\
+        "Where mem.profile_type = 'PAIR_PLAYER' and mem.is_active=True " +\
+        "Group by pair.profile_id Order by SUM(sin.elo) DESC "
         
+    lst_data = db.execute(str_query)
+    
+    ranking = 0
+    for item in lst_data:
+        db_pair_profile = get_one_pair_profile(item.profile_id, db=db) 
+        if not db_pair_profile:
+            continue
+   
+        ranking += 1
+        db_pair_profile.elo = float(item.elo)/2
+        db_pair_profile.level = dict_level[str(ranking)[-1:]]
+        db_pair_profile.ranking = ranking
+        
+        db.commit()
+     
+    return True
+
+
 def create_single_player(request:Request, item, city_name:str, db: Session):
     
     city = get_city_by_name(city_name, db=db)
@@ -663,4 +706,36 @@ def created_players(request:Request, db: Session):
     #     return False
     
     
+#endregion
+
+#region limpiar base de datos
+
+def clear_all_bd(request:Request, db: Session):
+    
+    #limpiando configuracion de torneos y eventos
+    str_del_events = "DELETE FROM events.files_tables; DELETE FROM events.domino_tables; DELETE FROM events.domino_rounds; " +\
+        "DELETE FROM events.setting_tourney; DELETE FROM events.players; DELETE FROM events.referees; " +\
+        "DELETE FROM events.invitations; DELETE FROM events.tourney; DELETE FROM events.events; COMMIT; "
+        
+    db.execute(str_del_events)
+    
+    #limipando post
+    str_del_post = "DELETE FROM post.comment_comments; DELETE FROM post.comment_likes; DELETE FROM post.post_comments; " +\
+        "DELETE FROM post.post_files; DELETE FROM post.post_likes; DELETE FROM post.post; COMMIT; "
+        
+    db.execute(str_del_post)
+    
+    #limpiando perfiles
+    str_del_profile = "DELETE FROM enterprise.profile_followers; DELETE FROM enterprise.profile_event_admon; " +\
+        "DELETE FROM enterprise.profile_pair_player; DELETE FROM enterprise.profile_team_player; " +\
+        "DELETE FROM enterprise.profile_single_player; DELETE FROM enterprise.profile_referee; " +\
+        "DELETE FROM enterprise.profile_default_user; DELETE FROM enterprise.profile_users; " +\
+        "DELETE FROM enterprise.profile_member; DELETE FROM enterprise.user_eventroles; " +\
+        "DELETE FROM enterprise.user_followers; DELETE FROM enterprise.users; COMMIT; "
+        
+    db.execute(str_del_profile)
+    
+    return True
+
+
 #endregion

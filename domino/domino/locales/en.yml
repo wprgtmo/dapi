@@ -49,7 +49,7 @@ en:
     imposible_delete: 'Imposible delete'
     already_exist: ' already_exist'
     dates_incorrect: 'Dates incorrect.'
-event:
+  event:
     error_new_post: 'Error new post'
     not_found: 'Post not found.'
     imposible_delete: 'Imposible delete'
@@ -67,6 +67,11 @@ event:
     start_date_incorrect: 'Wrong begin date'
     registration_date_incorrect: 'Wrong registration date'
     tourney_closed: 'Tourney is closed'
+    status_incorrect: 'Tournament Status does not allow the action to be carried out'
+    is_configurated: 'Tourney is configurated'
+    setting_tourney_failed: 'Configure Tourney failed'
+    setting_tables_failed: 'Configure Tables failed'
+    setting_rounds_failed: 'Configure Rounds failed'
   invitation:
     not_exist: 'Invitation not found.'
     not_found: 'Invitation not found.'
