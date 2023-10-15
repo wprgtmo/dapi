@@ -68,6 +68,7 @@ from domino.routes.enterprise.eventadmon_profile import eventadmonprofile_route
 from domino.routes.resources.ext_type import type_ext_route
 from domino.routes.resources.exampledata import exampledata_route
 from domino.routes.events.setting_tourney import settingtourney_route
+from domino.routes.events.scale import dominoscale_route
 
 @app.get("/docs", include_in_schema=False)
 async def custom_swagger_ui_html():
@@ -119,6 +120,7 @@ app.include_router(follower_route, prefix="/api")
 app.include_router(type_ext_route, prefix="/api")
 app.include_router(exampledata_route, prefix="/api") 
 app.include_router(settingtourney_route, prefix="/api")
+app.include_router(dominoscale_route, prefix="/api")
 
 @app.post("/file")
 def upfile(file: UploadFile = File(...)):

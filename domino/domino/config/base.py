@@ -12,3 +12,6 @@ from ..models.enterprise.userprofile import *
 from ..models.resources.type_ext import *
 from ..models.events.domino_tables import *
 from ..models.events.domino_round import *
+from ..models.events.domino_boletus import *
+from ..models.events.domino_scale import *
+from ..models.events.domino_data import *
