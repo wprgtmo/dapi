@@ -717,9 +717,11 @@ def created_players(request:Request, db: Session):
 def clear_all_bd(request:Request, db: Session):
     
     #limpiando configuracion de torneos y eventos
-    str_del_events = "DELETE FROM events.files_tables; DELETE FROM events.domino_tables; DELETE FROM events.domino_rounds; " +\
+    str_del_events = "DELETE FROM events.domino_boletus_position; DELETE FROM events.domino_boletus; " +\
+        "DELETE FROM events.domino_data; DELETE FROM events.domino_scale; DELETE FROM events.domino_rounds; " +\
+        "DELETE FROM events.domino_rounds; DELETE FROM events.files_tables; DELETE FROM events.domino_tables; " +\
         "DELETE FROM events.setting_tourney; DELETE FROM events.players; DELETE FROM events.referees; " +\
-        "DELETE FROM events.invitations; DELETE FROM events.tourney; DELETE FROM events.events; COMMIT; "
+        "DELETE FROM events.invitations; DELETE FROM events.tourney; DELETE FROM events.events; COMMIT; " 
         
     db.execute(str_del_events)
     
