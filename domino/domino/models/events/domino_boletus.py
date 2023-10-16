@@ -4,6 +4,7 @@ from datetime import date
 from sqlalchemy import Column, ForeignKey, Index, UniqueConstraint
 from sqlalchemy.sql.sqltypes import String, Integer, Date, Boolean, Text, DateTime
 from ...config.db import Base
+from sqlalchemy.orm import relationship
 
 def generate_uuid():
     return str(uuid.uuid4())
@@ -21,6 +22,10 @@ class DominoBoletus(Base):
     player_id = Column(String, ForeignKey("events.players.id"), nullable=False)
     is_valid = Column(Boolean, nullable=False, default=True)
     is_winner = Column(Boolean, nullable=False, default=False)
+    
+    boletus_position = relationship("DominoBoletusPosition")
+    
+    tourney = ("Tourney")
     
     def dict(self):
         return {

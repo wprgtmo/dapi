@@ -98,3 +98,5 @@ es:
   referee:
     not_found: 'Arbitro no encontrado'
     already_exist: 'Perfil ya incluido como arbitro en el torneo'
+  round:
+    not_initial_round: 'Torneo no está en la ronda Inicial'

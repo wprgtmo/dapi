@@ -8,7 +8,7 @@ from domino.auth_bearer import JWTBearer
 
 from domino.services.enterprise.exampledata import insert_user_examples, insert_others_profiles, create_events, \
     create_tourneys, created_invitations_tourneys, accepted_invitations_tourneys, created_players, update_elo, \
-    clear_all_bd
+    clear_all_bd, distribute_all_player
   
 exampledata_route = APIRouter(
     tags=["ExampleData"],
@@ -50,3 +50,7 @@ def acepted_invitations_tourney_data(request:Request, db: Session = Depends(get_
 @exampledata_route.post("/exampledata/step_9_players", summary="Created Players")
 def insert_players_data(request:Request, db: Session = Depends(get_db)):
     return created_players(request, db=db)
+
+@exampledata_route.post("/exampledata/step_10_players", summary="Distibuir Jugadores Players")
+def distribute_player_data(request:Request, tourney_id:str, round_id:str, db: Session = Depends(get_db)):
+    return distribute_all_player(request, tourney_id=tourney_id, round_id=round_id, db=db)

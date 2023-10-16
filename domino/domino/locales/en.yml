@@ -91,3 +91,5 @@ en:
     not_found: 'Player not found'
   referee:
     not_found: 'Referee not found'
+  round:
+    not_initial_round: 'Not initial round'

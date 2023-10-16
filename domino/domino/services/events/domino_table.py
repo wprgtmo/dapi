@@ -98,6 +98,10 @@ def create_dict_row(item, tourney_id, page, db: Session, api_uri=""):
 def get_one(table_id: str, db: Session):  
     return db.query(DominoTables).filter(DominoTables.id == table_id).first()
 
+def get_lst_tables(tourney_id: str, db: Session):  
+    # debo devolverlas ordenadas
+    return db.query(DominoTables).filter(DominoTables.tourney_id == tourney_id).order_by(DominoTables.table_number).all()
+
 def get_one_by_id(table_id: str, db: Session): 
     result = ResultObject()  
     
