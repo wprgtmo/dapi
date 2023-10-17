@@ -27,23 +27,22 @@ from domino.services.events.domino_round import configure_new_rounds
 from domino.services.resources.utils import get_result_count, upfile, create_dir, del_image, get_ext_at_file, remove_dir
 from domino.services.enterprise.userprofile import get_one as get_one_profile
             
-def get_all(request:Request, page: int, per_page: int, criteria_key: str, criteria_value: str, db: Session):  
+def get_all(request:Request, page: int, per_page: int, tourney_id:str, criteria_key: str, criteria_value: str, db: Session):  
     locale = request.headers["accept-language"].split(",")[0].split("-")[0];
     
-    str_from = "FROM events.tourney tou " +\
-        "JOIN events.events eve ON eve.id = tou.event_id " +\
-        "JOIN resources.entities_status sta ON sta.id = tou.status_id " 
+    str_from = "FROM events.domino_rounds " +\
+        "JOIN resources.entities_status sts ON sts.id = domino_rounds.status_id " +\
+        "JOIN events.tourney ON tourney.id = domino_rounds.tourney_id " 
     
     str_count = "Select count(*) " + str_from
-    str_query = "Select tou.id, event_id, eve.name as event_name, tou.modality, tou.name, tou.summary, tou.start_date, " +\
-        "tou.status_id, sta.name as status_name " + str_from
+    str_query = "SELECT domino_rounds.id, round_number, domino_rounds.summary, domino_rounds.start_date, " +\
+        "domino_rounds.close_date, domino_rounds.status_id, sts.description as status_name, tourney.name, tourney.modality " + str_from
     
-    str_where = " WHERE sta.name != 'CANCELLED' "  
+    str_where = " WHERE domino_rounds.tourney_id = '" + tourney_id + "' "  
     
-    dict_query = {'name': " AND eve.name ilike '%" + criteria_value + "%'",
+    dict_query = {'round_number': " AND eround_number = " + criteria_value + "",
                   'summary': " AND summary ilike '%" + criteria_value + "%'",
-                  'modality': " AND modality ilike '%" + criteria_value + "%'",
-                  'start_date': " AND start_date >= '%" + criteria_value + "%'",
+                  'modality': " AND modality ilike '%" + criteria_value + "%'"
                   }
     
     str_count += str_where
@@ -60,7 +59,7 @@ def get_all(request:Request, page: int, per_page: int, criteria_key: str, criter
     
     result = get_result_count(page=page, per_page=per_page, str_count=str_count, db=db)
     
-    str_query += " ORDER BY start_date " 
+    str_query += " ORDER BY round_number ASC " 
     
     if page != 0:
         str_query += "LIMIT " + str(per_page) + " OFFSET " + str(page*per_page-per_page)
@@ -72,8 +71,9 @@ def get_all(request:Request, page: int, per_page: int, criteria_key: str, criter
 
 def create_dict_row(item, page, db: Session):
     
-    new_row = {'id': item['id'], 'event_id': item['event_id'], 'event_name': item['event_name'], 'name': item['name'], 
-               'modality': item['modality'], 'summary' : item['summary'], 'startDate': item['start_date'] 
+    new_row = {'id': item['id'], 'round_number': item['round_number'], 'summary': item['summary'], 'start_date': item['start_date'], 
+               'close_date': item['close_date'], 'tournay_name' : item['name'], 'modality': item['modality'],
+               'status_id': item['status_id'], 'status_name': item['status_name']
                }
        
     if page != 0:

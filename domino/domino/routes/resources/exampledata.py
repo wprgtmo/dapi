@@ -23,7 +23,7 @@ def insert_data(request:Request, db: Session = Depends(get_db)):
 def insert_data(request:Request, db: Session = Depends(get_db)):
     return insert_user_examples(request, db=db)
 
-@exampledata_route.post("/exampledata/step_3_profiles", summary="Crate Others profiles")
+@exampledata_route.post("/exampledata/step_3_profiles", summary="Create Others profiles")
 def insert_profile_data(request:Request, db: Session = Depends(get_db)):
     return insert_others_profiles(request, db=db)
 

@@ -26,7 +26,7 @@ from domino.services.resources.status import get_one_by_name as get_one_status_b
 from domino.services.enterprise.users import get_one_by_username
 
 from domino.services.resources.utils import get_result_count, upfile, create_dir, del_image, get_ext_at_file, remove_dir, copy_image
-from domino.services.enterprise.userprofile import get_one as get_one_profile
+from domino.services.enterprise.userprofile import get_one as get_one_profile, get_one_profile_by_user
             
 def get_all(request:Request, profile_id:str, page: int, per_page: int, criteria_key: str, criteria_value: str, db: Session):  
     locale = request.headers["accept-language"].split(",")[0].split("-")[0];
@@ -240,6 +240,11 @@ def update(request: Request, event_id: str, event: EventBase, db: Session, file:
        
     db_event = db.query(Event).filter(Event.id == event_id).first()
     
+    # para modificar el rol tiene que ser admon de evento.
+    profile_admon_id = get_one_profile_by_user(currentUser['username'], 'EVENTADMON', db=db)
+    if not profile_admon_id:
+        raise HTTPException(status_code=400, detail=_(locale, "userprofile.user_not_event_admon"))
+    
     if db_event:
         
         if db_event.status_id == 4:  # FINALIZED
@@ -256,10 +261,9 @@ def update(request: Request, event_id: str, event: EventBase, db: Session, file:
             
             current_image = db_event.image
             file.filename = str(uuid.uuid4()) + "." + ext if ext else str(uuid.uuid4())
-            path = create_dir(entity_type="EVENT", user_id=str(currentUser['user_id']), entity_id=str(db_event.id))
+            path = create_dir(entity_type="EVENT", user_id=profile_admon_id, entity_id=str(db_event.id))
             
-            user_created = get_one_by_username(db_event.created_by, db=db)
-            path_del = "/public/events/" + str(user_created.id) + "/" + str(db_event.id) + "/"
+            path_del = "/public/events/" + str(profile_admon_id) + "/" + str(db_event.id) + "/"
             try:
                 del_image(path=path_del, name=str(current_image))
             except:

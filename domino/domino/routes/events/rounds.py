@@ -27,7 +27,8 @@ def get_rounds(
     criteria_value: str = "",
     db: Session = Depends(get_db)
 ):
-    return get_all(request=request, page=page, per_page=per_page, criteria_key=criteria_key, criteria_value=criteria_value, db=db)
+    return get_all(request=request, page=page, per_page=per_page, tourney_id=tourney_id, criteria_key=criteria_key, 
+                   criteria_value=criteria_value, db=db)
 
 @rounds_route.get("/rounds/tables/", response_model=Dict, summary="Obtain a list of Tables at Rounds.")
 def get_tables(

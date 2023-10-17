@@ -30,9 +30,8 @@ from domino.services.resources.utils import create_dir, copy_image
 from domino.services.enterprise.profiletype import get_one as get_profile_type_by_id, get_one_by_name as get_profile_type_by_name
 from domino.services.enterprise.users import new as new_user, get_one as get_user_by_id
 from domino.services.enterprise.userprofile import get_one_default_user, get_user_for_single_profile_by_user, verify_exist_pair_player, \
-    get_one_single_profile_by_id, get_one_pair_profile
+    get_one_single_profile_by_id, get_one_pair_profile, get_one_profile_by_user
 from domino.services.enterprise.comunprofile import new_profile
-from domino.services.enterprise.userprofile import get_one_profile_by_user
 
 from domino.services.events.event import get_one_by_name as get_event_by_name
 from domino.services.events.tourney import get_one_by_name as get_tourney_by_name
@@ -166,7 +165,8 @@ def create_generic_user(request:Request, usercreated: UserCreate, city_name, db:
 def insert_others_profiles(request:Request, db: Session):
     
     lst_user_singles = ['miry', 'richard', 'reiny', 'roxy', 'roxley', 'jorge']
-    lst_user_pair = [{'one_player': 'miry', 'two_player': 'richard'}, {'one_player': 'reiny', 'two_player': 'jorge'}, {'one_player': 'roxy', 'two_player': 'roxley'}]
+    lst_user_pair = [{'one_player': 'miry', 'two_player': 'richard'}, {'one_player': 'reiny', 'two_player': 'jorge'}, 
+                     {'one_player': 'roxy', 'two_player': 'roxley'}]
     lst_user_referee = ['jorge']
     lst_admon = ['miry', 'richard']
     
@@ -176,7 +176,8 @@ def insert_others_profiles(request:Request, db: Session):
     data = [create_event_admon(request, item, 'Cienfuegos', db=db) for item in lst_admon]
     
     lst_user_singles = ['migue', 'migueldavid', 'milvia', 'eloisa', 'mayte', 'fernandito']
-    lst_user_pair = [{'one_player': 'migue', 'two_player': 'migueldavid'}, {'one_player': 'milvia', 'two_player': 'eloisa'}, {'one_player': 'mayte', 'two_player': 'fernandito'}]
+    lst_user_pair = [{'one_player': 'migue', 'two_player': 'migueldavid'}, {'one_player': 'milvia', 'two_player': 'eloisa'}, 
+                     {'one_player': 'mayte', 'two_player': 'fernandito'}]
     lst_user_referee = ['fernandito']
     lst_admon = ['migue']
     
@@ -186,7 +187,8 @@ def insert_others_profiles(request:Request, db: Session):
     data = [create_event_admon(request, item, 'Matanzas', db=db) for item in lst_admon]
     
     lst_user_singles = ['wilfre', 'senen', 'osmany', 'chicho', 'alexeis', 'juanairis', 'aniela']
-    lst_user_pair = [{'one_player': 'wilfre', 'two_player': 'senen'}, {'one_player': 'osmany', 'two_player': 'chicho'}, {'one_player': 'alexeis', 'two_player': 'juanairis'}]
+    lst_user_pair = [{'one_player': 'wilfre', 'two_player': 'senen'}, {'one_player': 'osmany', 'two_player': 'chicho'}, 
+                     {'one_player': 'alexeis', 'two_player': 'juanairis'}]
     lst_user_referee = ['wilfre', 'senen']
     lst_admon = ['wilfre', 'senen']
     
@@ -202,6 +204,7 @@ def insert_others_profiles(request:Request, db: Session):
     lst_name_e = ['uno_e', 'dos_e', 'tres_e', 'cuatro_e', 'cinco_e', 'seis_e', 'siete_e', 'ocho_e', 'nueve_e', 'diez_e']
     lst_name_o = ['uno_o', 'dos_o', 'tres_o', 'cuatro_o', 'cinco_o', 'seis_o', 'siete_o', 'ocho_o', 'nueve_o', 'diez_o']
     lst_name_u = ['uno_u', 'dos_u', 'tres_u', 'cuatro_u', 'cinco_u', 'seis_u', 'siete_u', 'ocho_u', 'nueve_u', 'diez_u']
+    lst_user_referee = ['uno', 'dos']
     
     for item in lst_name:
         lst_user_singles.append('usuario.' + item)
@@ -216,6 +219,7 @@ def insert_others_profiles(request:Request, db: Session):
     for item in lst_name_u:
         lst_user_singles.append('usuario.' + item)
     data = [create_single_player(request, item, 'Artemisa', db=db) for item in lst_user_singles]
+    data = [create_referee(request, item, 'Artemisa', db=db) for item in lst_user_referee]
     
     lst_user_pair = []
     for num in range(9):
@@ -396,19 +400,11 @@ def create_referee(request:Request, item, city_name:str, db: Session):
 
     id = str(uuid.uuid4())
     one_profile = new_profile(profile_type, id, me_profile_id, item, item, None, city.id, True, True, True, 
-                              "REFEREE", item, item, None, is_confirmed=True, single_profile_id=me_profile_id)
+                              "USERPROFILE", item, item, None, is_confirmed=True, single_profile_id=me_profile_id)
     
     one_referee_user = RefereeProfile(profile_id=id, level='NORMAL', updated_by=item)
     one_profile.profile_referee_player.append(one_referee_user)
     
-    path = create_dir(entity_type="USERPROFILE", user_id=str(id), entity_id=id)
-    
-    image_domino="public/user-vector.jpg"
-    filename = str(id) + ".jpg"
-    image_destiny = path + filename
-    copy_image(image_domino, image_destiny)
-    one_profile.photo = filename
-     
     try:   
         db.add(one_profile)
         db.commit()
