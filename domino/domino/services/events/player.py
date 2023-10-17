@@ -175,15 +175,18 @@ def get_all_players_by_tourney(request:Request, page: int, per_page: int, tourne
     dict_query = {'username': " AND username.username = '" + criteria_value + "'"}
     if criteria_key and criteria_key not in dict_query:
         raise HTTPException(status_code=404, detail=_(locale, "commun.invalid_param"))
-    
+    else:
+        if criteria_key == 'username':
+            str_where += "AND pro.id IN (Select profile_id from enterprise.profile_users WHERE username = '" + str(criteria_value) + "')"
+            
+        else:
+            str_where += dict_query[criteria_key] if criteria_value else "" 
+            
     str_count += str_where
     str_query += str_where
 
     if page and page > 0 and not per_page:
         raise HTTPException(status_code=404, detail=_(locale, "commun.invalid_param"))
-    
-    str_count += dict_query[criteria_key] if criteria_value else "" 
-    str_query += dict_query[criteria_key] if criteria_value else ""
     
     result = get_result_count(page=page, per_page=per_page, str_count=str_count, db=db)
     
