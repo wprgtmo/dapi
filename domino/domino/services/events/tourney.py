@@ -101,6 +101,12 @@ def get_one_by_id(tourney_id: str, db: Session):
     if lst_data:
         for item in lst_data:
             result.data = create_dict_row(item, 0, db=db)
+            
+    # incluir los datos del setting del torneo
+    setting = get_setting_tourney(tourney_id, db=db)
+    if setting:
+        result.data['setting'] = setting
+        
     return result
 
 def get_all_by_event_id(event_id: str, db: Session): 

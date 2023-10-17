@@ -8,8 +8,8 @@ from domino.auth_bearer import JWTBearer
 from domino.schemas.events.tourney import TourneyBase, TourneyCreated, SettingTourneyCreated
 from domino.schemas.resources.result_object import ResultObject
 
-from domino.services.events.tourney import get_all, new, get_one_by_id, delete, update, get_all_by_event_id, \
-    get_amount_tables, configure_one_tourney
+from domino.services.events.domino_round import get_all
+    
 from domino.services.events.domino_scale import get_all_players_by_tables
   
 rounds_route = APIRouter(

@@ -56,5 +56,15 @@ def configure_tourney(request:Request, profile_id: str, id: str, settingtourney:
                       image: UploadFile = None, db: Session = Depends(get_db)):
     return configure_one_tourney(request=request, profile_id=profile_id, tourney_id=id,
                                  settingtourney=settingtourney.dict(), file=image, db=db)
-
-
+    
+@tourney_route.get("/tourney/setting/tables/{id}", response_model=ResultObject, summary="Get List of tables")
+def get_tables(
+    request: Request,
+    id: str,
+    page: int = 1, 
+    per_page: int = 6, 
+    criteria_key: str = "",
+    criteria_value: str = "",
+    db: Session = Depends(get_db)
+):
+    return get_all(request=request, page=page, per_page=per_page, tourney_id=id, criteria_key=criteria_key, criteria_value=criteria_value, db=db)
