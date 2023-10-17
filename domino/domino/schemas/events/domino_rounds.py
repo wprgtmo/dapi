@@ -7,6 +7,6 @@ from typing import Optional
         
         
 class DominoScaleCreated(BaseModel):
-    player_id: str
-    position_number: str
+    id: str
+    number: int
     

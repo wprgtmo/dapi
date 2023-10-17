@@ -15,3 +15,13 @@ update events.tourney
 SET status_id = 1
 where id = 'ce894036-e52f-4dbf-a07a-21a802948612'
 
+DELETE FROM events.files_tables 
+
+DELETE FROM events.domino_tables
+
+DELETE FROM events.domino_rounds
+
+DELETE FROM events.setting_tourney
+
+SELECT * FROM events.tourney
+

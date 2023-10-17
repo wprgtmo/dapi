@@ -29,8 +29,8 @@ from domino.services.enterprise.auth import get_url_avatar
 
 from domino.services.events.tourney import get_one as get_one_tourney, get_setting_tourney
 
-# def new_initial_round(request: Request, tourney_id:str, dominoscale: list[DominoScaleCreated], db: Session):
-def new_initial_round(request: Request, tourney_id:str, dominoscale: str, db: Session):
+def new_initial_round(request: Request, tourney_id:str, dominoscale: list[DominoScaleCreated], db: Session):
+# def new_initial_round(request: Request, tourney_id:str, dominoscale: str, db: Session):
     locale = request.headers["accept-language"].split(",")[0].split("-")[0];
     
     result = ResultObject() 
@@ -42,8 +42,8 @@ def new_initial_round(request: Request, tourney_id:str, dominoscale: str, db: Se
     
     one_status_init = get_one_status_by_name('INITIADED', db=db)
     
-    if db_tourney.status_id != one_status_init.id:
-        raise HTTPException(status_code=404, detail=_(locale, "tourney.tourney_closed"))
+    # if db_tourney.status_id != one_status_init.id:
+    #     raise HTTPException(status_code=404, detail=_(locale, "tourney.tourney_closed"))
     
     one_settingtourney = get_setting_tourney(db_tourney.id, db=db)
     if not one_settingtourney:
@@ -75,12 +75,9 @@ def new_initial_round(request: Request, tourney_id:str, dominoscale: str, db: Se
   
 def initial_scale_by_manual_lottery(tourney_id: str, round_id: str, dominoscale:str, db: Session):
     
-    lst_dominoscale = dominoscale.split(';')
-    for item in lst_dominoscale:
-        info_position = item.split(',')
-        
+    for item in dominoscale:
         one_scale = DominoScale(id=str(uuid.uuid4()), tourney_id=tourney_id, round_id=round_id, round_number=1, 
-                                position_number=int(info_position[1]), player_id=info_position[0], is_active=True)
+                                position_number=int(item.number), player_id=item.id, is_active=True)
         db.add(one_scale)
         
     db.commit()

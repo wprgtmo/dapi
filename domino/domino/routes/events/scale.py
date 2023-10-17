@@ -26,12 +26,7 @@ dominoscale_route = APIRouter(
 # ):
 #     return get_all(request=request, page=page, per_page=per_page, criteria_key=criteria_key, criteria_value=criteria_value, db=db)
 
-
 @dominoscale_route.post("/domino/scale/initial", response_model=ResultObject, summary="Create Initial Scale..")
-def create_initial_scale(request:Request, tourney_id: str, dominoscale: str, db: Session = Depends(get_db)):
-    return new_initial_round(request=request, tourney_id=tourney_id, dominoscale=dominoscale, db=db)
-
-# @dominoscale_route.post("/domino/scale/initial", response_model=ResultObject, summary="Create Initial Scale..")
-# def create_initial_scale(request:Request, tourney_id: str, dominoscale: List[DominoScaleCreated], db: Session = Depends(get_db)):
-#     return new_intial_round(request=request, tourney_id=tourney_id, dominoscale=dominoscale, db=db)
+def create_initial_scale(request:Request, tourney_id: str, loterry: List[DominoScaleCreated], db: Session = Depends(get_db)):
+    return new_initial_round(request=request, tourney_id=tourney_id, dominoscale=loterry, db=db)
 

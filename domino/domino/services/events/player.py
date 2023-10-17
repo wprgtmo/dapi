@@ -140,7 +140,7 @@ def remove_player(request: Request, player_id: str, db: Session):
         raise HTTPException(status_code=404, detail="No es posible eliminar")
     return result
     
-def get_all_players_by_tourney(request:Request, page: int, per_page: int, tourney_id: str, is_active: bool, db: Session):  
+def get_all_players_by_tourney(request:Request, page: int, per_page: int, tourney_id: str, is_active: bool, criteria_key: str, criteria_value: str, db: Session):  
     locale = request.headers["accept-language"].split(",")[0].split("-")[0];
     
     api_uri = str(settings.api_uri)
@@ -172,11 +172,18 @@ def get_all_players_by_tourney(request:Request, page: int, per_page: int, tourne
     str_where = "WHERE pro.is_ready is True and players.is_active is " + str(is_active) 
     str_where += " AND players.tourney_id = '" + tourney_id + "' " 
     
+    dict_query = {'username': " AND username.username = '" + criteria_value + "'"}
+    if criteria_key and criteria_key not in dict_query:
+        raise HTTPException(status_code=404, detail=_(locale, "commun.invalid_param"))
+    
     str_count += str_where
     str_query += str_where
 
     if page and page > 0 and not per_page:
         raise HTTPException(status_code=404, detail=_(locale, "commun.invalid_param"))
+    
+    str_count += dict_query[criteria_key] if criteria_value else "" 
+    str_query += dict_query[criteria_key] if criteria_value else ""
     
     result = get_result_count(page=page, per_page=per_page, str_count=str_count, db=db)
     
