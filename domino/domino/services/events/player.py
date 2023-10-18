@@ -222,7 +222,7 @@ def get_all_players_by_tourney(request:Request, page: int, per_page: int, tourne
         raise HTTPException(status_code=404, detail=_(locale, "commun.invalid_param"))
     else:
         if criteria_key == 'username' and criteria_value:
-            str_where += "AND pro.id IN (Select profile_id from enterprise.profile_users WHERE username = '" + str(criteria_value) + "')"
+            str_where += "AND pro.id IN (Select profile_id from enterprise.profile_users WHERE username ilike '%" + str(criteria_value) + "%')"
             
         # else:
         #     str_where += dict_query[criteria_key] if criteria_value else "" 
