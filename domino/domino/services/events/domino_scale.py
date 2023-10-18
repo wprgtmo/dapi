@@ -1,5 +1,6 @@
 import math
 import uuid
+import random
 
 from datetime import datetime
 from fastapi import HTTPException, Request, UploadFile, File
@@ -17,7 +18,6 @@ from fastapi.responses import FileResponse
 from os import getcwd
 
 from domino.models.events.domino_scale import DominoScale
-
 
 from domino.schemas.events.domino_rounds import DominoScaleCreated
 from domino.schemas.resources.result_object import ResultObject, ResultData
@@ -67,32 +67,43 @@ def new_initial_round(request: Request, tourney_id:str, dominoscale: list[Domino
     if one_settingtourney.lottery_type == 'MANUAL':
         initial_scale_by_manual_lottery(tourney_id, round_id, dominoscale, db=db)
     else:
-        initial_scale_by_automatic_lottery(dominoscale, db=db)
+        initial_scale_by_automatic_lottery(tourney_id, round_id, dominoscale, db=db)
     
     # distribuir por mesas
     
     return result
-  
-def initial_scale_by_manual_lottery(tourney_id: str, round_id: str, dominoscale:str, db: Session):
+ 
+def create_one_scale(tourney_id: str, round_id: str, round_number, position_number: int, player_id: str, db: Session ):
+    
+    one_scale = DominoScale(id=str(uuid.uuid4()), tourney_id=tourney_id, round_id=round_id, round_number=round_number, 
+                            position_number=int(position_number), player_id=player_id, is_active=True)
+    db.add(one_scale)
+        
+    return True
+    
+def initial_scale_by_manual_lottery(tourney_id: str, round_id: str, dominoscale:list, db: Session):
     
     for item in dominoscale:
-        one_scale = DominoScale(id=str(uuid.uuid4()), tourney_id=tourney_id, round_id=round_id, round_number=1, 
-                                position_number=int(item.number), player_id=item.id, is_active=True)
-        db.add(one_scale)
-        
+        create_one_scale(tourney_id, round_id, 1, int(item.number), item.id, db=db)
     db.commit()
-    
     return True
 
-def initial_scale_by_automatic_lottery(dominoscale:str, db: Session):
+def initial_scale_by_automatic_lottery(tourney_id: str, round_id: str, dominoscale:list, db: Session):
     
-    lst_dominoscale = dominoscale.split(';')
-    for item in lst_dominoscale:
-        info_position = item.split(',')
-        print(info_position[0])
-        print(info_position[1])
-        print('***************')
+    lst_groups = []
+    dict_groups = {}
+    for item in dominoscale:
+        if item.number not in dict_groups:
+            dict_groups[item.number] = []
+        dict_groups[item.number].append(item.id)    
     
+    posicion = 0
+    for item_g in dict_groups.values():
+        lst_groups = sorted(item_g, key=lambda y:random.randint(0, len(item_g)))
+        for item_pos in lst_groups:
+            posicion += 1
+            create_one_scale(tourney_id, round_id, 1, posicion, item_pos, db=db)
+    db.commit()
     return True
 
 def get_lst_players(tourney_id: str, round_id: str, db: Session):  

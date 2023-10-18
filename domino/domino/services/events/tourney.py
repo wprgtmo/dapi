@@ -104,8 +104,8 @@ def get_one_by_id(tourney_id: str, db: Session):
             
     # incluir los datos del setting del torneo
     setting = get_setting_tourney(tourney_id, db=db)
-    if setting:
-        result.data['setting'] = setting
+   
+    result.data['setting'] = setting  if setting else SettingTourney()
         
     return result
 
@@ -350,6 +350,14 @@ def configure_one_tourney(request, profile_id:str, tourney_id: str, settingtourn
     if amount_smart_tables > amount_tables:
         raise HTTPException(status_code=404, detail=_(locale, "tourney.smarttable_incorrect"))
     
+    if amount_rounds <= 0:
+        raise HTTPException(status_code=404, detail=_(locale, "tourney.amountrounds_incorrect"))
+    
+    if number_points_to_win <= 0:
+        raise HTTPException(status_code=404, detail=_(locale, "tourney.numberpoints_towin_incorrect"))
+    
+    time_to_win = 12 if not time_to_win else time_to_win
+    
     result_init = initializes_tourney(
         db_tourney, amount_tables, amount_smart_tables, amount_rounds, number_points_to_win, time_to_win, game_system, 
         use_bonus, lottery_type, penalties_limit, one_status_init, currentUser['username'], file=file, db=db)
@@ -371,8 +379,6 @@ def configure_one_tourney(request, profile_id:str, tourney_id: str, settingtourn
     result_init = configure_new_rounds(db_tourney, 'Ronda Inicial del Torneo', db=db, created_by=currentUser['username'])
     if not result_init:
         raise HTTPException(status_code=404, detail=_(locale, "tourney.setting_rounds_failed"))
-    
-    # distribuir aleatoriamente los jugadores, esto se hace en el sorteo
     
     return result
     

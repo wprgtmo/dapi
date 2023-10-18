@@ -139,6 +139,51 @@ def remove_player(request: Request, player_id: str, db: Session):
         print(e)
         raise HTTPException(status_code=404, detail="No es posible eliminar")
     return result
+def get_all_players_by_elo(request:Request, page: int, per_page: int, tourney_id: str, min_elo: float, max_elo: float, db: Session):  
+    locale = request.headers["accept-language"].split(",")[0].split("-")[0];
+    
+    api_uri = str(settings.api_uri)
+    
+    db_tourney = get_torneuy_by_eid(tourney_id, db=db)
+    if not db_tourney:
+        raise HTTPException(status_code=404, detail=_(locale, "tourney.not_found"))
+    
+    str_from = "FROM events.players " +\
+        "inner join enterprise.profile_member pro ON pro.id = players.profile_id " +\
+        "inner join enterprise.profile_type prot ON prot.name = pro.profile_type " +\
+        "left join resources.city ON city.id = pro.city_id " + \
+        "left join resources.country ON country.id = city.country_id "
+    
+    dict_modality = {'Individual': "join enterprise.profile_single_player player ON player.profile_id = pro.id ",
+                     'Parejas': "join enterprise.profile_pair_player player ON player.profile_id = pro.id ",
+                     'Equipo': "join enterprise.profile_team_player player ON player.profile_id = pro.id "}
+    
+    str_from += dict_modality[db_tourney.modality]
+       
+    str_count = "Select count(*) " + str_from
+    str_query = "SELECT players.id, pro.name as name, prot.description as profile_type, pro.photo, pro.id as profile_id, " +\
+        "city.name as city_name, country.name as country_name, player.level, player.elo, player.ranking " + str_from
+    
+    str_where = "WHERE pro.is_ready is True and players.is_active is True " 
+    str_where += " AND players.tourney_id = '" + tourney_id + "' "  +\
+        "AND player.elo >= " + str(min_elo) + " AND player.elo <= " + str(max_elo)
+    
+    str_count += str_where
+    str_query += str_where
+
+    if page and page > 0 and not per_page:
+        raise HTTPException(status_code=404, detail=_(locale, "commun.invalid_param"))
+    
+    result = get_result_count(page=page, per_page=per_page, str_count=str_count, db=db)
+    print(str_query)
+    str_query += " ORDER BY player.ranking ASC " 
+    if page != 0:
+        str_query += "LIMIT " + str(per_page) + " OFFSET " + str(page*per_page-per_page)
+    
+    lst_data = db.execute(str_query)
+    result.data = [create_dict_row(item, page, db=db, api_uri=api_uri) for item in lst_data]
+    
+    return result
     
 def get_all_players_by_tourney(request:Request, page: int, per_page: int, tourney_id: str, is_active: bool, criteria_key: str, criteria_value: str, db: Session):  
     locale = request.headers["accept-language"].split(",")[0].split("-")[0];
@@ -172,7 +217,7 @@ def get_all_players_by_tourney(request:Request, page: int, per_page: int, tourne
     str_where = "WHERE pro.is_ready is True and players.is_active is " + str(is_active) 
     str_where += " AND players.tourney_id = '" + tourney_id + "' " 
     
-    dict_query = {'username': " AND username.username = '" + criteria_value + "'"}
+    dict_query = {'username': " AND username = '" + criteria_value + "'"}
     if criteria_key and criteria_key not in dict_query:
         raise HTTPException(status_code=404, detail=_(locale, "commun.invalid_param"))
     else:
