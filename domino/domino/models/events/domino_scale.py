@@ -20,7 +20,7 @@ class DominoScale(Base):
     round_id = Column(String, ForeignKey("events.domino_rounds.id"), nullable=False)
     round_number = Column(Integer, nullable=False)
     position_number = Column(Integer, nullable=False)
-    player_id = Column(String, ForeignKey("events.players.id"), nullable=False)
+    pairs_id = Column(String, ForeignKey("events.tourney_pairs.id"))
     is_active = Column(Boolean, nullable=False, default=True)
     
     def dict(self):
@@ -30,6 +30,6 @@ class DominoScale(Base):
             "round_id": self.round_id,
             "round_number": self.round_number,
             "position_number": self.position_number,
-            "player_id": self.player_id,
+            "pairs_id": self.pairs_id,
             "is_active": self.is_active
             }

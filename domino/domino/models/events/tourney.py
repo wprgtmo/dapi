@@ -179,32 +179,78 @@ class SettingTourney(Base):
             'lottery_type': self.lottery_type,
             'penalties_limit': self.penalties_limit
         }
-            
-# class Pairs(Base):
-#     """Pairs Class contains standard information for Pairs of domino of Tourney.""" 
+   
+class TraceLotteryManual(Base):
+    """TraceLotteryManual contains standard information for setting of manual lottery.""" 
 
-#     __tablename__ = "pairs"
-#     __table_args__ = {'schema' : 'events'}
+    __tablename__ = "trace_lottery_manual"
+    __table_args__ = {'schema' : 'events'}
     
-#     id = Column(String, primary_key=True, default=generate_uuid)
-#     tourney_id = Column(String, ForeignKey("events.tourney.id"))
-#     one_player = Column(String, ForeignKey("enterprise.users.username"), nullable=False)
-#     two_player = Column(String, ForeignKey("enterprise.users.username"), nullable=False)
-#     name = Column(String(100), nullable=True)
+    id = Column(String, primary_key=True, default=generate_uuid)
+    tourney_id = Column(String, ForeignKey("events.tourney.id"))
+    modality = Column(String(30), nullable=False)
+    position_number = Column(Integer, nullable=False)
+    player_id = Column(String, ForeignKey("events.players.id"), nullable=False)
+    is_active = Column(Boolean, nullable=False, default=True)
     
-#     amount_points = Column(Integer, nullable=True, default=100)
-#     amount_time = Column(Integer, nullable=True, default=60)
+    def dict(self):
+        return {
+            "tourney_id": self.tourney_id,
+            "modality": self.modality,
+            "position_number": self.position_number,
+            "player_id": self.player_id,
+            "is_active": self.is_active
+            }
+        
+class TraceLotteryAutomatic(Base):
+    """TraceLotteryAutomatic contains standard information for setting of automatic lottery.""" 
+
+    __tablename__ = "trace_lottery_automaic"
+    __table_args__ = {'schema' : 'events'}
     
-#     created_by = Column(String, ForeignKey("enterprise.users.username"), nullable=False)
-#     created_date = Column(Date, nullable=False, default=date.today())
-#     updated_by = Column(String, ForeignKey("enterprise.users.username"), nullable=False)
-#     updated_date = Column(Date, nullable=False, default=date.today())
+    id = Column(String, primary_key=True, default=generate_uuid)
+    tourney_id = Column(String, ForeignKey("events.tourney.id"))
+    modality = Column(String(30), nullable=False)
+    title = Column(String(100), nullable=False)
+    position_number = Column(Integer, nullable=False)
+    elo_min = Column(Float, nullable=False)
+    elo_max = Column(Float, nullable=False)
+    is_active = Column(Boolean, nullable=False, default=True)
     
-#     is_active = Column(Boolean, nullable=False, default=True)
+    def dict(self):
+        return {
+            "tourney_id": self.tourney_id,
+            "modality": self.modality,
+            "position_number": self.position_number,
+            "elo_min": self.elo_min,
+            "elo_max": self.elo_max,
+            "title": self.title,
+            "is_active": self.is_active
+            }
+                    
+class TourneyPairs(Base):
+    """TourneyPairs Class contains standard information for Pairs of domino of Tourney.""" 
+
+    __tablename__ = "tourney_pairs"
+    __table_args__ = {'schema' : 'events'}
     
-#     def dict(self):
-#         return {
-#             "tourney_id": self.tourney_id,
-#             "amount_points": self.amount_points,
-#             "amount_time": self.amount_time
-#         }
+    id = Column(String, primary_key=True, default=generate_uuid)
+    tourney_id = Column(String, ForeignKey("events.tourney.id"))
+    one_player = Column(String, ForeignKey("enterprise.profile_member.id"))
+    two_player = Column(String, ForeignKey("enterprise.profile_member.id"))
+    name = Column(String(100), nullable=True)
+    profile_type = Column(String, nullable=False) # Individual 0 Parejas
+    
+    created_by = Column(String, ForeignKey("enterprise.users.username"), nullable=False)
+    created_date = Column(Date, nullable=False, default=date.today())
+    updated_by = Column(String, ForeignKey("enterprise.users.username"), nullable=False)
+    updated_date = Column(Date, nullable=False, default=date.today())
+    
+    is_active = Column(Boolean, nullable=False, default=True)
+    
+    def dict(self):
+        return {
+            "tourney_id": self.tourney_id,
+            "amount_points": self.amount_points,
+            "amount_time": self.amount_time
+        }

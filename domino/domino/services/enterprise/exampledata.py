@@ -713,12 +713,15 @@ def created_players(request:Request, db: Session):
 def clear_all_bd(request:Request, db: Session):
     
     #limpiando configuracion de torneos y eventos
-    str_del_events = "DELETE FROM events.domino_boletus_position; DELETE FROM events.domino_boletus; " +\
+    str_del_events = "DELETE FROM events.trace_lottery_automaic; DELETE FROM events.trace_lottery_manual; " +\
+        "DELETE FROM events.domino_boletus_position; DELETE FROM events.domino_boletus_pairs; " +\
+        "DELETE FROM events.domino_boletus; DELETE FROM events.tourney_pairs; " +\
         "DELETE FROM events.domino_data; DELETE FROM events.domino_scale; DELETE FROM events.domino_rounds; " +\
         "DELETE FROM events.domino_rounds; DELETE FROM events.files_tables; DELETE FROM events.domino_tables; " +\
         "DELETE FROM events.setting_tourney; DELETE FROM events.players; DELETE FROM events.referees; " +\
-        "DELETE FROM events.invitations; DELETE FROM events.tourney; DELETE FROM events.events; COMMIT; " 
-        
+        "DELETE FROM events.invitations; DELETE FROM events.tourney; DELETE FROM events.events; " +\
+        "COMMIT; " 
+    
     db.execute(str_del_events)
     
     #limipando post
@@ -746,18 +749,18 @@ def distribute_all_player(request:Request, tourney_id:str, round_id:str, db: Ses
     
     # crear la lista de posiciones. escalafon
     str_scale = "SELECT count(*) FROM events.domino_scale Where tourney_id='" + tourney_id + "'"
-    amount_scale = db.execute(str_scale).fetchone()[0]
-    if amount_scale == 0:
-        dominoscale = ''
-        str_lst_player = "SELECT id FROM events.players where tourney_id='" + tourney_id + "'"
-        lst_player = db.execute(str_lst_player).fetchall()
-        position = 0
-        for item in lst_player:
-            position+=1
-            dominoscale += str(item.id) + ',' + str(position) + ';'
+    # amount_scale = db.execute(str_scale).fetchone()[0]
+    # if amount_scale == 0:
+    #     dominoscale = ''
+    #     str_lst_player = "SELECT id FROM events.players where tourney_id='" + tourney_id + "'"
+    #     lst_player = db.execute(str_lst_player).fetchall()
+    #     position = 0
+    #     for item in lst_player:
+    #         position+=1
+    #         dominoscale += str(item.id) + ',' + str(position) + ';'
         
-        dominoscale = dominoscale[:-1] if dominoscale else ''
-        initial_scale_by_manual_lottery(tourney_id, round_id, dominoscale=dominoscale, db=db)
+    #     dominoscale = dominoscale[:-1] if dominoscale else ''
+    #     initial_scale_by_manual_lottery(tourney_id, round_id, dominoscale=dominoscale, db=db)
 
     tourney_ind = get_tourney_by_name(tourney_name='Serie Nacional del Domino.Torneo Individual', db=db)
     if not tourney_ind:

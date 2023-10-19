@@ -83,6 +83,7 @@ def created_boletus_for_round(db_tourney, db_round, db:Session):
     # obtener escalafon de jugadores.
     lst_players = get_lst_players_with_profile(db_tourney.id, db_round.id, db=db)
     
+    # asociar a cada mesa los 4 jugadores que le tocarian.
     lst_dist_tables = []
     amount_tables = len(lst_tables)
     for i in range(amount_tables):
@@ -98,6 +99,7 @@ def created_boletus_for_round(db_tourney, db_round, db:Session):
 
     dict_position_table = {1:1, 2:3, 3:2, 4:4}
     
+    # Por cada mesa, ubicar los jugadores
     for item_tab in lst_dist_tables:
         # crear la boleta a sociada a cada jugador. En el individual debo ver si se crea boleta para cada jugador o es similar a la pareja
         # despues si no es una boleta por cada jugador tengo que cambiar esto.

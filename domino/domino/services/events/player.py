@@ -139,6 +139,7 @@ def remove_player(request: Request, player_id: str, db: Session):
         print(e)
         raise HTTPException(status_code=404, detail="No es posible eliminar")
     return result
+
 def get_all_players_by_elo(request:Request, page: int, per_page: int, tourney_id: str, min_elo: float, max_elo: float, db: Session):  
     locale = request.headers["accept-language"].split(",")[0].split("-")[0];
     
@@ -175,7 +176,7 @@ def get_all_players_by_elo(request:Request, page: int, per_page: int, tourney_id
         raise HTTPException(status_code=404, detail=_(locale, "commun.invalid_param"))
     
     result = get_result_count(page=page, per_page=per_page, str_count=str_count, db=db)
-    print(str_query)
+    
     str_query += " ORDER BY player.ranking ASC " 
     if page != 0:
         str_query += "LIMIT " + str(per_page) + " OFFSET " + str(page*per_page-per_page)
@@ -184,6 +185,34 @@ def get_all_players_by_elo(request:Request, page: int, per_page: int, tourney_id
     result.data = [create_dict_row(item, page, db=db, api_uri=api_uri) for item in lst_data]
     
     return result
+
+def get_lst_id_player_by_elo(tourney_id: str, modality:str, min_elo: float, max_elo: float, db: Session):  
+    
+    str_from = "FROM events.players " +\
+        "inner join enterprise.profile_member pro ON pro.id = players.profile_id " +\
+        "inner join enterprise.profile_type prot ON prot.name = pro.profile_type " 
+    
+    dict_modality = {'Individual': "join enterprise.profile_single_player player ON player.profile_id = pro.id ",
+                     'Parejas': "join enterprise.profile_pair_player player ON player.profile_id = pro.id ",
+                     'Equipo': "join enterprise.profile_team_player player ON player.profile_id = pro.id "}
+    
+    str_from += dict_modality[modality]
+       
+    str_query = "SELECT players.id " + str_from
+    
+    str_where = "WHERE pro.is_ready is True and players.is_active is True " 
+    str_where += " AND players.tourney_id = '" + tourney_id + "' "  +\
+        "AND player.elo >= " + str(min_elo) + " AND player.elo <= " + str(max_elo)
+    
+    str_query += str_where
+
+    str_query += " ORDER BY player.ranking ASC " 
+    lst_data = db.execute(str_query)
+    lst_players = []
+    for item in lst_data:
+        lst_players.append(item.id)
+    
+    return lst_players
     
 def get_all_players_by_tourney(request:Request, page: int, per_page: int, tourney_id: str, is_active: bool, criteria_key: str, criteria_value: str, db: Session):  
     locale = request.headers["accept-language"].split(",")[0].split("-")[0];
