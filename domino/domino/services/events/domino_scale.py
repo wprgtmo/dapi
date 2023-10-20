@@ -171,7 +171,7 @@ def initial_scale_by_automatic_lottery(tourney_id: str, round_id: str, dominosca
     for item in dominoscale:
         print(item.title)
         create_one_automatic_trace(tourney_id, modality, item.title, int(item.id), float(item.min), float(item.max), db=db)
-        created_automatic_lottery(tourney_id, modality, float(item.min), float(item.max), db=db)
+        created_automatic_lottery(tourney_id, modality, round_id, float(item.min), float(item.max), db=db)
     db.commit()
     return True
 
