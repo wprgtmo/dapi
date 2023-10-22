@@ -11,13 +11,13 @@ def generate_uuid():
 class DominoData(Base):
     """DominoData Class contains standard information for  Domino Data at Rounds."""
  
-    __tablename__ = "domino_data"
+    __tablename__ = "domino_boletus_data"
     __table_args__ = {'schema' : 'events'}
     
     id = Column(String, primary_key=True, default=generate_uuid)
     boletus_id = Column(String, ForeignKey("events.domino_boletus.id"))
     data_number = Column(Integer, nullable=False)
-    win_pair_id = Column(String, ForeignKey("events.tourney_pairs.id"))
+    win_pair_id = Column(String, ForeignKey("events.domino_rounds_pairs.id"))
     win_by_points = Column(Boolean, nullable=False, default=False)
     win_by_time = Column(Boolean, nullable=False, default=False)
     number_points = Column(Integer)

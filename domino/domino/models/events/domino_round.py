@@ -40,3 +40,66 @@ class DominoRounds(Base):
             "close_date": self.close_date,
             'status_id': self.status_id
             }
+
+class DominoRoundsScale(Base):
+    """DominoRoundsScale Class contains standard information for  Domino Scale at Rounds."""
+ 
+    __tablename__ = "domino_rounds_scale"
+    __table_args__ = {'schema' : 'events'}
+    
+    id = Column(String, primary_key=True, default=generate_uuid)
+    tourney_id = Column(String, ForeignKey("events.tourney.id"), nullable=False)
+    round_id = Column(String, ForeignKey("events.domino_rounds.id"), nullable=False)
+    round_number = Column(Integer, nullable=False)
+    position_number = Column(Integer, nullable=False)
+    player_id = Column(String, ForeignKey("events.players.id"))
+    elo = Column(Integer)
+    elo_variable = Column(Integer)
+    games_played = Column(Integer)
+    games_won = Column(Integer)
+    games_lost = Column(Integer)
+    points_positive = Column(Integer)
+    points_negative = Column(Integer)
+    points_difference = Column(Integer)
+    is_active = Column(Boolean, nullable=False, default=True)
+    
+    def dict(self):
+        return {
+            "id": self.id,
+            "tourney_id": self.tourney_id,
+            "round_id": self.round_id,
+            "round_number": self.round_number,
+            "position_number": self.position_number,
+            "player_id": self.pairs_id,
+            "is_active": self.is_active
+            }
+class DominoRoundsPairs(Base):
+    """DominoRoundsPairs Class contains standard information for Pairs of domino of Tourney.""" 
+
+    __tablename__ = "domino_rounds_pairs"
+    __table_args__ = {'schema' : 'events'}
+    
+    id = Column(String, primary_key=True, default=generate_uuid)
+    tourney_id = Column(String, ForeignKey("events.tourney.id"))
+    round_id = Column(String, ForeignKey("events.domino_rounds.id"), nullable=False)
+    position_number = Column(Integer, nullable=False)
+    one_player_id = Column(String, ForeignKey("enterprise.profile_member.id"))
+    two_player_id = Column(String, ForeignKey("enterprise.profile_member.id"))
+    name = Column(String(100), nullable=True)
+    profile_type = Column(String, nullable=False) # Individual 0 Parejas
+    player_id = Column(String, ForeignKey("events.players.id"))
+    created_by = Column(String, ForeignKey("enterprise.users.username"), nullable=False)
+    created_date = Column(Date, nullable=False, default=date.today())
+    updated_by = Column(String, ForeignKey("enterprise.users.username"), nullable=False)
+    updated_date = Column(Date, nullable=False, default=date.today())
+    is_active = Column(Boolean, nullable=False, default=True)
+    
+    def dict(self):
+        return {
+            "tourney_id": self.tourney_id,
+            "round_id": self.round_id,
+            "position_number": self.position_number,
+            "one_player_id": self.one_player_id,
+            "two_player_id": self.two_player_id,
+            "name": self.name
+        }

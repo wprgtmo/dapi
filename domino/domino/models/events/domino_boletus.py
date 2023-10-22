@@ -43,14 +43,13 @@ class DominoBoletusPairs(Base):
     __table_args__ = {'schema' : 'events'}
     
     boletus_id = Column(String, ForeignKey("events.domino_boletus.id"), primary_key=True)
-    pairs_id = Column(String, ForeignKey("events.tourney_pairs.id"), primary_key=True)
+    pairs_id = Column(String, ForeignKey("events.domino_rounds_pairs.id"), primary_key=True)
     is_initiator = Column(Boolean, nullable=False, default=False)
     is_winner = Column(Boolean, nullable=False, default=False)
     number_points = Column(Integer)
     start_date =  Column(DateTime, nullable=False, default=datetime.now())
     end_date =  Column(DateTime, nullable=False, default=datetime.now())
     duration = Column(Float)  # tiempo en minutos,, despues tengo que ver el tipo  de datos
-    
     
     def dict(self):
         return {

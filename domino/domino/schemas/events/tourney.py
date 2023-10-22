@@ -59,10 +59,5 @@ class SettingTourneyCreated(BaseModel):
     lottery: str 
     bonus: str
     limitPenaltyPoints: int
-    
-    # amount_bonus_tables: int
-    # amount_bonus_points: int
-    # number_bonus_round: int
-    
     class Config:
         orm_mode = True

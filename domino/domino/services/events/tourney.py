@@ -11,6 +11,7 @@ from passlib.context import CryptContext
 from domino.auth_bearer import decodeJWT
 from domino.functions_jwt import get_current_user
 from domino.app import _
+from domino.config.config import settings
 
 from domino.models.events.tourney import Tourney, SettingTourney
 from domino.schemas.events.tourney import TourneyBase, TourneySchema, TourneyCreated, SettingTourneyCreated
@@ -89,8 +90,15 @@ def get_one_by_name(tourney_name: str, db: Session):
 def get_setting_tourney(tourney_id: str, db: Session):  
     return db.query(SettingTourney).filter(SettingTourney.tourney_id == tourney_id).first()
 
+def get_setting_tourney_to_interface(tourney_id: str, db: Session):  
+    one_setting = get_setting_tourney(tourney_id=tourney_id, db=db)
+    return one_setting.__dict__ if one_setting else None
+
 def get_one_by_id(tourney_id: str, db: Session): 
     result = ResultObject()  
+    
+    api_uri = str(settings.api_uri)
+    
     str_query = "Select tou.id, event_id, eve.name as event_name, tou.modality, tou.name, tou.summary, tou.start_date, " +\
         "tou.status_id, sta.name as status_name FROM events.tourney tou " +\
         "JOIN events.events eve ON eve.id = tou.event_id " +\
@@ -103,7 +111,9 @@ def get_one_by_id(tourney_id: str, db: Session):
             result.data = create_dict_row(item, 0, db=db)
             
     # incluir los datos del setting del torneo
-    setting = get_setting_tourney(tourney_id, db=db)
+    setting = get_setting_tourney_to_interface(tourney_id, db=db)
+    if setting:
+        setting['image'] = api_uri + "/public/advertising/" + "/" + tourney_id + "/" + setting['image'] if setting['image'] else None
    
     result.data['setting'] = setting  if setting else SettingTourney()
         
@@ -334,18 +344,18 @@ def configure_one_tourney(request, profile_id:str, tourney_id: str, settingtourn
     
     amount_tables = calculate_amount_tables(db_tourney.id, db_tourney.modality, db=db)
     
-    # try:
-    amount_smart_tables = int(settingtourney['amount_smart_tables'])
-    amount_rounds = int(settingtourney['amount_rounds'])
-    number_points_to_win = int(settingtourney['number_points_to_win'])
-    time_to_win = int(settingtourney['time_to_win'])
-    game_system = str(settingtourney['game_system'])
-    lottery_type = str(settingtourney['lottery'])
-    penalties_limit = int(settingtourney['limitPenaltyPoints'])
-    use_bonus = True if str(settingtourney['bonus']) == 'YES' else False 
+    try:
+        amount_smart_tables = int(settingtourney['amount_smart_tables'])
+        amount_rounds = int(settingtourney['amount_rounds'])
+        number_points_to_win = int(settingtourney['number_points_to_win'])
+        time_to_win = int(settingtourney['time_to_win'])
+        game_system = str(settingtourney['game_system'])
+        lottery_type = str(settingtourney['lottery'])
+        penalties_limit = int(settingtourney['limitPenaltyPoints'])
+        use_bonus = True if str(settingtourney['bonus']) == 'YES' else False 
         
-    # except:
-    #     raise HTTPException(status_code=404, detail=_(locale, "tourney.setting_incorrect"))
+    except:
+        raise HTTPException(status_code=404, detail=_(locale, "tourney.setting_incorrect"))
     
     if amount_smart_tables > amount_tables:
         raise HTTPException(status_code=404, detail=_(locale, "tourney.smarttable_incorrect"))

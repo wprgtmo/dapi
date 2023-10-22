@@ -169,15 +169,17 @@ class SettingTourney(Base):
             "tourney_id": self.tourney_id,
             "amount_tables": self.amount_tables,
             "amount_smart_tables": self.amount_smart_tables,
+            "amount_rounds": self.amount_rounds,
+            "use_bonus": 'YES' if self.use_bonus else 'NO',
             "amount_bonus_tables": self.amount_bonus_tables,
             "amount_bonus_points": self.amount_bonus_points,
             "number_bonus_round": self.number_bonus_round,
-            "amount_rounds": self.amount_rounds,
             "number_points_to_win": self.number_points_to_win,
             "time_to_win": self.time_to_win,
             "game_system": self.game_system,
             'lottery_type': self.lottery_type,
-            'penalties_limit': self.penalties_limit
+            'penalties_limit': self.penalties_limit,
+            'image': self.image,
         }
    
 class TraceLotteryManual(Base):
@@ -227,30 +229,3 @@ class TraceLotteryAutomatic(Base):
             "title": self.title,
             "is_active": self.is_active
             }
-                    
-class TourneyPairs(Base):
-    """TourneyPairs Class contains standard information for Pairs of domino of Tourney.""" 
-
-    __tablename__ = "tourney_pairs"
-    __table_args__ = {'schema' : 'events'}
-    
-    id = Column(String, primary_key=True, default=generate_uuid)
-    tourney_id = Column(String, ForeignKey("events.tourney.id"))
-    one_player = Column(String, ForeignKey("enterprise.profile_member.id"))
-    two_player = Column(String, ForeignKey("enterprise.profile_member.id"))
-    name = Column(String(100), nullable=True)
-    profile_type = Column(String, nullable=False) # Individual 0 Parejas
-    
-    created_by = Column(String, ForeignKey("enterprise.users.username"), nullable=False)
-    created_date = Column(Date, nullable=False, default=date.today())
-    updated_by = Column(String, ForeignKey("enterprise.users.username"), nullable=False)
-    updated_date = Column(Date, nullable=False, default=date.today())
-    
-    is_active = Column(Boolean, nullable=False, default=True)
-    
-    def dict(self):
-        return {
-            "tourney_id": self.tourney_id,
-            "amount_points": self.amount_points,
-            "amount_time": self.amount_time
-        }

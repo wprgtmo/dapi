@@ -23,13 +23,12 @@ class DominoTables(Base):
     amount_bonus = Column(Integer, nullable=False)
     image = Column(Text, nullable=True)
     is_active = Column(Boolean, nullable=False, default=True)
-    
     created_by = Column(String, ForeignKey("enterprise.users.username"), nullable=False)
     created_date = Column(Date, nullable=False, default=date.today())
     updated_by = Column(String, ForeignKey("enterprise.users.username"), nullable=True)
     updated_date = Column(Date, nullable=False, default=date.today())
     
-    filestable = relationship("FilesTables")
+    filestable = relationship("DominoTablesFiles")
     
     def dict(self):
         return {
@@ -42,10 +41,10 @@ class DominoTables(Base):
             'created_by': self.created_by
             }
         
-class FilesTables(Base):
-    """FilesTables Class contains standard information for  Files at dominos tables."""
+class DominoTablesFiles(Base):
+    """DominoTablesFiles Class contains standard information for  Files at dominos tables."""
  
-    __tablename__ = "files_tables"
+    __tablename__ = "domino_tables_files"
     __table_args__ = {'schema' : 'events'}
     
     id = Column(String, primary_key=True, default=generate_uuid)

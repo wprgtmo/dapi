@@ -16,7 +16,7 @@ from domino.app import _
 from fastapi.responses import FileResponse
 from os import getcwd
 
-from domino.models.events.domino_tables import DominoTables, FilesTables
+from domino.models.events.domino_tables import DominoTables, DominoTablesFiles
 from domino.models.events.tourney import SettingTourney
 
 from domino.schemas.events.tourney import TourneyCreated, SettingTourneyCreated
@@ -230,7 +230,7 @@ def created_one_domino_tables(db_tourney, table_number:int, is_smart:bool, amoun
         for i in range(4):
             i += 1
             file_id = str(uuid.uuid4())
-            db_files = FilesTables(id=file_id, position=i, is_ready=False)
+            db_files = DominoTablesFiles(id=file_id, position=i, is_ready=False)
             db_table.filestable.append(db_files)
         
     try:

@@ -73,14 +73,14 @@ def create_dict_row(item, tourney_id, page, db: Session, api_uri=""):
     
     return new_row
 
-def created_boletus_for_round(db_tourney, db_round, db:Session):
+def created_boletus_for_round_richard(db_tourney, db_round, db:Session):
 
     # obtener listado de mesas del torneo
     lst_tables = get_lst_tables(db_tourney.id, db=db)
     if not lst_tables:
         raise HTTPException(status_code=404, detail="dominotables.not_exists")
         
-    # obtener escalafon de jugadores.
+    # obtener listado de parejas
     lst_players = get_lst_players_with_profile(db_tourney.id, db_round.id, db=db)
     
     # asociar a cada mesa los 4 jugadores que le tocarian.
@@ -118,4 +118,56 @@ def created_boletus_for_round(db_tourney, db_round, db:Session):
         
     db.commit()    
     
-    return True           
+    return True       
+
+
+def created_boletus_for_round(db_tourney, db_round, db:Session):
+
+    # obtener listado de mesas del torneo
+    lst_tables = get_lst_tables(db_tourney.id, db=db)
+    if not lst_tables:
+        raise HTTPException(status_code=404, detail="dominotables.not_exists")
+        
+    # obtener escalafon de parejas.
+    lst_pais = get_list_rounds_pairs(db_round.id, db=db)
+    
+    # asociar a cada mesa los 4 jugadores que le tocarian.
+    lst_dist_tables = []
+    amount_tables = len(lst_tables)
+    for i in range(amount_tables):
+        i+=1
+        j=i*4-4
+        table_id = lst_tables[i-1].id
+        dict_tables = {'table_id': table_id, 'table_number': lst_tables[i-1].table_number, 'lst_player': []}
+        for j in range(j,i*4):
+            if j > len(lst_players)-1:
+                break
+            dict_tables['lst_player'].append(lst_players[j])
+        lst_dist_tables.append(dict_tables)
+
+    dict_position_table = {1:1, 2:3, 3:2, 4:4}
+    
+    # Por cada mesa, ubicar los jugadores
+    for item_tab in lst_dist_tables:
+        # crear la boleta a sociada a cada jugador. En el individual debo ver si se crea boleta para cada jugador o es similar a la pareja
+        # despues si no es una boleta por cada jugador tengo que cambiar esto.
+        
+        position_id = 1
+        for item_player in item_tab['lst_player']:
+            
+            one_boletus = DominoBoletus(tourney_id=db_tourney.id, round_id=db_round.id, table_id=item_tab['table_id'],
+                                        player_id=item_player['player_id'], is_valid=True, is_winner=False)
+            one_position = DominoBoletusPosition(position_id=dict_position_table[position_id], 
+                                                 single_profile_id=item_player['single_profile_id'])
+            position_id+=1
+            
+            one_boletus.boletus_position.append((one_position))
+            db.add(one_boletus)
+        
+    db.commit()    
+    
+    return True         
+
+def get_list_rounds_pairs(round_id,  db: Session):
+    
+    return True

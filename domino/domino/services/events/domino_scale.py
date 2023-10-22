@@ -17,7 +17,7 @@ from domino.app import _
 from fastapi.responses import FileResponse
 from os import getcwd
 
-from domino.models.events.domino_scale import DominoScale
+from domino.models.events.domino_round import DominoRoundsScale
 from domino.models.events.tourney import TraceLotteryManual, TraceLotteryAutomatic
 
 from domino.schemas.events.domino_rounds import DominoManualScaleCreated, DominoAutomaticScaleCreated
@@ -83,6 +83,9 @@ def new_initial_automatic_round(request: Request, tourney_id:str, dominoscale: l
     #     raise HTTPException(status_code=404, detail=_(locale, "tourney.tourney_closed"))
     
     initial_scale_by_automatic_lottery(tourney_id, round_id, dominoscale, db_tourney.modality, db=db)
+    
+    #actualizar elo
+    update_elo_initial_scale(tourney_id, round_id, db_tourney.modality, db=db)
     # distribuir por mesas
     
     return result
@@ -102,14 +105,13 @@ def new_initial_manual_round(request: Request, tourney_id:str, dominoscale: list
     #     raise HTTPException(status_code=404, detail=_(locale, "tourney.tourney_closed"))
     
     initial_scale_by_manual_lottery(tourney_id, round_id, dominoscale, db_tourney.modality, db=db)
+    
+    update_elo_initial_scale(tourney_id, round_id, db_tourney.modality, db=db)
     # distribuir por mesas
     
     return result
 
 def get_tourney_to_configure(locale, tourney_id:str, db: Session):
-    
-    print(tourney_id)
-    print('***********************')
     
     db_tourney = get_one_tourney(tourney_id, db=db)
     if not db_tourney:
@@ -131,11 +133,37 @@ def get_tourney_to_configure(locale, tourney_id:str, db: Session):
         raise HTTPException(status_code=404, detail=_(locale, "round.not_initial_round"))
     
     return db_tourney, round_id[0]
- 
+
+def update_elo_initial_scale(tourney_id: str, round_id: str, modality:str, db: Session ):
+    
+    str_scale = "Select player_id from events.domino_rounds_scale where tourney_id = '" + tourney_id + "' " +\
+        "and round_id = '" + round_id + "' order by position_number ASC "
+    
+    lst_scale = db.execute(str_scale).fetchall()
+    
+    str_select = "Select Round(SUM(elo)/2,4) as elo " if modality == 'Parejas' else 'Select elo '
+    str_select += "FROM events.players play JOIN enterprise.profile_users puse ON puse.profile_id = play.profile_id " +\
+        "JOIN enterprise.profile_single_player splay ON splay.profile_id = puse.single_profile_id "
+    
+    str_update = "UPDATE events.domino_rounds_scale SET elo = "
+    str_all_update = ''
+    for item in lst_scale:
+        str_find = str_select + " where id = '" + item.player_id + "' "
+        elo = db.execute(str_find).fetchone()
+        if elo:
+            str_one_update = str_update + str(elo[0]) + " where player_id = '" + item.player_id + "'; "
+            str_all_update += str_one_update
+    
+    if str_all_update:
+        db.execute(str_all_update)
+        db.commit()
+        
+    return True
+
 def create_one_scale(tourney_id: str, round_id: str, round_number, position_number: int, player_id: str, db: Session ):
     
-    one_scale = DominoScale(id=str(uuid.uuid4()), tourney_id=tourney_id, round_id=round_id, round_number=round_number, 
-                            position_number=int(position_number), player_id=player_id, is_active=True)
+    one_scale = DominoRoundsScale(id=str(uuid.uuid4()), tourney_id=tourney_id, round_id=round_id, round_number=round_number, 
+                                  position_number=int(position_number), player_id=player_id, is_active=True)
     db.add(one_scale)
         
     return True
@@ -168,14 +196,15 @@ def initial_scale_by_manual_lottery(tourney_id: str, round_id: str, dominoscale:
 
 def initial_scale_by_automatic_lottery(tourney_id: str, round_id: str, dominoscale:list, modality:str, db: Session):
     
+    position_number = 0
     for item in dominoscale:
-        print(item.title)
         create_one_automatic_trace(tourney_id, modality, item.title, int(item.id), float(item.min), float(item.max), db=db)
-        created_automatic_lottery(tourney_id, modality, round_id, float(item.min), float(item.max), db=db)
+        position_number=created_automatic_lottery(
+            tourney_id, modality, round_id, float(item.min), float(item.max), position_number=position_number, db=db)
     db.commit()
     return True
 
-def created_automatic_lottery(tourney_id: str, modality:str, round_id: str, elo_min:float, elo_max:float, db: Session):
+def created_automatic_lottery(tourney_id: str, modality:str, round_id: str, elo_min:float, elo_max:float, position_number:int, db: Session):
     
     list_player = get_lst_id_player_by_elo(tourney_id, modality, min_elo=elo_min, max_elo=elo_max, db=db)
     
@@ -194,18 +223,17 @@ def created_automatic_lottery(tourney_id: str, modality:str, round_id: str, elo_
     #         posicion += 1
     #         create_one_scale(tourney_id, round_id, 1, posicion, item_pos, db=db)
             
-    posicion = 0
     lst_groups = sorted(list_player, key=lambda y:random.randint(0, len(list_player)))
     for item_pos in lst_groups:
-        posicion += 1
-        create_one_scale(tourney_id, round_id, 1, posicion, item_pos, db=db)
+        position_number += 1
+        create_one_scale(tourney_id, round_id, 1, position_number, item_pos, db=db)
     
     db.commit()
-    return True
+    return position_number
 
 def get_lst_players(tourney_id: str, round_id: str, db: Session):  
-    return db.query(DominoScale).filter(DominoScale.tourney_id == tourney_id).\
-        filter(DominoScale.round_id == round_id).order_by(DominoScale.position_number).all()
+    return db.query(DominoRoundsScale).filter(DominoRoundsScale.tourney_id == tourney_id).\
+        filter(DominoRoundsScale.round_id == round_id).order_by(DominoRoundsScale.position_number).all()
         
 def get_lst_players_with_profile(tourney_id: str, round_id: str, db: Session):  
     

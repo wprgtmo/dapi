@@ -16,7 +16,7 @@ from domino.app import _
 from fastapi.responses import FileResponse
 from os import getcwd
 
-from domino.models.events.domino_round import DominoRounds
+from domino.models.events.domino_round import DominoRounds, DominoRoundsPairs
 from domino.models.events.tourney import SettingTourney
 
 from domino.schemas.events.events import EventBase, EventSchema
@@ -202,3 +202,113 @@ def change_status_round(db_round, status, username, db: Session):
         return True
     except (Exception, SQLAlchemyError) as e:
         return False
+
+def create_pair_for_rounds(tourney_id: str, round_id: str, modality:str, db: Session):
+    
+    str_scale = "Select player_id from events.domino_rounds_scale where tourney_id = '" + tourney_id + "' " +\
+        "and round_id = '" + round_id + "' order by position_number ASC "
+    
+    lst_scale = db.execute(str_scale).fetchall()
+    
+    str_select = "Select Round(SUM(elo)/2,4) as elo " if modality == 'Parejas' else 'Select elo '
+    str_select += "FROM events.players play JOIN enterprise.profile_users puse ON puse.profile_id = play.profile_id " +\
+        "JOIN enterprise.profile_single_player splay ON splay.profile_id = puse.single_profile_id "
+    
+    str_update = "UPDATE events.domino_rounds_scale SET elo = "
+    str_all_update = ''
+    for item in lst_scale:
+        str_find = str_select + " where id = '" + item.player_id + "' "
+        elo = db.execute(str_find).fetchone()
+        if elo:
+            str_one_update = str_update + str(elo[0]) + " where player_id = '" + item.player_id + "'; "
+            str_all_update += str_one_update
+    
+    if str_all_update:
+        db.execute(str_all_update)
+        db.commit()
+        
+    return True
+
+def created_one_pair(tourney_id:str, round_id:str, one_player_id:str, two_player_id:str, name:str, profile_type:str,
+                     created_by:str, db: Session, position_number:int, player_id:str=None):
+    
+    one_pair = DominoRoundsPairs(id=str(uuid.uuid4()), tourney_id=tourney_id, round_id=round_id, one_player_id=one_player_id,
+                                 two_player_id=two_player_id, name=name, profile_type=profile_type, player_id=player_id,
+                                 position_number=position_number, created_by=created_by, updated_by=created_by, 
+                                 created_date=datetime.today(), updated_date=datetime.today(), is_active=True)
+    
+    db.add(one_pair)
+        
+    return True
+
+def create_pair_for_profile_pair(tourney_id: str, round_id: str, db: Session, created_by: str):
+    
+    str_user = "Select mmb.name, puse.single_profile_id as profile_id, rsca.player_id from events.domino_rounds_scale rsca " +\
+        "JOIN events.players play ON play.id = rsca.player_id " +\
+        "JOIN enterprise.profile_member mmb ON play.profile_id = mmb.id " +\
+        "JOIN enterprise.profile_users puse ON puse.profile_id = mmb.id " +\
+        "Where rsca.tourney_id = '" + tourney_id + "' AND rsca.round_id = '" + round_id + "' order by rsca.position_number ASC "
+    
+    lst_pair = db.execute(str_user)
+    dict_pair = {}
+    position_number=0
+    for item in lst_pair:
+        if item.name not in dict_pair:
+            dict_pair[item.name] = {'player_id': item.player_id, 'users': []}
+        dict_pair[item.name]['users'].append(item.profile_id)
+        
+    for item_key, item_value in dict_pair.items():
+        position_number+=1
+        created_one_pair(tourney_id, round_id, item_value['users'][0], item_value['users'][1], item_key, 
+                         'Parejas', created_by=created_by, db=db, position_number=position_number, 
+                         player_id=item_value['player_id'])    
+    return True
+
+def create_pair_for_profile_single(tourney_id: str, round_id: str, db: Session, created_by: str):
+    
+    str_user = "Select mmb.name, puse.single_profile_id as profile_id, rsca.player_id from events.domino_rounds_scale rsca " +\
+        "JOIN events.players play ON play.id = rsca.player_id " +\
+        "JOIN enterprise.profile_member mmb ON play.profile_id = mmb.id " +\
+        "JOIN enterprise.profile_users puse ON puse.profile_id = mmb.id " +\
+        "Where rsca.tourney_id = '" + tourney_id + "' AND rsca.round_id = '" + round_id + "' order by rsca.position_number ASC "
+    
+    lst_pair = db.execute(str_user)
+    lst_all_pair = []
+    for item in lst_pair:
+        lst_all_pair.append({'name': item.name, 'player_id': item.player_id, 'profile_id': item.profile_id})
+        
+    amount_pair_div = divmod(len(lst_all_pair),2)
+    position_number=0
+    print('amount_pair_div[0]')
+    print(amount_pair_div[0])
+    
+    for i in range(0, amount_pair_div[0], 2):
+        position_number+=1
+        name = lst_all_pair[i]['name'] + " - " + lst_all_pair[i+2]['name']
+        created_one_pair(tourney_id, round_id, lst_all_pair[i]['profile_id'], lst_all_pair[i+2]['profile_id'], name, 
+                         'Individual', created_by=created_by, db=db, position_number=position_number, player_id=None)
+        print('i')
+        print(i)
+        
+    
+    if  amount_pair_div[1] > 0:  # parejas impar  
+        created_one_pair(tourney_id, round_id, lst_all_pair[len(lst_all_pair)-1]['profile_id'], None, 
+                         lst_all_pair[len(lst_all_pair)-1]['name'], 'Individual', created_by=created_by, 
+                         db=db, position_number=position_number, player_id=None) 
+            
+    return True
+    
+def configure_rounds(tourney_id: str, round_id: str, modality:str, db: Session):
+
+    # si la modalidad es pareja, es vaciar la tabla del escalafón.
+    # si es individual, aplico el algoritmo de distribuir por mesas...
+    
+    if modality == 'Parejas':
+        create_pair_for_profile_pair(tourney_id, round_id, db=db, created_by='miry')
+    else:
+        create_pair_for_profile_single(tourney_id, round_id, db=db, created_by='miry')
+        
+    db.commit()    
+    
+    return True           
+
