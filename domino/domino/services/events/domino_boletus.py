@@ -16,7 +16,8 @@ from domino.app import _
 from fastapi.responses import FileResponse
 from os import getcwd
 
-from domino.models.events.domino_boletus import DominoBoletus, DominoBoletusPosition
+from domino.models.events.domino_boletus import DominoBoletus, DominoBoletusPosition, DominoBoletusPairs
+from domino.models.events.domino_data import DominoBoletusData
 from domino.models.events.tourney import SettingTourney
 
 from domino.schemas.events.events import EventBase, EventSchema
@@ -27,7 +28,6 @@ from domino.services.resources.utils import get_result_count, upfile, create_dir
 from domino.services.enterprise.users import get_one_by_username
 from domino.services.enterprise.userprofile import get_one as get_one_profile
 from domino.services.events.domino_table import get_lst_tables
-from domino.services.events.domino_scale import get_lst_players_with_profile
    
 def get_one(boletus_id: str, db: Session):  
     return db.query(DominoBoletus).filter(DominoBoletus.id == boletus_id).first()
@@ -73,101 +73,130 @@ def create_dict_row(item, tourney_id, page, db: Session, api_uri=""):
     
     return new_row
 
-def created_boletus_for_round_richard(db_tourney, db_round, db:Session):
+# def created_boletus_for_round_richard(db_tourney, db_round, db:Session):
+
+#     # obtener listado de mesas del torneo
+#     lst_tables = get_lst_tables(db_tourney.id, db=db)
+#     if not lst_tables:
+#         raise HTTPException(status_code=404, detail="dominotables.not_exists")
+        
+#     # obtener listado de parejas
+#     lst_players = get_lst_players_with_profile(db_tourney.id, db_round.id, db=db)
+    
+#     # asociar a cada mesa los 4 jugadores que le tocarian.
+#     lst_dist_tables = []
+#     amount_tables = len(lst_tables)
+#     for i in range(amount_tables):
+#         i+=1
+#         j=i*4-4
+#         table_id = lst_tables[i-1].id
+#         dict_tables = {'table_id': table_id, 'table_number': lst_tables[i-1].table_number, 'lst_player': []}
+#         for j in range(j,i*4):
+#             if j > len(lst_players)-1:
+#                 break
+#             dict_tables['lst_player'].append(lst_players[j])
+#         lst_dist_tables.append(dict_tables)
+
+#     dict_position_table = {1:1, 2:3, 3:2, 4:4}
+    
+#     # Por cada mesa, ubicar los jugadores
+#     for item_tab in lst_dist_tables:
+#         # crear la boleta a sociada a cada jugador. En el individual debo ver si se crea boleta para cada jugador o es similar a la pareja
+#         # despues si no es una boleta por cada jugador tengo que cambiar esto.
+        
+#         position_id = 1
+#         for item_player in item_tab['lst_player']:
+            
+#             one_boletus = DominoBoletus(tourney_id=db_tourney.id, round_id=db_round.id, table_id=item_tab['table_id'],
+#                                         player_id=item_player['player_id'], is_valid=True, is_winner=False)
+#             one_position = DominoBoletusPosition(position_id=dict_position_table[position_id], 
+#                                                  single_profile_id=item_player['single_profile_id'])
+#             position_id+=1
+            
+#             one_boletus.boletus_position.append((one_position))
+#             db.add(one_boletus)
+        
+#     db.commit()    
+    
+#     return True       
+
+def created_boletus_position(one_boletus, lst_player:list, db:Session):
+    
+    one_bol_position=DominoBoletusPosition(
+            boletus_id=one_boletus.id, position_id=1, single_profile_id=lst_player[0]['one_player_id'] if lst_player[0]['one_player_id'] else None)
+    one_boletus.boletus_position.append((one_bol_position))
+    one_bol_position=DominoBoletusPosition(
+            boletus_id=one_boletus.id, position_id=3, single_profile_id=lst_player[0]['two_player_id'] if lst_player[0]['two_player_id'] else None)
+    one_boletus.boletus_position.append((one_bol_position))
+        
+    if len(lst_player) == 2:  #tengo las dos parejas por mesa
+        one_bol_position=DominoBoletusPosition(
+            boletus_id=one_boletus.id, position_id=2, single_profile_id=lst_player[1]['one_player_id'] if lst_player[1]['one_player_id'] else None)
+        one_boletus.boletus_position.append((one_bol_position))
+        one_bol_position=DominoBoletusPosition(
+            boletus_id=one_boletus.id, position_id=4, single_profile_id=lst_player[1]['two_player_id'] if lst_player[0]['two_player_id'] else None)
+        one_boletus.boletus_position.append((one_bol_position))
+            
+    return True
+
+def created_boletus_for_round(tourney_id, round_id, db:Session):
 
     # obtener listado de mesas del torneo
-    lst_tables = get_lst_tables(db_tourney.id, db=db)
-    if not lst_tables:
-        raise HTTPException(status_code=404, detail="dominotables.not_exists")
-        
-    # obtener listado de parejas
-    lst_players = get_lst_players_with_profile(db_tourney.id, db_round.id, db=db)
-    
-    # asociar a cada mesa los 4 jugadores que le tocarian.
-    lst_dist_tables = []
-    amount_tables = len(lst_tables)
-    for i in range(amount_tables):
-        i+=1
-        j=i*4-4
-        table_id = lst_tables[i-1].id
-        dict_tables = {'table_id': table_id, 'table_number': lst_tables[i-1].table_number, 'lst_player': []}
-        for j in range(j,i*4):
-            if j > len(lst_players)-1:
-                break
-            dict_tables['lst_player'].append(lst_players[j])
-        lst_dist_tables.append(dict_tables)
-
-    dict_position_table = {1:1, 2:3, 3:2, 4:4}
-    
-    # Por cada mesa, ubicar los jugadores
-    for item_tab in lst_dist_tables:
-        # crear la boleta a sociada a cada jugador. En el individual debo ver si se crea boleta para cada jugador o es similar a la pareja
-        # despues si no es una boleta por cada jugador tengo que cambiar esto.
-        
-        position_id = 1
-        for item_player in item_tab['lst_player']:
-            
-            one_boletus = DominoBoletus(tourney_id=db_tourney.id, round_id=db_round.id, table_id=item_tab['table_id'],
-                                        player_id=item_player['player_id'], is_valid=True, is_winner=False)
-            one_position = DominoBoletusPosition(position_id=dict_position_table[position_id], 
-                                                 single_profile_id=item_player['single_profile_id'])
-            position_id+=1
-            
-            one_boletus.boletus_position.append((one_position))
-            db.add(one_boletus)
-        
-    db.commit()    
-    
-    return True       
-
-
-def created_boletus_for_round(db_tourney, db_round, db:Session):
-
-    # obtener listado de mesas del torneo
-    lst_tables = get_lst_tables(db_tourney.id, db=db)
+    lst_tables = get_lst_tables(tourney_id, db=db)
     if not lst_tables:
         raise HTTPException(status_code=404, detail="dominotables.not_exists")
         
     # obtener escalafon de parejas.
-    lst_pais = get_list_rounds_pairs(db_round.id, db=db)
+    lst_pairs = get_list_rounds_pairs(round_id, db=db)
     
-    # asociar a cada mesa los 4 jugadores que le tocarian.
+    # asociar a cada mesa los 2 parejas que le tocarian.
     lst_dist_tables = []
     amount_tables = len(lst_tables)
     for i in range(amount_tables):
         i+=1
-        j=i*4-4
+        j=i*2-2
         table_id = lst_tables[i-1].id
         dict_tables = {'table_id': table_id, 'table_number': lst_tables[i-1].table_number, 'lst_player': []}
-        for j in range(j,i*4):
-            if j > len(lst_players)-1:
+        for j in range(j,i*2):
+            if j > len(lst_pairs)-1:
                 break
-            dict_tables['lst_player'].append(lst_players[j])
+            dict_tables['lst_player'].append(lst_pairs[j])
         lst_dist_tables.append(dict_tables)
 
-    dict_position_table = {1:1, 2:3, 3:2, 4:4}
-    
     # Por cada mesa, ubicar los jugadores
     for item_tab in lst_dist_tables:
-        # crear la boleta a sociada a cada jugador. En el individual debo ver si se crea boleta para cada jugador o es similar a la pareja
-        # despues si no es una boleta por cada jugador tengo que cambiar esto.
+        boletus_id = str(uuid.uuid4())
+        one_boletus = DominoBoletus(id=boletus_id, tourney_id=tourney_id, round_id=round_id, table_id=item_tab['table_id'],
+                                    is_valid=True)
         
-        position_id = 1
-        for item_player in item_tab['lst_player']:
-            
-            one_boletus = DominoBoletus(tourney_id=db_tourney.id, round_id=db_round.id, table_id=item_tab['table_id'],
-                                        player_id=item_player['player_id'], is_valid=True, is_winner=False)
-            one_position = DominoBoletusPosition(position_id=dict_position_table[position_id], 
-                                                 single_profile_id=item_player['single_profile_id'])
-            position_id+=1
-            
-            one_boletus.boletus_position.append((one_position))
-            db.add(one_boletus)
-        
+        one_data = DominoBoletusData(id=str(uuid.uuid4()), boletus_id=boletus_id, data_number=1)
+        one_boletus.boletus_data.append(one_data)
+    
+        if item_tab['lst_player']:
+            boletus_pair_one = DominoBoletusPairs(boletus_id=boletus_id, pairs_id=item_tab['lst_player'][0]['id'], is_initiator=True)
+            one_boletus.boletus_pairs.append(boletus_pair_one)
+            if len(item_tab['lst_player']) == 2:  #tengo las dos parejas por mesa
+                boletus_pair_two = DominoBoletusPairs(boletus_id=boletus_id, pairs_id=item_tab['lst_player'][1]['id'],
+                                                      is_initiator=False)
+                one_boletus.boletus_pairs.append(boletus_pair_two)
+                
+            created_boletus_position(one_boletus, lst_player=item_tab['lst_player'], db=db)
+                    
+        db.add(one_boletus)        
+    
     db.commit()    
     
     return True         
 
 def get_list_rounds_pairs(round_id,  db: Session):
     
-    return True
+    str_query = "SELECT id, one_player_id, two_player_id, name as pair_name " +\
+        "FROM events.domino_rounds_pairs Where round_id = '" + round_id + "' ORDER BY position_number ASC "
+    
+    lst_all_pair = db.execute(str_query)
+    lst_pairs = []
+    for item in lst_all_pair:
+        lst_pairs.append({'id': item.id, 'one_player_id': item.one_player_id, 
+                          'two_player_id': item.two_player_id, 'pair_name': item.pair_name})
+    
+    return lst_pairs

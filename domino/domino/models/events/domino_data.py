@@ -8,7 +8,7 @@ from ...config.db import Base
 
 def generate_uuid():
     return str(uuid.uuid4())
-class DominoData(Base):
+class DominoBoletusData(Base):
     """DominoData Class contains standard information for  Domino Data at Rounds."""
  
     __tablename__ = "domino_boletus_data"

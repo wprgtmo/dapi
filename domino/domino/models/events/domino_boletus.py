@@ -23,6 +23,8 @@ class DominoBoletus(Base):
     is_valid = Column(Boolean, nullable=False, default=True)
     
     boletus_position = relationship("DominoBoletusPosition")
+    boletus_pairs = relationship("DominoBoletusPairs")
+    boletus_data = relationship('DominoBoletusData')
     
     tourney = ("Tourney")
     

@@ -391,5 +391,4 @@ def configure_one_tourney(request, profile_id:str, tourney_id: str, settingtourn
         raise HTTPException(status_code=404, detail=_(locale, "tourney.setting_rounds_failed"))
     
     return result
-    
-    
+   

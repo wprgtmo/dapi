@@ -745,21 +745,21 @@ def clear_all_bd(request:Request, db: Session):
 
 #endregion
 
-def distribute_all_player(request:Request, tourney_id:str, round_id:str, db: Session):
+# def distribute_all_player(request:Request, tourney_id:str, round_id:str, db: Session):
     
-    # tourney_ind = get_tourney_by_name(tourney_name='Serie Nacional del Domino.Torneo Individual', db=db)
-    # if not tourney_ind:
-    #     return True
+#     # tourney_ind = get_tourney_by_name(tourney_name='Serie Nacional del Domino.Torneo Individual', db=db)
+#     # if not tourney_ind:
+#     #     return True
     
-    db_tourney = get_one_tourney(tourney_id, db=db)
-    if not db_tourney:
-        return True
+#     db_tourney = get_one_tourney(tourney_id, db=db)
+#     if not db_tourney:
+#         return True
     
-    round_initial = get_one_round(round_id, db=db)
-    if not round_initial:
-        return True
+#     round_initial = get_one_round(round_id, db=db)
+#     if not round_initial:
+#         return True
     
-    configure_rounds(db_tourney.id, round_initial.id, db_tourney.modality, db=db)
+#     configure_rounds(db_tourney.id, round_initial.id, db_tourney.modality, db=db)
     
-    return True
+#     return True
     

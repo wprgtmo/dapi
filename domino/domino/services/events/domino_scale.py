@@ -30,6 +30,7 @@ from domino.services.enterprise.auth import get_url_avatar
 
 from domino.services.events.tourney import get_one as get_one_tourney, get_setting_tourney
 from domino.services.events.player import get_lst_id_player_by_elo
+from domino.services.events.domino_round import get_one as get_one_round
 
 # def new_initial_automatic_round(request: Request, tourney_id:str, dominoscale: list[DominoAutomaticScaleCreated], db: Session):
 #     locale = request.headers["accept-language"].split(",")[0].split("-")[0];
@@ -304,3 +305,18 @@ def create_dict_row(item, tourney_id, page, db: Session, api_uri):
         new_row['selected'] = False
     
     return new_row
+
+# def distribute_all_player(request:Request, tourney_id:str, round_id:str, db: Session):
+#     locale = request.headers["accept-language"].split(",")[0].split("-")[0];
+    
+#     db_tourney = get_one_tourney(tourney_id, db=db)
+#     if not db_tourney:
+#         raise HTTPException(status_code=404, detail=_(locale, "tourney.not_found"))
+    
+#     round_initial = get_one_round(round_id, db=db)
+#     if not round_initial:
+#         raise HTTPException(status_code=404, detail=_(locale, "dominoround.not_found"))
+    
+#     configure_rounds(db_tourney.id, round_initial.id, db_tourney.modality, db=db)
+    
+    # return True

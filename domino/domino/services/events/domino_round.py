@@ -26,6 +26,8 @@ from domino.services.resources.status import get_one_by_name as get_one_status_b
 from domino.services.resources.utils import get_result_count, upfile, create_dir, del_image, get_ext_at_file, remove_dir
 from domino.services.enterprise.users import get_one_by_username
 from domino.services.enterprise.userprofile import get_one as get_one_profile
+from domino.services.events.domino_boletus import created_boletus_for_round
+# from domino.services.events.tourney import get_one as get_one_tourney
                          
 def get_all(request:Request, profile_id:str, tourney_id:str, page: int, per_page: int, criteria_key: str, criteria_value: str, db: Session):  
     locale = request.headers["accept-language"].split(",")[0].split("-")[0];
@@ -276,25 +278,32 @@ def create_pair_for_profile_single(tourney_id: str, round_id: str, db: Session, 
     lst_all_pair = []
     for item in lst_pair:
         lst_all_pair.append({'name': item.name, 'player_id': item.player_id, 'profile_id': item.profile_id})
+    
+    lst_par, lst_impar, pos = [], [], 0
+    for i in lst_all_pair:   
+        if  pos % 2 == 0:
+            lst_par.append(lst_all_pair[pos])
+        else:
+            lst_impar.append(lst_all_pair[pos])
+        pos+=1 
         
     amount_pair_div = divmod(len(lst_all_pair),2)
     position_number=0
-    print('amount_pair_div[0]')
-    print(amount_pair_div[0])
     
-    for i in range(0, amount_pair_div[0], 2):
+    for num in range(0, amount_pair_div[0]-1, 2):
         position_number+=1
-        name = lst_all_pair[i]['name'] + " - " + lst_all_pair[i+2]['name']
-        created_one_pair(tourney_id, round_id, lst_all_pair[i]['profile_id'], lst_all_pair[i+2]['profile_id'], name, 
+        name = lst_par[num]['name'] + " - " + lst_par[num+1]['name']
+        created_one_pair(tourney_id, round_id, lst_par[num]['profile_id'], lst_par[num+1]['profile_id'], name, 
                          'Individual', created_by=created_by, db=db, position_number=position_number, player_id=None)
-        print('i')
-        print(i)
-        
-    
+        position_number+=1
+        name = lst_impar[num]['name'] + " - " + lst_impar[num+1]['name']
+        created_one_pair(tourney_id, round_id, lst_impar[num]['profile_id'], lst_impar[num+1]['profile_id'], name, 
+                         'Individual', created_by=created_by, db=db, position_number=position_number, player_id=None)
+
     if  amount_pair_div[1] > 0:  # parejas impar  
-        created_one_pair(tourney_id, round_id, lst_all_pair[len(lst_all_pair)-1]['profile_id'], None, 
-                         lst_all_pair[len(lst_all_pair)-1]['name'], 'Individual', created_by=created_by, 
-                         db=db, position_number=position_number, player_id=None) 
+        created_one_pair(tourney_id, round_id, lst_par[len(lst_par)-1]['profile_id'], None, 
+                         lst_par[len(lst_par)-1]['name'], 'Individual', created_by=created_by, 
+                         db=db, position_number=position_number+1, player_id=None) 
             
     return True
     
