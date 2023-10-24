@@ -37,7 +37,7 @@ def get_all(request:Request, page: int, per_page: int, criteria_key: str, criter
     
     str_count = "Select count(*) " + str_from
     str_query = "Select tou.id, event_id, eve.name as event_name, tou.modality, tou.name, tou.summary, tou.start_date, " +\
-        "tou.status_id, sta.name as status_name " + str_from
+        "tou.status_id, sta.name as status_name, sta.description as status_description " + str_from
     
     str_where = " WHERE sta.name != 'CANCELLED' "  
     
@@ -74,7 +74,8 @@ def get_all(request:Request, page: int, per_page: int, criteria_key: str, criter
 def create_dict_row(item, page, db: Session):
     
     new_row = {'id': item['id'], 'event_id': item['event_id'], 'event_name': item['event_name'], 'name': item['name'], 
-               'modality': item['modality'], 'summary' : item['summary'], 'startDate': item['start_date'] 
+               'modality': item['modality'], 'summary' : item['summary'], 'startDate': item['start_date'],
+               'status_id': item['status_id'], 'status_name': item['status_name'], 'status_description': item['status_description'] 
                }
        
     if page != 0:
@@ -100,7 +101,7 @@ def get_one_by_id(tourney_id: str, db: Session):
     api_uri = str(settings.api_uri)
     
     str_query = "Select tou.id, event_id, eve.name as event_name, tou.modality, tou.name, tou.summary, tou.start_date, " +\
-        "tou.status_id, sta.name as status_name FROM events.tourney tou " +\
+        "tou.status_id, sta.name as status_name, sta.description as status_description FROM events.tourney tou " +\
         "JOIN events.events eve ON eve.id = tou.event_id " +\
         "JOIN resources.entities_status sta ON sta.id = tou.status_id " +\
         " WHERE tou.id = '" + str(tourney_id)  + "' "

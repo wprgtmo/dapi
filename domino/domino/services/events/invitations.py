@@ -86,16 +86,20 @@ def get_all_invitations_by_tourney(request, tourney_id: str, page: int, per_page
     
     api_uri = str(settings.api_uri)
     
+    # voy a devolver lasa confirmadas tambien
     str_from = "FROM events.invitations " + \
         "inner join enterprise.profile_member ON profile_member.id = invitations.profile_id " + \
         "left join resources.city ON city.id = profile_member.city_id " +\
         "left join resources.country ON country.id = city.country_id " +\
+        "JOIN resources.entities_status sta ON sta.name = invitations.status_name " +\
         "WHERE invitations.tourney_id = '" + tourney_id + "' " +\
-        " AND status_name = 'ACCEPTED' and profile_member.is_active = True and profile_member.is_ready = True "
+        " AND (status_name = 'ACCEPTED' or status_name = 'CONFIRMED') " + \
+        "and profile_member.is_active = True and profile_member.is_ready = True "
         
     str_count = "Select count(*) " + str_from
     str_query = "SELECT invitations.id, invitations.profile_id, profile_member.name, profile_member.photo, " + \
-        "city.name as city_name, country.name country_name " + str_from
+        "city.name as city_name, country.name country_name, " +\
+        "sta.id as status_id, sta.name as status_name, sta.description as status_description " + str_from
     
     dict_query = {'name': " AND eve.name ilike '%" + criteria_value + "%'",
                   'summary': " AND summary ilike '%" + criteria_value + "%'",
@@ -117,7 +121,7 @@ def get_all_invitations_by_tourney(request, tourney_id: str, page: int, per_page
     str_query += " ORDER BY profile_member.name ASC " 
     if page != 0:
         str_query += "LIMIT " + str(per_page) + " OFFSET " + str(page*per_page-per_page)
-    
+    print(str_query)
     lst_data = db.execute(str_query)
     result.data = [create_dict_row_for_tourney(item, api_uri=api_uri) for item in lst_data]
     
@@ -127,7 +131,8 @@ def create_dict_row_for_tourney(item, api_uri=""):
     
     new_row = {'id': item.id, 'profile_id': item.profile_id, 
                'country': item.country_name, 'city_name': item.city_name,
-               'name': item['name'], 
+               'name': item['name'], 'status_id': item['status_id'], 
+               'status_name': item['status_name'], 'status_description': item['status_description'],
                'photo' : get_url_avatar(item.profile_id, item.photo, api_uri=api_uri)}
     
     return new_row
