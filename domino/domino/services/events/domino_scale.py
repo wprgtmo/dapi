@@ -292,51 +292,17 @@ def get_all_players_by_tables(request:Request, page: int, per_page: int, tourney
     lst_tables = []
     id=0
     for item in lst_data:
-        table_image = item['table_image'] if item['table_image'] else item['tourney_image'] # mesa tiene imagen asociada
+        table_image = item['table_image'] if item['table_image'] else item['tourney_image'] if item['tourney_image'] else "/smartdomino.png"
         dict_tables = {'id': id, 'number': int(item['table_number']), 'table_id': item.table_id,
                        'type': "Inteligente" if item['is_smart'] else "Tradicional",
                        'image': table_image}
         
-        create_dict_position(dict_tables, item.boletus_id, api_uri, db=db)
+        dict_tables=create_dict_position(dict_tables, item.boletus_id, api_uri, db=db)
+        lst_tables.append(dict_tables)
         id+=1
         
-    print('tables')
-    print(dict_tables)
     result.data = lst_tables        
             
-    # playerOne: {id: "1", name: "Juán Carlos", elo: 15235, nivel: "Experto", index: 1, avatar: "/profile/user-vector.jpg"},
-    #   playerTwo: {id: "2", name: "Ricardo", elo: 15226, nivel: "Experto", index: 2, avatar: "/profile/user-vector.jpg"},
-    #   playerThree: {id: "3", name: "Migue", elo: 14230, nivel: "Experto", index: 3, avatar: "/profile/user-vector.jpg"},
-    #   playerFour: {id: "4", name: "Jesús", elo: 12345, nivel: "Profesional", index: 4, avatar: "/profile/user-vector.jpg"},
-    
-    # result.data = [create_dict_row(item, tourney_id, page, db=db, api_uri=api_uri) for item in lst_data]
-    
-    # {
-    #   id: 0,
-    #   number: 1,
-    #   type: "Inteligente",
-    #   image: "/smartdomino.png",
-    #   playerOne: {id: "1", name: "Juán Carlos", elo: 15235, nivel: "Experto", index: 1, avatar: "/profile/user-vector.jpg"},
-    #   playerTwo: {id: "2", name: "Ricardo", elo: 15226, nivel: "Experto", index: 2, avatar: "/profile/user-vector.jpg"},
-    #   playerThree: {id: "3", name: "Migue", elo: 14230, nivel: "Experto", index: 3, avatar: "/profile/user-vector.jpg"},
-    #   playerFour: {id: "4", name: "Jesús", elo: 12345, nivel: "Profesional", index: 4, avatar: "/profile/user-vector.jpg"},
-    # },
-    
-    # da = {1: {'playerOne': {'id': 1, 'name': 'usuario.tres', 'elo': Decimal('2504.2500'), 
-    #                         'nivel': 'Avanzado', 'index': None, 
-    #                         'avatar': 'http://127.0.0.1:5000/api/avatar/dbc1c718-e9a0-4a8b-8c82-4352e566283f/dbc1c718-e9a0-4a8b-8c82-4352e566283f.jpg'}, 
-    #           'playerTwo': {'id': 2, 'name': 'usuario.seis_a', 'elo': Decimal('2004.7500'), 
-    #                         'nivel': 'Experto', 'index': None, 
-    #                         'avatar': 'http://127.0.0.1:5000/api/avatar/08f41160-0787-43ec-811f-17892b849577/08f41160-0787-43ec-811f-17892b849577.jpg'}, 
-    #           'playerThree': {'id': 3, 'name': 'wilfre', 'elo': Decimal('2571.7500'), 
-    #                           'nivel': 'Experto', 'index': None, 
-    #                           'avatar': 'http://127.0.0.1:5000/api/avatar/93b33904-6635-47de-bf7e-74f461dabb2e/93b33904-6635-47de-bf7e-74f461dabb2e.jpg'}, 
-    #           'playerFour': {'id': 4, 'name': 'usuario.uno_b', 'elo': Decimal('2382.7500'), 
-    #                          'nivel': 'Avanzado', 'index': None, 
-    #                          'avatar': 'http://127.0.0.1:5000/api/avatar/0178891e-7a7a-4d74-a649-e561622adc04/0178891e-7a7a-4d74-a649-e561622adc04.jpg'}}, 
-    #       2: {}, 
-    #       3: {'playerOne': {'id': 1, 'name': 'usuario.siete_o', 'elo': Decimal('2207.2500'), 'nivel': 'Intermedio', 'index': None, 'avatar': 'http://127.0.0.1:5000/api/avatar/3efb1198-258a-49e3-834f-6f214685ed42/3efb1198-258a-49e3-834f-6f214685ed42.jpg'}, 'playerTwo': {'id': 2, 'name': 'richard', 'elo': Decimal('2652.7500'), 'nivel': 'Avanzado', 'index': None, 'avatar': 'http://127.0.0.1:5000/api/avatar/2693afbe-50ef-4deb-927f-c323efaf9dc7/2693afbe-50ef-4deb-927f-c323efaf9dc7.jpg'}, 'playerThree': {'id': 3, 'name': 'usuario.cinco', 'elo': Decimal('2490.7500'), 'nivel': 'Intermedio', 'index': None, 'avatar': 'http://127.0.0.1:5000/api/avatar/7a6a318f-e37b-44f2-ae71-7ac17390a488/7a6a318f-e37b-44f2-ae71-7ac17390a488.jpg'}, 'playerFour': {'id': 4, 'name': 'usuario.dos_a', 'elo': Decimal('2031.7500'), 'nivel': 'Experto', 'index': None, 'avatar': 'http://127.0.0.1:5000/api/avatar/9030ce88-8088-4e69-8d9e-be90e96b20b3/9030ce88-8088-4e69-8d9e-be90e96b20b3.jpg'}}}
-    
     return result
 
 def create_dict_position(dict_tables, boletus_id: str, api_uri:str, db: Session):
@@ -352,7 +318,7 @@ def create_dict_position(dict_tables, boletus_id: str, api_uri:str, db: Session)
     for item in lst_data:
         photo = get_url_avatar(item['single_profile_id'], item['photo'], api_uri=api_uri)
         dict_player = {'id': item.position_id, 'name': item.profile_name, 'elo': item.elo, 'nivel': item.level, 
-                       'index': item.scale_number, 'avatar': photo}
+                       'index': item.scale_number if item.scale_number else item.position_id, 'avatar': photo}
         
         if item.position_id == 1:
             dict_tables['playerOne'] = dict_player
