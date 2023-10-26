@@ -121,6 +121,16 @@ def get_one_by_id(round_id: str, db: Session):
     
     return result
 
+def get_first_by_tourney(tourney_id: str, db: Session): 
+    
+    str_query = "SELECT id FROM events.domino_rounds Where tourney_id = '" + tourney_id + "' ORDER BY round_number ASC limit 1 " 
+    round_id = db.execute(str_query).fetchone()
+    
+    if not round_id:
+        raise HTTPException(status_code=404, detail="dominoround.not_found")
+    
+    return round_id[0]
+
 def configure_new_rounds(db_tourney, summary:str, db:Session, created_by:str):
   
     str_number = "SELECT round_number FROM events.domino_rounds where tourney_id = '" + db_tourney.id + "' " +\

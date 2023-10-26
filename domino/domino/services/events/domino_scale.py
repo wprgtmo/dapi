@@ -30,7 +30,8 @@ from domino.services.enterprise.auth import get_url_avatar
 
 from domino.services.events.tourney import get_one as get_one_tourney, get_setting_tourney
 from domino.services.events.player import get_lst_id_player_by_elo
-from domino.services.events.domino_round import get_one as get_one_round
+from domino.services.events.domino_round import get_one as get_one_round, get_first_by_tourney, configure_rounds
+from domino.services.events.domino_boletus import created_boletus_for_round
 
 # def new_initial_automatic_round(request: Request, tourney_id:str, dominoscale: list[DominoAutomaticScaleCreated], db: Session):
 #     locale = request.headers["accept-language"].split(",")[0].split("-")[0];
@@ -70,33 +71,21 @@ from domino.services.events.domino_round import get_one as get_one_round
 #     return result
 
 def new_initial_automatic_round(request: Request, tourney_id:str, dominoscale: list[DominoAutomaticScaleCreated], db: Session):
-
-    # este metodo escribe en las trazas de como quedo el sorteo inicial 
-    # crea las parejas del torneo
-    # escribe en el escalafon de la primera ronda.
-    
     locale = request.headers["accept-language"].split(",")[0].split("-")[0];
     result = ResultObject() 
-    
+    print('entrando al metodo de crea automatic')
     db_tourney, round_id = get_tourney_to_configure(locale, tourney_id, db=db)
     one_status_init = get_one_status_by_name('INITIADED', db=db)
     # if db_tourney.status_id != one_status_init.id:
     #     raise HTTPException(status_code=404, detail=_(locale, "tourney.tourney_closed"))
     
-    initial_scale_by_automatic_lottery(tourney_id, round_id, dominoscale, db_tourney.modality, db=db)
+    # initial_scale_by_automatic_lottery(tourney_id, round_id, dominoscale, db_tourney.modality, db=db)
     
-    #actualizar elo
-    update_elo_initial_scale(tourney_id, round_id, db_tourney.modality, db=db)
-    # distribuir por mesas
+    configure_tables_by_round(tourney_id, round_id, db_tourney.modality, db=db)
     
     return result
 
 def new_initial_manual_round(request: Request, tourney_id:str, dominoscale: list[DominoManualScaleCreated], db: Session):
-
-    # este metodo escribe en las trazas de como quedo el sorteo inicial 
-    # crea las parejas del torneo
-    # escribe en el escalafon de la primera ronda.
-    
     locale = request.headers["accept-language"].split(",")[0].split("-")[0];
     result = ResultObject() 
     
@@ -107,10 +96,31 @@ def new_initial_manual_round(request: Request, tourney_id:str, dominoscale: list
     
     initial_scale_by_manual_lottery(tourney_id, round_id, dominoscale, db_tourney.modality, db=db)
     
-    update_elo_initial_scale(tourney_id, round_id, db_tourney.modality, db=db)
-    # distribuir por mesas
+    # configure_tables_by_round(tourney_id, round_id, db_tourney.modality, db=db)
+    
+    # update_elo_initial_scale(tourney_id, round_id, db_tourney.modality, db=db)
+    # # distribuir por mesas
+    
+    # #configurar parejas y rondas
+    # configure_rounds(tourney_id=tourney_id, round_id=round_id, modality=db_tourney.modality, db=db)
+    
+    # #ubicar por mesas las parejas
+    # created_boletus_for_round
     
     return result
+
+def configure_tables_by_round(tourney_id:str, round_id: str, modality:str, db: Session):
+    
+    update_elo_initial_scale(tourney_id, round_id, modality, db=db)
+    # distribuir por mesas
+    
+    #configurar parejas y rondas
+    configure_rounds(tourney_id=tourney_id, round_id=round_id, modality=modality, db=db)
+    
+    #ubicar por mesas las parejas
+    created_boletus_for_round(tourney_id=tourney_id, round_id=round_id, db=db)
+    
+    return True
 
 def get_tourney_to_configure(locale, tourney_id:str, db: Session):
     
@@ -162,7 +172,7 @@ def update_elo_initial_scale(tourney_id: str, round_id: str, modality:str, db: S
     return True
 
 def create_one_scale(tourney_id: str, round_id: str, round_number, position_number: int, player_id: str, db: Session ):
-    
+    print('escribiendo en la tabla de escala')
     one_scale = DominoRoundsScale(id=str(uuid.uuid4()), tourney_id=tourney_id, round_id=round_id, round_number=round_number, 
                                   position_number=int(position_number), player_id=player_id, is_active=True)
     db.add(one_scale)
@@ -179,7 +189,6 @@ def create_one_manual_trace(tourney_id: str, modality:str, position_number: int,
 
 def create_one_automatic_trace(tourney_id: str, modality:str, title:str, position_number:int, elo_min: float, elo_max: float, 
                                db: Session):
-    
     one_trace = TraceLotteryAutomatic(id=str(uuid.uuid4()), tourney_id=tourney_id, modality=modality, title=title,
                                       position_number=int(position_number), elo_min=elo_min, elo_max=elo_max, 
                                       is_active=True)
@@ -202,7 +211,7 @@ def initial_scale_by_automatic_lottery(tourney_id: str, round_id: str, dominosca
         create_one_automatic_trace(tourney_id, modality, item.title, int(item.id), float(item.min), float(item.max), db=db)
         position_number=created_automatic_lottery(
             tourney_id, modality, round_id, float(item.min), float(item.max), position_number=position_number, db=db)
-    db.commit()
+        db.commit()
     return True
 
 def created_automatic_lottery(tourney_id: str, modality:str, round_id: str, elo_min:float, elo_max:float, position_number:int, db: Session):
@@ -228,8 +237,7 @@ def created_automatic_lottery(tourney_id: str, modality:str, round_id: str, elo_
     for item_pos in lst_groups:
         position_number += 1
         create_one_scale(tourney_id, round_id, 1, position_number, item_pos, db=db)
-    
-    db.commit()
+        db.commit()
     return position_number
 
 def get_lst_players(tourney_id: str, round_id: str, db: Session):  
@@ -251,10 +259,15 @@ def get_lst_players_with_profile(tourney_id: str, round_id: str, db: Session):
     return lst_player
         
 def get_all_players_by_tables(request:Request, page: int, per_page: int, tourney_id: str, round_id: str, db: Session):  
+    
+    # SI LA RONDA VIENE VACIA ES LA PRIMERA DEL TORNEO.
     locale = request.headers["accept-language"].split(",")[0].split("-")[0];
     
     api_uri = str(settings.api_uri)
-            
+    
+    if not round_id:
+        round_id = get_first_by_tourney(tourney_id, db=db)
+    
     str_from = "FROM events.domino_boletus_position bpos " +\
         "JOIN events.domino_boletus bol ON bol.id = bpos.boletus_id " +\
         "JOIN events.domino_tables dtab ON dtab.id = bol.table_id " +\
@@ -265,7 +278,7 @@ def get_all_players_by_tables(request:Request, page: int, per_page: int, tourney
         "left join resources.country ON country.id = city.country_id "
     
     str_count = "Select count(*) " + str_from
-    str_query = "SELECT bpos.position_id, bpos.single_profile_id, bol.is_winner, dtab.id as table_id, " +\
+    str_query = "SELECT bpos.position_id, bpos.single_profile_id, dtab.id as table_id, " +\
         "dtab.table_number, is_smart, amount_bonus, dtab.image as table_image, psin.elo, psin.ranking, psin.level, " +\
         "city.name as city_name, country.name as country_name, stou.image as tourney_image, pro.photo " + str_from
 
@@ -281,6 +294,7 @@ def get_all_players_by_tables(request:Request, page: int, per_page: int, tourney
     result = get_result_count(page=page, per_page=per_page, str_count=str_count, db=db)
     
     str_query += " ORDER BY dtab.table_number, bpos.position_id " 
+    
     if page != 0:
         str_query += "LIMIT " + str(per_page) + " OFFSET " + str(page*per_page-per_page)
     

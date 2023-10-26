@@ -34,7 +34,7 @@ def get_rounds(
 def get_tables(
     request: Request,
     tourney_id: str,
-    round_id: str,
+    round_id: str = '',
     page: int = 1, 
     per_page: int = 6, 
     db: Session = Depends(get_db)
