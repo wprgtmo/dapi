@@ -73,13 +73,12 @@ from domino.services.events.domino_boletus import created_boletus_for_round
 def new_initial_automatic_round(request: Request, tourney_id:str, dominoscale: list[DominoAutomaticScaleCreated], db: Session):
     locale = request.headers["accept-language"].split(",")[0].split("-")[0];
     result = ResultObject() 
-    print('entrando al metodo de crea automatic')
     db_tourney, round_id = get_tourney_to_configure(locale, tourney_id, db=db)
     one_status_init = get_one_status_by_name('INITIADED', db=db)
     # if db_tourney.status_id != one_status_init.id:
     #     raise HTTPException(status_code=404, detail=_(locale, "tourney.tourney_closed"))
     
-    # initial_scale_by_automatic_lottery(tourney_id, round_id, dominoscale, db_tourney.modality, db=db)
+    initial_scale_by_automatic_lottery(tourney_id, round_id, dominoscale, db_tourney.modality, db=db)
     
     configure_tables_by_round(tourney_id, round_id, db_tourney.modality, db=db)
     
@@ -96,16 +95,7 @@ def new_initial_manual_round(request: Request, tourney_id:str, dominoscale: list
     
     initial_scale_by_manual_lottery(tourney_id, round_id, dominoscale, db_tourney.modality, db=db)
     
-    # configure_tables_by_round(tourney_id, round_id, db_tourney.modality, db=db)
-    
-    # update_elo_initial_scale(tourney_id, round_id, db_tourney.modality, db=db)
-    # # distribuir por mesas
-    
-    # #configurar parejas y rondas
-    # configure_rounds(tourney_id=tourney_id, round_id=round_id, modality=db_tourney.modality, db=db)
-    
-    # #ubicar por mesas las parejas
-    # created_boletus_for_round
+    configure_tables_by_round(tourney_id, round_id, db_tourney.modality, db=db)
     
     return result
 
@@ -172,7 +162,6 @@ def update_elo_initial_scale(tourney_id: str, round_id: str, modality:str, db: S
     return True
 
 def create_one_scale(tourney_id: str, round_id: str, round_number, position_number: int, player_id: str, db: Session ):
-    print('escribiendo en la tabla de escala')
     one_scale = DominoRoundsScale(id=str(uuid.uuid4()), tourney_id=tourney_id, round_id=round_id, round_number=round_number, 
                                   position_number=int(position_number), player_id=player_id, is_active=True)
     db.add(one_scale)
@@ -268,57 +257,132 @@ def get_all_players_by_tables(request:Request, page: int, per_page: int, tourney
     if not round_id:
         round_id = get_first_by_tourney(tourney_id, db=db)
     
-    str_from = "FROM events.domino_boletus_position bpos " +\
-        "JOIN events.domino_boletus bol ON bol.id = bpos.boletus_id " +\
+    str_from = "FROM events.domino_boletus bol " +\
         "JOIN events.domino_tables dtab ON dtab.id = bol.table_id " +\
-        "JOIN events.setting_tourney stou ON stou.tourney_id = bol.tourney_id " +\
-        "JOIN enterprise.profile_single_player psin ON psin.profile_id = bpos.single_profile_id " +\
-        "JOIN enterprise.profile_member pro ON pro.id = psin.profile_id " +\
-        "left join resources.city ON city.id = pro.city_id " + \
-        "left join resources.country ON country.id = city.country_id "
+        "JOIN events.setting_tourney stou ON stou.tourney_id = dtab.tourney_id " 
     
     str_count = "Select count(*) " + str_from
-    str_query = "SELECT bpos.position_id, bpos.single_profile_id, dtab.id as table_id, " +\
-        "dtab.table_number, is_smart, amount_bonus, dtab.image as table_image, psin.elo, psin.ranking, psin.level, " +\
-        "city.name as city_name, country.name as country_name, stou.image as tourney_image, pro.photo " + str_from
-
+    str_query = "SELECT DISTINCT dtab.id as table_id, dtab.table_number, is_smart, dtab.image as table_image, " +\
+        "stou.image as tourney_image, bol.id as boletus_id " + str_from
+        
     str_where = "WHERE bol.is_valid is True AND dtab.is_active is True " + \
-        " AND  bol.tourney_id = '" + tourney_id + "' AND bol.round_id = '" + round_id + "' "
-    
+        "AND  dtab.tourney_id = '" + tourney_id + "' AND bol.round_id = '" + round_id + "' "
+        
     str_count += str_where
-    str_query += str_where
+    str_query += str_where + " ORDER BY dtab.table_number "
 
     if page and page > 0 and not per_page:
         raise HTTPException(status_code=404, detail=_(locale, "commun.invalid_param"))
     
     result = get_result_count(page=page, per_page=per_page, str_count=str_count, db=db)
     
-    str_query += " ORDER BY dtab.table_number, bpos.position_id " 
-    
     if page != 0:
         str_query += "LIMIT " + str(per_page) + " OFFSET " + str(page*per_page-per_page)
     
     lst_data = db.execute(str_query)
-    result.data = [create_dict_row(item, tourney_id, page, db=db, api_uri=api_uri) for item in lst_data]
+    
+    dict_tables = {}
+    id=0
+    for item in lst_data:
+        if item['table_number'] not in dict_tables:
+            table_image = item['table_image'] if item['table_image'] else item['tourney_image'] # mesa tiene imagen asociada
+            
+            dict_tables[item['table_number']] = {'id': id, 'number': int(item['table_number']), 
+                                                 'type': "Inteligente" if item['is_smart'] else "Tradicional",
+                                                 'image': table_image}
+            dict_tables[item['table_number']] = create_dict_position(item.boletus_id, api_uri, db=db)
+        id+=1
+    print('tables')
+    print(dict_tables)
+    result.data = dict_tables        
+            
+    # playerOne: {id: "1", name: "Juán Carlos", elo: 15235, nivel: "Experto", index: 1, avatar: "/profile/user-vector.jpg"},
+    #   playerTwo: {id: "2", name: "Ricardo", elo: 15226, nivel: "Experto", index: 2, avatar: "/profile/user-vector.jpg"},
+    #   playerThree: {id: "3", name: "Migue", elo: 14230, nivel: "Experto", index: 3, avatar: "/profile/user-vector.jpg"},
+    #   playerFour: {id: "4", name: "Jesús", elo: 12345, nivel: "Profesional", index: 4, avatar: "/profile/user-vector.jpg"},
+    
+    # result.data = [create_dict_row(item, tourney_id, page, db=db, api_uri=api_uri) for item in lst_data]
+    
+    {
+      id: 0,
+      number: 1,
+      type: "Inteligente",
+      image: "/smartdomino.png",
+      playerOne: {id: "1", name: "Juán Carlos", elo: 15235, nivel: "Experto", index: 1, avatar: "/profile/user-vector.jpg"},
+      playerTwo: {id: "2", name: "Ricardo", elo: 15226, nivel: "Experto", index: 2, avatar: "/profile/user-vector.jpg"},
+      playerThree: {id: "3", name: "Migue", elo: 14230, nivel: "Experto", index: 3, avatar: "/profile/user-vector.jpg"},
+      playerFour: {id: "4", name: "Jesús", elo: 12345, nivel: "Profesional", index: 4, avatar: "/profile/user-vector.jpg"},
+    },
+    
+    da = {1: {'playerOne': {'id': 1, 'name': 'usuario.tres', 'elo': Decimal('2504.2500'), 
+                            'nivel': 'Avanzado', 'index': None, 
+                            'avatar': 'http://127.0.0.1:5000/api/avatar/dbc1c718-e9a0-4a8b-8c82-4352e566283f/dbc1c718-e9a0-4a8b-8c82-4352e566283f.jpg'}, 
+              'playerTwo': {'id': 2, 'name': 'usuario.seis_a', 'elo': Decimal('2004.7500'), 
+                            'nivel': 'Experto', 'index': None, 
+                            'avatar': 'http://127.0.0.1:5000/api/avatar/08f41160-0787-43ec-811f-17892b849577/08f41160-0787-43ec-811f-17892b849577.jpg'}, 
+              'playerThree': {'id': 3, 'name': 'wilfre', 'elo': Decimal('2571.7500'), 
+                              'nivel': 'Experto', 'index': None, 
+                              'avatar': 'http://127.0.0.1:5000/api/avatar/93b33904-6635-47de-bf7e-74f461dabb2e/93b33904-6635-47de-bf7e-74f461dabb2e.jpg'}, 
+              'playerFour': {'id': 4, 'name': 'usuario.uno_b', 'elo': Decimal('2382.7500'), 
+                             'nivel': 'Avanzado', 'index': None, 
+                             'avatar': 'http://127.0.0.1:5000/api/avatar/0178891e-7a7a-4d74-a649-e561622adc04/0178891e-7a7a-4d74-a649-e561622adc04.jpg'}}, 
+          2: {}, 
+          3: {'playerOne': {'id': 1, 'name': 'usuario.siete_o', 'elo': Decimal('2207.2500'), 'nivel': 'Intermedio', 'index': None, 'avatar': 'http://127.0.0.1:5000/api/avatar/3efb1198-258a-49e3-834f-6f214685ed42/3efb1198-258a-49e3-834f-6f214685ed42.jpg'}, 'playerTwo': {'id': 2, 'name': 'richard', 'elo': Decimal('2652.7500'), 'nivel': 'Avanzado', 'index': None, 'avatar': 'http://127.0.0.1:5000/api/avatar/2693afbe-50ef-4deb-927f-c323efaf9dc7/2693afbe-50ef-4deb-927f-c323efaf9dc7.jpg'}, 'playerThree': {'id': 3, 'name': 'usuario.cinco', 'elo': Decimal('2490.7500'), 'nivel': 'Intermedio', 'index': None, 'avatar': 'http://127.0.0.1:5000/api/avatar/7a6a318f-e37b-44f2-ae71-7ac17390a488/7a6a318f-e37b-44f2-ae71-7ac17390a488.jpg'}, 'playerFour': {'id': 4, 'name': 'usuario.dos_a', 'elo': Decimal('2031.7500'), 'nivel': 'Experto', 'index': None, 'avatar': 'http://127.0.0.1:5000/api/avatar/9030ce88-8088-4e69-8d9e-be90e96b20b3/9030ce88-8088-4e69-8d9e-be90e96b20b3.jpg'}}}
     
     return result
 
-def create_dict_row(item, tourney_id, page, db: Session, api_uri):
+def create_dict_position(boletus_id: str, api_uri:str, db: Session):
     
-    photo = get_url_avatar(item['single_profile_id'], item['photo'], api_uri=api_uri)
-    table_image = item['table_image'] if item['table_image'] else item['tourney_image'] # mesa tiene imagen asociada
+    str_pos = "SELECT bpos.position_id, pro.name as profile_name, psin.elo, psin.ranking, psin.level, " +\
+        "bpos.single_profile_id, pro.photo, bpos.scale_number " +\
+        "FROM events.domino_boletus_position bpos " +\
+        "JOIN enterprise.profile_single_player psin ON psin.profile_id = bpos.single_profile_id " +\
+        "JOIN enterprise.profile_member pro ON pro.id = psin.profile_id " +\
+        "WHERE bpos.boletus_id = '" + boletus_id + "' ORDER BY bpos.position_id "
+    lst_data = db.execute(str_pos)
+    
+    dicc_pos = {}
+    for item in lst_data:
+        photo = get_url_avatar(item['single_profile_id'], item['photo'], api_uri=api_uri)
+        dict_player = {'id': item.position_id, 'name': item.profile_name, 'elo': item.elo, 'nivel': item.level, 
+                       'index': item.scale_number, 'avatar': photo}
+        
+        if item.position_id == 1:
+            dicc_pos['playerOne'] = dict_player
+        elif item.position_id == 2:  
+            dicc_pos['playerTwo'] = dict_player
+        elif item.position_id == 3:
+            dicc_pos['playerThree'] = dict_player
+        elif item.position_id == 4:  
+            dicc_pos['playerFour'] = dict_player
+    
+    return dicc_pos
+
+# def create_dict_row(item, tourney_id, page, db: Session, api_uri):
+    
+#     photo = get_url_avatar(item['single_profile_id'], item['photo'], api_uri=api_uri)
         
     
-    new_row = {'position_id': item['position_id'], 'table_id': item['table_id'], 
-               'table_number': item['table_number'], 'is_smart': item['is_smart'],  
-               'amount_bonus': item['amount_bonus'], 'table_image': table_image,  
-               'country': item['country_name'], 'city_name': item['city_name'],  
-               'photo' : photo, 'elo': item['elo'], 'ranking': item['ranking'], 'level': item['level']}
+#     # new_row = {'id': int(item['table_number']), 
+#     #            'position_id': item['position_id'], 'table_id': item['table_id'], 
+#     #            'table_number': item['table_number'], 'is_smart': item['is_smart'],  
+#     #            'amount_bonus': item['amount_bonus'], 'table_image': table_image,  
+#     #            'country': item['country_name'], 'city_name': item['city_name'],  
+#     #            'photo' : photo, 'elo': item['elo'], 'ranking': item['ranking'], 'level': item['level']}
     
-    if page != 0:
-        new_row['selected'] = False
     
-    return new_row
+#     # {
+#     #   id: 0,
+#     #   number: 1,
+#     #   type: "Inteligente",
+#     #   image: "/smartdomino.png",
+#     #   playerOne: {id: "1", name: "Juán Carlos", elo: 15235, nivel: "Experto", index: 1, avatar: "/profile/user-vector.jpg"},
+#     #   playerTwo: {id: "2", name: "Ricardo", elo: 15226, nivel: "Experto", index: 2, avatar: "/profile/user-vector.jpg"},
+#     #   playerThree: {id: "3", name: "Migue", elo: 14230, nivel: "Experto", index: 3, avatar: "/profile/user-vector.jpg"},
+#     #   playerFour: {id: "4", name: "Jesús", elo: 12345, nivel: "Profesional", index: 4, avatar: "/profile/user-vector.jpg"},
+#     # },
+#     id+=1
+#     return new_row
 
 # def distribute_all_player(request:Request, tourney_id:str, round_id:str, db: Session):
 #     locale = request.headers["accept-language"].split(",")[0].split("-")[0];
