@@ -255,7 +255,7 @@ def get_amount_tables(request: Request, tourney_id: str, db: Session):
 
 def calculate_amount_tables(tourney_id: str, modality: str, db: Session):
     
-    str_query = "Select count(*) From events.players Where tourney_id = '" + tourney_id + "' "
+    str_query = "Select count(*) From events.players Where is_active = True and tourney_id = '" + tourney_id + "' "
     amount_players = db.execute(str_query).fetchone()[0]
     
     if amount_players == 0:

@@ -71,11 +71,13 @@ class DominoBoletusPosition(Base):
     
     boletus_id = Column(String, ForeignKey("events.domino_boletus.id"), primary_key=True)
     position_id = Column(Integer, primary_key=True)
-    single_profile_id = Column(String) 
+    single_profile_id = Column(String)
+    scale_number = Column(Integer) 
     
     def dict(self):
         return {
             "boletus_id": self.boletus_id,
             "position_id": self.position_id,
-            "single_profile_id": self.single_profile_id
+            "single_profile_id": self.single_profile_id,
+            "scale_number": self.scale_number
             }

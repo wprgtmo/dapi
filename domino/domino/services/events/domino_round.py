@@ -278,7 +278,8 @@ def create_pair_for_profile_pair(tourney_id: str, round_id: str, db: Session, cr
 
 def create_pair_for_profile_single(tourney_id: str, round_id: str, db: Session, created_by: str):
     
-    str_user = "Select mmb.name, puse.single_profile_id as profile_id, rsca.player_id from events.domino_rounds_scale rsca " +\
+    str_user = "Select mmb.name, puse.single_profile_id as profile_id, rsca.player_id, rsca.position_number" +\
+        "from events.domino_rounds_scale rsca " +\
         "JOIN events.players play ON play.id = rsca.player_id " +\
         "JOIN enterprise.profile_member mmb ON play.profile_id = mmb.id " +\
         "JOIN enterprise.profile_users puse ON puse.profile_id = mmb.id " +\
@@ -287,7 +288,8 @@ def create_pair_for_profile_single(tourney_id: str, round_id: str, db: Session, 
     lst_pair = db.execute(str_user)
     lst_all_pair = []
     for item in lst_pair:
-        lst_all_pair.append({'name': item.name, 'player_id': item.player_id, 'profile_id': item.profile_id})
+        lst_all_pair.append({'name': item.name, 'player_id': item.player_id, 
+                             'profile_id': item.profile_id, 'position_number': item.position_number})
     
     lst_par, lst_impar, pos = [], [], 0
     for i in lst_all_pair:   
