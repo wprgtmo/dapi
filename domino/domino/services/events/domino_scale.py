@@ -82,6 +82,10 @@ def new_initial_automatic_round(request: Request, tourney_id:str, dominoscale: l
     
     configure_tables_by_round(tourney_id, round_id, db_tourney.modality, db=db)
     
+    # cambiar estado del torneo a Iniciado
+    db_tourney.status_id = one_status_init.id
+    db.commit()
+    
     return result
 
 def new_initial_manual_round(request: Request, tourney_id:str, dominoscale: list[DominoManualScaleCreated], db: Session):
@@ -96,6 +100,10 @@ def new_initial_manual_round(request: Request, tourney_id:str, dominoscale: list
     initial_scale_by_manual_lottery(tourney_id, round_id, dominoscale, db_tourney.modality, db=db)
     
     configure_tables_by_round(tourney_id, round_id, db_tourney.modality, db=db)
+    
+    # cambiar estado del torneo a Iniciado
+    db_tourney.status_id = one_status_init.id
+    db.commit()
     
     return result
 
