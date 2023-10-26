@@ -278,7 +278,7 @@ def create_pair_for_profile_pair(tourney_id: str, round_id: str, db: Session, cr
 
 def create_pair_for_profile_single(tourney_id: str, round_id: str, db: Session, created_by: str):
     
-    str_user = "Select mmb.name, puse.single_profile_id as profile_id, rsca.player_id, rsca.position_number" +\
+    str_user = "Select mmb.name, puse.single_profile_id as profile_id, rsca.player_id, rsca.position_number " +\
         "from events.domino_rounds_scale rsca " +\
         "JOIN events.players play ON play.id = rsca.player_id " +\
         "JOIN enterprise.profile_member mmb ON play.profile_id = mmb.id " +\
