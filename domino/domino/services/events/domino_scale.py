@@ -281,20 +281,20 @@ def get_all_players_by_tables(request:Request, page: int, per_page: int, tourney
     
     lst_data = db.execute(str_query)
     
-    dict_tables = {}
+    lst_tables = []
     id=0
     for item in lst_data:
-        if item['table_number'] not in dict_tables:
-            table_image = item['table_image'] if item['table_image'] else item['tourney_image'] # mesa tiene imagen asociada
-            
-            dict_tables[item['table_number']] = {'id': id, 'number': int(item['table_number']), 
-                                                 'type': "Inteligente" if item['is_smart'] else "Tradicional",
-                                                 'image': table_image}
-            dict_tables[item['table_number']] = create_dict_position(item.boletus_id, api_uri, db=db)
+        table_image = item['table_image'] if item['table_image'] else item['tourney_image'] # mesa tiene imagen asociada
+        dict_tables = {'id': id, 'number': int(item['table_number']), 'table_id': item.table_id,
+                       'type': "Inteligente" if item['is_smart'] else "Tradicional",
+                       'image': table_image}
+        
+        create_dict_position(dict_tables, item.boletus_id, api_uri, db=db)
         id+=1
+        
     print('tables')
     print(dict_tables)
-    result.data = dict_tables        
+    result.data = lst_tables        
             
     # playerOne: {id: "1", name: "Juán Carlos", elo: 15235, nivel: "Experto", index: 1, avatar: "/profile/user-vector.jpg"},
     #   playerTwo: {id: "2", name: "Ricardo", elo: 15226, nivel: "Experto", index: 2, avatar: "/profile/user-vector.jpg"},
@@ -331,7 +331,7 @@ def get_all_players_by_tables(request:Request, page: int, per_page: int, tourney
     
     return result
 
-def create_dict_position(boletus_id: str, api_uri:str, db: Session):
+def create_dict_position(dict_tables, boletus_id: str, api_uri:str, db: Session):
     
     str_pos = "SELECT bpos.position_id, pro.name as profile_name, psin.elo, psin.ranking, psin.level, " +\
         "bpos.single_profile_id, pro.photo, bpos.scale_number " +\
@@ -341,22 +341,21 @@ def create_dict_position(boletus_id: str, api_uri:str, db: Session):
         "WHERE bpos.boletus_id = '" + boletus_id + "' ORDER BY bpos.position_id "
     lst_data = db.execute(str_pos)
     
-    dicc_pos = {}
     for item in lst_data:
         photo = get_url_avatar(item['single_profile_id'], item['photo'], api_uri=api_uri)
         dict_player = {'id': item.position_id, 'name': item.profile_name, 'elo': item.elo, 'nivel': item.level, 
                        'index': item.scale_number, 'avatar': photo}
         
         if item.position_id == 1:
-            dicc_pos['playerOne'] = dict_player
+            dict_tables['playerOne'] = dict_player
         elif item.position_id == 2:  
-            dicc_pos['playerTwo'] = dict_player
+            dict_tables['playerTwo'] = dict_player
         elif item.position_id == 3:
-            dicc_pos['playerThree'] = dict_player
+            dict_tables['playerThree'] = dict_player
         elif item.position_id == 4:  
-            dicc_pos['playerFour'] = dict_player
+            dict_tables['playerFour'] = dict_player
     
-    return dicc_pos
+    return dict_tables
 
 # def create_dict_row(item, tourney_id, page, db: Session, api_uri):
     

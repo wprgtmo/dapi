@@ -275,7 +275,7 @@ def calculate_amount_tables(tourney_id: str, modality: str, db: Session):
 
 def initializes_tourney(db_tourney, amount_tables, amount_smart_tables, amount_rounds, number_points_to_win, 
                         time_to_win, game_system, use_bonus, lottery_type, penalties_limit, 
-                        status_init, created_by, file: File, db: Session):
+                        status_conf, created_by, file: File, db: Session):
     
     if file:
         ext = get_ext_at_file(file.filename)
@@ -298,7 +298,7 @@ def initializes_tourney(db_tourney, amount_tables, amount_smart_tables, amount_r
     
     sett_tourney.tourney_id = db_tourney.id
     sett_tourney.image = file.filename if file else None
-    db_tourney.status_id = status_init.id
+    db_tourney.status_id = status_conf.id
     db_tourney.updated_by = created_by
     
     try:
@@ -328,7 +328,7 @@ def configure_one_tourney(request, profile_id:str, tourney_id: str, settingtourn
     if db_member_profile.profile_type != 'EVENTADMON':
         raise HTTPException(status_code=400, detail=_(locale, "userprofile.user_not_event_admon"))
     
-    one_status_init = get_one_status_by_name('INITIADED', db=db)
+    one_status_conf = get_one_status_by_name('CONFIGURATED', db=db)
     one_status_new = get_one_status_by_name('CREATED', db=db)
     
     str_query = "SELECT count(tourney_id) FROM events.setting_tourney where tourney_id = '" + tourney_id + "' "
@@ -371,7 +371,7 @@ def configure_one_tourney(request, profile_id:str, tourney_id: str, settingtourn
     
     result_init = initializes_tourney(
         db_tourney, amount_tables, amount_smart_tables, amount_rounds, number_points_to_win, time_to_win, game_system, 
-        use_bonus, lottery_type, penalties_limit, one_status_init, currentUser['username'], file=file, db=db)
+        use_bonus, lottery_type, penalties_limit, one_status_conf, currentUser['username'], file=file, db=db)
     
     if not result_init:
         raise HTTPException(status_code=404, detail=_(locale, "tourney.setting_tourney_failed"))
