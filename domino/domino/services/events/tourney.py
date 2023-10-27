@@ -117,8 +117,29 @@ def get_one_by_id(tourney_id: str, db: Session):
         setting['image'] = api_uri + "/public/advertising/" + "/" + tourney_id + "/" + setting['image'] if setting['image'] else None
    
     result.data['setting'] = setting  if setting else SettingTourney()
-        
+    
+    result.data['amount_player'] = get_count_players_by_tourney(tourney_id, result.data['modality'], db=db)
+    
     return result
+
+def get_count_players_by_tourney(tourney_id: str, modality: str, db: Session):  
+    
+    dict_modality = {'Individual': "join enterprise.profile_single_player player ON player.profile_id = pro.id ",
+                     'Parejas': "join enterprise.profile_pair_player player ON player.profile_id = pro.id ",
+                     'Equipo': "join enterprise.profile_team_player player ON player.profile_id = pro.id "}
+    
+    str_query = "Select count(*) FROM events.players " +\
+        "inner join enterprise.profile_member pro ON pro.id = players.profile_id " +\
+        "inner join enterprise.profile_type prot ON prot.name = pro.profile_type "
+    
+    str_query += dict_modality[modality]
+    
+    str_query += "WHERE pro.is_ready is True and players.is_active is True " +\
+        " AND players.tourney_id = '" + tourney_id + "' " 
+    
+    amount_player = db.execute(str_query).scalar()
+    
+    return amount_player
 
 def get_all_by_event_id(event_id: str, db: Session): 
     result = ResultObject()  
