@@ -151,9 +151,9 @@ def new(request: Request, profile_id:str, event: EventBase, db: Session, file: F
     
     verify_dates(event['start_date'], event['close_date'], locale)
     
+    id = str(uuid.uuid4())
     path = create_dir(entity_type="EVENT", user_id=str(db_member_profile.id), entity_id=str(id))
     
-    id = str(uuid.uuid4())
     if file:
         ext = get_ext_at_file(file.filename)
         file.filename = str(id) + "." + ext
