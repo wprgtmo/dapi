@@ -3,7 +3,7 @@
 import uuid
 from datetime import date
 from sqlalchemy import Column, ForeignKey, Index, UniqueConstraint
-from sqlalchemy.sql.sqltypes import String, Integer, Date, Boolean, Text, DateTime
+from sqlalchemy.sql.sqltypes import String, Integer, Date, Boolean, Text, DateTime, Float
 from ...config.db import Base
 
 def generate_uuid():
@@ -53,8 +53,8 @@ class DominoRoundsScale(Base):
     round_number = Column(Integer, nullable=False)
     position_number = Column(Integer, nullable=False)
     player_id = Column(String, ForeignKey("events.players.id"))
-    elo = Column(Integer)
-    elo_variable = Column(Integer)
+    elo = Column(Float)
+    elo_variable = Column(Float)
     games_played = Column(Integer)
     games_won = Column(Integer)
     games_lost = Column(Integer)

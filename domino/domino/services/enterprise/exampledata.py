@@ -655,7 +655,9 @@ def created_players(request:Request, db: Session):
         return True
     
     str_invs = "Select invitation_id invitation_id from events.players Where tourney_id = '"
-    str_invs_ind = "SELECT * FROM events.invitations inv WHERE status_name = 'ACCEPTED' "
+    str_invs_ind = "SELECT inv.id invitation_id FROM events.invitations inv " +\
+        "JOIN enterprise.profile_member pro ON pro.id = inv.profile_id " +\
+        "WHERE profile_type IN ('SINGLE_PLAYER', 'PAIR_PLAYER') and status_name = 'ACCEPTED' "
     
     str_query_ind = str_invs_ind + "AND tourney_id = '" + str(tourney_ind.id) + "' "
     str_query_ind += " AND inv.id NOT IN (" + str_invs + " " + str(tourney_ind.id) + "') "
@@ -663,12 +665,18 @@ def created_players(request:Request, db: Session):
     str_query_pair = str_invs_ind + "AND tourney_id = '" + str(tourney_pair.id) + "' "
     str_query_pair += " AND inv.id NOT IN (" + str_invs + " " + str(tourney_pair.id) + "') "
     
-    lst_data_ind = db.execute(str_query_ind)
-    lst_data_pair = db.execute(str_query_pair)
+    lst_data_ind = db.execute(str_query_ind).fetchall()
+    lst_data_pair = db.execute(str_query_pair).fetchall()
     
+    print(str_query_ind)
+    print('************')
+    print('str_query_pair')
+    # raise HTTPException(status_code=404)
+
     for item in lst_data_ind:
-        one_invitation = get_invitation_by_id(invitation_id=item.id, db=db)
+        one_invitation = get_invitation_by_id(invitation_id=item.invitation_id, db=db)
         if not one_invitation:
+            print(item.invitation_id)
             continue
         
         one_player = Players(id=str(uuid.uuid4()), tourney_id=one_invitation.tourney_id, 
@@ -683,7 +691,7 @@ def created_players(request:Request, db: Session):
         db.add(one_invitation)
         
     for item in lst_data_pair:
-        one_invitation = get_invitation_by_id(invitation_id=item.id, db=db)
+        one_invitation = get_invitation_by_id(invitation_id=item.invitation_id, db=db)
         if not one_invitation:
             continue
         

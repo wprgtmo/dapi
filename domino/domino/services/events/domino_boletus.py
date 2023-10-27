@@ -145,9 +145,14 @@ def created_boletus_for_round(tourney_id, round_id, db:Session):
     lst_tables = get_lst_tables(tourney_id, db=db)
     if not lst_tables:
         raise HTTPException(status_code=404, detail="dominotables.not_exists")
-        
+    
+    print('longitud de mesas')
+    print(len(lst_tables))    
     # obtener escalafon de parejas.
     lst_pairs = get_list_rounds_pairs(round_id, db=db)
+    
+    print('longitud de parejas')
+    print(len(lst_pairs)) 
     
     # asociar a cada mesa los 2 parejas que le tocarian.
     lst_dist_tables = []

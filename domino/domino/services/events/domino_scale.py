@@ -109,11 +109,10 @@ def new_initial_manual_round(request: Request, tourney_id:str, dominoscale: list
 
 def configure_tables_by_round(tourney_id:str, round_id: str, modality:str, db: Session):
     
-    update_elo_initial_scale(tourney_id, round_id, modality, db=db)
-    # distribuir por mesas
+    # update_elo_initial_scale(tourney_id, round_id, modality, db=db)
     
     #configurar parejas y rondas
-    configure_rounds(tourney_id=tourney_id, round_id=round_id, modality=modality, db=db)
+    # configure_rounds(tourney_id=tourney_id, round_id=round_id, modality=modality, db=db)
     
     #ubicar por mesas las parejas
     created_boletus_for_round(tourney_id=tourney_id, round_id=round_id, db=db)
