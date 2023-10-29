@@ -109,10 +109,10 @@ def new_initial_manual_round(request: Request, tourney_id:str, dominoscale: list
 
 def configure_tables_by_round(tourney_id:str, round_id: str, modality:str, db: Session):
     
-    # update_elo_initial_scale(tourney_id, round_id, modality, db=db)
+    update_elo_initial_scale(tourney_id, round_id, modality, db=db)
     
     #configurar parejas y rondas
-    # configure_rounds(tourney_id=tourney_id, round_id=round_id, modality=modality, db=db)
+    configure_rounds(tourney_id=tourney_id, round_id=round_id, modality=modality, db=db)
     
     #ubicar por mesas las parejas
     created_boletus_for_round(tourney_id=tourney_id, round_id=round_id, db=db)
@@ -214,21 +214,6 @@ def created_automatic_lottery(tourney_id: str, modality:str, round_id: str, elo_
     
     list_player = get_lst_id_player_by_elo(tourney_id, modality, min_elo=elo_min, max_elo=elo_max, db=db)
     
-    # ya esto no me hace falta porque me hice un metdo que me da los jugadores en ese rango
-    # lst_groups = []
-    # dict_groups = {}
-    # for item in dominoscale:
-    #     if item.number not in dict_groups:
-    #         dict_groups[item.number] = []
-    #     dict_groups[item.number].append(item.id)    
-    
-    # posicion = 0
-    # for item_g in dict_groups.values():
-    #     lst_groups = sorted(item_g, key=lambda y:random.randint(0, len(item_g)))
-    #     for item_pos in lst_groups:
-    #         posicion += 1
-    #         create_one_scale(tourney_id, round_id, 1, posicion, item_pos, db=db)
-            
     lst_groups = sorted(list_player, key=lambda y:random.randint(0, len(list_player)))
     for item_pos in lst_groups:
         position_number += 1
@@ -270,7 +255,7 @@ def get_all_players_by_tables(request:Request, page: int, per_page: int, tourney
     
     str_count = "Select count(*) " + str_from
     str_query = "SELECT DISTINCT dtab.id as table_id, dtab.table_number, is_smart, dtab.image as table_image, " +\
-        "stou.image as tourney_image, bol.id as boletus_id " + str_from
+        "stou.image as tourney_image, bol.id as boletus_id, dtab.tourney_id " + str_from
         
     str_where = "WHERE bol.is_valid is True AND dtab.is_active is True " + \
         "AND  dtab.tourney_id = '" + tourney_id + "' AND bol.round_id = '" + round_id + "' "
@@ -291,7 +276,15 @@ def get_all_players_by_tables(request:Request, page: int, per_page: int, tourney
     lst_tables = []
     id=0
     for item in lst_data:
-        table_image = item['table_image'] if item['table_image'] else item['tourney_image'] if item['tourney_image'] else "/smartdomino.png"
+        
+        if item['table_image']:
+            table_image = api_uri + "/api/public/advertising/" + str(item['table_id']) + "/" + item['table_image']
+        else:
+            if item['tourney_image']:
+                table_image = api_uri + "/api/public/advertising/" + str(item['tourney_id']) + "/" + item['tourney_image']
+            else:
+                table_image = api_uri + "/api/public/user-vector.jpg" # poner "/smartdomino.png"
+        
         dict_tables = {'id': id, 'number': int(item['table_number']), 'table_id': item.table_id,
                        'type': "Inteligente" if item['is_smart'] else "Tradicional",
                        'image': table_image}
@@ -329,44 +322,3 @@ def create_dict_position(dict_tables, boletus_id: str, api_uri:str, db: Session)
             dict_tables['playerFour'] = dict_player
     
     return dict_tables
-
-# def create_dict_row(item, tourney_id, page, db: Session, api_uri):
-    
-#     photo = get_url_avatar(item['single_profile_id'], item['photo'], api_uri=api_uri)
-        
-    
-#     # new_row = {'id': int(item['table_number']), 
-#     #            'position_id': item['position_id'], 'table_id': item['table_id'], 
-#     #            'table_number': item['table_number'], 'is_smart': item['is_smart'],  
-#     #            'amount_bonus': item['amount_bonus'], 'table_image': table_image,  
-#     #            'country': item['country_name'], 'city_name': item['city_name'],  
-#     #            'photo' : photo, 'elo': item['elo'], 'ranking': item['ranking'], 'level': item['level']}
-    
-    
-#     # {
-#     #   id: 0,
-#     #   number: 1,
-#     #   type: "Inteligente",
-#     #   image: "/smartdomino.png",
-#     #   playerOne: {id: "1", name: "Juán Carlos", elo: 15235, nivel: "Experto", index: 1, avatar: "/profile/user-vector.jpg"},
-#     #   playerTwo: {id: "2", name: "Ricardo", elo: 15226, nivel: "Experto", index: 2, avatar: "/profile/user-vector.jpg"},
-#     #   playerThree: {id: "3", name: "Migue", elo: 14230, nivel: "Experto", index: 3, avatar: "/profile/user-vector.jpg"},
-#     #   playerFour: {id: "4", name: "Jesús", elo: 12345, nivel: "Profesional", index: 4, avatar: "/profile/user-vector.jpg"},
-#     # },
-#     id+=1
-#     return new_row
-
-# def distribute_all_player(request:Request, tourney_id:str, round_id:str, db: Session):
-#     locale = request.headers["accept-language"].split(",")[0].split("-")[0];
-    
-#     db_tourney = get_one_tourney(tourney_id, db=db)
-#     if not db_tourney:
-#         raise HTTPException(status_code=404, detail=_(locale, "tourney.not_found"))
-    
-#     round_initial = get_one_round(round_id, db=db)
-#     if not round_initial:
-#         raise HTTPException(status_code=404, detail=_(locale, "dominoround.not_found"))
-    
-#     configure_rounds(db_tourney.id, round_initial.id, db_tourney.modality, db=db)
-    
-    # return True

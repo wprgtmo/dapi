@@ -93,6 +93,8 @@ class DominoRoundsPairs(Base):
     updated_by = Column(String, ForeignKey("enterprise.users.username"), nullable=False)
     updated_date = Column(Date, nullable=False, default=date.today())
     is_active = Column(Boolean, nullable=False, default=True)
+    scale_number_one_player = Column(Integer) 
+    scale_number_two_player = Column(Integer) 
     
     def dict(self):
         return {
@@ -101,5 +103,7 @@ class DominoRoundsPairs(Base):
             "position_number": self.position_number,
             "one_player_id": self.one_player_id,
             "two_player_id": self.two_player_id,
-            "name": self.name
+            "name": self.name,
+            "scale_number_one_player": self.scale_number_one_player,
+            "scale_number_two_player": self.scale_number_two_player
         }

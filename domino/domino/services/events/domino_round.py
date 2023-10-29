@@ -29,30 +29,28 @@ from domino.services.enterprise.userprofile import get_one as get_one_profile
 from domino.services.events.domino_boletus import created_boletus_for_round
 # from domino.services.events.tourney import get_one as get_one_tourney
                          
-def get_all(request:Request, profile_id:str, tourney_id:str, page: int, per_page: int, criteria_key: str, criteria_value: str, db: Session):  
+def get_all(request:Request, tourney_id:str, page: int, per_page: int, criteria_key: str, criteria_value: str, db: Session):  
     locale = request.headers["accept-language"].split(",")[0].split("-")[0];
     
     api_uri = str(settings.api_uri)
     
     # verificar que el perfil sea admon del evento al cual pertenece el torneo.
-    db_member_profile = get_one_profile(id=profile_id, db=db)
-    if not db_member_profile:
-        raise HTTPException(status_code=400, detail=_(locale, "userprofile.not_found"))
+    # db_member_profile = get_one_profile(id=profile_id, db=db)
+    # if not db_member_profile:
+    #     raise HTTPException(status_code=400, detail=_(locale, "userprofile.not_found"))
    
-    if db_member_profile.profile_type != 'EVENTADMON':
-        raise HTTPException(status_code=400, detail=_(locale, "userprofile.user_not_event_admon"))
+    # if db_member_profile.profile_type != 'EVENTADMON':
+    #     raise HTTPException(status_code=400, detail=_(locale, "userprofile.user_not_event_admon"))
     
-    str_from = "FROM events.domino_tables dtab " +\
-        "JOIN events.tourney dtou ON dtou.id = dtab.tourney_id " +\
-        "JOIN events.setting_tourney stou ON stou.tourney_id = dtou.id "  
+    str_from = "FROM events.domino_rounds drounds " +\
+        "JOIN events.tourney dtou ON dtou.id = drounds.tourney_id "
         
     str_count = "Select count(*) " + str_from
-    str_query = "Select dtab.id, table_number, is_smart, amount_bonus, dtab.image, dtab.is_active, " +\
-        "dtou.id as tourney_id, dtou.name, stou.image as image_tourney " + str_from
+    str_query = "Select drounds.id, round_number, drounds.summary, drounds.start_date, drounds.close_date " + str_from
     
-    str_where = " WHERE dtab.tourney_id = '" + tourney_id + "' "  
+    str_where = " WHERE drounds.tourney_id = '" + tourney_id + "' "  
     
-    dict_query = {'table_number': " AND table_number = " + criteria_value}
+    dict_query = {'round_number': " AND round_number = " + criteria_value}
     
     str_count += str_where
     str_query += str_where
@@ -68,7 +66,7 @@ def get_all(request:Request, profile_id:str, tourney_id:str, page: int, per_page
     
     result = get_result_count(page=page, per_page=per_page, str_count=str_count, db=db)
     
-    str_query += " ORDER BY table_number " 
+    str_query += " ORDER BY round_number ASC " 
     if page != 0:
         str_query += "LIMIT " + str(per_page) + " OFFSET " + str(page*per_page-per_page)
     
@@ -79,22 +77,12 @@ def get_all(request:Request, profile_id:str, tourney_id:str, page: int, per_page
 
 def create_dict_row(item, tourney_id, page, db: Session, api_uri=""):
     
-    image_name = item['image'] if item['image'] else item['image_tourney']
-    image = api_uri + "/api/public/advertising/" + str(item['tourney_id']) + "/" + image_name
-    
-    new_row = {'id': item['id'], 'table_number': item['table_number'], 
-               'is_smart': item['is_smart'], 'amount_bonus': item['amount_bonus'], 
-               'tourney_name': item['name'], 'is_active': item['is_active'],
-               'photo' : image, 'filetables':[]}
+    new_row = {'id': item['id'], 'round_number': item['round_number'], 
+               'summary': item['summary'], 'start_date': item['start_date'], 
+               'close_date': item['close_date']}
     if page != 0:
         new_row['selected'] = False
         
-    if item['is_smart']:
-        str_files = "Select id, position, is_ready from events.files_tables Where table_id = '" + item['id'] + "' "
-        lst_files = db.execute(str_files)
-        for item_f in lst_files:
-            new_row['filetables'].append({'file_id': item_f.id, 'position': item_f.position, 'is_ready': item_f.is_ready})
-    
     return new_row
 
 def get_one(round_id: str, db: Session):  
@@ -107,10 +95,11 @@ def get_one_by_id(round_id: str, db: Session):
     if not one_round:
         raise HTTPException(status_code=404, detail="dominoround.not_found")
     
-    str_query = "SELECT dtab.id, dtab.tourney_id, table_number, is_smart, amount_bonus, dtab.image, dtab.is_active, tourney.name " +\
-        "FROM events.domino_tables dtab " + \
-        "Join events.tourney ON tourney.id = dtab.tourney_id " +\
-        " WHERE dtab.id = '" + str(round_id) + "' "  
+    str_query = "Select drounds.id, round_number, drounds.summary, drounds.start_date, drounds.close_date " +\
+        "FROM events.domino_rounds drounds " +\
+        "JOIN events.tourney dtou ON dtou.id = drounds.tourney_id " +\
+        " WHERE drounds.id = '" + round_id + "' "  
+        
     lst_data = db.execute(str_query) 
     
     for item in lst_data: 
@@ -242,11 +231,14 @@ def create_pair_for_rounds(tourney_id: str, round_id: str, modality:str, db: Ses
     return True
 
 def created_one_pair(tourney_id:str, round_id:str, one_player_id:str, two_player_id:str, name:str, profile_type:str,
-                     created_by:str, db: Session, position_number:int, player_id:str=None):
+                     created_by:str, db: Session, position_number:int, scale_number_one_player:int, 
+                     scale_number_two_player:int, player_id:str=None):
     
     one_pair = DominoRoundsPairs(id=str(uuid.uuid4()), tourney_id=tourney_id, round_id=round_id, one_player_id=one_player_id,
                                  two_player_id=two_player_id, name=name, profile_type=profile_type, player_id=player_id,
-                                 position_number=position_number, created_by=created_by, updated_by=created_by, 
+                                 position_number=position_number, 
+                                 scale_number_one_player=scale_number_one_player, scale_number_two_player=scale_number_two_player,
+                                 created_by=created_by, updated_by=created_by, 
                                  created_date=datetime.today(), updated_date=datetime.today(), is_active=True)
     
     db.add(one_pair)
@@ -255,7 +247,8 @@ def created_one_pair(tourney_id:str, round_id:str, one_player_id:str, two_player
 
 def create_pair_for_profile_pair(tourney_id: str, round_id: str, db: Session, created_by: str):
     
-    str_user = "Select mmb.name, puse.single_profile_id as profile_id, rsca.player_id from events.domino_rounds_scale rsca " +\
+    str_user = "Select mmb.name, puse.single_profile_id as profile_id, rsca.player_id, rsca.position_number  " +\
+        "from events.domino_rounds_scale rsca " +\
         "JOIN events.players play ON play.id = rsca.player_id " +\
         "JOIN enterprise.profile_member mmb ON play.profile_id = mmb.id " +\
         "JOIN enterprise.profile_users puse ON puse.profile_id = mmb.id " +\
@@ -266,14 +259,15 @@ def create_pair_for_profile_pair(tourney_id: str, round_id: str, db: Session, cr
     position_number=0
     for item in lst_pair:
         if item.name not in dict_pair:
-            dict_pair[item.name] = {'player_id': item.player_id, 'users': []}
+            dict_pair[item.name] = {'player_id': item.player_id, 'scale_number': item.position_number, 'users': []}
         dict_pair[item.name]['users'].append(item.profile_id)
         
     for item_key, item_value in dict_pair.items():
         position_number+=1
         created_one_pair(tourney_id, round_id, item_value['users'][0], item_value['users'][1], item_key, 
                          'Parejas', created_by=created_by, db=db, position_number=position_number, 
-                         player_id=item_value['player_id'])    
+                         scale_number_one_player=item_value['scale_number'], 
+                         scale_number_two_player=item_value['scale_number'], player_id=item_value['player_id'])    
     return True
 
 def create_pair_for_profile_single(tourney_id: str, round_id: str, db: Session, created_by: str):
@@ -289,7 +283,7 @@ def create_pair_for_profile_single(tourney_id: str, round_id: str, db: Session, 
     lst_all_pair = []
     for item in lst_pair:
         lst_all_pair.append({'name': item.name, 'player_id': item.player_id, 
-                             'profile_id': item.profile_id, 'position_number': item.position_number})
+                             'profile_id': item.profile_id, 'scale_number': item.position_number})
     
     lst_par, lst_impar, pos = [], [], 0
     for i in lst_all_pair:   
@@ -306,16 +300,22 @@ def create_pair_for_profile_single(tourney_id: str, round_id: str, db: Session, 
         position_number+=1
         name = lst_par[num]['name'] + " - " + lst_par[num+1]['name']
         created_one_pair(tourney_id, round_id, lst_par[num]['profile_id'], lst_par[num+1]['profile_id'], name, 
-                         'Individual', created_by=created_by, db=db, position_number=position_number, player_id=None)
+                         'Individual', created_by=created_by, db=db, position_number=position_number, 
+                         scale_number_one_player=lst_par[num]['scale_number'],
+                         scale_number_two_player=lst_par[num+1]['scale_number'], player_id=None)
         position_number+=1
         name = lst_impar[num]['name'] + " - " + lst_impar[num+1]['name']
         created_one_pair(tourney_id, round_id, lst_impar[num]['profile_id'], lst_impar[num+1]['profile_id'], name, 
-                         'Individual', created_by=created_by, db=db, position_number=position_number, player_id=None)
+                         'Individual', created_by=created_by, db=db, position_number=position_number, 
+                         scale_number_one_player=lst_impar[num]['scale_number'],
+                         scale_number_two_player=lst_impar[num+1]['scale_number'], player_id=None)
 
     if  amount_pair_div[1] > 0:  # parejas impar  
         created_one_pair(tourney_id, round_id, lst_par[len(lst_par)-1]['profile_id'], None, 
                          lst_par[len(lst_par)-1]['name'], 'Individual', created_by=created_by, 
-                         db=db, position_number=position_number+1, player_id=None) 
+                         db=db, position_number=position_number+1, 
+                         scale_number_one_player=lst_par[len(lst_par)-1]['scale_number'],
+                         scale_number_two_player=None, player_id=None) 
             
     return True
     

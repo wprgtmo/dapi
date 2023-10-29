@@ -123,18 +123,22 @@ def create_dict_row(item, tourney_id, page, db: Session, api_uri=""):
 def created_boletus_position(one_boletus, lst_player:list, db:Session):
     
     one_bol_position=DominoBoletusPosition(
-            boletus_id=one_boletus.id, position_id=1, single_profile_id=lst_player[0]['one_player_id'] if lst_player[0]['one_player_id'] else None)
+            boletus_id=one_boletus.id, position_id=1, single_profile_id=lst_player[0]['one_player_id'] if lst_player[0]['one_player_id'] else None,
+            scale_number=lst_player[0]['scale_number_one_player'] if lst_player[0]['scale_number_one_player'] else None)
     one_boletus.boletus_position.append((one_bol_position))
     one_bol_position=DominoBoletusPosition(
-            boletus_id=one_boletus.id, position_id=3, single_profile_id=lst_player[0]['two_player_id'] if lst_player[0]['two_player_id'] else None)
+            boletus_id=one_boletus.id, position_id=3, single_profile_id=lst_player[0]['two_player_id'] if lst_player[0]['two_player_id'] else None,
+            scale_number=lst_player[0]['scale_number_two_player'] if lst_player[0]['scale_number_two_player'] else None)
     one_boletus.boletus_position.append((one_bol_position))
         
     if len(lst_player) == 2:  #tengo las dos parejas por mesa
         one_bol_position=DominoBoletusPosition(
-            boletus_id=one_boletus.id, position_id=2, single_profile_id=lst_player[1]['one_player_id'] if lst_player[1]['one_player_id'] else None)
+            boletus_id=one_boletus.id, position_id=2, single_profile_id=lst_player[1]['one_player_id'] if lst_player[1]['one_player_id'] else None,
+            scale_number=lst_player[1]['scale_number_one_player'] if lst_player[1]['scale_number_one_player'] else None)
         one_boletus.boletus_position.append((one_bol_position))
         one_bol_position=DominoBoletusPosition(
-            boletus_id=one_boletus.id, position_id=4, single_profile_id=lst_player[1]['two_player_id'] if lst_player[0]['two_player_id'] else None)
+            boletus_id=one_boletus.id, position_id=4, single_profile_id=lst_player[1]['two_player_id'] if lst_player[0]['two_player_id'] else None,
+            scale_number=lst_player[1]['scale_number_two_player'] if lst_player[1]['scale_number_two_player'] else None)
         one_boletus.boletus_position.append((one_bol_position))
             
     return True
@@ -146,13 +150,8 @@ def created_boletus_for_round(tourney_id, round_id, db:Session):
     if not lst_tables:
         raise HTTPException(status_code=404, detail="dominotables.not_exists")
     
-    print('longitud de mesas')
-    print(len(lst_tables))    
     # obtener escalafon de parejas.
     lst_pairs = get_list_rounds_pairs(round_id, db=db)
-    
-    print('longitud de parejas')
-    print(len(lst_pairs)) 
     
     # asociar a cada mesa los 2 parejas que le tocarian.
     lst_dist_tables = []
@@ -195,13 +194,16 @@ def created_boletus_for_round(tourney_id, round_id, db:Session):
 
 def get_list_rounds_pairs(round_id,  db: Session):
     
-    str_query = "SELECT id, one_player_id, two_player_id, name as pair_name " +\
+    str_query = "SELECT id, one_player_id, two_player_id, name as pair_name, " +\
+        "scale_number_one_player, scale_number_two_player " +\
         "FROM events.domino_rounds_pairs Where round_id = '" + round_id + "' ORDER BY position_number ASC "
     
     lst_all_pair = db.execute(str_query)
     lst_pairs = []
     for item in lst_all_pair:
         lst_pairs.append({'id': item.id, 'one_player_id': item.one_player_id, 
-                          'two_player_id': item.two_player_id, 'pair_name': item.pair_name})
+                          'two_player_id': item.two_player_id, 'pair_name': item.pair_name,
+                          'scale_number_one_player': item.scale_number_one_player,
+                          'scale_number_two_player': item.scale_number_two_player})
     
     return lst_pairs
