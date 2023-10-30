@@ -1,4 +1,12 @@
-
+ALTER TABLE IF EXISTS events.domino_rounds_pairs
+    ADD COLUMN scale_number_one_player integer;
+	
+ALTER TABLE IF EXISTS events.domino_rounds_pairs
+    ADD COLUMN scale_number_two_player integer;
+	
+ALTER TABLE IF EXISTS events.domino_boletus_position
+    ADD COLUMN scale_number integer;
+    
 
 
 --Para borrar configuracion de un torneo
