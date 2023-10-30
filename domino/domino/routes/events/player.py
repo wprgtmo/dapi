@@ -6,7 +6,8 @@ from domino.app import get_db
 from typing import List, Dict
 
 from domino.schemas.resources.result_object import ResultObject
-from domino.services.events.player import new, remove_player, get_all_players_by_tourney, reject_one_invitation, get_all_players_by_elo
+from domino.services.events.player import new, remove_player, get_all_players_by_tourney, reject_one_invitation, \
+    get_all_players_by_elo, get_number_players_by_elo
 
   
 player_route = APIRouter(
@@ -40,6 +41,16 @@ def get_for_tourney_by_elo(
 ):
     return get_all_players_by_elo(request=request, page=page, per_page=per_page, tourney_id=tourney_id, min_elo=min_elo, 
                                   max_elo=max_elo, db=db)
+    
+@player_route.get("/player/elo/number/", response_model=Dict, summary="Get number of Tournament players by min elo and max elo")
+def get_number_player_by_elo(
+    request: Request,
+    tourney_id: str,
+    min_elo: float,
+    max_elo: float,
+    db: Session = Depends(get_db)
+):
+    return get_number_players_by_elo(request=request, tourney_id=tourney_id, min_elo=min_elo, max_elo=max_elo, db=db)
     
 @player_route.post("/player/confirmed/{invitation_id}", response_model=ResultObject, summary="Create new player")
 def confirm_player(request:Request, invitation_id: str, db: Session = Depends(get_db)):

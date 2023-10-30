@@ -140,6 +140,36 @@ def remove_player(request: Request, player_id: str, db: Session):
         raise HTTPException(status_code=404, detail="No es posible eliminar")
     return result
 
+def get_number_players_by_elo(request:Request, tourney_id:str, min_elo:float, max_elo:float, db:Session):  
+    locale = request.headers["accept-language"].split(",")[0].split("-")[0];
+    
+    result = ResultObject() 
+    
+    db_tourney = get_torneuy_by_eid(tourney_id, db=db)
+    if not db_tourney:
+        raise HTTPException(status_code=404, detail=_(locale, "tourney.not_found"))
+    
+    str_from = "FROM events.players " +\
+        "inner join enterprise.profile_member pro ON pro.id = players.profile_id " +\
+        "inner join enterprise.profile_type prot ON prot.name = pro.profile_type " 
+    
+    dict_modality = {'Individual': "join enterprise.profile_single_player player ON player.profile_id = pro.id ",
+                     'Parejas': "join enterprise.profile_pair_player player ON player.profile_id = pro.id ",
+                     'Equipo': "join enterprise.profile_team_player player ON player.profile_id = pro.id "}
+    
+    str_from += dict_modality[db_tourney.modality]
+       
+    str_query = "SELECT count(players.id) " + str_from
+    
+    str_where = "WHERE pro.is_ready is True and players.is_active is True " 
+    str_where += " AND players.tourney_id = '" + tourney_id + "' "  +\
+        "AND player.elo >= " + str(min_elo) + " AND player.elo <= " + str(max_elo)
+    
+    str_query += str_where
+    result.data = db.execute(str_query).fetchone()[0]
+    
+    return result
+
 def get_all_players_by_elo(request:Request, page: int, per_page: int, tourney_id: str, min_elo: float, max_elo: float, db: Session):  
     locale = request.headers["accept-language"].split(",")[0].split("-")[0];
     
