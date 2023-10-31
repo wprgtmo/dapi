@@ -278,12 +278,12 @@ def get_all_players_by_tables(request:Request, page: int, per_page: int, tourney
     for item in lst_data:
         
         if item['table_image']:
-            table_image = api_uri + "/api/public/advertising/" + str(item['table_id']) + "/" + item['table_image']
+            table_image = api_uri + "/api/advertising/" + str(item['table_id']) + "/" + item['table_image']
         else:
             if item['tourney_image']:
-                table_image = api_uri + "/api/public/advertising/" + str(item['tourney_id']) + "/" + item['tourney_image']
+                table_image = api_uri + "/api/advertising/" + str(item['tourney_id']) + "/" + item['tourney_image']
             else:
-                table_image = api_uri + "/api/public/user-vector.jpg" # poner "/smartdomino.png"
+                table_image = api_uri + "/api/advertising/smartdomino.png" # poner "/smartdomino.png"
         
         dict_tables = {'id': id, 'number': int(item['table_number']), 'table_id': item.table_id,
                        'type': "Inteligente" if item['is_smart'] else "Tradicional",
