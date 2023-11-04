@@ -1,7 +1,7 @@
 import math
 import uuid
 
-from datetime import datetime
+from datetime import datetime, timedelta, date
 from fastapi import HTTPException, Request, UploadFile, File
 from unicodedata import name
 from fastapi import HTTPException
@@ -26,7 +26,7 @@ from domino.services.resources.status import get_one_by_name as get_one_status_b
 from domino.services.enterprise.users import get_one_by_username
 
 from domino.services.resources.utils import get_result_count, upfile, create_dir, del_image, get_ext_at_file, remove_dir, copy_image
-from domino.services.enterprise.userprofile import get_one as get_one_profile, get_one_profile_by_user
+from domino.services.enterprise.userprofile import get_one as get_one_profile, get_one_profile_by_user, get_one_default_user
             
 def get_all(request:Request, profile_id:str, page: int, per_page: int, criteria_key: str, criteria_value: str, db: Session):  
     locale = request.headers["accept-language"].split(",")[0].split("-")[0];
@@ -47,7 +47,6 @@ def get_all(request:Request, profile_id:str, page: int, per_page: int, criteria_
     
     if profile_id:
         str_where += "AND profile_id = '" + profile_id + "' "
-    # debo incluir los de los perfiles que el sigue
     
     dict_query = {'name': " AND eve.name ilike '%" + criteria_value + "%'",
                   'summary': " AND summary ilike '%" + criteria_value + "%'",
@@ -77,6 +76,107 @@ def get_all(request:Request, profile_id:str, page: int, per_page: int, criteria_
     result.data = [create_dict_row(item, page, db=db, incluye_tourney=True, api_uri=api_uri) for item in lst_data]
     
     return result
+
+def get_all_by_criteria(request:Request, profile_id:str, page: int, per_page: int, criteria_key: str, criteria_value: str, db: Session):  
+    locale = request.headers["accept-language"].split(",")[0].split("-")[0];
+    
+    api_uri = str(settings.api_uri)
+    
+    # devolver los eventos por los criterios: Ubicación, fecha, siguiendo y participando..
+    
+    str_from = "FROM events.events eve " +\
+        "JOIN resources.entities_status sta ON sta.id = eve.status_id " +\
+        "JOIN resources.city city ON city.id = eve.city_id " +\
+        "JOIN resources.country country ON country.id = city.country_id " 
+        
+    str_count = "Select count(*) " + str_from
+    str_query = "Select eve.id, eve.name, start_date, close_date, registration_date, registration_price, city.name as city_name, " +\
+        "main_location, summary, image, eve.status_id, sta.name as status_name, country.id as country_id, city.id  as city_id, " +\
+        "eve.profile_id as profile_id " + str_from
+    
+    str_where = " WHERE sta.name != 'CANCELLED' "  
+    
+    if criteria_key == 'location':  # por ubicacion
+        # buscar el perfil y coger de allí la ciudad y país.
+        one_user = get_one_default_user(profile_id, db=db)
+        if not one_user:
+            raise HTTPException(status_code=400, detail=_(locale, "userprofile.not_exist"))
+        if one_user.city_id:
+            if criteria_value == 'MY_COUNTRY':
+                str_where += " And city.country_id = " + str(one_user.city.country_id)
+            elif criteria_value == 'MY_CITY':
+                str_where += " And eve.city_id = " + str(one_user.city_id)
+                
+    elif criteria_key == 'moment':  # por fechas
+        # 0: Cualquier fecha, 1: Hoy, 2: Mañana, 3: Este Fin de Semana, 4: Esta semana, 5: próxima Semana, 6: Este mes
+        if criteria_value != '0':
+            begin_date, end_date = get_dates_from_criteria(criteria_value)
+            if begin_date:
+                str_where += " And start_date >= '" + begin_date.strftime('%Y-%m-%d') + \
+                    "' AND start_date < '" + end_date.strftime('%Y-%m-%d') + "' "
+        
+    elif criteria_key == 'following':  # los que estoy siguiendo
+        str_where += " "
+        
+    elif criteria_key == 'participating':  # los que estoy participando
+        # participando como jugador o participando como arbitro.
+        currentUser = get_current_user(request)
+        
+        str_where += " AND eve.id IN (Select tourney.event_id from events.domino_boletus_position bpos " +\
+            "join events.domino_boletus bol ON bol.id = bpos.boletus_id join events.tourney ON tourney.id = bol.tourney_id " +\
+            "where bpos.single_profile_id IN (SELECT pmem.id FROM enterprise.profile_users puse " +\
+            "JOIN enterprise.profile_member pmem ON pmem.id = puse.profile_id " +\
+            "Where username = '" + currentUser['username'] + "' and profile_type = 'SINGLE_PLAYER'))' "
+    else:
+        raise HTTPException(status_code=404, detail=_(locale, "commun.invalid_param"))
+                
+    str_count += str_where
+    str_query += str_where
+    
+    print(str_query)
+    
+    if page and page > 0 and not per_page:
+        raise HTTPException(status_code=404, detail=_(locale, "commun.invalid_param"))
+    
+    result = get_result_count(page=page, per_page=per_page, str_count=str_count, db=db)
+    
+    str_query += " ORDER BY start_date DESC " 
+    if page != 0:
+        str_query += "LIMIT " + str(per_page) + " OFFSET " + str(page*per_page-per_page)
+    
+    lst_data = db.execute(str_query)
+    result.data = [create_dict_row(item, page, db=db, incluye_tourney=True, api_uri=api_uri) for item in lst_data]
+    
+    return result
+
+def get_dates_from_criteria(criteria_value):
+    
+    # 0: Cualquier fecha, 1: Hoy, 2: Mañana, 3: Este Fin de Semana, 4: Esta semana, 5: próxima Semana, 6: Este mes
+    
+    date_now = date.today()
+    begin_date, end_date = None, None
+    if criteria_value == '1':
+        begin_date, end_date = date_now, date_now + timedelta(days=1)
+    elif criteria_value == '2':
+        begin_date, end_date = date_now + timedelta(days=1), date_now + timedelta(days=2)
+    elif criteria_value == '3':
+        day_number = date_now.weekday()  #sabado es el dia 5
+        amount_day = 5 - day_number # el 5 es sabado
+        begin_date, end_date = date_now + timedelta(days=amount_day), date_now + timedelta(days=amount_day+2)
+    elif criteria_value == '4':
+        day_number = date_now.weekday()
+        amount_day = 6 - day_number  # el 6 es domingo
+        begin_date, end_date = date_now - timedelta(days=day_number), date_now + timedelta(days=amount_day+1)
+    elif criteria_value == '5':
+        day_number = date_now.weekday()
+        amount_day = 7 - day_number  # el 6 es domingo
+        begin_date, end_date = date_now + timedelta(days=amount_day), date_now + timedelta(days=amount_day+7)
+    elif criteria_value == '6':
+        year = date_now.year + 1 if date_now.month == 12 else date_now.year
+        month = 1 if date_now.month == 12 else date_now.month + 1
+        begin_date, end_date = date(date_now.year, date_now.month, 1), date(year, month, 1)
+    
+    return begin_date, end_date
 
 def create_dict_row(item, page, db: Session, incluye_tourney=False, api_uri=""):
     

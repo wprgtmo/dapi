@@ -9,6 +9,8 @@ from sqlalchemy.sql.sqltypes import String, Boolean, Integer, Date, DateTime, Fl
 from ...config.db import Base
 from sqlalchemy.orm import relationship
 
+from domino.models.resources.city import City
+
 def generate_uuid():
     return str(uuid.uuid4())
 
@@ -146,6 +148,8 @@ class DefaultUserProfile(Base):
     
     updated_by = Column(String, ForeignKey("enterprise.users.username"), nullable=False)
     updated_date = Column(Date, nullable=False, default=date.today())
+    
+    city = relationship(City)
      
     def dict(self):
         return {

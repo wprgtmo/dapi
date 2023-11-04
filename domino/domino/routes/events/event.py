@@ -12,7 +12,7 @@ from domino.schemas.events.events import EventBase
 from domino.schemas.events.tourney import TourneyCreated
 from domino.schemas.resources.result_object import ResultObject
 
-from domino.services.events.event import get_all, new, get_one_by_id, delete, update, get_image_event
+from domino.services.events.event import get_all, get_all_by_criteria, new, get_one_by_id, delete, update, get_image_event
   
 event_route = APIRouter(
     tags=["Events"],
@@ -29,7 +29,21 @@ def get_events(
     criteria_value: str = "",
     db: Session = Depends(get_db)
 ):
-    return get_all(request=request, profile_id=profile_id, page=page, per_page=per_page, criteria_key=criteria_key, criteria_value=criteria_value, db=db)
+    return get_all(
+        request=request, profile_id=profile_id, page=page, per_page=per_page, criteria_key=criteria_key, criteria_value=criteria_value, db=db)
+
+@event_route.get("/event/criteria/", response_model=Dict, summary="Obtain a list of Events by criteria.")
+def get_events_by_criteria(
+    request: Request,
+    profile_id: str,
+    page: int = 1, 
+    per_page: int = 6, 
+    criteria_key: str = "",
+    criteria_value: str = "",
+    db: Session = Depends(get_db)
+):
+    return get_all_by_criteria(
+        request=request, profile_id=profile_id, page=page, per_page=per_page, criteria_key=criteria_key, criteria_value=criteria_value, db=db)
 
 @event_route.get("/event/one_event/{id}", response_model=ResultObject, summary="Get a Event for your ID.")
 def get_event_by_id(id: str, db: Session = Depends(get_db)):
