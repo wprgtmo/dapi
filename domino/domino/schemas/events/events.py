@@ -38,3 +38,11 @@ class EventSchema(EventBase):
     class Config:
         orm_mode = True
         
+class EventFollowers(BaseModel):
+    event_id: str
+       
+    @validator('event_id')
+    def event_id_not_empty(cls, event_id):
+        if not event_id:
+            raise ValueError('ID de Event Requerido')
+        return event_id

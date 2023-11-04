@@ -52,3 +52,33 @@ class Event(Base):
             "photo": self.photo,
             "profile_id": self.profile_id
         }
+
+
+class EventsFollowers(Base):
+    """ProfileFollowers Class contains standard information for a Profile of Followers."""
+ 
+    # puede estar siguinedo un evento, un torneo, una ronda, un jugador.....
+    __tablename__ = "events_followers"
+    __table_args__ = {'schema' : 'events'}
+    
+    id = Column(String, primary_key=True, default=generate_uuid)
+    profile_id = Column(String, ForeignKey("enterprise.profile_member.id"), unique=True)
+    username = Column(String, nullable=False)
+    element_type = Column(String(30), nullable=False)
+    element_id = Column(String, unique=False)
+    created_by = Column(String, nullable=False)
+    created_date = Column(Date, nullable=False, default=date.today())
+    
+    is_active = Column(Boolean, nullable=False, default=False)
+    
+    def dict(self):
+        return {
+            "id": self.id,
+            "profile_id": self.profile_id,
+            "username": self.username,
+            "element_type": self.element_type,
+            "element_id": self.element_id,
+            "created_date": self.created_date,
+            "is_active": self.is_active
+        }
+        

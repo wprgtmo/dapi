@@ -8,11 +8,12 @@ from fastapi.responses import FileResponse, JSONResponse
 from os import getcwd, remove
 from typing import Optional
 
-from domino.schemas.events.events import EventBase
+from domino.schemas.events.events import EventBase, EventFollowers
 from domino.schemas.events.tourney import TourneyCreated
 from domino.schemas.resources.result_object import ResultObject
 
-from domino.services.events.event import get_all, get_all_by_criteria, new, get_one_by_id, delete, update, get_image_event
+from domino.services.events.event import get_all, get_all_by_criteria, new, get_one_by_id, delete, update, \
+    get_image_event, add_one_followers, remove_one_followers
   
 event_route = APIRouter(
     tags=["Events"],
@@ -60,3 +61,11 @@ def delete_event(request:Request, id: str, db: Session = Depends(get_db)):
 @event_route.put("/event/{id}", response_model=ResultObject, summary="Update a Event by its ID")
 def update_event(request:Request, id: str, event: EventBase = Depends(), image: UploadFile = "", db: Session = Depends(get_db)):
     return update(request=request, db=db, event_id=str(id), event=event.dict(), file=image)
+
+@event_route.put("/event/followers/add/{profile_id}", response_model=ResultObject, summary="Add Followers of Event")
+def add_followers(request:Request, profile_id:str, event_follower: EventFollowers, db: Session = Depends(get_db)):
+    return add_one_followers(request=request, profile_id=str(profile_id), event_follower=event_follower, db=db)
+
+@event_route.put("/event/followers/remove/{profile_id}", response_model=ResultObject, summary="Remove Followers of Event")
+def remove_followers(request:Request, profile_id:str, event_follower: EventFollowers, db: Session = Depends(get_db)):
+    return remove_one_followers(request=request, profile_id=str(profile_id), event_follower=event_follower, db=db)

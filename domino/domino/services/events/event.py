@@ -16,10 +16,11 @@ from domino.app import _
 from fastapi.responses import FileResponse
 from os import getcwd
 
-from domino.models.events.events import Event
+from domino.models.events.events import Event, EventsFollowers
 from domino.models.events.tourney import Tourney
+
 from domino.schemas.events.tourney import TourneyCreated
-from domino.schemas.events.events import EventBase, EventSchema
+from domino.schemas.events.events import EventBase, EventSchema, EventFollowers
 from domino.schemas.resources.result_object import ResultObject, ResultData
 
 from domino.services.resources.status import get_one_by_name as get_one_status_by_name, get_one as get_one_status
@@ -116,7 +117,8 @@ def get_all_by_criteria(request:Request, profile_id:str, page: int, per_page: in
                     "' AND start_date < '" + end_date.strftime('%Y-%m-%d') + "' "
         
     elif criteria_key == 'following':  # los que estoy siguiendo
-        str_where += " "
+        str_where += " AND eve.id IN (SELECT element_id FROM events.events_followers foll " +\
+            "WHERE foll.element_type = 'EVENT' and foll.profile_id = '" + profile_id + "') "
         
     elif criteria_key == 'participating':  # los que estoy participando
         # participando como jugador o participando como arbitro.
@@ -126,14 +128,12 @@ def get_all_by_criteria(request:Request, profile_id:str, page: int, per_page: in
             "join events.domino_boletus bol ON bol.id = bpos.boletus_id join events.tourney ON tourney.id = bol.tourney_id " +\
             "where bpos.single_profile_id IN (SELECT pmem.id FROM enterprise.profile_users puse " +\
             "JOIN enterprise.profile_member pmem ON pmem.id = puse.profile_id " +\
-            "Where username = '" + currentUser['username'] + "' and profile_type = 'SINGLE_PLAYER'))' "
+            "Where username = '" + currentUser['username'] + "' and profile_type = 'SINGLE_PLAYER')) "
     else:
         raise HTTPException(status_code=404, detail=_(locale, "commun.invalid_param"))
                 
     str_count += str_where
     str_query += str_where
-    
-    print(str_query)
     
     if page and page > 0 and not per_page:
         raise HTTPException(status_code=404, detail=_(locale, "commun.invalid_param"))
@@ -456,3 +456,92 @@ def get_image_event(event_id: str, db: Session):
     path = "/public/events/" + str(user_created.id) + "/" + str(db_event.id) + "/" + db_event.image
     
     return path
+
+def add_one_followers(request: Request, profile_id: str, event_follower: EventFollowers, db: Session):
+    locale = request.headers["accept-language"].split(",")[0].split("-")[0];
+    
+    result = ResultObject() 
+    currentUser = get_current_user(request) 
+    
+    db_event = db.query(Event).filter(Event.id == event_follower.event_id).first()
+    if not db_event:
+        raise HTTPException(status_code=404, detail=_(locale, "event.not_found"))
+    
+    one_profile = get_one_profile(profile_id, db=db)
+    if not one_profile:
+        raise HTTPException(status_code=400, detail=_(locale, "userprofile.not_found"))
+    
+    one_followers = get_element_followers_by_criteria(one_profile.id, 'EVENT', db_event.id, db=db)
+    if one_followers:
+        result.data = one_followers.id
+        if not one_followers.is_active:
+            update_element_followers(one_followers, True, db=db)
+    else:
+        result.data = created_element_followers(one_profile.id, currentUser['username'], 'EVENT', db_event.id, db=db)
+    
+    return result
+
+def remove_one_followers(request: Request, profile_id: str, event_follower: EventFollowers, db: Session):
+    locale = request.headers["accept-language"].split(",")[0].split("-")[0];
+    
+    result = ResultObject() 
+       
+    db_event = db.query(Event).filter(Event.id == event_follower.event_id).first()
+    if not db_event:
+        raise HTTPException(status_code=404, detail=_(locale, "event.not_found"))
+    
+    one_profile = get_one_profile(profile_id, db=db)
+    if not one_profile:
+        raise HTTPException(status_code=400, detail=_(locale, "userprofile.not_found"))
+    
+    one_followers = get_element_followers_by_criteria(one_profile.id, 'EVENT', db_event.id, db=db)
+    if one_followers:
+        result.data = one_followers.id
+        if one_followers.is_active:
+            update_element_followers(one_followers, False, db=db)
+    else:
+        raise HTTPException(status_code=400, detail=_(locale, "events.event_followers_not_exists"))
+        
+    return result
+
+# para los seguidores de elementos de los eventos
+def created_element_followers(profile_id: str, username: str, element_type: str, element_id: str, db: Session):
+    
+    id=str(uuid.uuid4())
+    one_element = EventsFollowers(id=id, profile_id=profile_id, username=username, element_type=element_type,
+                                  element_id=element_id, created_by=username, created_date=datetime.today(), is_active=True)
+    
+    try:
+        db.add(one_element)
+        db.commit()
+    except (Exception, SQLAlchemyError, IntegrityError) as e:
+        return None
+    
+    return id
+
+def update_element_followers(one_element, is_active: bool, db: Session):
+    
+    one_element.is_active = is_active
+                
+    try:
+        db.add(one_element)
+        db.commit()
+        return True
+    except:
+        return False
+
+def get_element_followers_by_criteria(profile_id: str, element_type: str, element_id: str, db: Session, is_active=None):
+    
+    if is_active:
+        return db.query(EventsFollowers).filter(EventsFollowers.profile_id == profile_id).\
+            filter(EventsFollowers.element_type == element_type).\
+            filter(EventsFollowers.element_id == element_id).\
+            filter(EventsFollowers.is_active == is_active).first()
+    else:
+        return db.query(EventsFollowers).filter(EventsFollowers.profile_id == profile_id).\
+        filter(EventsFollowers.element_type == element_type).\
+        filter(EventsFollowers.element_id == element_id).first()
+        
+def get_element_followers_by_id(id: str, db: Session):
+    return db.query(EventsFollowers).filter(EventsFollowers.id == id).first()
+    
