@@ -1,11 +1,28 @@
-ALTER TABLE IF EXISTS events.domino_rounds_pairs
-    ADD COLUMN scale_number_one_player integer;
-	
-ALTER TABLE IF EXISTS events.domino_rounds_pairs
-    ADD COLUMN scale_number_two_player integer;
-	
-ALTER TABLE IF EXISTS events.domino_boletus_position
-    ADD COLUMN scale_number integer;
+
+CREATE TABLE IF NOT EXISTS events.events_followers
+(
+    id character varying COLLATE pg_catalog."default" NOT NULL,
+    profile_id character varying COLLATE pg_catalog."default",
+    username character varying COLLATE pg_catalog."default" NOT NULL,
+    element_type character varying(30) COLLATE pg_catalog."default" NOT NULL,
+    element_id character varying COLLATE pg_catalog."default",
+    created_by character varying COLLATE pg_catalog."default" NOT NULL,
+    created_date date NOT NULL,
+    is_active boolean NOT NULL,
+    CONSTRAINT events_followers_pkey PRIMARY KEY (id),
+    CONSTRAINT events_followers_profile_id_key UNIQUE (profile_id),
+    CONSTRAINT events_followers_profile_id_fkey FOREIGN KEY (profile_id)
+        REFERENCES enterprise.profile_member (id) MATCH SIMPLE
+        ON UPDATE NO ACTION
+        ON DELETE NO ACTION
+)
+
+TABLESPACE pg_default;
+
+ALTER TABLE IF EXISTS events.events_followers
+    OWNER to postgres;
+
+    
     
 
 
