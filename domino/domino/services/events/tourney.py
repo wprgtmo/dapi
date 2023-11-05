@@ -344,11 +344,9 @@ def configure_one_tourney(request, profile_id:str, tourney_id: str, settingtourn
     # verificar si el profile es admon de eventos
     db_member_profile = get_one_profile(id=profile_id, db=db)
     if not db_member_profile:
-        print('db_member_profile')
         raise HTTPException(status_code=400, detail=_(locale, "userprofile.not_found"))
    
     if db_member_profile.profile_type != 'EVENTADMON':
-        print('admon')
         raise HTTPException(status_code=400, detail=_(locale, "userprofile.user_not_event_admon"))
     
     one_status_conf = get_one_status_by_name('CONFIGURATED', db=db)
@@ -357,16 +355,13 @@ def configure_one_tourney(request, profile_id:str, tourney_id: str, settingtourn
     str_query = "SELECT count(tourney_id) FROM events.setting_tourney where tourney_id = '" + tourney_id + "' "
     amount = db.execute(str_query).fetchone()[0]
     if amount > 0:
-        print('amount')
         raise HTTPException(status_code=404, detail=_(locale, "tourney.is_configurated"))
     
     db_tourney = get_one(tourney_id, db=db)
     if not db_tourney:
-        print('torneo')
         raise HTTPException(status_code=404, detail=_(locale, "tourney.not_found"))
     
     if db_tourney.status_id != one_status_new.id:
-        print('cerrado')
         raise HTTPException(status_code=404, detail=_(locale, "tourney.tourney_closed"))
     
     amount_tables = calculate_amount_tables(db_tourney.id, db_tourney.modality, db=db)
@@ -382,19 +377,15 @@ def configure_one_tourney(request, profile_id:str, tourney_id: str, settingtourn
         use_bonus = True if str(settingtourney['bonus']) == 'YES' else False 
         
     except:
-        print('convirtiendo')
         raise HTTPException(status_code=404, detail=_(locale, "tourney.setting_incorrect"))
     
     if amount_smart_tables > amount_tables:
-        print('cantmesas')
         raise HTTPException(status_code=404, detail=_(locale, "tourney.smarttable_incorrect"))
     
     if amount_rounds <= 0:
-        print('cantrondas')
         raise HTTPException(status_code=404, detail=_(locale, "tourney.amountrounds_incorrect"))
     
     if number_points_to_win <= 0:
-        print('ptos garanr')
         raise HTTPException(status_code=404, detail=_(locale, "tourney.numberpoints_towin_incorrect"))
     
     time_to_win = 12 if not time_to_win else time_to_win
@@ -404,25 +395,21 @@ def configure_one_tourney(request, profile_id:str, tourney_id: str, settingtourn
         use_bonus, lottery_type, penalties_limit, one_status_conf, currentUser['username'], file=file, db=db)
     
     if not result_init:
-        print('no ivcializo')
         raise HTTPException(status_code=404, detail=_(locale, "tourney.setting_tourney_failed"))
     
     one_settingtourney = get_setting_tourney(db_tourney.id, db=db)
     if not one_settingtourney:
-        print('sin settign')
         raise HTTPException(status_code=404, detail=_(locale, "tourney.setting_tourney_failed"))
       
     # crear las mesas y sus ficheros
     result_init = configure_domino_tables(
         db_tourney, one_settingtourney, db, currentUser['username'], file=file)
     if not result_init:
-        print('sin mesas')
         raise HTTPException(status_code=404, detail=_(locale, "tourney.setting_tables_failed"))
     
     # crear la primera ronda
     result_init = configure_new_rounds(db_tourney, 'Ronda Inicial del Torneo', db=db, created_by=currentUser['username'])
     if not result_init:
-        print('sin rondas')
         raise HTTPException(status_code=404, detail=_(locale, "tourney.setting_rounds_failed"))
     
     return result

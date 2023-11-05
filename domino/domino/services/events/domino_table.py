@@ -77,18 +77,23 @@ def get_all(request:Request, profile_id:str, tourney_id:str, page: int, per_page
 
 def create_dict_row(item, tourney_id, page, db: Session, api_uri=""):
     
-    image_name = item['image'] if item['image'] else item['image_tourney']
-    image = api_uri + "/api/public/advertising/" + str(item['tourney_id']) + "/" + image_name
-    
+    if item['image']:
+        table_image = api_uri + "/api/advertising/" + str(item['id']) + "/" + item['image']
+    else:
+        if item['image_tourney']:
+            table_image = api_uri + "/api/advertising/" + str(item['tourney_id']) + "/" + item['image_tourney']
+        else:
+            table_image = api_uri + "/api/advertising/smartdomino.png" # poner "/smartdomino.png"
+            
     new_row = {'id': item['id'], 'table_number': item['table_number'], 
                'is_smart': item['is_smart'], 'amount_bonus': item['amount_bonus'], 
                'tourney_name': item['name'], 'is_active': item['is_active'],
-               'photo' : image, 'filetables':[]}
+               'photo' : table_image, 'filetables':[]}
     if page != 0:
         new_row['selected'] = False
         
     if item['is_smart']:
-        str_files = "Select id, position, is_ready from events.files_tables Where table_id = '" + item['id'] + "' "
+        str_files = "Select id, position, is_ready from events.domino_tables_files Where table_id = '" + item['id'] + "' "
         lst_files = db.execute(str_files)
         for item_f in lst_files:
             new_row['filetables'].append({'file_id': item_f.id, 'position': item_f.position, 'is_ready': item_f.is_ready})
