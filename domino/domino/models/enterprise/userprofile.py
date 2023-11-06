@@ -70,6 +70,8 @@ class ProfileMember(Base):
     profile_pair_player = relationship("PairProfile")
     profile_team_player = relationship("TeamProfile")
     profile_event_admon = relationship("EventAdmonProfile")
+    
+    city = relationship(City)
      
     def dict(self):
         return {
@@ -150,8 +152,6 @@ class DefaultUserProfile(Base):
     updated_by = Column(String, ForeignKey("enterprise.users.username"), nullable=False)
     updated_date = Column(Date, nullable=False, default=date.today())
     
-    city = relationship(City)
-     
     def dict(self):
         return {
             "profile_id": self.profile_id,
