@@ -9,6 +9,7 @@ from sqlalchemy.sql.sqltypes import String, Boolean, Integer, Date, DateTime, Fl
 from ...config.db import Base
 from sqlalchemy.orm import relationship
 
+# from ....domino.models.resources.city import City
 from domino.models.resources.city import City
 
 def generate_uuid():

@@ -14,3 +14,4 @@ from ..models.events.domino_tables import *
 from ..models.events.domino_round import *
 from ..models.events.domino_boletus import *
 from ..models.events.domino_data import *
+from ..models.notifications.notifications import *

@@ -54,9 +54,9 @@ def acepted_invitations_tourney_data(request:Request, db: Session = Depends(get_
 def insert_players_data(request:Request, db: Session = Depends(get_db)):
     return created_players(request, db=db)
 
-@exampledata_route.post("/exampledata/step_10_scale", summary="Crear Parejas por Rondas a partir del sorteo")
-def configure_pairs_rounds(request:Request, tourney_id:str, round_id:str, modality:str, db: Session = Depends(get_db)):
-    return configure_rounds(tourney_id=tourney_id, round_id=round_id, modality=modality, db=db)
+# @exampledata_route.post("/exampledata/step_10_scale", summary="Crear Parejas por Rondas a partir del sorteo")
+# def configure_pairs_rounds(request:Request, tourney_id:str, round_id:str, modality:str, db: Session = Depends(get_db)):
+#     return configure_rounds(tourney_id=tourney_id, round_id=round_id, modality=modality, db=db)
 
 @exampledata_route.post("/exampledata/step_11_players", summary="Crear Boletas y redsitribuir parejas por mesas")
 def configure_boletus(request:Request, tourney_id:str, round_id:str, db: Session = Depends(get_db)):

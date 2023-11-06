@@ -99,9 +99,10 @@ def get_all_by_criteria(request:Request, profile_id:str, page: int, per_page: in
     
     if criteria_key == 'location':  # por ubicacion
         # buscar el perfil y coger de allí la ciudad y país.
-        one_user = get_one_default_user(profile_id, db=db)
+        one_user = get_one_profile(profile_id, db=db)  # Migue me pasa cualquier perfil
         if not one_user:
             raise HTTPException(status_code=400, detail=_(locale, "userprofile.not_exist"))
+        
         if one_user.city_id:
             if criteria_value == 'MY_COUNTRY':
                 str_where += " And city.country_id = " + str(one_user.city.country_id)
