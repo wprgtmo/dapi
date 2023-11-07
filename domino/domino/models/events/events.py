@@ -35,8 +35,8 @@ class Event(Base):
     
     profile_id = Column(String, ForeignKey("enterprise.profile_member.id"), nullable=False)  # perfil que lo creo
     
-    tourney = relationship("Tourney")
-    # tourneys = relationship("Tourney", back_populates="event")
+    # tourney = relationship("Tourney")
+    tourneys = relationship("Tourney", back_populates="event")
     
     def dict(self):
         return {

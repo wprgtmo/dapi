@@ -146,7 +146,7 @@ def get_all_by_criteria(request:Request, profile_id:str, page: int, per_page: in
         str_query += "LIMIT " + str(per_page) + " OFFSET " + str(page*per_page-per_page)
     
     lst_data = db.execute(str_query)
-    result.data = [create_dict_row(item, page, db=db, incluye_tourney=True, api_uri=api_uri) for item in lst_data]
+    result.data = [create_dict_row(item, page, db=db, incluye_tourney=True, api_uri=api_uri, only_iniciaded=True) for item in lst_data]
     
     return result
 
@@ -179,7 +179,7 @@ def get_dates_from_criteria(criteria_value):
     
     return begin_date, end_date
 
-def create_dict_row(item, page, db: Session, incluye_tourney=False, api_uri=""):
+def create_dict_row(item, page, db: Session, incluye_tourney=False, api_uri="", only_iniciaded=False):
     
     image = api_uri + "/api/image/" + str(item['profile_id']) + "/" + item['id'] + "/" + item['image'] if item['image'] else None
     
@@ -406,7 +406,7 @@ def update(request: Request, event_id: str, event: EventBase, db: Session, file:
     else:
         raise HTTPException(status_code=404, detail=_(locale, "event.not_found"))
 
-def get_lst_tourney_by_event_id(event_id: str, db: Session): 
+def get_lst_tourney_by_event_id(event_id: str, db: Session, only_iniciaded=False): 
     
     lst_return = []
     
@@ -416,7 +416,10 @@ def get_lst_tourney_by_event_id(event_id: str, db: Session):
     str_query = "Select tou.id, event_id, tou.modality, tou.name, tou.summary, tou.start_date, " +\
         "tou.status_id, sta.name as status_name " + str_from
     
-    str_query += " WHERE sta.name != 'CANCELLED' and event_id = '" + str(event_id) + "' ORDER BY start_date "  
+    if only_iniciaded:
+        str_query += " WHERE (sta.name = 'INITIADED' or sta.name = 'FINALIZED') and event_id = '" + str(event_id) + "' ORDER BY start_date "  
+    else:
+        str_query += " WHERE sta.name != 'CANCELLED' and event_id = '" + str(event_id) + "' ORDER BY start_date "  
     lst_data = db.execute(str_query)
     lst_return = [create_dict_row_tourney(item) for item in lst_data]
     

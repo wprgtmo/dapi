@@ -33,6 +33,8 @@ class Tourney(Base):
     
     profile_id = Column(String, ForeignKey("enterprise.profile_member.id"), nullable=False)  # perfil que lo creo
     
+    event = relationship("Event", back_populates="tourneys")
+    
     # settingtourney = relationship("SettingTourney")
     
     def dict(self):
