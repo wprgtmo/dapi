@@ -95,7 +95,7 @@ def get_all_by_criteria(request:Request, profile_id:str, page: int, per_page: in
         "main_location, summary, image, eve.status_id, sta.name as status_name, country.id as country_id, city.id  as city_id, " +\
         "eve.profile_id as profile_id " + str_from
     
-    str_where = " WHERE sta.name != 'CANCELLED' "  
+    str_where = " WHERE sta.name = 'INITIADED' or sta.name = 'FINALIZED' "  
     
     if criteria_key == 'location':  # por ubicacion
         # buscar el perfil y coger de allí la ciudad y país.
