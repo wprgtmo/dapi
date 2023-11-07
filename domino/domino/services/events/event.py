@@ -95,7 +95,7 @@ def get_all_by_criteria(request:Request, profile_id:str, page: int, per_page: in
         "main_location, summary, image, eve.status_id, sta.name as status_name, country.id as country_id, city.id  as city_id, " +\
         "eve.profile_id as profile_id " + str_from
     
-    str_where = " WHERE sta.name = 'INITIADED' or sta.name = 'FINALIZED' "  
+    str_where = " WHERE (sta.name = 'INITIADED' or sta.name = 'FINALIZED') "  
     
     if criteria_key == 'location':  # por ubicacion
         # buscar el perfil y coger de allí la ciudad y país.
@@ -132,7 +132,10 @@ def get_all_by_criteria(request:Request, profile_id:str, page: int, per_page: in
             "Where username = '" + currentUser['username'] + "' and profile_type = 'SINGLE_PLAYER')) "
     else:
         raise HTTPException(status_code=404, detail=_(locale, "commun.invalid_param"))
-                
+    
+    if str_where == " WHERE (sta.name = 'INITIADED' or sta.name = 'FINALIZED') ": # eso es que no cumplio ninguna condición   
+        result.data = [] 
+          
     str_count += str_where
     str_query += str_where
     
@@ -147,7 +150,6 @@ def get_all_by_criteria(request:Request, profile_id:str, page: int, per_page: in
     
     lst_data = db.execute(str_query)
     result.data = [create_dict_row(item, page, db=db, incluye_tourney=True, api_uri=api_uri, only_iniciaded=True) for item in lst_data]
-    
     return result
 
 def get_dates_from_criteria(criteria_value):
