@@ -207,7 +207,7 @@ def get_one(event_id: str, db: Session):
 def get_one_by_name(event_name: str, db: Session):  
     return db.query(Event).filter(Event.name == event_name).first()
 
-def get_one_by_id(event_id: str, db: Session): 
+def get_one_by_id(event_id: str, db: Session, only_iniciaded=False): 
     result = ResultObject()  
     
     api_uri = str(settings.api_uri)
@@ -224,7 +224,7 @@ def get_one_by_id(event_id: str, db: Session):
     
     if lst_data: 
         for item in lst_data: 
-            result.data = create_dict_row(item, 0, db=db, incluye_tourney=True, api_uri=api_uri)
+            result.data = create_dict_row(item, 0, db=db, incluye_tourney=True, api_uri=api_uri, only_iniciaded=only_iniciaded)
         if not result.data:
             raise HTTPException(status_code=404, detail="event.not_found")
     else:

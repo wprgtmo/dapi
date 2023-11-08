@@ -47,8 +47,8 @@ def get_events_by_criteria(
         request=request, profile_id=profile_id, page=page, per_page=per_page, criteria_key=criteria_key, criteria_value=criteria_value, db=db)
 
 @event_route.get("/event/one_event/{id}", response_model=ResultObject, summary="Get a Event for your ID.")
-def get_event_by_id(id: str, db: Session = Depends(get_db)):
-    return get_one_by_id(event_id=id, db=db)
+def get_event_by_id(id: str, db: Session = Depends(get_db), only_iniciaded: bool = False):
+    return get_one_by_id(event_id=id, only_iniciaded=only_iniciaded, db=db)
 
 @event_route.post("/event/{profile_id}", response_model=ResultObject, summary="Create a Event..")
 def create_event(request:Request, profile_id: str, event: EventBase = Depends(), image: UploadFile = None, db: Session = Depends(get_db)):
