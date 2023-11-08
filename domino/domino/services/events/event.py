@@ -195,7 +195,7 @@ def create_dict_row(item, page, db: Session, incluye_tourney=False, api_uri="", 
         new_row['selected'] = False
     
     if incluye_tourney:
-        new_row['tourney'] = get_lst_tourney_by_event_id(item['id'], db=db)
+        new_row['tourney'] = get_lst_tourney_by_event_id(item['id'], db=db, only_iniciaded=only_iniciaded)
     
     new_row['amount_people'] = get_number_people_at_event(item['id'], "EVENT", db=db) 
         

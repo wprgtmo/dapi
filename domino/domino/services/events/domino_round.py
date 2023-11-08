@@ -43,10 +43,12 @@ def get_all(request:Request, tourney_id:str, page: int, per_page: int, criteria_
     #     raise HTTPException(status_code=400, detail=_(locale, "userprofile.user_not_event_admon"))
     
     str_from = "FROM events.domino_rounds drounds " +\
-        "JOIN events.tourney dtou ON dtou.id = drounds.tourney_id "
+        "JOIN events.tourney dtou ON dtou.id = drounds.tourney_id " +\
+        "JOIN resources.entities_status sta ON sta.id = drounds.status_id " 
         
     str_count = "Select count(*) " + str_from
-    str_query = "Select drounds.id, round_number, drounds.summary, drounds.start_date, drounds.close_date " + str_from
+    str_query = "Select drounds.id, round_number, drounds.summary, drounds.start_date, drounds.close_date, " + \
+        "sta.name as status_name, sta.description as status_description " + str_from
     
     str_where = " WHERE drounds.tourney_id = '" + tourney_id + "' "  
     
@@ -71,17 +73,16 @@ def get_all(request:Request, tourney_id:str, page: int, per_page: int, criteria_
         str_query += "LIMIT " + str(per_page) + " OFFSET " + str(page*per_page-per_page)
     
     lst_data = db.execute(str_query)
-    result.data = [create_dict_row(item, tourney_id, page, db=db, api_uri=api_uri) for item in lst_data]
+    result.data = [create_dict_row(item) for item in lst_data]
     
     return result
 
-def create_dict_row(item, tourney_id, page, db: Session, api_uri=""):
+def create_dict_row(item):
     
     new_row = {'id': item['id'], 'round_number': item['round_number'], 
-               'summary': item['summary'], 'start_date': item['start_date'], 
-               'close_date': item['close_date']}
-    if page != 0:
-        new_row['selected'] = False
+               'summary': item['summary'], 'start_date': item['start_date'].strftime('%d-%m-%Y'),
+               'status_name': item['status_name'], 'status_description': item['status_description'], 
+               'close_date': item['close_date'].strftime('%d-%m-%Y') if str(item['status_name']) == 'FINALIZED' else ''}
         
     return new_row
 
@@ -102,8 +103,7 @@ def get_one_by_id(round_id: str, db: Session):
         
     lst_data = db.execute(str_query) 
     
-    for item in lst_data: 
-        result.data = [create_dict_row(item, one_round.tourney_id, 0, db=db) for item in lst_data]
+    result.data = [create_dict_row(item) for item in lst_data]
         
     if not result.data:
         raise HTTPException(status_code=404, detail="dominoround.not_found")
