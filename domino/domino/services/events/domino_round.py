@@ -114,8 +114,9 @@ def get_one_by_id(round_id: str, db: Session):
     
     str_amount_pairs = "Select count(*) from events.domino_rounds_pairs where round_id = '" + str(round_id) + "' "
     amount_pairs=db.execute(str_amount_pairs).fetchone()[0]
-        
-    result.data = [create_dict_row(item, amount_tables=amount_tables, amount_pairs=amount_pairs) for item in lst_data]
+    
+    for item in lst_data:
+        result.data = create_dict_row(item, amount_tables=amount_tables, amount_pairs=amount_pairs)
         
     if not result.data:
         raise HTTPException(status_code=404, detail="dominoround.not_found")
