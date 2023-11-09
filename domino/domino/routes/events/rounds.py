@@ -10,7 +10,7 @@ from domino.schemas.resources.result_object import ResultObject
 
 from domino.services.events.domino_round import get_all, get_one_by_id
     
-from domino.services.events.domino_scale import get_all_players_by_tables, get_all_players_by_tables_and_round, get_all_pairs
+from domino.services.events.domino_scale import get_all_players_by_tables, get_all_players_by_tables_and_round, get_all_scale_by_round
   
 rounds_route = APIRouter(
     tags=["Rounds"],
@@ -58,12 +58,12 @@ def get_tables_by_rounds(
 ):
     return get_all_players_by_tables_and_round(request=request, round_id=round_id, page=page, per_page=per_page, db=db)
 
-@rounds_route.get("/rounds/pairs/", response_model=Dict, summary="Obtain a list of Pairs at Rounds.")
-def get_pairs_by_rounds(
+@rounds_route.get("/rounds/scale/", response_model=Dict, summary="Obtain Player ranking list")
+def get_scale_by_rounds(
     request: Request,
     round_id: str,
     page: int = 1, 
     per_page: int = 6, 
     db: Session = Depends(get_db)
 ):
-    return get_all_pairs(request=request, page=page, per_page=per_page, round_id=round_id, db=db)
+    return get_all_scale_by_round(request=request, page=page, per_page=per_page, round_id=round_id, db=db)

@@ -314,25 +314,27 @@ def get_all_players_by_tables_and_rounds(request:Request, page: int, per_page: i
             
     return result
 
-def get_all_pairs(request:Request, page: int, per_page: int, round_id: str, db: Session):  
+def get_all_scale_by_round(request:Request, page: int, per_page: int, round_id: str, db: Session):  
     
     locale = request.headers["accept-language"].split(",")[0].split("-")[0];
     
     api_uri = str(settings.api_uri)
     
-    str_from = "FROM events.domino_boletus bol " +\
-        "JOIN events.domino_tables dtab ON dtab.id = bol.table_id " +\
-        "JOIN events.setting_tourney stou ON stou.tourney_id = dtab.tourney_id " 
+    str_from = "FROM events.domino_rounds_scale rsca " +\
+        "JOIN events.players players ON players.id = rsca.player_id " +\
+        "JOIN enterprise.profile_member mmb ON players.profile_id = mmb.id " +\
+        "left join resources.city ON city.id = mmb.city_id " +\
+        "left join resources.country ON country.id = city.country_id " 
     
     str_count = "Select count(*) " + str_from
-    str_query = "SELECT DISTINCT dtab.id as table_id, dtab.table_number, is_smart, dtab.image as table_image, " +\
-        "stou.image as tourney_image, bol.id as boletus_id, dtab.tourney_id " + str_from
+    str_query = "SELECT players.id player_id, mmb.id profile_id, mmb.name profile_name, mmb.photo, rsca.position_number, " +\
+        "city.name as city_name, country.name as country_name, rsca.elo, rsca.elo_variable, rsca.games_played, " +\
+        "rsca.games_won, rsca.games_lost, rsca.points_positive, rsca.points_negative, rsca.points_difference " + str_from
         
-    str_where = "WHERE bol.is_valid is True AND dtab.is_active is True " + \
-        "AND  dtab.tourney_id = '" + tourney_id + "' AND bol.round_id = '" + round_id + "' "
+    str_where = "WHERE rsca.is_active is True AND rsca.round_id = '" + round_id + "' "
         
     str_count += str_where
-    str_query += str_where + " ORDER BY dtab.table_number "
+    str_query += str_where + " ORDER BY rsca.position_number "
 
     if page and page > 0 and not per_page:
         raise HTTPException(status_code=404, detail=_(locale, "commun.invalid_param"))
@@ -343,30 +345,28 @@ def get_all_pairs(request:Request, page: int, per_page: int, round_id: str, db: 
         str_query += "LIMIT " + str(per_page) + " OFFSET " + str(page*per_page-per_page)
     
     lst_data = db.execute(str_query)
+    result.data = [create_dict_row_scale(item, db=db, api_uri=api_uri) for item in lst_data]
     
-    lst_tables = []
-    id=0
-    for item in lst_data:
-        
-        if item['table_image']:
-            table_image = api_uri + "/api/advertising/" + str(item['table_id']) + "/" + item['table_image']
-        else:
-            if item['tourney_image']:
-                table_image = api_uri + "/api/advertising/" + str(item['tourney_id']) + "/" + item['tourney_image']
-            else:
-                table_image = api_uri + "/api/advertising/smartdomino.png" # poner "/smartdomino.png"
-                
-        dict_tables = {'id': id, 'number': int(item['table_number']), 'table_id': item.table_id,
-                       'type': "Inteligente" if item['is_smart'] else "Tradicional",
-                       'image': table_image}
-        
-        dict_tables=create_dict_position(dict_tables, item.boletus_id, api_uri, db=db)
-        lst_tables.append(dict_tables)
-        id+=1
-        
-    result.data = lst_tables        
-            
     return result
+
+def create_dict_row_scale(item, db: Session, api_uri):
+    
+    photo = get_url_avatar(item['profile_id'], item['photo'], api_uri=api_uri)
+    
+    new_row = {'id': item['player_id'], 'name': item['profile_name'], 
+               'position_number': item['position_number'],
+               'country': item['country_name'] if item['country_name'] else '', 
+               'city_name': item['city_name'] if item['city_name'] else '',  
+               'photo' : photo, 'elo': item['elo'] if item['elo'] else 0, 
+               'elo_variable': item['elo_variable'] if item['elo_variable'] else 0, 
+               'games_played': item['games_played'] if item['games_played'] else 0, 
+               'games_won': item['games_won'] if item['games_won'] else 0,
+               'games_lost': item['games_lost'] if item['games_lost'] else 0, 
+               'points_positive': item['points_positive'] if item['points_positive'] else 0,
+               'points_negative': item['points_negative'] if item['points_negative'] else 0, 
+               'points_difference': item['points_difference'] if item['points_difference'] else 0}
+    
+    return new_row
 
 def create_dict_position(dict_tables, boletus_id: str, api_uri:str, db: Session):
     
