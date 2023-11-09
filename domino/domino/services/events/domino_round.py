@@ -77,12 +77,16 @@ def get_all(request:Request, tourney_id:str, page: int, per_page: int, criteria_
     
     return result
 
-def create_dict_row(item):
+def create_dict_row(item, amount_tables=0, amount_pairs=0):
     
     new_row = {'id': item['id'], 'round_number': item['round_number'], 
                'summary': item['summary'], 'start_date': item['start_date'].strftime('%d-%m-%Y'),
                'status_name': item['status_name'], 'status_description': item['status_description'], 
                'close_date': item['close_date'].strftime('%d-%m-%Y') if str(item['status_name']) == 'FINALIZED' else ''}
+    
+    if amount_tables:
+        new_row['amount_tables'] = amount_tables
+        new_row['amount_pairs'] = amount_pairs
         
     return new_row
 
@@ -103,7 +107,13 @@ def get_one_by_id(round_id: str, db: Session):
         
     lst_data = db.execute(str_query) 
     
-    result.data = [create_dict_row(item) for item in lst_data]
+    str_amount_tables = "Select count(*) from events.domino_boletus where round_id = '" + str(round_id) + "' "
+    amount_tables = db.execute(str_amount_tables).fetchone()[0]
+    
+    str_amount_pairs = "Select count(*) from events.domino_rounds_pairs where round_id = '" + str(round_id) + "' "
+    amount_pairs=db.execute(str_amount_pairs).fetchone()[0]
+        
+    result.data = [create_dict_row(item, amount_tables=amount_tables, amount_pairs=amount_pairs) for item in lst_data]
         
     if not result.data:
         raise HTTPException(status_code=404, detail="dominoround.not_found")

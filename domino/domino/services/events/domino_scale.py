@@ -116,7 +116,7 @@ def configure_tables_by_round(tourney_id:str, round_id: str, modality:str, db: S
     # update_elo_initial_scale(tourney_id, round_id, modality, db=db)
     
     #configurar parejas y rondas
-    # configure_rounds(tourney_id=tourney_id, round_id=round_id, modality=modality, db=db)
+    configure_rounds(tourney_id=tourney_id, round_id=round_id, modality=modality, db=db)
     
     #ubicar por mesas las parejas
     created_boletus_for_round(tourney_id=tourney_id, round_id=round_id, db=db)
@@ -244,16 +244,81 @@ def get_lst_players_with_profile(tourney_id: str, round_id: str, db: Session):
         lst_player.append({'player_id': item.player_id, 'single_profile_id': item.single_profile_id})
     
     return lst_player
-        
+
 def get_all_players_by_tables(request:Request, page: int, per_page: int, tourney_id: str, round_id: str, db: Session):  
     
     # SI LA RONDA VIENE VACIA ES LA PRIMERA DEL TORNEO.
+    
+    if not round_id:
+        round_id = get_first_by_tourney(tourney_id, db=db)
+    
+    return get_all_players_by_tables_and_rounds(request, page, per_page=per_page, tourney_id=tourney_id, round_id=round_id, db=db)
+        
+def get_all_players_by_tables_and_round(request:Request, page: int, per_page: int, round_id: str, db: Session):  
+    
+    db_round = get_one_round(round_id, db=db)
+    
+    return get_all_players_by_tables_and_rounds(request, page, per_page=per_page, tourney_id=db_round.tourney_id, round_id=round_id, db=db)
+    
+def get_all_players_by_tables_and_rounds(request:Request, page: int, per_page: int, tourney_id: str, round_id: str, db: Session):  
+    
     locale = request.headers["accept-language"].split(",")[0].split("-")[0];
     
     api_uri = str(settings.api_uri)
     
-    if not round_id:
-        round_id = get_first_by_tourney(tourney_id, db=db)
+    str_from = "FROM events.domino_boletus bol " +\
+        "JOIN events.domino_tables dtab ON dtab.id = bol.table_id " +\
+        "JOIN events.setting_tourney stou ON stou.tourney_id = dtab.tourney_id " 
+    
+    str_count = "Select count(*) " + str_from
+    str_query = "SELECT DISTINCT dtab.id as table_id, dtab.table_number, is_smart, dtab.image as table_image, " +\
+        "stou.image as tourney_image, bol.id as boletus_id, dtab.tourney_id " + str_from
+        
+    str_where = "WHERE bol.is_valid is True AND dtab.is_active is True " + \
+        "AND  dtab.tourney_id = '" + tourney_id + "' AND bol.round_id = '" + round_id + "' "
+        
+    str_count += str_where
+    str_query += str_where + " ORDER BY dtab.table_number "
+
+    if page and page > 0 and not per_page:
+        raise HTTPException(status_code=404, detail=_(locale, "commun.invalid_param"))
+    
+    result = get_result_count(page=page, per_page=per_page, str_count=str_count, db=db)
+    
+    if page != 0:
+        str_query += "LIMIT " + str(per_page) + " OFFSET " + str(page*per_page-per_page)
+    
+    lst_data = db.execute(str_query)
+    
+    lst_tables = []
+    id=0
+    for item in lst_data:
+        
+        if item['table_image']:
+            table_image = api_uri + "/api/advertising/" + str(item['table_id']) + "/" + item['table_image']
+        else:
+            if item['tourney_image']:
+                table_image = api_uri + "/api/advertising/" + str(item['tourney_id']) + "/" + item['tourney_image']
+            else:
+                table_image = api_uri + "/api/advertising/smartdomino.png" # poner "/smartdomino.png"
+                
+        dict_tables = {'id': id, 'number': int(item['table_number']), 'table_id': item.table_id,
+                       'type': "Inteligente" if item['is_smart'] else "Tradicional",
+                       'image': table_image}
+        
+        dict_tables=create_dict_position(dict_tables, item.boletus_id, api_uri, db=db)
+        lst_tables.append(dict_tables)
+        id+=1
+        
+    result.data = lst_tables        
+            
+    return result
+
+def get_all_pairs(request:Request, page: int, per_page: int, round_id: str, db: Session):  
+    
+    locale = request.headers["accept-language"].split(",")[0].split("-")[0];
+    
+    api_uri = str(settings.api_uri)
     
     str_from = "FROM events.domino_boletus bol " +\
         "JOIN events.domino_tables dtab ON dtab.id = bol.table_id " +\
