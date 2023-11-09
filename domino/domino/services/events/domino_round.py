@@ -100,9 +100,11 @@ def get_one_by_id(round_id: str, db: Session):
     if not one_round:
         raise HTTPException(status_code=404, detail="dominoround.not_found")
     
-    str_query = "Select drounds.id, round_number, drounds.summary, drounds.start_date, drounds.close_date " +\
+    str_query = "Select drounds.id, round_number, drounds.summary, drounds.start_date, drounds.close_date, " +\
+        "sta.name as status_name, sta.description as status_description " +\
         "FROM events.domino_rounds drounds " +\
         "JOIN events.tourney dtou ON dtou.id = drounds.tourney_id " +\
+        "JOIN resources.entities_status sta ON sta.id = drounds.status_id " +\
         " WHERE drounds.id = '" + round_id + "' "  
         
     lst_data = db.execute(str_query) 

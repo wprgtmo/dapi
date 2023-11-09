@@ -30,7 +30,7 @@ def get_rounds(
     return get_all(request=request, page=page, per_page=per_page, tourney_id=tourney_id, criteria_key=criteria_key, 
                    criteria_value=criteria_value, db=db)
 
-@rounds_route.get("/rounds/rounds/one/", response_model=Dict, summary="Obtain a list of Tables of One Round.")
+@rounds_route.get("/rounds/rounds/one/", response_model=Dict, summary="Obtain info of Round.")
 def get_one_round(
     round_id: str,
     db: Session = Depends(get_db)
