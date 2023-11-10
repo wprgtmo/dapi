@@ -132,7 +132,6 @@ def verify_exist_pair_player(profile_principal_id: str, profile_secundary_id: st
     amount = db.execute(str_query).fetchone()[0]
     return True if amount > 0 else False
     
-    return True
 def new_profile_pair_player(request: Request, pairprofile: PairProfileCreated, file: File, db: Session): 
     locale = request.headers["accept-language"].split(",")[0].split("-")[0];
     

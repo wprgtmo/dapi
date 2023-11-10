@@ -25,7 +25,7 @@ from domino.services.events.event import get_one as get_one_event, get_all as ge
 from domino.services.events.domino_table import configure_domino_tables
 from domino.services.events.domino_round import configure_new_rounds
 
-from domino.services.resources.utils import get_result_count, upfile, create_dir, del_image, get_ext_at_file, remove_dir
+from domino.services.resources.utils import get_result_count, upfile, create_dir, del_image, get_ext_at_file, remove_dir, copy_image
 from domino.services.enterprise.userprofile import get_one as get_one_profile
             
 def get_all(request:Request, page: int, per_page: int, criteria_key: str, criteria_value: str, db: Session):  
@@ -167,8 +167,12 @@ def new(request, event_id: str, tourney: TourneyCreated, db: Session):
     if not one_status:
         raise HTTPException(status_code=404, detail=_(locale, "status.not_found"))
     
+    one_status_end = get_one_status_by_name('FINALIZED', db=db)
+    if not one_status_end:
+        raise HTTPException(status_code=404, detail=_(locale, "status.not_found"))
+    
     one_event = get_one_event(event_id, db=db)
-    if one_event.status_id != one_status.id:
+    if one_event.status_id == one_status_end.id:
         raise HTTPException(status_code=404, detail=_(locale, "event.event_closed"))
     
     id = str(uuid.uuid4())
@@ -298,12 +302,6 @@ def initializes_tourney(db_tourney, amount_tables, amount_smart_tables, amount_r
                         time_to_win, game_system, use_bonus, lottery_type, penalties_limit, 
                         status_conf, created_by, file: File, db: Session):
     
-    if file:
-        ext = get_ext_at_file(file.filename)
-        file.filename = str(db_tourney.id) + "." + ext
-        
-        path = create_dir(entity_type="SETTOURNEY", user_id=None, entity_id=str(db_tourney.id))
-    
     amount_bonus_tables = amount_rounds // 4 
     divmod_round = divmod(amount_rounds,5)
     number_bonus_round = amount_rounds + 1 if amount_rounds <= 9 else 4 if amount_rounds <= 15 else \
@@ -318,14 +316,25 @@ def initializes_tourney(db_tourney, amount_tables, amount_smart_tables, amount_r
                                   game_system=game_system, lottery_type=lottery_type, penalties_limit=penalties_limit)
     
     sett_tourney.tourney_id = db_tourney.id
-    sett_tourney.image = file.filename if file else None
     db_tourney.status_id = status_conf.id
     db_tourney.updated_by = created_by
     
+    path = create_dir(entity_type="SETTOURNEY", user_id=None, entity_id=str(db_tourney.id))
+    
+    if file:
+        ext = get_ext_at_file(file.filename)
+        file.filename = str(db_tourney.id) + "." + ext
+        sett_tourney.image = file.filename
+        upfile(file=file, path=path)
+    else:
+        image_domino="public/smartdomino.png"
+        filename = str(db_tourney.id) + ".png"
+        image_destiny = path + filename
+        copy_image(image_domino, image_destiny)
+        sett_tourney.image = filename
+        
+    
     try:
-        if file:
-            upfile(file=file, path=path)
-            
         db.add(sett_tourney)
         db.add(db_tourney)
         
