@@ -8,7 +8,7 @@ from domino.auth_bearer import JWTBearer
 from domino.schemas.events.tourney import TourneyBase, TourneyCreated, SettingTourneyCreated
 from domino.schemas.resources.result_object import ResultObject
 
-from domino.services.events.domino_round import get_all, get_one_by_id
+from domino.services.events.domino_round import get_all, get_one_by_id, start_one_round
     
 from domino.services.events.domino_scale import get_all_players_by_tables, get_all_players_by_tables_and_round, get_all_scale_by_round
   
@@ -67,3 +67,7 @@ def get_scale_by_rounds(
     db: Session = Depends(get_db)
 ):
     return get_all_scale_by_round(request=request, page=page, per_page=per_page, round_id=round_id, db=db)
+
+@rounds_route.post("/rounds/{tourney_id}", response_model=ResultObject, summary="Start game round")
+def start_round(request:Request, tourney_id: str, db: Session = Depends(get_db)):
+    return start_one_round(request=request, tourney_id=tourney_id, db=db)

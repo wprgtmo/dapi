@@ -26,6 +26,7 @@ from domino.schemas.resources.result_object import ResultObject, ResultData
 from domino.services.resources.status import get_one_by_name as get_one_status_by_name, get_one as get_one_status
 from domino.services.resources.utils import get_result_count, upfile, create_dir, del_image, get_ext_at_file, remove_dir
 from domino.services.enterprise.userprofile import get_one as get_one_profile
+from domino.services.enterprise.auth import get_url_advertising
                          
 def get_all(request:Request, profile_id:str, tourney_id:str, page: int, per_page: int, criteria_key: str, criteria_value: str, db: Session):  
     locale = request.headers["accept-language"].split(",")[0].split("-")[0];
@@ -77,13 +78,7 @@ def get_all(request:Request, profile_id:str, tourney_id:str, page: int, per_page
 
 def create_dict_row(item, tourney_id, page, db: Session, api_uri=""):
     
-    if item['image']:
-        table_image = api_uri + "/api/advertising/" + str(item['id']) + "/" + item['image']
-    else:
-        if item['image_tourney']:
-            table_image = api_uri + "/api/advertising/" + str(item['tourney_id']) + "/" + item['image_tourney']
-        else:
-            table_image = api_uri + "/api/advertising/smartdomino.png" # poner "/smartdomino.png"
+    table_image = get_url_advertising(tourney_id, item['image'] if item['image'] else item['image_tourney'], api_uri=api_uri)
             
     new_row = {'id': item['id'], 'table_number': item['table_number'], 
                'is_smart': item['is_smart'], 'amount_bonus': item['amount_bonus'], 

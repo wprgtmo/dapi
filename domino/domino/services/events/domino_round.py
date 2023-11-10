@@ -156,6 +156,45 @@ def configure_new_rounds(db_tourney, summary:str, db:Session, created_by:str):
     except (Exception, SQLAlchemyError, IntegrityError) as e:
         return False
     
+def start_one_round(request:Request, tourney_id:str, db:Session):
+    locale = request.headers["accept-language"].split(",")[0].split("-")[0];
+    
+    result = ResultObject() 
+    currentUser = get_current_user(request)
+    
+    one_status_created = get_one_status_by_name('CREATED', db=db)
+    if not one_status_created:
+        raise HTTPException(status_code=404, detail=_(locale, "status.not_found"))
+    
+    one_status_end = get_one_status_by_name('INITIADED', db=db)
+    if not one_status_end:
+        raise HTTPException(status_code=404, detail=_(locale, "status.not_found"))
+    
+    # buscar la utima ronda abierta del torneo
+    str_number = "SELECT id FROM events.domino_rounds where tourney_id = '" + str(tourney_id) + "' " +\
+        "and status_id = " +str(one_status_created.id) + " ORDER BY round_number DESC LIMIT 1; "
+       
+    last_id = db.execute(str_number).fetchone()
+    if not last_id:
+        raise HTTPException(status_code=404, detail=_(locale, "round.not_exist_created_round"))
+
+    round_id = last_id[0]
+    db_round = get_one(round_id, db=db)
+        
+    try:
+        db_round.status_id = one_status_end.id
+        db_round.start_date = datetime.now()
+        db_round.close_date = datetime.now()
+        db_round.updated_by = currentUser['username']
+        db_round.updated_date = datetime.now()
+        
+        db.add(db_round)
+        db.commit()
+        return result
+    
+    except (Exception, SQLAlchemyError, IntegrityError) as e:
+        raise HTTPException(status_code=404, detail=_(locale, "round.error_started_round"))
+    
 def delete(request: Request, round_id: str, db: Session):
     locale = request.headers["accept-language"].split(",")[0].split("-")[0];
     

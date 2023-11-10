@@ -32,43 +32,7 @@ from domino.services.events.tourney import get_one as get_one_tourney, get_setti
 from domino.services.events.player import get_lst_id_player_by_elo
 from domino.services.events.domino_round import get_one as get_one_round, get_first_by_tourney, configure_rounds
 from domino.services.events.domino_boletus import created_boletus_for_round
-
-# def new_initial_automatic_round(request: Request, tourney_id:str, dominoscale: list[DominoAutomaticScaleCreated], db: Session):
-#     locale = request.headers["accept-language"].split(",")[0].split("-")[0];
-#     result = ResultObject() 
-    
-#     db_tourney = get_one_tourney(tourney_id, db=db)
-#     if not db_tourney:
-#         raise HTTPException(status_code=404, detail=_(locale, "tourney.not_found"))
-    
-#     one_status_init = get_one_status_by_name('INITIADED', db=db)
-    
-#     # if db_tourney.status_id != one_status_init.id:
-#     #     raise HTTPException(status_code=404, detail=_(locale, "tourney.tourney_closed"))
-    
-#     one_settingtourney = get_setting_tourney(db_tourney.id, db=db)
-#     if not one_settingtourney:
-#         raise HTTPException(status_code=404, detail=_(locale, "tourney.setting_tourney_not_exist"))
-    
-#     # si el torneo ya tiene mas de una ronda no se puede hacer esto
-#     str_query = "Select count(*) FROM events.domino_rounds WHERE tourney_id = '" + tourney_id + "' "
-#     amount_round = db.execute(str_query).fetchone()[0]
-    
-#     if amount_round != 1:
-#         raise HTTPException(status_code=404, detail=_(locale, "round.not_initial_round"))
-    
-#     str_query = "Select id FROM events.domino_rounds WHERE tourney_id = '" + tourney_id + "' and round_number = 1 "
-   
-#     round_id = db.execute(str_query).fetchone()
-#     if not round_id:
-#         raise HTTPException(status_code=404, detail=_(locale, "round.not_initial_round"))
-    
-#     round_id = round_id[0]
-#     initial_scale_by_automatic_lottery(tourney_id, round_id, dominoscale, db_tourney.modality, db=db)
-    
-#     # distribuir por mesas
-    
-#     return result
+from domino.services.enterprise.auth import get_url_advertising
 
 def new_initial_automatic_round(request: Request, tourney_id:str, dominoscale: list[DominoAutomaticScaleCreated], db: Session):
     locale = request.headers["accept-language"].split(",")[0].split("-")[0];
@@ -113,15 +77,13 @@ def new_initial_manual_round(request: Request, tourney_id:str, dominoscale: list
 
 def configure_tables_by_round(tourney_id:str, round_id: str, modality:str, db: Session):
     
-    # update_elo_initial_scale(tourney_id, round_id, modality, db=db)
+    update_elo_initial_scale(tourney_id, round_id, modality, db=db)
     
     #configurar parejas y rondas
     configure_rounds(tourney_id=tourney_id, round_id=round_id, modality=modality, db=db)
     
     #ubicar por mesas las parejas
     created_boletus_for_round(tourney_id=tourney_id, round_id=round_id, db=db)
-    
-    #crear las notificaciones a los jugadores con las parejas
     
     return True
 
@@ -294,14 +256,8 @@ def get_all_players_by_tables_and_rounds(request:Request, page: int, per_page: i
     id=0
     for item in lst_data:
         
-        if item['table_image']:
-            table_image = api_uri + "/api/advertising/" + str(item['table_id']) + "/" + item['table_image']
-        else:
-            if item['tourney_image']:
-                table_image = api_uri + "/api/advertising/" + str(item['tourney_id']) + "/" + item['tourney_image']
-            else:
-                table_image = api_uri + "/api/advertising/smartdomino.png" # poner "/smartdomino.png"
-                
+        table_image = get_url_advertising(tourney_id, item['image'] if item['image'] else item['image_tourney'], api_uri=api_uri)
+        
         dict_tables = {'id': id, 'number': int(item['table_number']), 'table_id': item.table_id,
                        'type': "Inteligente" if item['is_smart'] else "Tradicional",
                        'image': table_image}

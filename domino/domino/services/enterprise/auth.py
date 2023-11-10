@@ -89,8 +89,6 @@ def get_url_avatar(user_id: str, file_name: str, api_uri=''):
 def get_url_advertising(tourney_id: str, file_name: str, api_uri=''):
 
     api_uri = str(settings.api_uri) if not api_uri else api_uri
+    table_image = file_name if file_name else "smartdomino.png"
     
-    photo =  api_uri + "/api/avatar/" + str(user_id) + "/" + file_name if \
-        file_name else api_uri + "/api/avatar/user-vector.jpg"
-
-    return photo
+    return api_uri + "/api/advertising/" + tourney_id + "/" + table_image
