@@ -1,26 +1,32 @@
+ALTER TABLE IF EXISTS events.setting_tourney
+    ADD COLUMN elo_min numeric(18, 4);
+ALTER TABLE IF EXISTS events.setting_tourney
+    ADD COLUMN elo_max numeric(18, 4);
 
-CREATE TABLE IF NOT EXISTS events.events_followers
+--Crear tabla
+DROP TABLE IF EXISTS events.domino_categories;
+
+CREATE TABLE IF NOT EXISTS events.domino_categories
 (
     id character varying COLLATE pg_catalog."default" NOT NULL,
-    profile_id character varying COLLATE pg_catalog."default",
-    username character varying COLLATE pg_catalog."default" NOT NULL,
-    element_type character varying(30) COLLATE pg_catalog."default" NOT NULL,
-    element_id character varying COLLATE pg_catalog."default",
-    created_by character varying COLLATE pg_catalog."default" NOT NULL,
-    created_date date NOT NULL,
-    is_active boolean NOT NULL,
-    CONSTRAINT events_followers_pkey PRIMARY KEY (id),
-    CONSTRAINT events_followers_profile_id_key UNIQUE (profile_id),
-    CONSTRAINT events_followers_profile_id_fkey FOREIGN KEY (profile_id)
-        REFERENCES enterprise.profile_member (id) MATCH SIMPLE
+    tourney_id character varying COLLATE pg_catalog."default" NOT NULL,
+    category_number character varying(100) COLLATE pg_catalog."default" NOT NULL,
+    position_number integer NOT NULL,
+    elo_min double precision NOT NULL,
+    elo_max double precision NOT NULL,
+    CONSTRAINT domino_categories_pkey PRIMARY KEY (id),
+    CONSTRAINT domino_categories_tourney_id_fkey FOREIGN KEY (tourney_id)
+        REFERENCES events.tourney (id) MATCH SIMPLE
         ON UPDATE NO ACTION
         ON DELETE NO ACTION
 )
 
 TABLESPACE pg_default;
 
-ALTER TABLE IF EXISTS events.events_followers
+ALTER TABLE IF EXISTS events.domino_categories
     OWNER to postgres;
+
+
 
     
     

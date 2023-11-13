@@ -114,7 +114,7 @@ def get_one_by_id(tourney_id: str, db: Session):
     # incluir los datos del setting del torneo
     setting = get_setting_tourney_to_interface(tourney_id, db=db)
     if setting:
-        setting['image'] = api_uri + "/public/advertising/" + "/" + tourney_id + "/" + setting['image'] if setting['image'] else None
+        setting['image'] = api_uri + "/public/advertising/" + tourney_id + "/" + setting['image'] if setting['image'] else None
    
     result.data['setting'] = setting  if setting else SettingTourney()
     

@@ -13,6 +13,7 @@ from domino.schemas.events.tourney import TourneyCreated
 from domino.schemas.resources.result_object import ResultObject
 
 from domino.services.events.domino_table import get_all, delete, update
+from domino.services.events.setting_tourney import get_one_configure_tourney
   
 settingtourney_route = APIRouter(
     tags=["Tourney"],
@@ -41,13 +42,8 @@ def update_dominotables(request:Request, id: str, image: UploadFile = "", db: Se
 def delete_dominotable(request:Request, id: str, db: Session = Depends(get_db)):
     return delete(request=request, table_id=str(id), db=db)
 
-# @settingtourney_route.get("/event/one_event/{id}", response_model=ResultObject, summary="Get a Event for your ID.")
-# def get_event_by_id(id: str, db: Session = Depends(get_db)):
-#     return get_one_by_id(event_id=id, db=db)
-
-# @event_route.post("/event/{profile_id}", response_model=ResultObject, summary="Create a Event..")
-# def create_event(request:Request, profile_id: str, event: EventBase = Depends(), image: UploadFile = None, db: Session = Depends(get_db)):
-#     return new(request=request, profile_id=profile_id, event=event.dict(), db=db, file=image)
-
-
+@settingtourney_route.get("/tourney/setting/{tourney_id}", response_model=Dict, summary="Get Configure Tourney..")
+def get_configure_tourney(request:Request, tourney_id: str, db: Session = Depends(get_db)):
+    return get_one_configure_tourney(request=request, tourney_id=tourney_id, db=db)
     
+  

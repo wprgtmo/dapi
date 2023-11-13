@@ -35,6 +35,8 @@ class Tourney(Base):
     
     event = relationship("Event", back_populates="tourneys")
     
+    status = relationship("StatusElement")
+    
     # settingtourney = relationship("SettingTourney")
     
     def dict(self):
@@ -163,6 +165,9 @@ class SettingTourney(Base):
     time_to_win = Column(Integer, nullable=False, default=0)
     game_system = Column(String(120), nullable=False)
     lottery_type = Column(String(120), nullable=False)
+    
+    elo_min = Column(Float, nullable=False)
+    elo_max = Column(Float, nullable=False)
     
     penalties_limit = Column(Integer, nullable=False, default=0)
     
