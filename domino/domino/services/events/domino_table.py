@@ -275,7 +275,7 @@ def delete(request: Request, table_id: str, db: Session):
     return result
 
 # por ahora solo modifica imagen y bonus...   
-def update(request: Request, id: str, amount_bonus: int, db: Session, file: File):
+def update(request: Request, id: str, db: Session, file: File):
     locale = request.headers["accept-language"].split(",")[0].split("-")[0];
     
     result = ResultObject() 
@@ -287,29 +287,23 @@ def update(request: Request, id: str, amount_bonus: int, db: Session, file: File
     if not db_table:
         raise HTTPException(status_code=404, detail=_(locale, "dominotable.not_found"))
     
-    db_table.amount_bonus = amount_bonus
+    path_tourney = create_dir(entity_type='SETTOURNEY', user_id=None, entity_id=str(db_table.tourney_id))
     
-    if file:
-        ext = get_ext_at_file(file.filename)
-        file.filename = str(id) + "." + ext
-        
-    if file:
-        ext = get_ext_at_file(file.filename)
-        
-        if db_table.image:  # ya tiene una imagen asociada
-            current_image = db_table.image
-        
-        file.filename = str(id) + "." + ext
-        path = create_dir(entity_type="SETTOURNEY", user_id=None, entity_id=str(id))
-        
-        path_del = "/public/advertising/" + str(db_table.id) + "/"
+    if not file:
+        raise HTTPException(status_code=404, detail=_(locale, "dominotable.imege_not_empty"))
+    
+    if db_table.image:  # ya tiene una imagen asociada
+        current_image = db_table.image
         try:
-            del_image(path=path_del, name=str(current_image))
+            del_image(path=path_tourney + "/", name=str(current_image))
         except:
             pass
-        
-        upfile(file=file, path=path)
-        db_table.image = file.filename
+    
+    ext = get_ext_at_file(file.filename)
+    file.filename = str(id) + "." + ext
+    
+    upfile(file=file, path=path_tourney)
+    db_table.image = file.filename
     
     db_table.updated_by = currentUser['username']
     db_table.updated_date = datetime.now()

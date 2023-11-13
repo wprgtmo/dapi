@@ -34,8 +34,8 @@ def get_dominotables(
                    criteria_key=criteria_key, criteria_value=criteria_value, db=db)
     
 @settingtourney_route.put("/tourney/setting/configure_tables/{id}", response_model=ResultObject, summary="Update of Domino Tables by id")
-def update_dominotables(request:Request, id: str, amount_bonus: int, image: UploadFile = "", db: Session = Depends(get_db)):
-    return update(request=request, db=db, id=str(id), amount_bonus=amount_bonus, file=image)
+def update_dominotables(request:Request, id: str, image: UploadFile = "", db: Session = Depends(get_db)):
+    return update(request=request, db=db, id=str(id), file=image)
 
 @settingtourney_route.delete("/tourney/setting/configure_tables/{id}", response_model=ResultObject, summary="Deactivate a Domino Table by its ID.")
 def delete_dominotable(request:Request, id: str, db: Session = Depends(get_db)):

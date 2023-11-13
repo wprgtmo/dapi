@@ -22,8 +22,12 @@ def get_result_count(page: int, per_page: int, str_count: str, db: Session):
     return result
 
 def upfile(file: File, path: str):
-    if not os.path.isdir(path):
-        os.mkdir(path)
+    
+    print(path)
+    print('****************************')
+    
+    # if not os.path.isdir(path):
+    #     os.mkdir(path)
                 
     path = path + "/" + file.filename
     with open(path, "wb") as buffer:

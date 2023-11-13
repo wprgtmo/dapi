@@ -256,7 +256,7 @@ def get_all_players_by_tables_and_rounds(request:Request, page: int, per_page: i
     id=0
     for item in lst_data:
         
-        table_image = get_url_advertising(tourney_id, item['table_image'] if item['image'] else item['tourney_image'], api_uri=api_uri)
+        table_image = get_url_advertising(tourney_id, item['table_image'] if item['table_image'] else item['tourney_image'], api_uri=api_uri)
         
         dict_tables = {'id': id, 'number': int(item['table_number']), 'table_id': item.table_id,
                        'type': "Inteligente" if item['is_smart'] else "Tradicional",
