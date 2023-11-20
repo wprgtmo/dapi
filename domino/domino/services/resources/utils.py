@@ -5,6 +5,8 @@ import shutil
 from fastapi import FastAPI, Request, UploadFile, File
 from os import getcwd, remove
 
+from domino.config.config import settings
+
 # from fastapi import Request
 from sqlalchemy.orm import Session
 from fastapi import HTTPException
@@ -22,9 +24,6 @@ def get_result_count(page: int, per_page: int, str_count: str, db: Session):
     return result
 
 def upfile(file: File, path: str):
-    
-    print(path)
-    print('****************************')
     
     # if not os.path.isdir(path):
     #     os.mkdir(path)
@@ -87,6 +86,9 @@ def copy_image(image_origen: str, image_destiny: str):
     return True
 
 def del_image(path: str, name: str):
+    
+    path = "/" + path
+    
     try:
         remove(getcwd() + path + name)
         return True

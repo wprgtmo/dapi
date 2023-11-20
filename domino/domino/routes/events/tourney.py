@@ -5,7 +5,7 @@ from typing import List, Dict
 from starlette import status
 from domino.auth_bearer import JWTBearer
 
-from domino.schemas.events.tourney import TourneyBase, TourneyCreated, SettingTourneyCreated
+from domino.schemas.events.tourney import TourneyBase, TourneyCreated, SettingTourneyCreated, DominoCategoryCreated
 from domino.schemas.resources.result_object import ResultObject
 
 from domino.services.events.tourney import get_all, new, get_one_by_id, delete, update, get_all_by_event_id, \
@@ -51,8 +51,17 @@ def update_tourney(request:Request, id: str, tourney: TourneyCreated, db: Sessio
 def amount_tables(request:Request, id: str, db: Session = Depends(get_db)):
     return get_amount_tables(request=request, tourney_id=id, db=db)
 
-@tourney_route.post("/tourney/setting/{profile_id}", response_model=ResultObject, summary="Configure Tourney..")
-def configure_tourney(request:Request, profile_id: str, id: str, settingtourney: SettingTourneyCreated = Depends(), 
-                      image: UploadFile = None, db: Session = Depends(get_db)):
-    return configure_one_tourney(request=request, profile_id=profile_id, tourney_id=id,
-                                 settingtourney=settingtourney.dict(), file=image, db=db)
+# @tourney_route.post("/tourney/setting/{profile_id}", response_model=ResultObject, summary="Configure Tourney..")
+# def configure_tourney(request:Request, profile_id: str, id: str, lst_categories: List[DominoCategoryCreated]=[], 
+#                       settingtourney: SettingTourneyCreated = Depends(), 
+#                       image: UploadFile = None, db: Session = Depends(get_db)):
+#     return configure_one_tourney(request=request, profile_id=profile_id, tourney_id=id, lst_categories=lst_categories,
+#                                  settingtourney=settingtourney.dict(), file=image, db=db)
+    
+    
+# @tourney_route.post("/tourney/setting/{profile_id}", response_model=ResultObject, summary="Configure Tourney..")
+# def configure_tourney(request:Request, profile_id: str, id: str, lst_categories: List[DominoCategoryCreated],
+#                       settingtourney: SettingTourneyCreated = Depends(), 
+#                       image: UploadFile = None, db: Session = Depends(get_db)):
+#     return configure_one_tourney(request=request, profile_id=profile_id, tourney_id=id, lst_categories=lst_categories,
+#                                  settingtourney=settingtourney.dict(), file=image, db=db)

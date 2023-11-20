@@ -243,6 +243,34 @@ def get_lst_id_player_by_elo(tourney_id: str, modality:str, min_elo: float, max_
         lst_players.append(item.id)
     
     return lst_players
+
+def get_values_elo_by_tourney(tourney_id: str, modality:str, db: Session):  
+    
+    str_from = "FROM events.players " +\
+        "inner join enterprise.profile_member pro ON pro.id = players.profile_id " +\
+        "inner join enterprise.profile_type prot ON prot.name = pro.profile_type " 
+    
+    dict_modality = {'Individual': "join enterprise.profile_single_player player ON player.profile_id = pro.id ",
+                     'Parejas': "join enterprise.profile_pair_player player ON player.profile_id = pro.id ",
+                     'Equipo': "join enterprise.profile_team_player player ON player.profile_id = pro.id "}
+    
+    str_from += dict_modality[modality]
+       
+    str_query = "SELECT MAX(elo) elo_max, MIN(elo) elo_min" + str_from
+    
+    str_where = "WHERE pro.is_ready is True and players.is_active is True " 
+    str_where += " AND players.tourney_id = '" + tourney_id + "' "  
+    
+    str_query += str_where
+
+    str_query += " ORDER BY player.ranking ASC " 
+    lst_data = db.execute(str_query)
+    elo_max, elo_min = float(0.00), float(0.00)
+    for item in lst_data:
+        elo_max = item.elo_max,
+        elo_min = item.elo_min
+    
+    return elo_max, elo_min
     
 def get_all_players_by_tourney(request:Request, page: int, per_page: int, tourney_id: str, is_active: bool, criteria_key: str, criteria_value: str, db: Session):  
     locale = request.headers["accept-language"].split(",")[0].split("-")[0];

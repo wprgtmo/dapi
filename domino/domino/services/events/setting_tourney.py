@@ -28,7 +28,9 @@ from domino.services.enterprise.users import get_one_by_username
 from domino.services.enterprise.userprofile import get_one as get_one_profile
 from domino.services.events.domino_boletus import created_boletus_for_round
 
-from domino.services.events.tourney import get_one as get_one_tourney, get_setting_tourney, calculate_amount_tables, get_count_players_by_tourney
+from domino.services.events.tourney import get_one as get_one_tourney, get_setting_tourney, calculate_amount_tables, \
+    get_count_players_by_tourney
+from domino.services.events.player import get_values_elo_by_tourney
 from domino.services.enterprise.auth import get_url_advertising
 
 def get_one_configure_tourney(request:Request, tourney_id: str, db: Session):  
@@ -46,6 +48,8 @@ def get_one_configure_tourney(request:Request, tourney_id: str, db: Session):
     
     amount_tables = calculate_amount_tables(tourney_id=tourney_id, modality=db_tourney.modality, db=db) if not setting else setting.amount_tables
     
+    elo_max, elo_min = get_values_elo_by_tourney(tourney_id=tourney_id, modality=db_tourney.modality, db=db)
+    
     result.data = {
         "tourney_id": tourney_id, "amount_tables": amount_tables,
         'amount_player': get_count_players_by_tourney(tourney_id, db_tourney.modality, db=db),
@@ -60,8 +64,7 @@ def get_one_configure_tourney(request:Request, tourney_id: str, db: Session):
         "game_system": '' if not setting else setting.game_system,
         'lottery_type': '' if not setting else setting.lottery_type,
         'penalties_limit': 0 if not setting else setting.penalties_limit,
-        'elo_min': 0 if not setting else setting.elo_min,
-        'elo_max': 0 if not setting else setting.elo_max,
+        'elo_min': elo_min, 'elo_max': elo_max,
         'image': get_url_advertising(tourney_id=tourney_id, file_name=setting.image if setting else None, api_uri=api_uri),
         'status_id': db_tourney.status_id,
         'lst_categories': get_lst_categories_of_tourney(tourney_id=tourney_id, db=db),
@@ -84,3 +87,4 @@ def get_lst_categories_of_tourney(tourney_id: str, db: Session):
                               'position_number': item.position_number,
                               'elo_min': item.elo_min, 'elo_max': item.elo_max})
     return lst_categories
+

@@ -14,7 +14,9 @@ from domino.app import _
 from domino.config.config import settings
 
 from domino.models.events.tourney import Tourney, SettingTourney
-from domino.schemas.events.tourney import TourneyBase, TourneySchema, TourneyCreated, SettingTourneyCreated
+from domino.models.events.domino_categories import DominoCategory
+
+from domino.schemas.events.tourney import TourneyBase, TourneySchema, TourneyCreated, SettingTourneyCreated, DominoCategoryCreated
 from domino.schemas.resources.result_object import ResultObject, ResultData
 
 from domino.services.resources.status import get_one_by_name as get_one_status_by_name, get_one as get_one_status
@@ -25,7 +27,7 @@ from domino.services.events.event import get_one as get_one_event, get_all as ge
 from domino.services.events.domino_table import configure_domino_tables
 from domino.services.events.domino_round import configure_new_rounds
 
-from domino.services.resources.utils import get_result_count, upfile, create_dir, del_image, get_ext_at_file, remove_dir, copy_image
+from domino.services.resources.utils import get_result_count, upfile, create_dir, del_image, get_ext_at_file, remove_dir, copy_image, del_image
 from domino.services.enterprise.userprofile import get_one as get_one_profile
             
 def get_all(request:Request, page: int, per_page: int, criteria_key: str, criteria_value: str, db: Session):  
@@ -298,9 +300,29 @@ def calculate_amount_tables(tourney_id: str, modality: str, db: Session):
     
     return int(mod_play[0]) + 1 if mod_play[1] > 0 else int(mod_play[0])
 
+def calculate_elo_by_tourney(tourney_id: str, modality:str, db: Session):
+    
+    str_query = "Select count(*) From events.players Where is_active = True and tourney_id = '" + tourney_id + "' "
+    amount_players = db.execute(str_query).fetchone()[0]
+    
+    if amount_players == 0:
+        return int(0)
+    
+    if modality == 'Individual':
+        mod_play = divmod(int(amount_players),4) 
+    elif modality == 'Parejas':
+        mod_play = divmod(int(amount_players),2) 
+    elif modality == 'Equipo':
+        mod_play = divmod(int(amount_players),2) 
+    
+    if not mod_play:
+        return int(0)
+    
+    return int(mod_play[0]) + 1 if mod_play[1] > 0 else int(mod_play[0])
+
 def initializes_tourney(db_tourney, amount_tables, amount_smart_tables, amount_rounds, number_points_to_win, 
                         time_to_win, game_system, use_bonus, lottery_type, penalties_limit, 
-                        status_conf, created_by, file: File, db: Session):
+                        status_conf, created_by, db: Session):
     
     amount_bonus_tables = amount_rounds // 4 
     divmod_round = divmod(amount_rounds,5)
@@ -319,19 +341,20 @@ def initializes_tourney(db_tourney, amount_tables, amount_smart_tables, amount_r
     db_tourney.status_id = status_conf.id
     db_tourney.updated_by = created_by
     
-    path = create_dir(entity_type="SETTOURNEY", user_id=None, entity_id=str(db_tourney.id))
+    # se va a hacer independiente
+    # path = create_dir(entity_type="SETTOURNEY", user_id=None, entity_id=str(db_tourney.id))
     
-    if file:
-        ext = get_ext_at_file(file.filename)
-        file.filename = str(db_tourney.id) + "." + ext
-        sett_tourney.image = file.filename
-        upfile(file=file, path=path)
-    else:
-        image_domino="public/smartdomino.png"
-        filename = str(db_tourney.id) + ".png"
-        image_destiny = path + filename
-        copy_image(image_domino, image_destiny)
-        sett_tourney.image = filename
+    # if file:
+    #     ext = get_ext_at_file(file.filename)
+    #     file.filename = str(db_tourney.id) + "." + ext
+    #     sett_tourney.image = file.filename
+    #     upfile(file=file, path=path)
+    # else:
+    #     image_domino="public/smartdomino.png"
+    #     filename = str(db_tourney.id) + ".png"
+    #     image_destiny = path + filename
+    #     copy_image(image_domino, image_destiny)
+    #     sett_tourney.image = filename
         
     
     try:
@@ -343,8 +366,9 @@ def initializes_tourney(db_tourney, amount_tables, amount_smart_tables, amount_r
        
     except (Exception, SQLAlchemyError, IntegrityError) as e:
         return False
-        
-def configure_one_tourney(request, profile_id:str, tourney_id: str, settingtourney: SettingTourneyCreated, file: File, db: Session):
+ 
+# metodo para borrar cuand funcione la nueva configuración del evento...       
+def configure_one_tourney_old(request, profile_id:str, tourney_id: str, settingtourney: SettingTourneyCreated, file: File, db: Session):
     locale = request.headers["accept-language"].split(",")[0].split("-")[0];
     
     result = ResultObject() 
@@ -421,5 +445,159 @@ def configure_one_tourney(request, profile_id:str, tourney_id: str, settingtourn
     if not result_init:
         raise HTTPException(status_code=404, detail=_(locale, "tourney.setting_rounds_failed"))
     
+    return result
+   
+def configure_one_tourney(request, profile_id:str, tourney_id: str, settingtourney: SettingTourneyCreated, db: Session):
+    locale = request.headers["accept-language"].split(",")[0].split("-")[0];
+    
+    result = ResultObject() 
+    currentUser = get_current_user(request)
+    
+    # verificar si el profile es admon de eventos
+    db_member_profile = get_one_profile(id=profile_id, db=db)
+    if not db_member_profile:
+        raise HTTPException(status_code=400, detail=_(locale, "userprofile.not_found"))
+   
+    if db_member_profile.profile_type != 'EVENTADMON':
+        raise HTTPException(status_code=400, detail=_(locale, "userprofile.user_not_event_admon"))
+    
+    one_status_conf = get_one_status_by_name('CONFIGURATED', db=db)
+    one_status_new = get_one_status_by_name('CREATED', db=db)
+    
+    str_query = "SELECT count(tourney_id) FROM events.setting_tourney where tourney_id = '" + tourney_id + "' "
+    amount = db.execute(str_query).fetchone()[0]
+    if amount > 0:
+        raise HTTPException(status_code=404, detail=_(locale, "tourney.is_configurated"))
+    
+    db_tourney = get_one(tourney_id, db=db)
+    if not db_tourney:
+        raise HTTPException(status_code=404, detail=_(locale, "tourney.not_found"))
+    
+    if db_tourney.status_id != one_status_new.id:
+        raise HTTPException(status_code=404, detail=_(locale, "tourney.tourney_closed"))
+    
+    amount_tables = calculate_amount_tables(db_tourney.id, db_tourney.modality, db=db)
+    
+    try:
+        amount_smart_tables = int(settingtourney['amount_smart_tables'])
+        amount_rounds = int(settingtourney['amount_rounds'])
+        number_points_to_win = int(settingtourney['number_points_to_win'])
+        time_to_win = int(settingtourney['time_to_win'])
+        game_system = str(settingtourney['game_system'])
+        lottery_type = str(settingtourney['lottery'])
+        penalties_limit = int(settingtourney['limitPenaltyPoints'])
+        use_bonus = True if str(settingtourney['bonus']) == 'YES' else False 
+        
+    except:
+        raise HTTPException(status_code=404, detail=_(locale, "tourney.setting_incorrect"))
+    
+    if amount_smart_tables > amount_tables:
+        raise HTTPException(status_code=404, detail=_(locale, "tourney.smarttable_incorrect"))
+    
+    if amount_rounds <= 0:
+        raise HTTPException(status_code=404, detail=_(locale, "tourney.amountrounds_incorrect"))
+    
+    if number_points_to_win <= 0:
+        raise HTTPException(status_code=404, detail=_(locale, "tourney.numberpoints_towin_incorrect"))
+    
+    time_to_win = 12 if not time_to_win else time_to_win
+    
+    result_init = initializes_tourney(
+        db_tourney, amount_tables, amount_smart_tables, amount_rounds, number_points_to_win, time_to_win, game_system, 
+        use_bonus, lottery_type, penalties_limit, one_status_conf, currentUser['username'], db=db)
+    
+    if not result_init:
+        raise HTTPException(status_code=404, detail=_(locale, "tourney.setting_tourney_failed"))
+    
+    one_settingtourney = get_setting_tourney(db_tourney.id, db=db)
+    if not one_settingtourney:
+        raise HTTPException(status_code=404, detail=_(locale, "tourney.setting_tourney_failed"))
+      
+    # crear las mesas y sus ficheros
+    result_init = configure_domino_tables(
+        db_tourney, one_settingtourney, db, currentUser['username'], file=None)
+    if not result_init:
+        raise HTTPException(status_code=404, detail=_(locale, "tourney.setting_tables_failed"))
+    
+    # crear la primera ronda
+    result_init = configure_new_rounds(db_tourney, 'Ronda Inicial del Torneo', db=db, created_by=currentUser['username'])
+    if not result_init:
+        raise HTTPException(status_code=404, detail=_(locale, "tourney.setting_rounds_failed"))
+    
+    return result
+
+def configure_categories_tourney(request, tourney_id: str, lst_categories: List[DominoCategoryCreated], db: Session):
+    locale = request.headers["accept-language"].split(",")[0].split("-")[0];
+    
+    result = ResultObject() 
+    currentUser = get_current_user(request)
+    
+    str_query = "SELECT count(tourney_id) FROM events.domino_categories where tourney_id = '" + tourney_id + "' "
+    amount = db.execute(str_query).fetchone()[0]
+    if amount > 0:
+        raise HTTPException(status_code=404, detail=_(locale, "tourney.is_configurated"))
+    
+    db_tourney = get_one(tourney_id, db=db)
+    if not db_tourney:
+        raise HTTPException(status_code=404, detail=_(locale, "tourney.not_found"))
+    
+    one_status_conf = get_one_status_by_name('CONFIGURATED', db=db)
+    
+    if db_tourney.status_id != one_status_conf.id:
+        raise HTTPException(status_code=404, detail=_(locale, "tourney.tourney_closed"))
+    
+    position_number = 0
+    for item in lst_categories:
+        position_number += 1
+        db_one_category = DominoCategory(id=str(uuid.uuid4()), tourney_id=tourney_id, category_number=item.category_number,
+                                         position_number=position_number, elo_min=item.elo_min, elo_max=item.elo_max) 
+        db.add(db_one_category)
+    
+    try:
+        db.commit()
+        return result
+    except (Exception, SQLAlchemyError, IntegrityError) as e:
+        return result
+   
+def save_image_tourney(request, tourney_id: str, file: File, db: Session):
+    locale = request.headers["accept-language"].split(",")[0].split("-")[0];
+    
+    result = ResultObject() 
+    
+    db_tourney = get_one(tourney_id, db=db)
+    if not db_tourney:
+        raise HTTPException(status_code=404, detail=_(locale, "tourney.not_found"))
+    
+    one_settingtourney = get_setting_tourney(db_tourney.id, db=db)
+    if not one_settingtourney:
+        raise HTTPException(status_code=404, detail=_(locale, "tourney.setting_tourney_failed"))
+    
+    path = create_dir(entity_type="SETTOURNEY", user_id=None, entity_id=str(db_tourney.id))
+    
+    # si torneo tiene imagen ya, eliminarla primero
+    if one_settingtourney.image:
+        del_image(path, one_settingtourney.image)
+    
+    if file:
+        ext = get_ext_at_file(file.filename)
+        file.filename = str(db_tourney.id) + "." + ext
+        one_settingtourney.image = file.filename
+        upfile(file=file, path=path)
+    else:
+        image_domino="public/smartdomino.png"
+        filename = str(db_tourney.id) + ".png"
+        image_destiny = path + filename
+        copy_image(image_domino, image_destiny)
+        one_settingtourney.image = filename
+     
+    try:
+        db.add(one_settingtourney)
+        
+        db.commit()
+        return result
+        
+    except (Exception, SQLAlchemyError, IntegrityError) as e:
+        return result
+ 
     return result
    

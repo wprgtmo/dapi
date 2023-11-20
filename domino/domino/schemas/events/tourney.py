@@ -61,3 +61,10 @@ class SettingTourneyCreated(BaseModel):
     limitPenaltyPoints: int
     class Config:
         orm_mode = True
+
+
+class DominoCategoryCreated(BaseModel):
+    category_number: str
+    elo_min: float
+    elo_max: float
+    

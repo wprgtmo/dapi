@@ -273,8 +273,7 @@ def delete(request: Request, table_id: str, db: Session):
         raise HTTPException(status_code=404, detail=_(locale, "dominotable.imposible_delete"))
     
     return result
-
-# por ahora solo modifica imagen y bonus...   
+  
 def update(request: Request, id: str, db: Session, file: File):
     locale = request.headers["accept-language"].split(",")[0].split("-")[0];
     
@@ -295,7 +294,7 @@ def update(request: Request, id: str, db: Session, file: File):
     if db_table.image:  # ya tiene una imagen asociada
         current_image = db_table.image
         try:
-            del_image(path=path_tourney + "/", name=str(current_image))
+            del_image(path=path_tourney, name=str(current_image))
         except:
             pass
     

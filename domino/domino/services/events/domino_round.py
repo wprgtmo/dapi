@@ -139,7 +139,7 @@ def configure_new_rounds(db_tourney, summary:str, db:Session, created_by:str):
         "ORDER BY round_number DESC LIMIT 1; "
     last_number = db.execute(str_number).fetchone()
     
-    round_number = 1 if not last_number else int(last_number) + 1
+    round_number = 1 if not last_number else int(last_number[0]) + 1
     
     status_creat = get_one_status_by_name('CREATED', db=db)
     
