@@ -256,7 +256,7 @@ def get_values_elo_by_tourney(tourney_id: str, modality:str, db: Session):
     
     str_from += dict_modality[modality]
        
-    str_query = "SELECT MAX(elo) elo_max, MIN(elo) elo_min" + str_from
+    str_query = "SELECT MAX(elo) elo_max, MIN(elo) elo_min " + str_from
     
     str_where = "WHERE pro.is_ready is True and players.is_active is True " 
     str_where += " AND players.tourney_id = '" + tourney_id + "' "  
