@@ -263,7 +263,7 @@ def get_values_elo_by_tourney(tourney_id: str, modality:str, db: Session):
     
     str_query += str_where
 
-    str_query += " ORDER BY player.ranking ASC " 
+    # str_query += " ORDER BY player.ranking ASC " 
     lst_data = db.execute(str_query)
     elo_max, elo_min = float(0.00), float(0.00)
     for item in lst_data:
