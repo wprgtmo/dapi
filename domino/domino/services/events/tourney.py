@@ -614,14 +614,15 @@ def save_image_tourney(request, tourney_id: str, file: File, db: Session):
         except:
             pass
     
+    image_id=str(uuid.uuid4())
     if file:
         ext = get_ext_at_file(file.filename)
-        file.filename = str(db_tourney.id) + "." + ext
+        file.filename = str(image_id) + "." + ext
         one_settingtourney.image = file.filename
         upfile(file=file, path=path)
     else:
         image_domino="public/smartdomino.png"
-        filename = str(db_tourney.id) + ".png"
+        filename = str(image_id) + ".png"
         image_destiny = path + filename
         copy_image(image_domino, image_destiny)
         one_settingtourney.image = filename
