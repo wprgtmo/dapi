@@ -46,10 +46,10 @@ def delete_dominotable(request:Request, id: str, db: Session = Depends(get_db)):
 def get_configure_tourney(request:Request, tourney_id: str, db: Session = Depends(get_db)):
     return get_one_configure_tourney(request=request, tourney_id=tourney_id, db=db)
 
-@settingtourney_route.post("/tourney/setting/{profile_id}", response_model=ResultObject, summary="Configure Tourney..")
-def configure_tourney(request:Request, profile_id: str, id: str, settingtourney: SettingTourneyCreated = Depends(), 
+@settingtourney_route.post("/tourney/setting/{id}", response_model=ResultObject, summary="Configure Tourney..")
+def configure_tourney(request:Request, id: str, settingtourney: SettingTourneyCreated = Depends(), 
                       db: Session = Depends(get_db)):
-    return configure_one_tourney(request=request, profile_id=profile_id, tourney_id=id, settingtourney=settingtourney.dict(), db=db)  
+    return configure_one_tourney(request=request, tourney_id=id, settingtourney=settingtourney.dict(), db=db)  
 
 @settingtourney_route.post("/tourney/setting/images/{id}", response_model=ResultObject, summary="Configure Image of Tourney..")
 def configure_setting_image(request:Request, id: str, image: UploadFile = None, db: Session = Depends(get_db)):

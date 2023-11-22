@@ -447,19 +447,19 @@ def configure_one_tourney_old(request, profile_id:str, tourney_id: str, settingt
     
     return result
    
-def configure_one_tourney(request, profile_id:str, tourney_id: str, settingtourney: SettingTourneyCreated, db: Session):
+def configure_one_tourney(request, tourney_id: str, settingtourney: SettingTourneyCreated, db: Session):
     locale = request.headers["accept-language"].split(",")[0].split("-")[0];
     
     result = ResultObject() 
     currentUser = get_current_user(request)
     
     # verificar si el profile es admon de eventos
-    db_member_profile = get_one_profile(id=profile_id, db=db)
-    if not db_member_profile:
-        raise HTTPException(status_code=400, detail=_(locale, "userprofile.not_found"))
+    # db_member_profile = get_one_profile(id=profile_id, db=db)
+    # if not db_member_profile:
+    #     raise HTTPException(status_code=400, detail=_(locale, "userprofile.not_found"))
    
-    if db_member_profile.profile_type != 'EVENTADMON':
-        raise HTTPException(status_code=400, detail=_(locale, "userprofile.user_not_event_admon"))
+    # if db_member_profile.profile_type != 'EVENTADMON':
+    #     raise HTTPException(status_code=400, detail=_(locale, "userprofile.user_not_event_admon"))
     
     one_status_conf = get_one_status_by_name('CONFIGURATED', db=db)
     one_status_new = get_one_status_by_name('CREATED', db=db)
