@@ -609,7 +609,10 @@ def save_image_tourney(request, tourney_id: str, file: File, db: Session):
     
     # si torneo tiene imagen ya, eliminarla primero
     if one_settingtourney.image:
-        del_image(path, one_settingtourney.image)
+        try:
+            del_image(path, one_settingtourney.image)
+        except:
+            pass
     
     if file:
         ext = get_ext_at_file(file.filename)
