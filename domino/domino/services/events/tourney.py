@@ -558,7 +558,40 @@ def configure_categories_tourney(request, tourney_id: str, lst_categories: List[
         return result
     except (Exception, SQLAlchemyError, IntegrityError) as e:
         return result
-   
+
+def get_all_categories_tourney(request:Request, tourney_id: str, db: Session):
+    locale = request.headers["accept-language"].split(",")[0].split("-")[0];
+    
+    result = ResultObject() 
+    
+    str_query = "SELECT * FROM events.domino_categories where tourney_id = '" + tourney_id + "' ORDER BY position_number"
+    lst_cat = db.execute(str_query).fetchall()
+    result.data = []
+    for item in lst_cat:
+        result.data.append({'id': item.id, 'category_number': item.category_number, 'elo_min': item.elo_min, 'elo_max': item.elo_max})
+    
+    if not result.data:
+        raise HTTPException(status_code=404, detail=_(locale, "tourney.categories_not_exist"))
+        
+    return result
+
+def get_info_categories_tourney(category_id: str, db: Session):
+    
+    str_query = "SELECT cat.id, tourney_id, tourney.modality, elo_min, elo_max " +\
+        "FROM events.domino_categories cat JOIN events.tourney ON " +\
+        "tourney.id = cat.tourney_id where cat.id = '" + category_id + "' "
+    lst_cat = db.execute(str_query).fetchall()
+    
+    dict_result = {}
+    for item in lst_cat:
+        dict_result = {'id': item.id, 'tourney_id': item.tourney_id, 'modality': item.modality, 
+                       'elo_min': item.elo_min, 'elo_max': item.elo_max}
+    
+    return dict_result
+
+def get_one_domino_category(category_id: str, db: Session):
+    return db.query(DominoCategory).filter(DominoCategory.id == category_id).first()
+    
 def save_image_tourney(request, tourney_id: str, file: File, db: Session):
     locale = request.headers["accept-language"].split(",")[0].split("-")[0];
     

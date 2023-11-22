@@ -13,7 +13,9 @@ from domino.schemas.resources.result_object import ResultObject
 
 from domino.services.events.domino_table import get_all, delete, update
 from domino.services.events.setting_tourney import get_one_configure_tourney
-from domino.services.events.tourney import configure_one_tourney, save_image_tourney, configure_categories_tourney
+from domino.services.events.tourney import configure_one_tourney, save_image_tourney, configure_categories_tourney, \
+    get_all_categories_tourney
+from domino.services.events.player import get_all_players_by_category
   
 settingtourney_route = APIRouter(
     tags=["SettingTourney"],
@@ -58,5 +60,16 @@ def configure_setting_image(request:Request, id: str, image: UploadFile = None, 
 @settingtourney_route.post("/tourney/setting/categories/{id}", response_model=ResultObject, summary="Configure categories of Tourney..")
 def configure_setting_categories(request:Request, id: str, lst_categories: List[DominoCategoryCreated], db: Session = Depends(get_db)):
     return configure_categories_tourney(request=request, tourney_id=id, lst_categories=lst_categories, db=db)
-    
-  
+
+@settingtourney_route.get("/tourney/setting/categories/{id}", response_model=Dict, summary="Get categories of Tourney..")
+def get_categories_tourney(request:Request, id: str, db: Session = Depends(get_db)):
+    return get_all_categories_tourney(request=request, tourney_id=id, db=db)
+
+@settingtourney_route.get("/tourney/setting/categories/player/{id}", response_model=Dict, summary="Get players by categories of Tourney..")
+def get_players_by_categories(
+    request:Request, 
+    id: str, 
+    page: int = 1, 
+    per_page: int = 6,
+    db: Session = Depends(get_db)):
+    return get_all_players_by_category(request=request, page=page, per_page=per_page, category_id=id, db=db)
