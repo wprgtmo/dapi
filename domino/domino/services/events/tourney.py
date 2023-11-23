@@ -428,14 +428,13 @@ def close_configure_one_tourney(request, tourney_id: str, db: Session):
     if db_tourney.status_id != one_status_new.id:
         raise HTTPException(status_code=404, detail=_(locale, "tourney.tourney_closed"))
     
-    # try:
-    db_tourney.updated_by = currentUser['username']
-    db_tourney.status_id = one_status_conf.id
-    db.add(db_tourney)
-    db.commit()
-    
-    # except:
-    #     raise HTTPException(status_code=404, detail=_(locale, "tourney.error_at_closed"))
+    try:
+        db_tourney.updated_by = currentUser['username']
+        db_tourney.status_id = one_status_conf.id
+        db.add(db_tourney)
+        db.commit()
+    except:
+        raise HTTPException(status_code=404, detail=_(locale, "tourney.error_at_closed"))
     
     one_settingtourney = get_setting_tourney(db_tourney.id, db=db)
     if not one_settingtourney:
