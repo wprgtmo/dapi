@@ -115,7 +115,7 @@ def get_one_by_id(tourney_id: str, db: Session):
             
     # incluir tipo de sorteo
     one_setting = get_setting_tourney(tourney_id=tourney_id, db=db)
-    result.data['lottery_type'] if one_setting else ''
+    result.data['lottery_type'] one_setting.lottery_type if one_setting else ''
     result.data['amount_player'] = get_count_players_by_tourney(tourney_id, result.data['modality'], db=db)
     
     return result
