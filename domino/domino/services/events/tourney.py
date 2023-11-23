@@ -345,6 +345,33 @@ def initializes_tourney(tourney_id, amount_tables, amount_smart_tables, amount_r
        
     except (Exception, SQLAlchemyError, IntegrityError) as e:
         return False
+    
+def update_initializes_tourney(one_setting, amount_smart_tables, amount_rounds, number_points_to_win, 
+                        time_to_win, game_system, use_bonus, lottery_type, penalties_limit, db: Session):
+    
+    divmod_round = divmod(amount_rounds,5)
+    
+    one_setting.amount_smart_tables = amount_smart_tables
+    one_setting.amount_rounds = amount_rounds
+    one_setting.use_bonus = use_bonus
+    one_setting.amount_bonus_tables = amount_rounds // 4 
+    one_setting.amount_bonus_points = (amount_rounds // 4) * 2
+    one_setting.number_bonus_round = amount_rounds + 1 if amount_rounds <= 9 else 4 if amount_rounds <= 15 else \
+        divmod_round[0] if divmod_round[1] == 0 else divmod_round[0] + 1
+    one_setting.number_points_to_win = number_points_to_win
+    
+    one_setting.time_to_win = time_to_win
+    one_setting.game_system = game_system
+    one_setting.lottery_type = lottery_type
+    one_setting.penalties_limit = penalties_limit
+    
+    try:
+        db.add(one_setting)
+        db.commit()
+        return True
+       
+    except (Exception, SQLAlchemyError, IntegrityError) as e:
+        return False
    
 def configure_one_tourney(request, tourney_id: str, settingtourney: SettingTourneyCreated, db: Session):
     locale = request.headers["accept-language"].split(",")[0].split("-")[0];
@@ -361,11 +388,12 @@ def configure_one_tourney(request, tourney_id: str, settingtourney: SettingTourn
     if db_tourney.status_id != one_status_new.id:
         raise HTTPException(status_code=404, detail=_(locale, "tourney.tourney_closed"))
     
-    str_query = "SELECT count(tourney_id) FROM events.setting_tourney where tourney_id = '" + tourney_id + "' "
-    amount = db.execute(str_query).fetchone()[0]
-    if amount > 0:
-        str_delete = "DELETE FROM events.setting_tourney Where tourney_id = '" + tourney_id + "'; COMMIT; "
-        db.execute(str_delete)
+    #es el mismo metodo para creay y actualizar
+    # str_query = "SELECT count(tourney_id) FROM events.setting_tourney where tourney_id = '" + tourney_id + "' "
+    # amount = db.execute(str_query).fetchone()[0]
+    # if amount > 0:
+    #     str_delete = "DELETE FROM events.setting_tourney Where tourney_id = '" + tourney_id + "'; COMMIT; "
+    #     db.execute(str_delete)
     
     amount_tables = calculate_amount_tables(db_tourney.id, db_tourney.modality, db=db)
     
@@ -393,12 +421,14 @@ def configure_one_tourney(request, tourney_id: str, settingtourney: SettingTourn
     
     time_to_win = 12 if not time_to_win else time_to_win
     
-    result_init = initializes_tourney(
-        tourney_id, amount_tables, amount_smart_tables, amount_rounds, number_points_to_win, time_to_win, game_system, 
-        use_bonus, lottery_type, penalties_limit, db=db)
-    
-    if not result_init:
-        raise HTTPException(status_code=404, detail=_(locale, "tourney.setting_tourney_failed"))
+    one_settingtourney = get_setting_tourney(db_tourney.id, db=db)
+    if not one_settingtourney:
+        initializes_tourney(
+            tourney_id, amount_tables, amount_smart_tables, amount_rounds, number_points_to_win, time_to_win, game_system, 
+            use_bonus, lottery_type, penalties_limit, db=db)
+    else:
+        update_initializes_tourney(one_settingtourney, amount_smart_tables, amount_rounds, number_points_to_win, 
+                                   time_to_win, game_system, use_bonus, lottery_type, penalties_limit, db=db)
     
     return result
 
