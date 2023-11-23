@@ -113,13 +113,9 @@ def get_one_by_id(tourney_id: str, db: Session):
         for item in lst_data:
             result.data = create_dict_row(item, 0, db=db)
             
-    # incluir los datos del setting del torneo
-    setting = get_setting_tourney_to_interface(tourney_id, db=db)
-    if setting:
-        setting['image'] = api_uri + "/public/advertising/" + tourney_id + "/" + setting['image'] if setting['image'] else None
-   
-    result.data['setting'] = setting  if setting else SettingTourney()
-    
+    # incluir tipo de sorteo
+    one_setting = get_setting_tourney(tourney_id=tourney_id, db=db)
+    result.data['lottery_type'] if one_setting else ''
     result.data['amount_player'] = get_count_players_by_tourney(tourney_id, result.data['modality'], db=db)
     
     return result
