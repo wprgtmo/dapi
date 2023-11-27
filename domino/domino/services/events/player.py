@@ -244,7 +244,8 @@ def get_lst_id_player_by_elo(tourney_id: str, modality:str, min_elo: float, max_
     
     return lst_players
 
-def get_all_players_by_category(request:Request, page: int, per_page: int, category_id: str, db: Session):  
+def get_all_players_by_category(request:Request, page: int, per_page: int, category_id: str, criteria_key: str, 
+                                criteria_value: str, db: Session):  
     locale = request.headers["accept-language"].split(",")[0].split("-")[0];
     
     api_uri = str(settings.api_uri)
@@ -273,6 +274,13 @@ def get_all_players_by_category(request:Request, page: int, per_page: int, categ
     str_where += " AND players.tourney_id = '" + dict_result['tourney_id'] + "' "  +\
         "AND player.elo >= " + str(dict_result['elo_min']) + " AND player.elo <= " + str(dict_result['elo_max'])
     
+    dict_query = {'username': " AND username = '" + criteria_value + "'"}
+    if criteria_key and criteria_key not in dict_query:
+        raise HTTPException(status_code=404, detail=_(locale, "commun.invalid_param"))
+    else:
+        if criteria_key == 'username' and criteria_value:
+            str_where += "AND pro.id IN (Select profile_id from enterprise.profile_users WHERE username ilike '%" + str(criteria_value) + "%')"
+            
     str_count += str_where
     str_query += str_where
 
