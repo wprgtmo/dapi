@@ -193,7 +193,7 @@ def get_all_players_by_elo(request:Request, page: int, per_page: int, tourney_id
        
     str_count = "Select count(*) " + str_from
     str_query = "SELECT players.id, pro.name as name, prot.description as profile_type, pro.photo, pro.id as profile_id, " +\
-        "city.name as city_name, country.name as country_name, player.level, player.elo, player.ranking " + str_from
+        "city.name as city_name, country.name as country_name, player.level, player.elo, player.ranking, player.ranking position_number " + str_from
     
     str_where = "WHERE pro.is_ready is True and players.is_active is True " 
     str_where += " AND players.tourney_id = '" + tourney_id + "' "  +\
@@ -273,7 +273,14 @@ def get_all_players_by_category(request:Request, page: int, per_page: int, categ
     
     str_count = "Select count(*) " + str_from
     str_query = "SELECT players.id, pro.name as name, prot.description as profile_type, pro.photo, pro.id as profile_id, " +\
-        "city.name as city_name, country.name as country_name, player.level, player.elo, player.ranking " + str_from
+        "city.name as city_name, country.name as country_name, player.level, player.elo, player.ranking " 
+        
+    if dict_result['lottery_type'] == 'AUTOMATIC':
+        str_query += ", rscale.position_number " 
+    else:
+        str_query += ", player.ranking position_number " 
+
+    str_query += str_from
     
     str_where = "WHERE pro.is_ready is True and players.is_active is True " 
     str_where += " AND players.tourney_id = '" + dict_result['tourney_id'] + "' " 
@@ -361,7 +368,7 @@ def get_all_players_by_tourney(request:Request, page: int, per_page: int, tourne
        
     str_count = "Select count(*) " + str_from
     str_query = "SELECT players.id, pro.name as name, prot.description as profile_type, pro.photo, pro.id as profile_id, " +\
-        "city.name as city_name, country.name as country_name, player.level, player.elo, player.ranking " + str_from
+        "city.name as city_name, country.name as country_name, player.level, player.elo, player.ranking, player.ranking position_number " + str_from
     
     str_where = "WHERE pro.is_ready is True and players.is_active is " + str(is_active) 
     str_where += " AND players.tourney_id = '" + tourney_id + "' " 
@@ -397,7 +404,8 @@ def create_dict_row(item, page, db: Session, api_uri):
     new_row = {'id': item['id'], 'name': item['name'], 
                'profile_type': item['profile_type'],  
                'country': item['country_name'], 'city_name': item['city_name'],  
-               'photo' : image, 'elo': item['elo'], 'ranking': item['ranking'], 'level': item['level']}
+               'photo' : image, 'elo': item['elo'], 'ranking': item['ranking'], 'level': item['level'],
+               'position_number': item.position_number}
     if page != 0:
         new_row['selected'] = False
     
