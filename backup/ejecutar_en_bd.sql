@@ -2,7 +2,11 @@ ALTER TABLE IF EXISTS events.domino_rounds_scale
     ADD COLUMN category_id character varying;
 
 
-
+DELETE from events.domino_rounds_scale;
+DELETE FROM events.domino_rounds;
+DELETE FROM events.domino_tables_files;
+DELETE FROM events.domino_tables
+DELETE FROM events.setting_tourney
     
     
 
