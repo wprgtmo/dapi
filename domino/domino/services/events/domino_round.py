@@ -152,9 +152,9 @@ def configure_new_rounds(db_tourney, summary:str, db:Session, created_by:str):
     try:
         db.add(db_round)
         db.commit()
-        return True
+        return db_round
     except (Exception, SQLAlchemyError, IntegrityError) as e:
-        return False
+        return None
     
 def start_one_round(request:Request, tourney_id:str, db:Session):
     locale = request.headers["accept-language"].split(",")[0].split("-")[0];

@@ -12,9 +12,9 @@ from domino.schemas.events.tourney import SettingTourneyCreated, DominoCategoryC
 from domino.schemas.resources.result_object import ResultObject
 
 from domino.services.events.domino_table import get_all, delete, update
-from domino.services.events.setting_tourney import get_one_configure_tourney
+from domino.services.events.setting_tourney import get_one_configure_tourney, close_configure_one_tourney
 from domino.services.events.tourney import configure_one_tourney, save_image_tourney, configure_categories_tourney, \
-    get_all_categories_tourney, close_configure_one_tourney
+    get_all_categories_tourney
 from domino.services.events.player import get_all_players_by_category
   
 settingtourney_route = APIRouter(

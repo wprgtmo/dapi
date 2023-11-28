@@ -27,8 +27,6 @@ from domino.services.resources.status import get_one_by_name as get_status_by_na
 from domino.services.enterprise.auth import get_url_avatar
 
 def get_one_by_id(invitation_id: str, db: Session):  
-    print('id')
-    print(id)
     return db.query(Invitations).filter(Invitations.id == invitation_id).first()
 
 def get_all(request:Request, profile_id:str, page: int, per_page: int, criteria_key: str, criteria_value: str, db: Session):  

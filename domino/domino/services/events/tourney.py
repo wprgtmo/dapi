@@ -24,9 +24,6 @@ from domino.services.resources.status import get_one_by_name as get_one_status_b
 from domino.services.resources.utils import get_result_count
 from domino.services.events.event import get_one as get_one_event, get_all as get_all_event
 
-from domino.services.events.domino_table import configure_domino_tables
-from domino.services.events.domino_round import configure_new_rounds
-
 from domino.services.resources.utils import get_result_count, upfile, create_dir, del_image, get_ext_at_file, remove_dir, copy_image, del_image
 from domino.services.enterprise.userprofile import get_one as get_one_profile
             
@@ -384,13 +381,6 @@ def configure_one_tourney(request, tourney_id: str, settingtourney: SettingTourn
     if db_tourney.status_id != one_status_new.id:
         raise HTTPException(status_code=404, detail=_(locale, "tourney.tourney_closed"))
     
-    #es el mismo metodo para creay y actualizar
-    # str_query = "SELECT count(tourney_id) FROM events.setting_tourney where tourney_id = '" + tourney_id + "' "
-    # amount = db.execute(str_query).fetchone()[0]
-    # if amount > 0:
-    #     str_delete = "DELETE FROM events.setting_tourney Where tourney_id = '" + tourney_id + "'; COMMIT; "
-    #     db.execute(str_delete)
-    
     amount_tables = calculate_amount_tables(db_tourney.id, db_tourney.modality, db=db)
     
     try:
@@ -425,57 +415,6 @@ def configure_one_tourney(request, tourney_id: str, settingtourney: SettingTourn
     else:
         update_initializes_tourney(one_settingtourney, amount_smart_tables, amount_rounds, number_points_to_win, 
                                    time_to_win, game_system, use_bonus, lottery_type, penalties_limit, db=db)
-    
-    return result
-
-def close_configure_one_tourney(request, tourney_id: str, db: Session):
-    locale = request.headers["accept-language"].split(",")[0].split("-")[0];
-    
-    result = ResultObject() 
-    currentUser = get_current_user(request)
-    
-    one_status_conf = get_one_status_by_name('CONFIGURATED', db=db)
-    one_status_new = get_one_status_by_name('CREATED', db=db)
-    
-    str_query = "SELECT count(tourney_id) FROM events.setting_tourney where tourney_id = '" + tourney_id + "' "
-    amount = db.execute(str_query).fetchone()[0]
-    if amount < 1:
-        raise HTTPException(status_code=404, detail=_(locale, "tourney.is_not_configurated"))
-    
-    str_query = "SELECT count(tourney_id) FROM events.domino_categories where tourney_id = '" + tourney_id + "' "
-    amount = db.execute(str_query).fetchone()[0]
-    if amount == 0:
-        raise HTTPException(status_code=404, detail=_(locale, "tourney.category_not_configurated"))
-    
-    db_tourney = get_one(tourney_id, db=db)
-    if not db_tourney:
-        raise HTTPException(status_code=404, detail=_(locale, "tourney.not_found"))
-    
-    if db_tourney.status_id != one_status_new.id:
-        raise HTTPException(status_code=404, detail=_(locale, "tourney.tourney_closed"))
-    
-    try:
-        db_tourney.updated_by = currentUser['username']
-        db_tourney.status_id = one_status_conf.id
-        db.add(db_tourney)
-        db.commit()
-    except:
-        raise HTTPException(status_code=404, detail=_(locale, "tourney.error_at_closed"))
-    
-    one_settingtourney = get_setting_tourney(db_tourney.id, db=db)
-    if not one_settingtourney:
-        raise HTTPException(status_code=404, detail=_(locale, "tourney.setting_tourney_failed"))
-      
-    # crear las mesas y sus ficheros
-    result_init = configure_domino_tables(
-        db_tourney, one_settingtourney, db, currentUser['username'], file=None)
-    if not result_init:
-        raise HTTPException(status_code=404, detail=_(locale, "tourney.setting_tables_failed"))
-    
-    # crear la primera ronda
-    result_init = configure_new_rounds(db_tourney, 'Ronda Inicial del Torneo', db=db, created_by=currentUser['username'])
-    if not result_init:
-        raise HTTPException(status_code=404, detail=_(locale, "tourney.setting_rounds_failed"))
     
     return result
 
@@ -517,16 +456,21 @@ def get_all_categories_tourney(request:Request, tourney_id: str, db: Session):
     
     result = ResultObject() 
     
-    str_query = "SELECT * FROM events.domino_categories where tourney_id = '" + tourney_id + "' ORDER BY position_number"
-    lst_cat = db.execute(str_query).fetchall()
-    result.data = []
-    for item in lst_cat:
-        result.data.append({'id': item.id, 'category_number': item.category_number, 'elo_min': item.elo_min, 'elo_max': item.elo_max})
-    
+    result.data = get_list_categories_tourney(tourney_id=tourney_id, db=db)
     if not result.data:
         raise HTTPException(status_code=404, detail=_(locale, "tourney.categories_not_exist"))
         
     return result
+
+def get_list_categories_tourney(tourney_id: str, db: Session):
+    
+    str_query = "SELECT * FROM events.domino_categories where tourney_id = '" + tourney_id + "' ORDER BY position_number"
+    lst_cat = db.execute(str_query).fetchall()
+    lst_data = []
+    for item in lst_cat:
+        lst_data.append({'id': item.id, 'category_number': item.category_number, 'elo_min': item.elo_min, 'elo_max': item.elo_max})
+    
+    return lst_data
 
 def get_info_categories_tourney(category_id: str, db: Session):
     
