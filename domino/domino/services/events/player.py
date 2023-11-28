@@ -63,13 +63,13 @@ def new(request: Request, invitation_id: str, db: Session):
     else:
         raise HTTPException(status_code=404, detail=_(locale, "status.not_found"))
     
-    # try:
-    db.add(one_player)
-    db.add(one_invitation)
-    db.commit()
-    return result
-    # except (Exception, SQLAlchemyError) as e:
-    #     return False
+    try:
+        db.add(one_player)
+        db.add(one_invitation)
+        db.commit()
+        return result
+    except (Exception, SQLAlchemyError) as e:
+        return False
  
 def reject_one_invitation(request: Request, invitation_id: str, db: Session):
     locale = request.headers["accept-language"].split(",")[0].split("-")[0];
@@ -250,6 +250,8 @@ def get_all_players_by_category(request:Request, page: int, per_page: int, categ
     
     api_uri = str(settings.api_uri)
     
+    # si el torneo es automatico, ya lo saco de la scala directamente.
+    
     dict_result = get_info_categories_tourney(category_id=category_id, db=db)
     if not dict_result:
         raise HTTPException(status_code=404, detail=_(locale, "tourney.category_not_exist"))
@@ -260,30 +262,37 @@ def get_all_players_by_category(request:Request, page: int, per_page: int, categ
         "left join resources.city ON city.id = pro.city_id " + \
         "left join resources.country ON country.id = city.country_id "
     
+    if dict_result['lottery_type'] == 'AUTOMATIC':
+        str_from += "JOIN events.domino_rounds_scale rscale ON rscale.player_id = players.id "   
+    
     dict_modality = {'Individual': "join enterprise.profile_single_player player ON player.profile_id = pro.id ",
                      'Parejas': "join enterprise.profile_pair_player player ON player.profile_id = pro.id ",
                      'Equipo': "join enterprise.profile_team_player player ON player.profile_id = pro.id "}
     
     str_from += dict_modality[dict_result['modality']]
-       
+    
     str_count = "Select count(*) " + str_from
     str_query = "SELECT players.id, pro.name as name, prot.description as profile_type, pro.photo, pro.id as profile_id, " +\
         "city.name as city_name, country.name as country_name, player.level, player.elo, player.ranking " + str_from
     
     str_where = "WHERE pro.is_ready is True and players.is_active is True " 
-    str_where += " AND players.tourney_id = '" + dict_result['tourney_id'] + "' "  +\
-        "AND player.elo >= " + str(dict_result['elo_min']) + " AND player.elo <= " + str(dict_result['elo_max'])
+    str_where += " AND players.tourney_id = '" + dict_result['tourney_id'] + "' " 
     
+    if dict_result['lottery_type'] == 'AUTOMATIC':
+        str_where += " AND rscale.category_id >= '" + category_id + "' "
+    else:
+        str_where += "AND player.elo >= " + str(dict_result['elo_min']) + " AND player.elo <= " + str(dict_result['elo_max'])
+        
     dict_query = {'username': " AND username = '" + criteria_value + "'"}
     if criteria_key and criteria_key not in dict_query:
         raise HTTPException(status_code=404, detail=_(locale, "commun.invalid_param"))
     else:
         if criteria_key == 'username' and criteria_value:
             str_where += "AND pro.id IN (Select profile_id from enterprise.profile_users WHERE username ilike '%" + str(criteria_value) + "%')"
-            
+    
     str_count += str_where
     str_query += str_where
-
+    
     if page and page > 0 and not per_page:
         raise HTTPException(status_code=404, detail=_(locale, "commun.invalid_param"))
     
@@ -295,9 +304,9 @@ def get_all_players_by_category(request:Request, page: int, per_page: int, categ
     
     lst_data = db.execute(str_query)
     result.data = [create_dict_row(item, page, db=db, api_uri=api_uri) for item in lst_data]
-    
+                        
     return result
-
+  
 def get_values_elo_by_tourney(tourney_id: str, modality:str, db: Session):  
     
     str_from = "FROM events.players " +\
@@ -363,10 +372,7 @@ def get_all_players_by_tourney(request:Request, page: int, per_page: int, tourne
     else:
         if criteria_key == 'username' and criteria_value:
             str_where += "AND pro.id IN (Select profile_id from enterprise.profile_users WHERE username ilike '%" + str(criteria_value) + "%')"
-            
-        # else:
-        #     str_where += dict_query[criteria_key] if criteria_value else "" 
-            
+                    
     str_count += str_where
     str_query += str_where
 

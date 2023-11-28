@@ -30,7 +30,7 @@ from domino.services.events.domino_boletus import created_boletus_for_round
 
 from domino.services.events.domino_table import configure_domino_tables
 from domino.services.events.domino_round import configure_new_rounds
-from domino.services.events.domino_scale import configure_automatic_lottery
+from domino.services.events.domino_scale import configure_automatic_lottery, update_elo_initial_scale
 
 from domino.services.events.tourney import get_one as get_one_tourney, get_setting_tourney, calculate_amount_tables, \
     get_count_players_by_tourney
@@ -147,6 +147,8 @@ def close_configure_one_tourney(request, tourney_id: str, db: Session):
     result_init = configure_automatic_lottery(db_tourney, db_round_ini, db=db)
     if not result_init:
         raise HTTPException(status_code=404, detail=_(locale, "tourney.setting_initial_scale_failed"))
+    
+    update_elo_initial_scale(db_tourney.id, db_round_ini.id, db_tourney.modality, db=db)
     
     try:
         db_tourney.updated_by = currentUser['username']

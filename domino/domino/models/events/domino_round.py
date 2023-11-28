@@ -62,6 +62,7 @@ class DominoRoundsScale(Base):
     points_negative = Column(Integer)
     points_difference = Column(Integer)
     is_active = Column(Boolean, nullable=False, default=True)
+    category_id = Column(String)
     
     def dict(self):
         return {
@@ -71,7 +72,8 @@ class DominoRoundsScale(Base):
             "round_number": self.round_number,
             "position_number": self.position_number,
             "player_id": self.pairs_id,
-            "is_active": self.is_active
+            "is_active": self.is_active,
+            'category_id': self.category_id
             }
 class DominoRoundsPairs(Base):
     """DominoRoundsPairs Class contains standard information for Pairs of domino of Tourney.""" 

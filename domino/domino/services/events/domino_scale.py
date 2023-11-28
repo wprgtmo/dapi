@@ -118,9 +118,9 @@ def update_elo_initial_scale(tourney_id: str, round_id: str, modality:str, db: S
         
     return True
 
-def create_one_scale(tourney_id: str, round_id: str, round_number, position_number: int, player_id: str, db: Session ):
+def create_one_scale(tourney_id: str, round_id: str, round_number, position_number: int, player_id: str, category_id:int, db: Session ):
     one_scale = DominoRoundsScale(id=str(uuid.uuid4()), tourney_id=tourney_id, round_id=round_id, round_number=round_number, 
-                                  position_number=int(position_number), player_id=player_id, is_active=True)
+                                  position_number=int(position_number), player_id=player_id, is_active=True, category_id=category_id)
     db.add(one_scale)
         
     return True
@@ -169,17 +169,17 @@ def configure_automatic_lottery(db_tourney, db_round, db: Session):
     position_number=0
     for item_cat in lst_categories:   
         position_number=created_automatic_lottery(
-            db_tourney.id, db_tourney.modality, db_round.id, item_cat.elo_min, item_cat.elo_max, position_number, db=db)
+            db_tourney.id, db_tourney.modality, db_round.id, item_cat.elo_min, item_cat.elo_max, position_number, item_cat.id, db=db)
     return True
 
-def created_automatic_lottery(tourney_id: str, modality:str, round_id: str, elo_min:float, elo_max:float, position_number:int, db: Session):
+def created_automatic_lottery(tourney_id: str, modality:str, round_id: str, elo_min:float, elo_max:float, position_number:int, category_id, db: Session):
     
     list_player = get_lst_id_player_by_elo(tourney_id, modality, min_elo=elo_min, max_elo=elo_max, db=db)
     
     lst_groups = sorted(list_player, key=lambda y:random.randint(0, len(list_player)))
     for item_pos in lst_groups:
         position_number += 1
-        create_one_scale(tourney_id, round_id, 1, position_number, item_pos, db=db)
+        create_one_scale(tourney_id, round_id, 1, position_number, item_pos, category_id, db=db)
         db.commit()
     return position_number
 

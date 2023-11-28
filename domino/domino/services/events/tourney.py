@@ -474,15 +474,16 @@ def get_list_categories_tourney(tourney_id: str, db: Session):
 
 def get_info_categories_tourney(category_id: str, db: Session):
     
-    str_query = "SELECT cat.id, tourney_id, tourney.modality, elo_min, elo_max " +\
+    str_query = "SELECT cat.id, cat.tourney_id, tourney.modality, cat.elo_min, cat.elo_max, stourney.lottery_type " +\
         "FROM events.domino_categories cat JOIN events.tourney ON " +\
-        "tourney.id = cat.tourney_id where cat.id = '" + category_id + "' "
+        "tourney.id = cat.tourney_id LEFT JOIN events.setting_tourney stourney ON stourney.tourney_id = tourney.id " + \
+        "where cat.id = '" + category_id + "' "
     lst_cat = db.execute(str_query).fetchall()
     
     dict_result = {}
     for item in lst_cat:
         dict_result = {'id': item.id, 'tourney_id': item.tourney_id, 'modality': item.modality, 
-                       'elo_min': item.elo_min, 'elo_max': item.elo_max}
+                       'elo_min': item.elo_min, 'elo_max': item.elo_max, 'lottery_type': item.lottery_type}
     
     return dict_result
 
