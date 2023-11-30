@@ -288,9 +288,7 @@ def update(request: Request, id: str, db: Session, file: File):
     
     path_tourney = create_dir(entity_type='SETTOURNEY', user_id=None, entity_id=str(db_table.tourney_id))
     
-    if not file:
-        raise HTTPException(status_code=404, detail=_(locale, "dominotable.imege_not_empty"))
-    
+    #puede venir la foto o no venir y eso es para borrarla.
     if db_table.image:  # ya tiene una imagen asociada
         current_image = db_table.image
         try:
@@ -298,11 +296,14 @@ def update(request: Request, id: str, db: Session, file: File):
         except:
             pass
     
-    ext = get_ext_at_file(file.filename)
-    file.filename = str(id) + "." + ext
-    
-    upfile(file=file, path=path_tourney)
-    db_table.image = file.filename
+    if not file:
+        db_table.image = None
+    else:        
+        ext = get_ext_at_file(file.filename)
+        file.filename = str(id) + "." + ext
+        
+        upfile(file=file, path=path_tourney)
+        db_table.image = file.filename
     
     db_table.updated_by = currentUser['username']
     db_table.updated_date = datetime.now()

@@ -8,7 +8,7 @@ from domino.auth_bearer import JWTBearer
 from domino.schemas.events.domino_rounds import DominoManualScaleCreated, DominoAutomaticScaleCreated
 from domino.schemas.resources.result_object import ResultObject
 
-from domino.services.events.domino_scale import new_initial_automatic_round, new_initial_manual_round
+from domino.services.events.domino_scale import new_initial_manual_round
 
 dominoscale_route = APIRouter(
     tags=["Rounds"],

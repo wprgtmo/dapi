@@ -143,16 +143,19 @@ def close_configure_one_tourney(request, tourney_id: str, db: Session):
     if not db_round_ini:
         raise HTTPException(status_code=404, detail=_(locale, "tourney.setting_rounds_failed"))
     
-    # si el sorteo es automático, crear el sorteo inicial
-    result_init = configure_automatic_lottery(db_tourney, db_round_ini, db=db)
-    if not result_init:
-        raise HTTPException(status_code=404, detail=_(locale, "tourney.setting_initial_scale_failed"))
+    db_tourney.updated_by = currentUser['username']
     
-    update_elo_initial_scale(db_tourney.id, db_round_ini.id, db_tourney.modality, db=db)
+    if one_settingtourney.lottery_type  == 'AUTOMATIC':
+        one_status_init = get_one_status_by_name('INITIADED', db=db)
+        
+        # si el sorteo es automático, crear el sorteo inicial, y ya iniciar evento y torneo
+        result_init = configure_automatic_lottery(db_tourney, db_round_ini, one_status_init, db=db)
+        if not result_init:
+            raise HTTPException(status_code=404, detail=_(locale, "tourney.setting_initial_scale_failed"))
+    else:
+        db_tourney.status_id = one_status_conf.id
     
     try:
-        db_tourney.updated_by = currentUser['username']
-        db_tourney.status_id = one_status_conf.id
         db.add(db_tourney)
         db.commit()
     except:

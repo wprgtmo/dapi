@@ -33,27 +33,23 @@ from domino.services.events.domino_round import get_one as get_one_round, get_fi
 from domino.services.events.domino_boletus import created_boletus_for_round
 from domino.services.enterprise.auth import get_url_advertising
 
-def new_initial_automatic_round(request: Request, tourney_id:str, dominoscale: list[DominoAutomaticScaleCreated], db: Session):
-    return True
     
 def new_initial_manual_round(request: Request, tourney_id:str, dominoscale: list[DominoManualScaleCreated], db: Session):
     locale = request.headers["accept-language"].split(",")[0].split("-")[0];
     result = ResultObject() 
     
-    # db_tourney, round_id = get_tourney_to_configure(locale, tourney_id, db=db)
-    # one_status_init = get_one_status_by_name('INITIADED', db=db)
-    # # if db_tourney.status_id != one_status_init.id:
-    # #     raise HTTPException(status_code=404, detail=_(locale, "tourney.tourney_closed"))
+    round_id, modality = get_round_to_configure(locale, tourney_id, db=db)
+    one_status_init = get_one_status_by_name('INITIADED', db=db)
     
-    # initial_scale_by_manual_lottery(tourney_id, round_id, dominoscale, db_tourney.modality, db=db)
+    initial_scale_by_manual_lottery(tourney_id, round_id, dominoscale, modality, db=db)
     
-    # configure_tables_by_round(tourney_id, round_id, db_tourney.modality, db=db)
+    configure_tables_by_round(tourney_id, round_id, modality, db=db)
     
-    # # cambiar estado del torneo a Iniciado
-    # db_tourney.status_id = one_status_init.id
-    # db_tourney.event.status_id = one_status_init.id
+    # cambiar estado del torneo a Iniciado
+    str_update = "UPDATE events.tourney SET status_id=" + str(one_status_init.id) + " WHERE tourney_id = '" + tourney_id + "';"
+    str_update += "UPDATE events.events SET status_id=" + str(one_status_init.id) + " WHERE tourney_id = '" + tourney_id + "';COMMIT;"
     
-    db.commit()
+    db.execute(str_update)
     
     return result
 
@@ -69,28 +65,25 @@ def configure_tables_by_round(tourney_id:str, round_id: str, modality:str, db: S
     
     return True
 
-# def get_tourney_to_configure(locale, tourney_id:str, db: Session):
+def get_round_to_configure(locale, tourney_id:str, db: Session):
     
-#     db_tourney = get_one_tourney(tourney_id, db=db)
-#     if not db_tourney:
-#         raise HTTPException(status_code=404, detail=_(locale, "tourney.not_found"))
+    # si el torneo ya tiene mas de una ronda no se puede hacer esto
+    str_query = "Select count(*) FROM events.domino_rounds WHERE tourney_id = '" + tourney_id + "' "
+    amount_round = db.execute(str_query).fetchone()[0]
+    if amount_round != 1:
+        raise HTTPException(status_code=404, detail=_(locale, "round.not_initial_round"))
     
-#     one_settingtourney = get_setting_tourney(db_tourney.id, db=db)
-#     if not one_settingtourney:
-#         raise HTTPException(status_code=404, detail=_(locale, "tourney.setting_tourney_not_exist"))
+    str_query = "Select id FROM events.domino_rounds WHERE tourney_id = '" + tourney_id + "' and round_number = 1 "
+    round_id = db.execute(str_query).fetchone()
+    if not round_id:
+        raise HTTPException(status_code=404, detail=_(locale, "round.not_initial_round"))
     
-#     # si el torneo ya tiene mas de una ronda no se puede hacer esto
-#     str_query = "Select count(*) FROM events.domino_rounds WHERE tourney_id = '" + tourney_id + "' "
-#     amount_round = db.execute(str_query).fetchone()[0]
-#     if amount_round != 1:
-#         raise HTTPException(status_code=404, detail=_(locale, "round.not_initial_round"))
+    str_query = "Select modality FROM events.tourney WHERE tourney_id = '" + tourney_id + "' "
+    modality = db.execute(str_query).fetchone()
+    if not modality:
+        raise HTTPException(status_code=404, detail=_(locale, "round.not_initial_round"))
     
-#     str_query = "Select id FROM events.domino_rounds WHERE tourney_id = '" + tourney_id + "' and round_number = 1 "
-#     round_id = db.execute(str_query).fetchone()
-#     if not round_id:
-#         raise HTTPException(status_code=404, detail=_(locale, "round.not_initial_round"))
-    
-#     return db_tourney, round_id[0]
+    return round_id[0], modality[0]
 
 def update_elo_initial_scale(tourney_id: str, round_id: str, modality:str, db: Session ):
     
@@ -133,15 +126,6 @@ def create_one_manual_trace(tourney_id: str, modality:str, position_number: int,
         
     return True
 
-def create_one_automatic_trace(tourney_id: str, modality:str, title:str, position_number:int, elo_min: float, elo_max: float, 
-                               db: Session):
-    one_trace = TraceLotteryAutomatic(id=str(uuid.uuid4()), tourney_id=tourney_id, modality=modality, title=title,
-                                      position_number=int(position_number), elo_min=elo_min, elo_max=elo_max, 
-                                      is_active=True)
-    db.add(one_trace)
-        
-    return True
-      
 def initial_scale_by_manual_lottery(tourney_id: str, round_id: str, dominoscale:list, modality:str, db: Session):
     
     for item in dominoscale:
@@ -150,17 +134,8 @@ def initial_scale_by_manual_lottery(tourney_id: str, round_id: str, dominoscale:
     db.commit()
     return True
 
-def initial_scale_by_automatic_lottery(tourney_id: str, round_id: str, dominoscale:list, modality:str, db: Session):
-    
-    position_number = 0
-    for item in dominoscale:
-        # create_one_automatic_trace(tourney_id, modality, item.title, int(item.id), float(item.min), float(item.max), db=db)
-        position_number=created_automatic_lottery(
-            tourney_id, modality, round_id, float(item.min), float(item.max), position_number=position_number, db=db)
-        db.commit()
-    return True
 
-def configure_automatic_lottery(db_tourney, db_round, db: Session):
+def configure_automatic_lottery(db_tourney, db_round, one_status_init, db: Session):
     
     # buscar las categorias definidas. 
     str_query = "SELECT * FROM events.domino_categories where tourney_id = '" + db_tourney.id + "' ORDER BY position_number"
@@ -170,6 +145,14 @@ def configure_automatic_lottery(db_tourney, db_round, db: Session):
     for item_cat in lst_categories:   
         position_number=created_automatic_lottery(
             db_tourney.id, db_tourney.modality, db_round.id, item_cat.elo_min, item_cat.elo_max, position_number, item_cat.id, db=db)
+        
+    configure_tables_by_round(db_tourney.id, db_round.id, db_tourney.modality, db=db)
+    
+    db_tourney.status_id = one_status_init.id
+    db_tourney.event.status_id = one_status_init.id
+    
+    db.commit()
+    
     return True
 
 def created_automatic_lottery(tourney_id: str, modality:str, round_id: str, elo_min:float, elo_max:float, position_number:int, category_id, db: Session):
