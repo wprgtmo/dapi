@@ -387,10 +387,10 @@ def update(request: Request, event_id: str, event: EventBase, db: Session, file:
             db_event.main_location = event['main_location']
         
         #desde la interfaz, los que no vengan borrarlos, si vienen nuevos insertarlos, si coinciden modificarlos
-        str_tourney_iface = ""
-        dict_tourney = {}
-        for item in db_event.tourney:
-            dict_tourney[item.id] = item
+        # str_tourney_iface = ""
+        # dict_tourney = {}
+        # for item in db_event.tourney:
+        #     dict_tourney[item.id] = item
         
         db_event.updated_by = currentUser['username']
         db_event.updated_date = datetime.now()
