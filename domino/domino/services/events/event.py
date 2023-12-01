@@ -152,6 +152,39 @@ def get_all_by_criteria(request:Request, profile_id:str, page: int, per_page: in
     result.data = [create_dict_row(item, page, db=db, incluye_tourney=True, api_uri=api_uri, only_iniciaded=True) for item in lst_data]
     return result
 
+def get_all_for_data(request:Request, profile_id:str, page: int, per_page: int, db: Session):  
+    locale = request.headers["accept-language"].split(",")[0].split("-")[0];
+    
+    api_uri = str(settings.api_uri)
+    
+    str_from = "FROM events.events eve " +\
+        "JOIN resources.entities_status sta ON sta.id = eve.status_id " +\
+        "JOIN resources.city city ON city.id = eve.city_id " +\
+        "JOIN resources.country country ON country.id = city.country_id " 
+        
+    str_count = "Select count(*) " + str_from
+    str_query = "Select eve.id, eve.name, start_date, close_date, registration_date, registration_price, city.name as city_name, " +\
+        "main_location, summary, image, eve.status_id, sta.name as status_name, country.id as country_id, city.id  as city_id, " +\
+        "eve.profile_id as profile_id " + str_from
+    
+    str_where = " WHERE (sta.name = 'INITIADED' or sta.name = 'FINALIZED') "  
+    
+    str_count += str_where
+    str_query += str_where
+    
+    if page and page > 0 and not per_page:
+        raise HTTPException(status_code=404, detail=_(locale, "commun.invalid_param"))
+    
+    result = get_result_count(page=page, per_page=per_page, str_count=str_count, db=db)
+    
+    str_query += " ORDER BY start_date DESC " 
+    if page != 0:
+        str_query += "LIMIT " + str(per_page) + " OFFSET " + str(page*per_page-per_page)
+    
+    lst_data = db.execute(str_query)
+    result.data = [create_dict_row(item, page, db=db, incluye_tourney=True, api_uri=api_uri, only_iniciaded=True) for item in lst_data]
+    return result
+
 def get_dates_from_criteria(criteria_value):
     
     # 0: Cualquier fecha, 1: Hoy, 2: Mañana, 3: Este Fin de Semana, 4: Esta semana, 5: próxima Semana, 6: Este mes

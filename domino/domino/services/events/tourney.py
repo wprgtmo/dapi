@@ -183,6 +183,13 @@ def new(request, event_id: str, tourney: TourneyCreated, db: Session):
                          updated_by=currentUser['username'], profile_id=one_event.profile_id)
     db.add(db_tourney)
     
+    #crear la carpeta con la imagen de la publicidad....
+    path = create_dir(entity_type="SETTOURNEY", user_id=None, entity_id=str(db_tourney.id))
+    
+    image_domino="public/smartdomino.png"
+    image_destiny = path + "smartdomino.png"
+    copy_image(image_domino, image_destiny)
+        
     try:
         
         db.commit()
@@ -338,6 +345,26 @@ def initializes_tourney(tourney_id, amount_tables, amount_smart_tables, amount_r
        
     except (Exception, SQLAlchemyError, IntegrityError) as e:
         return False
+    
+def init_setting(tourney_id, modality, db: Session):
+    
+    amount_tables = calculate_amount_tables(tourney_id, modality=modality, db=db)
+    elo_max, elo_min = get_values_elo_by_tourney(tourney_id=tourney_id, modality=modality, db=db)
+    
+    sett_tourney = SettingTourney(
+        amount_tables=amount_tables, amount_smart_tables=0, amount_rounds=0, use_bonus=False, amount_bonus_tables=0, 
+        amount_bonus_points=0, number_bonus_round=0, number_points_to_win=0, time_to_win=0, 
+        game_system='', lottery_type='', penalties_limit=0, elo_min=elo_min, elo_max=elo_max, image='')
+    
+    sett_tourney.tourney_id = tourney_id
+    
+    try:
+        db.add(sett_tourney)
+        db.commit()
+        return sett_tourney
+       
+    except (Exception, SQLAlchemyError, IntegrityError) as e:
+        return None
     
 def update_initializes_tourney(one_setting, amount_smart_tables, amount_rounds, number_points_to_win, 
                         time_to_win, game_system, use_bonus, lottery_type, penalties_limit, db: Session):
@@ -500,8 +527,9 @@ def save_image_tourney(request, tourney_id: str, file: File, db: Session):
         raise HTTPException(status_code=404, detail=_(locale, "tourney.not_found"))
     
     one_settingtourney = get_setting_tourney(db_tourney.id, db=db)
+    # si no existe creo una totalmente vacia
     if not one_settingtourney:
-        raise HTTPException(status_code=404, detail=_(locale, "tourney.setting_tourney_failed"))
+        one_settingtourney = init_setting(tourney_id, db_tourney.modality, db=db)
     
     path = create_dir(entity_type="SETTOURNEY", user_id=None, entity_id=str(db_tourney.id))
     
@@ -536,3 +564,29 @@ def save_image_tourney(request, tourney_id: str, file: File, db: Session):
  
     return result
    
+def get_values_elo_by_tourney(tourney_id: str, modality:str, db: Session):  
+    
+    str_from = "FROM events.players " +\
+        "inner join enterprise.profile_member pro ON pro.id = players.profile_id " +\
+        "inner join enterprise.profile_type prot ON prot.name = pro.profile_type " 
+    
+    dict_modality = {'Individual': "join enterprise.profile_single_player player ON player.profile_id = pro.id ",
+                     'Parejas': "join enterprise.profile_pair_player player ON player.profile_id = pro.id ",
+                     'Equipo': "join enterprise.profile_team_player player ON player.profile_id = pro.id "}
+    
+    str_from += dict_modality[modality]
+       
+    str_query = "SELECT MAX(elo) elo_max, MIN(elo) elo_min " + str_from
+    
+    str_where = "WHERE pro.is_ready is True and players.is_active is True " 
+    str_where += " AND players.tourney_id = '" + tourney_id + "' "  
+    
+    str_query += str_where
+
+    lst_data = db.execute(str_query)
+    elo_max, elo_min = float(0.00), float(0.00)
+    for item in lst_data:
+        elo_max = item.elo_max
+        elo_min = item.elo_min
+    
+    return elo_max, elo_min

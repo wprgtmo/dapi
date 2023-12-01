@@ -326,3 +326,41 @@ def create_dict_position(dict_tables, boletus_id: str, api_uri:str, db: Session)
             dict_tables['playerFour'] = dict_player
     
     return dict_tables
+
+def get_all_tables_by_round(request:Request, page: int, per_page: int, round_id: str, db: Session):  
+    
+    locale = request.headers["accept-language"].split(",")[0].split("-")[0];
+    
+    api_uri = str(settings.api_uri)
+    
+    dict_result_one = {'round_number': '1', 'table_number': '1', 'pair_name_one': '1',
+                       'table_number': '1'}
+    
+    str_from = "FROM events.domino_rounds_scale rsca " +\
+        "JOIN events.players players ON players.id = rsca.player_id " +\
+        "JOIN enterprise.profile_member mmb ON players.profile_id = mmb.id " +\
+        "left join resources.city ON city.id = mmb.city_id " +\
+        "left join resources.country ON country.id = city.country_id " 
+    
+    str_count = "Select count(*) " + str_from
+    str_query = "SELECT players.id player_id, mmb.id profile_id, mmb.name profile_name, mmb.photo, rsca.position_number, " +\
+        "city.name as city_name, country.name as country_name, rsca.elo, rsca.elo_variable, rsca.games_played, " +\
+        "rsca.games_won, rsca.games_lost, rsca.points_positive, rsca.points_negative, rsca.points_difference " + str_from
+        
+    str_where = "WHERE rsca.is_active is True AND rsca.round_id = '" + round_id + "' "
+        
+    str_count += str_where
+    str_query += str_where + " ORDER BY rsca.position_number "
+
+    if page and page > 0 and not per_page:
+        raise HTTPException(status_code=404, detail=_(locale, "commun.invalid_param"))
+    
+    result = get_result_count(page=page, per_page=per_page, str_count=str_count, db=db)
+    
+    if page != 0:
+        str_query += "LIMIT " + str(per_page) + " OFFSET " + str(page*per_page-per_page)
+    
+    lst_data = db.execute(str_query)
+    result.data = [create_dict_row_scale(item, db=db, api_uri=api_uri) for item in lst_data]
+    
+    return result

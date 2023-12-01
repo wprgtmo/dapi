@@ -530,10 +530,24 @@ def create_tourneys(request:Request, db: Session):
     if amount > 0:
         return True
     
+    #crear la carpeta con la imagen de la publicidad....
+    path = create_dir(entity_type="SETTOURNEY", user_id=None, entity_id=str(id_1))
+    
+    image_domino="public/smartdomino.png"
+    image_destiny = path + "smartdomino.png"
+    copy_image(image_domino, image_destiny)
+    
     id_2 = str(uuid.uuid4())
     db_tourney_pair = Tourney(id=id_2, event_id=one_event.id, modality='Parejas', name='Serie Nacional del Domino.Torneo Por Parejas', 
                          summary='Torneo para jugadores de parejas', start_date=one_event.start_date, 
                          status_id=one_status.id, created_by='miry', updated_by='miry', profile_id=one_event.profile_id)
+    
+    #crear la carpeta con la imagen de la publicidad....
+    path = create_dir(entity_type="SETTOURNEY", user_id=None, entity_id=str(id_2))
+    
+    image_domino="public/smartdomino.png"
+    image_destiny = path + "smartdomino.png"
+    copy_image(image_domino, image_destiny)
     
     try:
         db.add(db_tourney_ind)
@@ -668,11 +682,6 @@ def created_players(request:Request, db: Session):
     lst_data_ind = db.execute(str_query_ind).fetchall()
     lst_data_pair = db.execute(str_query_pair).fetchall()
     
-    print(str_query_ind)
-    print('************')
-    print('str_query_pair')
-    # raise HTTPException(status_code=404)
-
     for item in lst_data_ind:
         one_invitation = get_invitation_by_id(invitation_id=item.invitation_id, db=db)
         if not one_invitation:

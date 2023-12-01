@@ -33,8 +33,7 @@ from domino.services.events.domino_round import configure_new_rounds
 from domino.services.events.domino_scale import configure_automatic_lottery, update_elo_initial_scale
 
 from domino.services.events.tourney import get_one as get_one_tourney, get_setting_tourney, calculate_amount_tables, \
-    get_count_players_by_tourney
-from domino.services.events.player import get_values_elo_by_tourney
+    get_count_players_by_tourney, get_values_elo_by_tourney
 from domino.services.enterprise.auth import get_url_advertising
 
 def get_one_configure_tourney(request:Request, tourney_id: str, db: Session):  
@@ -162,3 +161,4 @@ def close_configure_one_tourney(request, tourney_id: str, db: Session):
         raise HTTPException(status_code=404, detail=_(locale, "tourney.error_at_closed"))
     
     return result
+

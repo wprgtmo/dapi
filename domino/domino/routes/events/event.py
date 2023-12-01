@@ -13,7 +13,7 @@ from domino.schemas.events.tourney import TourneyCreated
 from domino.schemas.resources.result_object import ResultObject
 
 from domino.services.events.event import get_all, get_all_by_criteria, new, get_one_by_id, delete, update, \
-    get_image_event, add_one_followers, remove_one_followers
+    get_image_event, add_one_followers, remove_one_followers, get_all_for_data
   
 event_route = APIRouter(
     tags=["Events"],
@@ -46,6 +46,17 @@ def get_events_by_criteria(
     return get_all_by_criteria(
         request=request, profile_id=profile_id, page=page, per_page=per_page, criteria_key=criteria_key, criteria_value=criteria_value, db=db)
 
+@event_route.get("/event/data/", response_model=Dict, summary="Obtain a list of Events for get data ")
+def get_events_for_data(
+    request: Request,
+    profile_id: str,
+    page: int = 1, 
+    per_page: int = 6, 
+    db: Session = Depends(get_db)
+):
+    return get_all_for_data(
+        request=request, profile_id=profile_id, page=page, per_page=per_page, db=db)
+    
 @event_route.get("/event/one_event/{id}", response_model=ResultObject, summary="Get a Event for your ID.")
 def get_event_by_id(id: str, db: Session = Depends(get_db), only_iniciaded: bool = False):
     return get_one_by_id(event_id=id, only_iniciaded=only_iniciaded, db=db)
