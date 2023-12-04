@@ -24,7 +24,8 @@ from domino.models.events.tourney import Tourney, Players
 from domino.schemas.enterprise.user import UserCreate
 
 from domino.services.resources.status import get_one_by_name as get_one_status_by_name
-from domino.services.resources.city import get_one_by_name as get_city_by_name
+from domino.services.resources.city import get_one_by_name as get_city_by_name, insert_new_city
+from domino.services.resources.country import get_one_by_name as get_country_by_name, insert_new_country
 from domino.services.resources.utils import create_dir, copy_image
 
 from domino.services.enterprise.profiletype import get_one as get_profile_type_by_id, get_one_by_name as get_profile_type_by_name
@@ -46,7 +47,13 @@ pwd_context = CryptContext(schemes=["bcrypt"], deprecated="auto")
 
 #region poblar BD de profiles user
 
-def insert_user_examples(request:Request, db: Session):
+def insert_user_examples(request:Request, from_file: bool, db: Session):
+    if from_file:
+        return insert_user_examples_by_csv(request=request, db=db)
+    else:
+        return insert_user_examples_from_aleatory(request=request, db=db)
+    
+def insert_user_examples_from_aleatory(request:Request, db: Session):
     
     #Si son todos los usuarios es porque la BD se limpio desde cero y se incluyen los usuarios genericos
     
@@ -133,32 +140,39 @@ def insert_user_examples(request:Request, db: Session):
     
     return True
 
-def create_generic_user(request:Request, usercreated: UserCreate, city_name, db: Session):
+def create_generic_user(request:Request, usercreated: UserCreate, city_name:str, db: Session, alias: str=''):
     
-    try:
+    # try:
     
-        str_user = "SELECT id FROM enterprise.users where username = '" + usercreated.username + "' "
-        user_id = db.execute(str_user).fetchone()
-        if not user_id:   #usuario no existe
-            dict_user_id = new_user(request=request, user=usercreated, db=db)
-            user_id = dict_user_id.data['id']
-        else:
-            user_id = user_id[0]
-        
-        # actualizar provincias
-        db_default_profile = get_one_default_user(user_id, db=db)
-        
+    str_user = "SELECT id FROM enterprise.users where username = '" + usercreated.username + "' "
+    user_id = db.execute(str_user).fetchone()
+    if not user_id:   #usuario no existe
+        dict_user_id = new_user(request=request, user=usercreated, db=db)
+        user_id = dict_user_id.data['id']
+    else:
+        user_id = user_id[0]
+    
+    # actualizar provincias
+    db_default_profile = get_one_default_user(user_id, db=db)
+    
+    if db_default_profile:
+        if alias:
+            db_default_profile.alias = alias
+    
         city = get_city_by_name(city_name, db=db)
-        
-        if db_default_profile and city:
+    
+        if city:
             db_default_profile.city_id = city.id
-            db_default_profile.updated_date = datetime.now()
-            db.add(db_default_profile)
             
-        db.commit()    
+        db_default_profile.updated_date = datetime.now()
+        db.add(db_default_profile)
+            
+    db.commit()    
         
-    except:
-        return True
+    # except:
+    #     print('error creando usuario')
+    #     print(usercreated.username)
+    #     return True
     
     return True
     
@@ -309,7 +323,6 @@ def update_pair_elo(db: Session):
      
     return True
 
-
 def create_single_player(request:Request, item, city_name:str, db: Session):
     
     city = get_city_by_name(city_name, db=db)
@@ -337,6 +350,67 @@ def create_single_player(request:Request, item, city_name:str, db: Session):
         return True
     except (Exception, SQLAlchemyError) as e:
         return True
+
+def create_single_player_from_file(request:Request, username, name, city, elo, db: Session):
+    
+    profile_type = get_profile_type_by_name("SINGLE_PLAYER", db=db)
+    if not profile_type:
+        return True
+    
+    profile_id = get_one_profile_by_user(username, "SINGLE_PLAYER", db=db)
+    if profile_id:
+        return True
+    
+    id = str(uuid.uuid4())
+    one_profile = new_profile(profile_type, id, profile_id, username, name, None, city.id if city else None, True, True, True, 
+                              "USERPROFILE", username, username, None, is_confirmed=True, single_profile_id=id)
+    
+    one_single_player = SingleProfile(profile_id=id, elo=elo, ranking=None, level='NORMAL', updated_by=username)
+    one_profile.profile_single_player.append(one_single_player)
+    
+    try:   
+        db.add(one_profile)
+        db.commit()
+        return True
+    except (Exception, SQLAlchemyError) as e:
+        return True
+
+def create_event_admon_from_file(username, city_name, name, db: Session):
+    
+    profile_type = get_profile_type_by_name("EVENTADMON", db=db)
+    if not profile_type:
+        return True
+    
+    # si ya existe perfil no permitir crear otro.
+    exist_profile_id = get_one_profile_by_user(username, "EVENTADMON", db=db)
+    if exist_profile_id:
+        return True
+    
+    me_profile_id = get_user_for_single_profile_by_user(username, db=db, profile_type='USER')
+    if not me_profile_id:
+        return True
+    
+    default_profile_id = get_one_profile_by_user(username, db=db, profile_type='USER')
+    if not default_profile_id:
+        return True
+    
+    city = get_city_by_name(city_name, db=db)
+
+    id = str(uuid.uuid4())
+    one_profile = new_profile(profile_type, id, me_profile_id, username, name, None, city.id, True, True, True, 
+                              "USERPROFILE", username, username, None, is_confirmed=True, single_profile_id=me_profile_id)
+    
+    one_eventadmon = EventAdmonProfile(profile_id=id, updated_by=username)
+    one_profile.profile_event_admon.append(one_eventadmon)
+    
+    path = create_dir(entity_type="USERPROFILE", user_id=str(id), entity_id=id)
+    
+    try:   
+        db.add(one_profile)
+        db.commit()
+        return True
+    except (Exception, SQLAlchemyError) as e:
+        raise True
 
 def create_pair_player(request:Request, item, city_name:str, db: Session):
     
@@ -595,7 +669,7 @@ def created_invitations_tourneys(request:Request, db: Session):
     except: 
         return True
     
-def accepted_invitations_tourneys(request:Request, db: Session):
+def accepted_invitations_tourneys(request:Request, tourney_name: str, db: Session):
     
     status_created = get_one_status_by_name('CREATED', db=db)
     if not status_created:
@@ -608,8 +682,12 @@ def accepted_invitations_tourneys(request:Request, db: Session):
     str_query_sel = "SELECT inv.id invitation_id FROM events.invitations inv join events.tourney tney ON tney.id = inv.tourney_id " \
         "Where status_name = 'SEND' and tney.status_id = " + str(status_created.id)
 
-    str_query_ind = str_query_sel + " AND tney.name = 'Serie Nacional del Domino.Torneo Individual' "
-    str_query_pair = str_query_sel + " AND tney.name = 'Serie Nacional del Domino.Torneo Por Parejas' "
+    if tourney_name:
+        str_query_ind = str_query_sel + " AND tney.name = '" + tourney_name + "' "
+        str_query_pair = str_query_sel + " AND tney.name =  '" + tourney_name + "' "
+    else:
+        str_query_ind = str_query_sel + " AND tney.name = 'Serie Nacional del Domino.Torneo Individual' "
+        str_query_pair = str_query_sel + " AND tney.name = 'Serie Nacional del Domino.Torneo Por Parejas' "
     
     lst_data_ind = db.execute(str_query_ind)
     lst_data_pair = db.execute(str_query_pair)
@@ -644,25 +722,35 @@ def accepted_invitations_tourneys(request:Request, db: Session):
 
 #region Players
 
-def created_players(request:Request, db: Session):
+def created_players(request:Request, tourney_name:str, db: Session):
     
     one_status = get_one_status_by_name('CREATED', db=db)
     if not one_status:
         return True
     
-    tourney_ind = get_tourney_by_name(tourney_name='Serie Nacional del Domino.Torneo Individual', db=db)
-    if not tourney_ind:
-        return True
+    if tourney_name:
+        tourney = get_tourney_by_name(tourney_name=tourney_name, db=db)
+        if not tourney:
+            return True
+    else:
+        tourney_ind = get_tourney_by_name(tourney_name='Serie Nacional del Domino.Torneo Individual', db=db)
+        if not tourney_ind:
+            return True
+        
+        tourney_pair = get_tourney_by_name(tourney_name='Serie Nacional del Domino.Torneo Por Parejas', db=db)
+        if not tourney_pair:
+            return True
     
-    tourney_pair = get_tourney_by_name(tourney_name='Serie Nacional del Domino.Torneo Por Parejas', db=db)
-    if not tourney_pair:
-        return True
+    if tourney_name:
+        if tourney.status_id != one_status.id:
+            return True
     
-    if tourney_ind.status_id != one_status.id:
-        return True
-    
-    if tourney_pair.status_id != one_status.id:
-        return True
+    else:
+        if tourney_ind.status_id != one_status.id:
+            return True
+        
+        if tourney_pair.status_id != one_status.id:
+            return True
     
     status_confirmed = get_one_status_by_name('CONFIRMED', db=db)
     if not status_confirmed:
@@ -673,49 +761,71 @@ def created_players(request:Request, db: Session):
         "JOIN enterprise.profile_member pro ON pro.id = inv.profile_id " +\
         "WHERE profile_type IN ('SINGLE_PLAYER', 'PAIR_PLAYER') and status_name = 'ACCEPTED' "
     
-    str_query_ind = str_invs_ind + "AND tourney_id = '" + str(tourney_ind.id) + "' "
-    str_query_ind += " AND inv.id NOT IN (" + str_invs + " " + str(tourney_ind.id) + "') "
+    if tourney_name:
+        str_query = str_invs_ind + "AND tourney_id = '" + str(tourney.id) + "' "
+        str_query += " AND inv.id NOT IN (" + str_invs + " " + str(tourney.id) + "') "
+        lst_data = db.execute(str_query).fetchall()
+        
+        for item in lst_data:
+            one_invitation = get_invitation_by_id(invitation_id=item.invitation_id, db=db)
+            if not one_invitation:
+                print(item.invitation_id)
+                continue
+            
+            one_player = Players(id=str(uuid.uuid4()), tourney_id=one_invitation.tourney_id, 
+                                profile_id=one_invitation.profile_id, nivel='NORMAL', invitation_id=one_invitation.id,
+                                created_by='miry', updated_by='miry', is_active=True)
+            
+            one_invitation.updated_by = 'miry'
+            one_invitation.updated_date = datetime.now()
+            one_invitation.status_name = status_confirmed.name
+            
+            db.add(one_player)
+            db.add(one_invitation)
+    else:
+        str_query_ind = str_invs_ind + "AND tourney_id = '" + str(tourney_ind.id) + "' "
+        str_query_ind += " AND inv.id NOT IN (" + str_invs + " " + str(tourney_ind.id) + "') "
+        
+        str_query_pair = str_invs_ind + "AND tourney_id = '" + str(tourney_pair.id) + "' "
+        str_query_pair += " AND inv.id NOT IN (" + str_invs + " " + str(tourney_pair.id) + "') "
     
-    str_query_pair = str_invs_ind + "AND tourney_id = '" + str(tourney_pair.id) + "' "
-    str_query_pair += " AND inv.id NOT IN (" + str_invs + " " + str(tourney_pair.id) + "') "
+        lst_data_ind = db.execute(str_query_ind).fetchall()
+        lst_data_pair = db.execute(str_query_pair).fetchall()
     
-    lst_data_ind = db.execute(str_query_ind).fetchall()
-    lst_data_pair = db.execute(str_query_pair).fetchall()
-    
-    for item in lst_data_ind:
-        one_invitation = get_invitation_by_id(invitation_id=item.invitation_id, db=db)
-        if not one_invitation:
-            print(item.invitation_id)
-            continue
+        for item in lst_data_ind:
+            one_invitation = get_invitation_by_id(invitation_id=item.invitation_id, db=db)
+            if not one_invitation:
+                print(item.invitation_id)
+                continue
+            
+            one_player = Players(id=str(uuid.uuid4()), tourney_id=one_invitation.tourney_id, 
+                                profile_id=one_invitation.profile_id, nivel='NORMAL', invitation_id=one_invitation.id,
+                                created_by='miry', updated_by='miry', is_active=True)
+            
+            one_invitation.updated_by = 'miry'
+            one_invitation.updated_date = datetime.now()
+            one_invitation.status_name = status_confirmed.name
+            
+            db.add(one_player)
+            db.add(one_invitation)
+            
+        for item in lst_data_pair:
+            one_invitation = get_invitation_by_id(invitation_id=item.invitation_id, db=db)
+            if not one_invitation:
+                continue
+            
+            one_player = Players(id=str(uuid.uuid4()), tourney_id=one_invitation.tourney_id, 
+                                profile_id=one_invitation.profile_id, nivel='NORMAL', invitation_id=one_invitation.id,
+                                created_by='miry', updated_by='miry', is_active=True)
+            
+            one_invitation.updated_by = 'miry'
+            one_invitation.updated_date = datetime.now()
+            one_invitation.status_name = status_confirmed.name
+            
+            db.add(one_player)
+            db.add(one_invitation)
+            
         
-        one_player = Players(id=str(uuid.uuid4()), tourney_id=one_invitation.tourney_id, 
-                            profile_id=one_invitation.profile_id, nivel='NORMAL', invitation_id=one_invitation.id,
-                            created_by='miry', updated_by='miry', is_active=True)
-        
-        one_invitation.updated_by = 'miry'
-        one_invitation.updated_date = datetime.now()
-        one_invitation.status_name = status_confirmed.name
-        
-        db.add(one_player)
-        db.add(one_invitation)
-        
-    for item in lst_data_pair:
-        one_invitation = get_invitation_by_id(invitation_id=item.invitation_id, db=db)
-        if not one_invitation:
-            continue
-        
-        one_player = Players(id=str(uuid.uuid4()), tourney_id=one_invitation.tourney_id, 
-                            profile_id=one_invitation.profile_id, nivel='NORMAL', invitation_id=one_invitation.id,
-                            created_by='miry', updated_by='miry', is_active=True)
-        
-        one_invitation.updated_by = 'miry'
-        one_invitation.updated_date = datetime.now()
-        one_invitation.status_name = status_confirmed.name
-        
-        db.add(one_player)
-        db.add(one_invitation)
-        
-    
     # try:
     db.commit()
     return True
@@ -781,3 +891,63 @@ def clear_all_bd(request:Request, db: Session):
     
 #     return True
     
+#llenado de las tablas a partir del fichero cvs
+
+def insert_user_examples_by_csv(request:Request, db: Session):
+    
+    #ususrio domino
+    # lst_user = ['domino']
+    
+    #usuarios genericos
+    lst_user = []
+    lst_user.append(UserCreate(username='miry', first_name='Miraidys', last_name='Garcia Tornes', email='miry@gmail.cu', country_id=1, password='Pi=3.1416'))
+    [create_generic_user(request, item, 'Cienfuegos', db=db) for item in lst_user]
+    
+    lst_user = []
+    lst_user.append(UserCreate(username='migue', first_name='Miguel', last_name='Lau Díaz', email='migue@gmail.cu', country_id=1, password='Pi=3.1416'))
+    [create_generic_user(request, item, 'Cienfuegos', db=db) for item in lst_user]
+    
+    # admion de eventos
+    create_event_admon_from_file('miry', 'Cienfuegos', 'Miry', db=db)
+    
+    lst_admon = ['migue']
+    create_event_admon_from_file('migue', 'Matanzas', 'Migue', db=db)
+    
+    
+    #usuarios del fichero en BD.
+    str_query = "SELECT nombre, apellido_uno, apellido_dos, alias, username, provincia, pais, elo FROM resources.jugadores_ind"
+    lst_data = db.execute(str_query)
+    dict_country = {}
+    for item in lst_data:
+        country, city, one_user = None, None, None
+        if item.pais and item.pais not in dict_country:
+            country = get_country_by_name(item.pais, db=db)
+            dict_country[item.pais] = country
+        else:
+            country = dict_country[item.pais] 
+        
+        if not country and item.pais:
+            country = insert_new_country(item.pais, db=db)
+            dict_country[item.pais] = country
+            if item.provincia:
+                city = insert_new_city(country.id, item.provincia, db=db)
+            
+        else:
+            if item.provincia:
+                city = get_city_by_name(item.provincia, db=db)
+                if not city and country.name != 'Cuba':
+                    city = insert_new_city(country.id, item.provincia, db=db)
+        
+        last_name = item.apellido_uno if item.apellido_uno else ''
+        if item.apellido_dos:    
+            last_name += ' ' + item.apellido_dos  
+                
+        one_user = UserCreate(username=item.username, first_name=item.nombre, last_name=last_name,
+                              country_id=country.id, password='Dom.1234*')
+        
+        create_generic_user(request, one_user, city.name if city else None, db=db, alias=item.alias)
+        player_name = item.alias if item.alias else item.nombre
+        create_single_player_from_file(request, item.username, player_name, city, item.elo, db=db)
+
+    # crear admon de eventos        
+    return True

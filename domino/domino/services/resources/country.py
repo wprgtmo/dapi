@@ -80,23 +80,23 @@ def new(request, db: Session, country: CountryBase):
     if db_country:
         raise HTTPException(status_code=404, detail=_(locale, "country.exist_name"))
         
-    db_country = Country(name=country.name)
+    db_country = insert_new_country(country.name, db=db)
+    if not db_country:
+        raise HTTPException(status_code=404, detail=_(locale, "country.error_create_country"))
+        
+    return result
+        
+def insert_new_country(contry_name: str, db: Session):
+    
+    db_country = Country(name=contry_name)
     
     try:
         db.add(db_country)
         db.commit()
-        db.refresh(db_country)
-        return result
+        return db_country
     except (Exception, SQLAlchemyError, IntegrityError) as e:
-        print(e)
-        msg = _(locale, "country.error_new_country")
-        if e.code == 'gkpj':
-            field_name = str(e.__dict__['orig']).split('"')[1].split('_')[1]
-            if field_name == 'username':
-                msg = msg + _(locale, "country.already_exist")
-        
-        raise HTTPException(status_code=403, detail=msg)
- 
+        return None
+    
 def delete(request: Request, country_id: str, db: Session):
     locale = request.headers["accept-language"].split(",")[0].split("-")[0];
     

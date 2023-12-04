@@ -86,18 +86,23 @@ def new(request, db: Session, city: CitySchema):
     if not one_country:
         raise HTTPException(status_code=404, detail=_(locale, "country.not_found"))
     
-    db_city = City(name=city.name, country_id=one_country.id)
+    db_city = insert_new_city(one_country.id, city.name, db=db)
+    if not db_city:
+        raise HTTPException(status_code=404, detail=_(locale, "city.error_create_city"))
+        
+    return result
+
+def insert_new_city(contry_id: str, city_name, db: Session):
+    
+    db_city = City(name=city_name, country_id=contry_id)
     
     try:
         db.add(db_city)
         db.commit()
-        db.refresh(db_city)
-        return result
+        return db_city
     except (Exception, SQLAlchemyError, IntegrityError) as e:
-        print(e)
-        msg = _(locale, "city.error_new_city")
-        raise HTTPException(status_code=403, detail=msg)
-    
+        return None
+        
 def delete(request: Request, city_id: str, db: Session):
     locale = request.headers["accept-language"].split(",")[0].split("-")[0];
     

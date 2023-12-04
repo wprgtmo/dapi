@@ -417,6 +417,7 @@ def configure_one_tourney(request, tourney_id: str, settingtourney: SettingTourn
         time_to_win = int(settingtourney['time_to_win'])
         game_system = str(settingtourney['game_system'])
         lottery_type = str(settingtourney['lottery'])
+        lottery_type = 'MANUAL' if not lottery_type else lottery_type
         penalties_limit = int(settingtourney['limitPenaltyPoints'])
         use_bonus = True if str(settingtourney['bonus']) == 'YES' else False 
         
@@ -442,6 +443,9 @@ def configure_one_tourney(request, tourney_id: str, settingtourney: SettingTourn
     else:
         update_initializes_tourney(one_settingtourney, amount_smart_tables, amount_rounds, number_points_to_win, 
                                    time_to_win, game_system, use_bonus, lottery_type, penalties_limit, db=db)
+    
+    print('*********************')
+    print(lottery_type)
     
     return result
 

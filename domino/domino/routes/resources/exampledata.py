@@ -23,8 +23,8 @@ def insert_data(request:Request, db: Session = Depends(get_db)):
     return clear_all_bd(request, db=db)
 
 @exampledata_route.post("/exampledata/step_2_users", summary="Create generic users")
-def insert_data(request:Request, db: Session = Depends(get_db)):
-    return insert_user_examples(request, db=db)
+def insert_data(request:Request, from_file: bool = False, db: Session = Depends(get_db)):
+    return insert_user_examples(request, from_file, db=db)
 
 @exampledata_route.post("/exampledata/step_3_profiles", summary="Create Others profiles")
 def insert_profile_data(request:Request, db: Session = Depends(get_db)):
@@ -47,12 +47,12 @@ def insert_invitations_tourney_data(request:Request, db: Session = Depends(get_d
     return created_invitations_tourneys(request, db=db)
 
 @exampledata_route.post("/exampledata/step_8_invitations", summary="Acepted invitations for Tourneys")
-def acepted_invitations_tourney_data(request:Request, db: Session = Depends(get_db)):
-    return accepted_invitations_tourneys(request, db=db)
+def acepted_invitations_tourney_data(request:Request, tourney_name: str, db: Session = Depends(get_db)):
+    return accepted_invitations_tourneys(request, tourney_name=tourney_name, db=db)
 
 @exampledata_route.post("/exampledata/step_9_players", summary="Created Players")
-def insert_players_data(request:Request, db: Session = Depends(get_db)):
-    return created_players(request, db=db)
+def insert_players_data(request:Request, tourney_name: str, db: Session = Depends(get_db)):
+    return created_players(request, tourney_name=tourney_name, db=db)
 
 # @exampledata_route.post("/exampledata/step_10_scale", summary="Crear Parejas por Rondas a partir del sorteo")
 # def configure_pairs_rounds(request:Request, tourney_id:str, round_id:str, modality:str, db: Session = Depends(get_db)):

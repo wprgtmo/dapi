@@ -154,6 +154,9 @@ def close_configure_one_tourney(request, tourney_id: str, db: Session):
     else:
         db_tourney.status_id = one_status_conf.id
     
+    print(one_settingtourney.lottery_type)
+    print('*********************')
+    
     try:
         db.add(db_tourney)
         db.commit()
