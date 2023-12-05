@@ -58,14 +58,14 @@ def get_one_configure_tourney(request:Request, tourney_id: str, db: Session):
         'amount_player': get_count_players_by_tourney(tourney_id, db_tourney.modality, db=db),
         "amount_smart_tables": 0 if not setting else setting.amount_smart_tables,
         "amount_rounds": 0 if not setting else setting.amount_rounds,
-        "use_bonus": 'NO' if not setting else 'YES' if setting.use_bonus else 'NO',
+        "use_bonus": 'YES' if not setting else 'YES' if setting.use_bonus else 'NO',
         "amount_bonus_tables": 0 if not setting else setting.amount_bonus_tables,
         "amount_bonus_points": 0 if not setting else setting.amount_bonus_points,
         "number_bonus_round": 0 if not setting else setting.number_bonus_round,
         "number_points_to_win": 0 if not setting else setting.number_points_to_win,
         "time_to_win": 0 if not setting else setting.time_to_win,
-        "game_system": '' if not setting else setting.game_system,
-        'lottery_type': '' if not setting else setting.lottery_type,
+        "game_system": 'SUIZO' if not setting else setting.game_system,
+        'lottery_type': 'MANUAL' if not setting else setting.lottery_type,
         'penalties_limit': 0 if not setting else setting.penalties_limit,
         'elo_min': elo_min, 'elo_max': elo_max,
         'image': get_url_advertising(tourney_id=tourney_id, file_name=setting.image if setting else None, api_uri=api_uri),
@@ -151,11 +151,9 @@ def close_configure_one_tourney(request, tourney_id: str, db: Session):
         result_init = configure_automatic_lottery(db_tourney, db_round_ini, one_status_init, db=db)
         if not result_init:
             raise HTTPException(status_code=404, detail=_(locale, "tourney.setting_initial_scale_failed"))
+        
     else:
         db_tourney.status_id = one_status_conf.id
-    
-    print(one_settingtourney.lottery_type)
-    print('*********************')
     
     try:
         db.add(db_tourney)
