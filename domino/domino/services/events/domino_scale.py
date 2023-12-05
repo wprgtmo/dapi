@@ -46,9 +46,9 @@ def new_initial_manual_round(request: Request, tourney_id:str, dominoscale: list
     configure_tables_by_round(tourney_id, round_id, modality, db=db)
     
     # cambiar estado del torneo a Iniciado
-    str_update = "UPDATE events.tourney SET status_id=" + str(one_status_init.id) + " WHERE tourney_id = '" + tourney_id + "';"
-    str_update += "UPDATE events.events SET status_id=" + str(one_status_init.id) + " WHERE tourney_id = '" + tourney_id + "';COMMIT;"
-    
+    str_update = "UPDATE events.tourney SET status_id=" + str(one_status_init.id) + " WHERE id = '" + tourney_id + "';"
+    str_update += "UPDATE events.events SET status_id=" + str(one_status_init.id) + " WHERE id IN " +\
+        "(Select tourney.event_id FROM events.tourney where id = '" + tourney_id + "');COMMIT;"
     db.execute(str_update)
     
     return result
@@ -78,7 +78,7 @@ def get_round_to_configure(locale, tourney_id:str, db: Session):
     if not round_id:
         raise HTTPException(status_code=404, detail=_(locale, "round.not_initial_round"))
     
-    str_query = "Select modality FROM events.tourney WHERE tourney_id = '" + tourney_id + "' "
+    str_query = "Select modality FROM events.tourney WHERE id = '" + tourney_id + "' "
     modality = db.execute(str_query).fetchone()
     if not modality:
         raise HTTPException(status_code=404, detail=_(locale, "round.not_initial_round"))
@@ -111,7 +111,7 @@ def update_elo_initial_scale(tourney_id: str, round_id: str, modality:str, db: S
         
     return True
 
-def create_one_scale(tourney_id: str, round_id: str, round_number, position_number: int, player_id: str, category_id:int, db: Session ):
+def create_one_scale(tourney_id: str, round_id: str, round_number, position_number: int, player_id: str, category_id:str, db: Session ):
     one_scale = DominoRoundsScale(id=str(uuid.uuid4()), tourney_id=tourney_id, round_id=round_id, round_number=round_number, 
                                   position_number=int(position_number), player_id=player_id, is_active=True, category_id=category_id)
     db.add(one_scale)
@@ -129,8 +129,8 @@ def create_one_manual_trace(tourney_id: str, modality:str, position_number: int,
 def initial_scale_by_manual_lottery(tourney_id: str, round_id: str, dominoscale:list, modality:str, db: Session):
     
     for item in dominoscale:
-        create_one_manual_trace(tourney_id, modality, int(item.number), item.id, db=db)
-        create_one_scale(tourney_id, round_id, 1, int(item.number), item.id, db=db)
+        create_one_manual_trace(tourney_id, modality, int(item['position_number']), item['id'], db=db)
+        create_one_scale(tourney_id, round_id, 1, int(item['position_number']), item['id'], category_id='1', db=db)
     db.commit()
     return True
 

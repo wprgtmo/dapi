@@ -26,9 +26,20 @@ dominoscale_route = APIRouter(
 # ):
 #     return get_all(request=request, page=page, per_page=per_page, criteria_key=criteria_key, criteria_value=criteria_value, db=db)
 
+# @dominoscale_route.post("/domino/scale/initial/manual/", response_model=ResultObject, summary="Create Initial Scale..")
+# def create_initial_manual_scale(request:Request, tourney_id: str, loterry: List[DominoManualScaleCreated], db: Session = Depends(get_db)):
+#     print('info')
+#     pritn('*****************')
+#     return new_initial_manual_round(request=request, tourney_id=tourney_id, dominoscale=loterry, db=db)
+
 @dominoscale_route.post("/domino/scale/initial/manual/", response_model=ResultObject, summary="Create Initial Scale..")
-def create_initial_manual_scale(request:Request, tourney_id: str, loterry: List[DominoManualScaleCreated], db: Session = Depends(get_db)):
+def create_initial_manual_scale(request:Request, tourney_id: str, loterry: List, db: Session = Depends(get_db)):
+    print('info')
+    print('*****************')
+    print(loterry)
+    print('*****************')
     return new_initial_manual_round(request=request, tourney_id=tourney_id, dominoscale=loterry, db=db)
+
 
 # @dominoscale_route.post("/domino/scale/initial/automatic/", response_model=ResultObject, summary="Create Initial Scale..")
 # def create_initial_automatic_scale(request:Request, tourney_id: str, loterry: List[DominoAutomaticScaleCreated], db: Session = Depends(get_db)):
