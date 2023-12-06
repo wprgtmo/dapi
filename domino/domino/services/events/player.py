@@ -287,7 +287,7 @@ def get_all_players_by_category(request:Request, page: int, per_page: int, categ
     str_where += " AND players.tourney_id = '" + dict_result['tourney_id'] + "' " 
     
     if tourney_is_init:
-        str_where += " AND rscale.category_id >= '" + category_id + "' "
+        str_where += " AND rscale.category_id = '" + category_id + "' "
     else:
         str_where += "AND player.elo >= " + str(dict_result['elo_min']) + " AND player.elo <= " + str(dict_result['elo_max'])
         
@@ -312,7 +312,7 @@ def get_all_players_by_category(request:Request, page: int, per_page: int, categ
     
     lst_data = db.execute(str_query)
     result.data = [create_dict_row(item, page, db=db, api_uri=api_uri) for item in lst_data]
-                        
+    
     return result
   
 def get_all_players_by_tourney(request:Request, page: int, per_page: int, tourney_id: str, is_active: bool, criteria_key: str, criteria_value: str, db: Session):  
