@@ -254,7 +254,6 @@ def get_one_by_id(event_id: str, db: Session, only_iniciaded=False):
         "JOIN resources.country country ON country.id = city.country_id " +\
         " WHERE eve.id = '" + str(event_id) + "' "  
     lst_data = db.execute(str_query) 
-    
     if lst_data: 
         for item in lst_data: 
             result.data = create_dict_row(item, 0, db=db, incluye_tourney=True, api_uri=api_uri, only_iniciaded=only_iniciaded)

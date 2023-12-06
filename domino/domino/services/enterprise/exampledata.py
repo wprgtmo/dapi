@@ -573,16 +573,12 @@ def create_events(request:Request, username, db: Session):
     
 def create_tourneys(request:Request, db: Session):
     
-    me_profile_id = get_user_for_single_profile_by_user('miry', db=db)
-    if not me_profile_id:
-        return True
-
-    one_status = get_one_status_by_name('CREATED', db=db)
-    if not one_status:
-        return True
-    
     one_event = get_event_by_name(event_name='Serie Nacional del Domino', db=db)
     if not one_event:
+        return True
+    
+    one_status = get_one_status_by_name('CREATED', db=db)
+    if not one_status:
         return True
     
     if one_event.status_id != one_status.id:

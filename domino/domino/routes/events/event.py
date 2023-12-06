@@ -59,6 +59,8 @@ def get_events_for_data(
     
 @event_route.get("/event/one_event/{id}", response_model=ResultObject, summary="Get a Event for your ID.")
 def get_event_by_id(id: str, db: Session = Depends(get_db), only_iniciaded: bool = False):
+    print('aqui')
+    print('*******************')
     return get_one_by_id(event_id=id, only_iniciaded=only_iniciaded, db=db)
 
 @event_route.post("/event/{profile_id}", response_model=ResultObject, summary="Create a Event..")

@@ -262,8 +262,9 @@ def get_all_players_by_category(request:Request, page: int, per_page: int, categ
         "left join resources.city ON city.id = pro.city_id " + \
         "left join resources.country ON country.id = city.country_id "
     
-    if dict_result['lottery_type'] == 'AUTOMATIC':
-        str_from += "JOIN events.domino_rounds_scale rscale ON rscale.player_id = players.id "   
+    tourney_is_init = True if dict_result['status_name'] == 'INITIADED' or dict_result['status_name'] == 'FINALIZED' else False
+    if tourney_is_init:
+        str_from += "LEFT JOIN events.domino_rounds_scale rscale ON rscale.player_id = players.id "   
     
     dict_modality = {'Individual': "join enterprise.profile_single_player player ON player.profile_id = pro.id ",
                      'Parejas': "join enterprise.profile_pair_player player ON player.profile_id = pro.id ",
@@ -275,7 +276,7 @@ def get_all_players_by_category(request:Request, page: int, per_page: int, categ
     str_query = "SELECT players.id, pro.name as name, prot.description as profile_type, pro.photo, pro.id as profile_id, " +\
         "city.name as city_name, country.name as country_name, player.level, player.elo, player.ranking " 
         
-    if dict_result['lottery_type'] == 'AUTOMATIC':
+    if tourney_is_init:
         str_query += ", rscale.position_number " 
     else:
         str_query += ", player.ranking position_number " 
@@ -285,7 +286,7 @@ def get_all_players_by_category(request:Request, page: int, per_page: int, categ
     str_where = "WHERE pro.is_ready is True and players.is_active is True " 
     str_where += " AND players.tourney_id = '" + dict_result['tourney_id'] + "' " 
     
-    if dict_result['lottery_type'] == 'AUTOMATIC':
+    if tourney_is_init:
         str_where += " AND rscale.category_id >= '" + category_id + "' "
     else:
         str_where += "AND player.elo >= " + str(dict_result['elo_min']) + " AND player.elo <= " + str(dict_result['elo_max'])
