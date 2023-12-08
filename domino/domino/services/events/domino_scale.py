@@ -335,13 +335,14 @@ def get_all_tables_by_round(request:Request, page: int, per_page: int, round_id:
     
     lst_data = []
     lst_data.append({'round_number': '1', 'table_number': '1', 'table_type': 'Tradicional',
-                     'info_pair_one' : {'name': 'pareja UNO', 'name_player_one': 'jug 1', 'name_player_two': 'jug 2',
-                                        'avatar_player_one': 'jug 1', 'avatar_player_two': 'jug 2',
-                                        'elo_player_one': 'jug 1', 'elo_player_two': 'jug 2'},
-                     'info_pair_two' : {'name': 'pareja DOS', 'name_player_one': 'jug 1', 'name_player_two': 'jug 2',
-                                        'avatar_player_one': 'jug 1', 'avatar_player_two': 'jug 2',
-                                        'elo_player_one': 'jug 1', 'elo_player_two': 'jug 2'},
-                     'points_pair_one': '10', 'points_pair_two': '180', 'status': 'Terminada'})
+                     'pair_one' : {'name': 'pareja UNO', 'player_one': 'jug 1', 'player_two': 'jug 2',
+                                   'avatar_one': 'jug 1', 'avatar_two': 'jug 2',
+                                   'elo_one': 'jug 1', 'elo_two': 'jug 2',
+                                   'points_one': '80', 'points_two': '100'},
+                     'pair_two' : {'name': 'pareja UNO', 'player_one': 'jug 1', 'player_two': 'jug 2',
+                                   'avatar_one': 'jug 1', 'avatar_two': 'jug 2',
+                                   'elo_one': 'jug 1', 'elo_two': 'jug 2',
+                                   'points_one': '80', 'points_two': '100'}})
     
     
     result.data = lst_data
