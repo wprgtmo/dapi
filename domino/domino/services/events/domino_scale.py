@@ -334,28 +334,15 @@ def get_all_tables_by_round(request:Request, page: int, per_page: int, round_id:
     result = ResultObject() 
     
     lst_data = []
-    lst_data.append({'round_number': '1', 'table_number': '1', 'pair_one': 'jugador uno - jugador dos', 'pair_two': 'jugador tres - jugador cuatro', 
+    lst_data.append({'round_number': '1', 'table_number': '1', 'table_type': 'Tradicional',
+                     'info_pair_one' : {'name': 'pareja UNO', 'name_player_one': 'jug 1', 'name_player_two': 'jug 2',
+                                        'avatar_player_one': 'jug 1', 'avatar_player_two': 'jug 2',
+                                        'elo_player_one': 'jug 1', 'elo_player_two': 'jug 2'},
+                     'info_pair_two' : {'name': 'pareja DOS', 'name_player_one': 'jug 1', 'name_player_two': 'jug 2',
+                                        'avatar_player_one': 'jug 1', 'avatar_player_two': 'jug 2',
+                                        'elo_player_one': 'jug 1', 'elo_player_two': 'jug 2'},
                      'points_pair_one': '10', 'points_pair_two': '180', 'status': 'Terminada'})
-    lst_data.append({'round_number': '1', 'table_number': '2', 'pair_one': 'jugador 11 - jugador 21', 'pair_two': 'jugador 31 - jugador 41', 
-                     'points_pair_one': '10', 'points_pair_two': '180', 'status': 'Jugando'})
-    lst_data.append({'round_number': '1', 'table_number': '3', 'pair_one': 'jugador 12 - jugador 22', 'pair_two': 'jugador 32 - jugador 42', 
-                     'points_pair_one': '10', 'points_pair_two': '180', 'status': 'Jugando'})
-    lst_data.append({'round_number': '1', 'table_number': '4', 'pair_one': 'jugador 13 - jugador 23', 'pair_two': 'jugador 33 - jugador 43', 
-                     'points_pair_one': '10', 'points_pair_two': '180', 'status': 'Terminada'})
-    lst_data.append({'round_number': '1', 'table_number': '5', 'pair_one': 'jugador 14 - jugador 24', 'pair_two': 'jugador 34 - jugador 44', 
-                     'points_pair_one': '10', 'points_pair_two': '180', 'status': 'Terminada'})
-    lst_data.append({'round_number': '1', 'table_number': '6', 'pair_one': 'jugador 15 - jugador 25', 'pair_two': 'jugador 35 - jugador 45', 
-                     'points_pair_one': '10', 'points_pair_two': '180', 'status': 'Terminada'})
-    lst_data.append({'round_number': '1', 'table_number': '7', 'pair_one': 'jugador 16 - jugador 26', 'pair_two': 'jugador 36 - jugador 46', 
-                     'points_pair_one': '10', 'points_pair_two': '180', 'status': 'Jugando'})
-    lst_data.append({'round_number': '1', 'table_number': '8', 'pair_one': 'jugador 17 - jugador 27', 'pair_two': 'jugador 37 - jugador 47', 
-                     'points_pair_one': '10', 'points_pair_two': '180', 'status': 'Terminada'})
-    lst_data.append({'round_number': '1', 'table_number': '8', 'pair_one': 'jugador 18 - jugador 28', 'pair_two': 'jugador 38 - jugador 48', 
-                     'points_pair_one': '10', 'points_pair_two': '180', 'status': 'Terminada'})
-    lst_data.append({'round_number': '1', 'table_number': '10', 'pair_one': 'jugador 19 - jugador 29', 'pair_two': 'jugador 39 - jugador 49', 
-                     'points_pair_one': '10', 'points_pair_two': '180', 'status': 'Terminada'})
-    lst_data.append({'round_number': '1', 'table_number': '11', 'pair_one': 'jugador 20 - jugador 30', 'pair_two': 'jugador 40 - jugador 50', 
-                     'points_pair_one': '10', 'points_pair_two': '180', 'status': 'Terminada'})
+    
     
     result.data = lst_data
     
