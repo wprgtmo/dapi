@@ -114,8 +114,8 @@ def close_configure_one_tourney(request, tourney_id: str, db: Session):
     if not db_tourney:
         raise HTTPException(status_code=404, detail=_(locale, "tourney.not_found"))
     
-    if db_tourney.status_id != one_status_new.id:
-        raise HTTPException(status_code=404, detail=_(locale, "tourney.tourney_closed"))
+    # if db_tourney.status_id != one_status_new.id:
+    #     raise HTTPException(status_code=404, detail=_(locale, "tourney.tourney_closed"))
     
     one_settingtourney = get_setting_tourney(db_tourney.id, db=db)
     if not one_settingtourney:

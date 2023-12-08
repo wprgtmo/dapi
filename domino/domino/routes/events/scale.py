@@ -34,10 +34,6 @@ dominoscale_route = APIRouter(
 
 @dominoscale_route.post("/domino/scale/initial/manual/", response_model=ResultObject, summary="Create Initial Scale..")
 def create_initial_manual_scale(request:Request, tourney_id: str, loterry: List, db: Session = Depends(get_db)):
-    print('info')
-    print('*****************')
-    print(loterry)
-    print('*****************')
     return new_initial_manual_round(request=request, tourney_id=tourney_id, dominoscale=loterry, db=db)
 
 

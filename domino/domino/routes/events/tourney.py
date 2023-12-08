@@ -10,6 +10,8 @@ from domino.schemas.resources.result_object import ResultObject
 
 from domino.services.events.tourney import get_all, new, get_one_by_id, delete, update, get_all_by_event_id, \
     get_amount_tables, configure_one_tourney
+    
+from domino.services.events.player import created_all_players
   
 tourney_route = APIRouter(
     tags=["Tourney"],
@@ -50,6 +52,10 @@ def update_tourney(request:Request, id: str, tourney: TourneyCreated, db: Sessio
 @tourney_route.post("/tourney/setting/tables/{id}", response_model=ResultObject, summary="Get amount tables")
 def amount_tables(request:Request, id: str, db: Session = Depends(get_db)):
     return get_amount_tables(request=request, tourney_id=id, db=db)
+
+@tourney_route.post("/tourney/player/confirmed/{id}", response_model=ResultObject, summary="Confirm all players")
+def confirm_player_to_tourney(request:Request, id: str, db: Session = Depends(get_db)):
+    return created_all_players(request=request, tourney_id=str(id), db=db)
 
 # @tourney_route.post("/tourney/setting/{profile_id}", response_model=ResultObject, summary="Configure Tourney..")
 # def configure_tourney(request:Request, profile_id: str, id: str, lst_categories: List[DominoCategoryCreated]=[], 

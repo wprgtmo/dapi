@@ -387,3 +387,57 @@ def create_dict_row(item, page, db: Session, api_uri):
 
 def get_one_by_invitation_id(invitation_id: str, db: Session):  
     return db.query(Players).filter(Players.invitation_id == invitation_id).first()
+
+
+def created_all_players(request:Request, tourney_id:str, db: Session):
+    locale = request.headers["accept-language"].split(",")[0].split("-")[0];
+    
+    result = ResultObject() 
+    currentUser = get_current_user(request)
+    
+    one_status = get_one_by_name('CREATED', db=db)
+    if not one_status:
+        return True
+    
+    db_tourney = get_torneuy_by_eid(tourney_id, db=db)
+    if not db_tourney:
+        raise HTTPException(status_code=404, detail=_(locale, "tourney.not_found"))
+    
+    if db_tourney.status_id != one_status.id:
+        raise HTTPException(status_code=404, detail=_(locale, "tourney.status_incorrect"))
+    
+    status_confirmed = get_one_by_name('CONFIRMED', db=db)
+    if not status_confirmed:
+        return True
+    
+    str_invs = "Select invitation_id invitation_id from events.players Where tourney_id = '"
+    str_invs_ind = "SELECT inv.id invitation_id FROM events.invitations inv " +\
+        "JOIN enterprise.profile_member pro ON pro.id = inv.profile_id " +\
+        "WHERE profile_type IN ('SINGLE_PLAYER', 'PAIR_PLAYER') and status_name = 'ACCEPTED' "
+        
+    str_query = str_invs_ind + "AND tourney_id = '" + str(db_tourney.id) + "' "
+    str_query += " AND inv.id NOT IN (" + str_invs + " " + str(db_tourney.id) + "') "
+    lst_data = db.execute(str_query).fetchall()
+    
+    for item in lst_data:
+        one_invitation = get_invitation_by_id(invitation_id=item.invitation_id, db=db)
+        if not one_invitation:
+            continue
+        
+        one_player = Players(id=str(uuid.uuid4()), tourney_id=one_invitation.tourney_id, 
+                            profile_id=one_invitation.profile_id, nivel='NORMAL', invitation_id=one_invitation.id,
+                            created_by=currentUser['username'], updated_by=currentUser['username'], is_active=True)
+        
+        one_invitation.updated_by = currentUser['username']
+        one_invitation.updated_date = datetime.now()
+        one_invitation.status_name = status_confirmed.name
+        
+        db.add(one_player)
+        db.add(one_invitation)
+        
+    try:
+        db.commit()
+        return result
+    except (Exception, SQLAlchemyError) as e:
+        return False
+    
