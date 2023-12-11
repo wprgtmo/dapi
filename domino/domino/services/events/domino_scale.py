@@ -335,9 +335,9 @@ def get_all_tables_by_round(request:Request, page: int, per_page: int, round_id:
     
     lst_data = []
     # si el partido no ha terminado is_winner, los dos vienen en falso
-    # si se esta jugando en status_partida entregar vacio.
     
-    lst_data.append({'round_number': '1', 'table_number': '1', 'table_type': 'Tradicional', 'status_partida': 'Partido Terminado',
+    lst_data.append({'round_number': '1', 'table_number': '1', 'table_type': 'Tradicional', 
+                     'status': '1', 'status_partida': 'Partido Terminado',
                      'pair_one' : {'name': 'Juan - Pepe', 'player_one': 'Juan', 'player_two': 'Pepe',
                                    'avatar_one': 'jug 1', 'avatar_two': 'jug 2',
                                    'elo_one': '1600.00', 'elo_two': '1700.00',
@@ -348,7 +348,8 @@ def get_all_tables_by_round(request:Request, page: int, per_page: int, round_id:
                                    'elo_one': '1800.00', 'elo_two': '1700.00',
                                    'positive_point': '200', 'negative_point': '60', 'difference_point': '140',
                                    'is_winner': True}})
-    lst_data.append({'round_number': '1', 'table_number': '2', 'table_type': 'Inteligente', 'status_partida': '',
+    lst_data.append({'round_number': '1', 'table_number': '2', 'table_type': 'Inteligente', 
+                     'status': '0', 'status_partida': 'Partido Jugando',
                      'pair_one' : {'name': 'Perico - Julio', 'player_one': 'Perico', 'player_two': 'Julio',
                                    'avatar_one': 'jug 1', 'avatar_two': 'jug 2',
                                    'elo_one': '1600.00', 'elo_two': '1700.00',
@@ -359,7 +360,8 @@ def get_all_tables_by_round(request:Request, page: int, per_page: int, round_id:
                                    'elo_one': '1800.00', 'elo_two': '1700.00',
                                    'positive_point': '0', 'negative_point': '60', 'difference_point': '-60',
                                    'is_winner': False}})
-    lst_data.append({'round_number': '1', 'table_number': '3', 'table_type': 'Tradicional', 'status_partida': 'Partido Terminado',
+    lst_data.append({'round_number': '1', 'table_number': '3', 'table_type': 'Tradicional', 
+                     'status': '1', 'status_partida': 'Partido Terminado',
                      'pair_one' : {'name': 'Juanito - Pepito', 'player_one': 'Juanito', 'player_two': 'Pepito',
                                    'avatar_one': 'jug 1', 'avatar_two': 'jug 2',
                                    'elo_one': '1600.00', 'elo_two': '1700.00',
