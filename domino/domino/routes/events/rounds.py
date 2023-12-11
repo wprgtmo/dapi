@@ -12,6 +12,7 @@ from domino.services.events.domino_round import get_all, get_one_by_id, start_on
     
 from domino.services.events.domino_scale import get_all_players_by_tables, get_all_players_by_tables_and_round, \
     get_all_scale_by_round, get_all_tables_by_round
+from domino.services.events.domino_data import get_all_data_by_boletus
   
 rounds_route = APIRouter(
     tags=["Rounds"],
@@ -60,10 +61,6 @@ def get_tables(
 # ):
 #     return get_all_tables_by_round(request=request, round_id=round_id, page=page, per_page=per_page, db=db)
 
-@rounds_route.get("/rounds/boletus/all/{id}", response_model=Dict, summary="Obtain a list of Tables at Rounds.")
-def get_tables(request: Request, id: str, page: int = 1, per_page: int = 6, db: Session = Depends(get_db)):
-    return get_all_tables_by_round(request=request, round_id=id, page=page, per_page=per_page, db=db)
-
 @rounds_route.get("/rounds/tables/one/", response_model=Dict, summary="Obtain a list of Tables of One Round.")
 def get_tables_by_rounds(
     request: Request,
@@ -87,3 +84,11 @@ def get_scale_by_rounds(
 @rounds_route.post("/rounds/{tourney_id}", response_model=ResultObject, summary="Start game round")
 def start_round(request:Request, tourney_id: str, db: Session = Depends(get_db)):
     return start_one_round(request=request, tourney_id=tourney_id, db=db)
+
+@rounds_route.get("/rounds/boletus/all/{id}", response_model=Dict, summary="Obtain a list of Tables at Rounds.")
+def get_tables(request: Request, id: str, page: int = 1, per_page: int = 6, db: Session = Depends(get_db)):
+    return get_all_tables_by_round(request=request, round_id=id, page=page, per_page=per_page, db=db)
+
+@rounds_route.get("/rounds/boletus/data/{id}", response_model=Dict, summary="Obtain a all datas of one boletus")
+def get_tables(request: Request, id: str, page: int = 1, per_page: int = 6, db: Session = Depends(get_db)):
+    return get_all_data_by_boletus(request=request, round_id=id, page=page, per_page=per_page, db=db)
