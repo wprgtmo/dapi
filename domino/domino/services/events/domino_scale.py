@@ -334,15 +334,15 @@ def get_all_tables_by_round(request:Request, page: int, per_page: int, round_id:
     result = ResultObject() 
     
     lst_data = []
-    lst_data.append({'round_number': '1', 'table_number': '1', 'table_type': 'Tradicional',
-                     'pair_one' : {'name': 'pareja UNO', 'player_one': 'jug 1', 'player_two': 'jug 2',
+    lst_data.append({'round_number': '1', 'table_number': '1', 'table_type': 'Tradicional', 'status_partida': 'Terminada',
+                     'pair_one' : {'name': 'pareja Juan - Pepe', 'player_one': 'Juan', 'player_two': 'Pepe',
                                    'avatar_one': 'jug 1', 'avatar_two': 'jug 2',
-                                   'elo_one': 'jug 1', 'elo_two': 'jug 2',
-                                   'points_one': '80', 'points_two': '100'},
-                     'pair_two' : {'name': 'pareja UNO', 'player_one': 'jug 1', 'player_two': 'jug 2',
+                                   'elo_one': '1600.00', 'elo_two': '1700.00',
+                                   'positive_point': '60', 'negative_point': '200', 'difference_point': '-140'},
+                     'pair_two' : {'name': 'pareja Jorge - Joaquin', 'player_one': 'Jorge', 'player_two': 'Joaquin',
                                    'avatar_one': 'jug 1', 'avatar_two': 'jug 2',
-                                   'elo_one': 'jug 1', 'elo_two': 'jug 2',
-                                   'points_one': '80', 'points_two': '100'}})
+                                   'elo_one': '1800.00', 'elo_two': '1700.00',
+                                   'positive_point': '200', 'negative_point': '60', 'difference_point': '140'}})
     
     
     result.data = lst_data
