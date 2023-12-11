@@ -130,7 +130,9 @@ def close_configure_one_tourney(request, tourney_id: str, db: Session):
         db.commit()
     except:
         raise HTTPException(status_code=404, detail=_(locale, "tourney.error_at_closed"))
-      
+    
+    # raise HTTPException(status_code=404, detail=_(locale, "tourney.error_at_closed"))
+  
     # crear las mesas y sus ficheros
     result_init = configure_domino_tables(
         db_tourney, one_settingtourney, db, currentUser['username'], file=None)
