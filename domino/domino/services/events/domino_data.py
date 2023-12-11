@@ -41,7 +41,7 @@ def get_all_data_by_boletus(request:Request, page: int, per_page: int, round_id:
                 {'number': '3', 'pair_one': 50, 'pair_two': 0}, {'number': '4', 'pair_one': 0, 'pair_two': 182}]
     
     dict_result = {'round_number': '1', 'table_number': '1', 'pair_one': 'Juan - Pepe', 'pair_two': 'Jorge - Joaquin',
-                   'data': lst_data}
+                   'total_pair_one': 60, 'total_pair_two': 202, 'data': lst_data}
     
     result.data = dict_result
     

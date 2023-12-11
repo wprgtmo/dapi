@@ -153,65 +153,6 @@ def created_boletus_for_round(tourney_id, round_id, db:Session):
     # obtener escalafon de parejas.
     lst_pairs = get_list_rounds_pairs(round_id, db=db)
     
-    lst_par, lst_impar, pos = [], [], 0
-    for i in lst_pairs:   
-        if  pos % 2 == 0:
-            lst_par.append(lst_pairs[pos])
-        else:
-            lst_impar.append(lst_pairs[pos])
-        pos+=1 
-    
-    # asociar a cada mesa los 2 parejas que le tocarian.
-    lst_dist_tables = []
-    amount_tables = len(lst_tables)
-    
-    for i in range(amount_tables-1):
-        dict_tables = {'table_id': lst_tables[i].id, 'table_number': lst_tables[i].table_number, 'lst_player': []}
-        if  i % 2 == 0:
-            dict_tables['lst_player'].append(lst_par[i])
-            dict_tables['lst_player'].append(lst_par[i+1])
-            
-        else: 
-            dict_tables['lst_player'].append(lst_impar[i-1])
-            dict_tables['lst_player'].append(lst_impar[i])
-        
-        lst_dist_tables.append(dict_tables)
-
-    # Por cada mesa, ubicar los jugadores
-    for item_tab in lst_dist_tables:
-        boletus_id = str(uuid.uuid4())
-        one_boletus = DominoBoletus(id=boletus_id, tourney_id=tourney_id, round_id=round_id, table_id=item_tab['table_id'],
-                                    is_valid=True)
-        
-        one_data = DominoBoletusData(id=str(uuid.uuid4()), boletus_id=boletus_id, data_number=1)
-        one_boletus.boletus_data.append(one_data)
-    
-        if item_tab['lst_player']:
-            boletus_pair_one = DominoBoletusPairs(boletus_id=boletus_id, pairs_id=item_tab['lst_player'][0]['id'], is_initiator=True)
-            one_boletus.boletus_pairs.append(boletus_pair_one)
-            if len(item_tab['lst_player']) == 2:  #tengo las dos parejas por mesa
-                boletus_pair_two = DominoBoletusPairs(boletus_id=boletus_id, pairs_id=item_tab['lst_player'][1]['id'],
-                                                      is_initiator=False)
-                one_boletus.boletus_pairs.append(boletus_pair_two)
-                
-            created_boletus_position(one_boletus, lst_player=item_tab['lst_player'], db=db)
-                    
-        db.add(one_boletus)        
-    
-    db.commit()    
-    
-    return True     
-
-def created_boletus_for_round_ubicar_consecutivo_las_parejas(tourney_id, round_id, db:Session):
-
-    # obtener listado de mesas del torneo
-    lst_tables = get_lst_tables(tourney_id, db=db)
-    if not lst_tables:
-        raise HTTPException(status_code=404, detail="dominotables.not_exists")
-    
-    # obtener escalafon de parejas.
-    lst_pairs = get_list_rounds_pairs(round_id, db=db)
-    
     # asociar a cada mesa los 2 parejas que le tocarian.
     lst_dist_tables = []
     amount_tables = len(lst_tables)
@@ -266,3 +207,62 @@ def get_list_rounds_pairs(round_id,  db: Session):
                           'scale_number_two_player': item.scale_number_two_player})
     
     return lst_pairs
+
+# def created_boletus_for_round_ubica_no_consecutivo_sino_saltanto(tourney_id, round_id, db:Session):
+
+#     # obtener listado de mesas del torneo
+#     lst_tables = get_lst_tables(tourney_id, db=db)
+#     if not lst_tables:
+#         raise HTTPException(status_code=404, detail="dominotables.not_exists")
+    
+#     # obtener escalafon de parejas.
+#     lst_pairs = get_list_rounds_pairs(round_id, db=db)
+    
+#     lst_par, lst_impar, pos = [], [], 0
+#     for i in lst_pairs:   
+#         if  pos % 2 == 0:
+#             lst_par.append(lst_pairs[pos])
+#         else:
+#             lst_impar.append(lst_pairs[pos])
+#         pos+=1 
+    
+#     # asociar a cada mesa los 2 parejas que le tocarian.
+#     lst_dist_tables = []
+#     amount_tables = len(lst_tables)
+    
+#     for i in range(amount_tables-1):
+#         dict_tables = {'table_id': lst_tables[i].id, 'table_number': lst_tables[i].table_number, 'lst_player': []}
+#         if  i % 2 == 0:
+#             dict_tables['lst_player'].append(lst_par[i])
+#             dict_tables['lst_player'].append(lst_par[i+1])
+            
+#         else: 
+#             dict_tables['lst_player'].append(lst_impar[i-1])
+#             dict_tables['lst_player'].append(lst_impar[i])
+        
+#         lst_dist_tables.append(dict_tables)
+
+#     # Por cada mesa, ubicar los jugadores
+#     for item_tab in lst_dist_tables:
+#         boletus_id = str(uuid.uuid4())
+#         one_boletus = DominoBoletus(id=boletus_id, tourney_id=tourney_id, round_id=round_id, table_id=item_tab['table_id'],
+#                                     is_valid=True)
+        
+#         one_data = DominoBoletusData(id=str(uuid.uuid4()), boletus_id=boletus_id, data_number=1)
+#         one_boletus.boletus_data.append(one_data)
+    
+#         if item_tab['lst_player']:
+#             boletus_pair_one = DominoBoletusPairs(boletus_id=boletus_id, pairs_id=item_tab['lst_player'][0]['id'], is_initiator=True)
+#             one_boletus.boletus_pairs.append(boletus_pair_one)
+#             if len(item_tab['lst_player']) == 2:  #tengo las dos parejas por mesa
+#                 boletus_pair_two = DominoBoletusPairs(boletus_id=boletus_id, pairs_id=item_tab['lst_player'][1]['id'],
+#                                                       is_initiator=False)
+#                 one_boletus.boletus_pairs.append(boletus_pair_two)
+                
+#             created_boletus_position(one_boletus, lst_player=item_tab['lst_player'], db=db)
+                    
+#         db.add(one_boletus)        
+    
+#     db.commit()    
+    
+#     return True     

@@ -163,7 +163,7 @@ def created_automatic_lottery(tourney_id: str, modality:str, round_id: str, elo_
     for item_pos in lst_groups:
         position_number += 1
         create_one_scale(tourney_id, round_id, 1, position_number, item_pos, category_id, db=db)
-        db.commit()
+    db.commit()
     return position_number
 
 def get_lst_players(tourney_id: str, round_id: str, db: Session):  
