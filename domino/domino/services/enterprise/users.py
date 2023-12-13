@@ -35,40 +35,74 @@ from domino.services.enterprise.comunprofile import new_profile_default_user
 
 pwd_context = CryptContext(schemes=["bcrypt"], deprecated="auto")
 
-def password_check(passwd, min_len, max_len):
-      
-    RejectSym =['$', '@', '#', '%', '^']
-    AcceptSym = ['!', '*', '.', '+', '-', '_', '?', ';', ':', '&', '=']
-    
+def password_check(passwd, min_len, max_len, level):
     RespObj = {"success": True, "message": "Contraseña correcta"}
-      
-    if len(passwd) < min_len:
-        RespObj["success"] = False
-        RespObj["message"] = "La contraseña no debe tener menos de " + str(min_len) + " carácteres"
-          
-    if len(passwd) > max_len:
-        RespObj["success"] = False
-        RespObj["message"] = "La contraseña no debe exceder los " + str(max_len) + " carácteres"
-          
-    if not any(char.isdigit() for char in passwd):
-        RespObj["success"] = False
-        RespObj["message"] = "La contraseña debe contar con al menos un Número"
-          
-    if not any(char.isupper() for char in passwd):
-        RespObj["success"] = False
-        RespObj["message"] = "La contraseña debe contar con al menos una Mayúscula"
-          
-    if not any(char.islower() for char in passwd):
-        RespObj["success"] = False
-        RespObj["message"] = "La contraseña debe contar con al menos una Minúscula"
 
-    if not any(char in AcceptSym for char in passwd):
-        RespObj["success"] = False
-        RespObj["message"] = "La contraseña debe contener al menos un carácter especial"
-        
-    if any(char in RejectSym for char in passwd):
-        RespObj["success"] = False
-        RespObj["message"] = "La contraseña contiene carácteres no permitidos"
+    if level > 0:
+      
+        RejectSym =['$', '@', '#', '%', '^']
+        AcceptSym = ['!', '*', '.', '+', '-', '_', '?', ';', ':', '&', '=']
+
+        if level == 1:
+            if len(passwd) < min_len:
+                RespObj["success"] = False
+                RespObj["message"] = "La contraseña no debe tener menos de " + str(min_len) + " carácteres"
+                
+            if len(passwd) > max_len:
+                RespObj["success"] = False
+                RespObj["message"] = "La contraseña no debe exceder los " + str(max_len) + " carácteres"
+
+        if level == 2:
+            if len(passwd) < min_len:
+                RespObj["success"] = False
+                RespObj["message"] = "La contraseña no debe tener menos de " + str(min_len) + " carácteres"
+                
+            if len(passwd) > max_len:
+                RespObj["success"] = False
+                RespObj["message"] = "La contraseña no debe exceder los " + str(max_len) + " carácteres"
+
+            if not any(char.isdigit() for char in passwd):
+                RespObj["success"] = False
+                RespObj["message"] = "La contraseña debe contar con al menos un Número"
+                
+            if not any(char.isupper() for char in passwd):
+                RespObj["success"] = False
+                RespObj["message"] = "La contraseña debe contar con al menos una Mayúscula"
+                
+            if not any(char.islower() for char in passwd):
+                RespObj["success"] = False
+                RespObj["message"] = "La contraseña debe contar con al menos una Minúscula"
+
+
+        if level == 3:
+            if len(passwd) < min_len:
+                RespObj["success"] = False
+                RespObj["message"] = "La contraseña no debe tener menos de " + str(min_len) + " carácteres"
+                
+            if len(passwd) > max_len:
+                RespObj["success"] = False
+                RespObj["message"] = "La contraseña no debe exceder los " + str(max_len) + " carácteres"
+
+            if not any(char.isdigit() for char in passwd):
+                RespObj["success"] = False
+                RespObj["message"] = "La contraseña debe contar con al menos un Número"
+                
+            if not any(char.isupper() for char in passwd):
+                RespObj["success"] = False
+                RespObj["message"] = "La contraseña debe contar con al menos una Mayúscula"
+                
+            if not any(char.islower() for char in passwd):
+                RespObj["success"] = False
+                RespObj["message"] = "La contraseña debe contar con al menos una Minúscula"
+
+
+            if not any(char in AcceptSym for char in passwd):
+                RespObj["success"] = False
+                RespObj["message"] = "La contraseña debe contener al menos un carácter especial"
+                
+            if any(char in RejectSym for char in passwd):
+                RespObj["success"] = False
+                RespObj["message"] = "La contraseña contiene carácteres no permitidos"
 
     return RespObj
 
@@ -136,9 +170,11 @@ def new(request: Request, db: Session, user: UserCreate):
     if amount_user > 0:
         raise HTTPException(status_code=404, detail=_(locale, "users.already_exist"))  
     
-    pass_check = password_check(user.password, 8, 15)   
+    
+    pass_check = password_check(user.password, settings.pwd_length_min, settings.pwd_length_max, settings.pwd_level)   
     if not pass_check['success']:
         raise HTTPException(status_code=404, detail=_(locale, "users.data_error") + pass_check['message'])             
+
     
     one_country = country_get_one(user.country_id, db=db)
     if not one_country:

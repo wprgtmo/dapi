@@ -16,6 +16,11 @@ class Settings(BaseSettings):
           
     log_format_dev: str
     log_format_prod: str   
+    
+    strong_password: str
+    pwd_length_min=int
+    pwd_length_max=int
+    pwd_level=int
 
     @property
     def log_level(self):
