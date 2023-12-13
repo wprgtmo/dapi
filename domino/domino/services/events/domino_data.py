@@ -33,6 +33,7 @@ def get_all_data_by_boletus(request:Request, page: int, per_page: int, round_id:
                    'pair_two' : {'pairs_id': '556677', 'name': 'Jorge - Joaquin', 'total_point': '202'},
                    'lst_data': lst_data}
     
+    
     result.data = dict_result
     
     return result
