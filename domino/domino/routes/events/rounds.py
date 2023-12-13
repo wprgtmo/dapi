@@ -5,14 +5,14 @@ from typing import List, Dict
 from starlette import status
 from domino.auth_bearer import JWTBearer
 
-from domino.schemas.events.tourney import TourneyBase, TourneyCreated, SettingTourneyCreated
 from domino.schemas.resources.result_object import ResultObject
+from domino.schemas.events.domino_data import DominoDataCreated
 
 from domino.services.events.domino_round import get_all, get_one_by_id, start_one_round
     
 from domino.services.events.domino_scale import get_all_players_by_tables, get_all_players_by_tables_and_round, \
     get_all_scale_by_round, get_all_tables_by_round
-from domino.services.events.domino_data import get_all_data_by_boletus
+from domino.services.events.domino_data import get_all_data_by_boletus, new_data
   
 rounds_route = APIRouter(
     tags=["Rounds"],
@@ -92,3 +92,7 @@ def get_tables(request: Request, id: str, page: int = 1, per_page: int = 6, db: 
 @rounds_route.get("/rounds/boletus/data/{id}", response_model=Dict, summary="Obtain a all datas of one boletus")
 def get_tables(request: Request, id: str, page: int = 1, per_page: int = 6, db: Session = Depends(get_db)):
     return get_all_data_by_boletus(request=request, round_id=id, page=page, per_page=per_page, db=db)
+
+@rounds_route.post("/rounds/boletus/data/{id}", response_model=ResultObject, summary="Insert Info of data")
+def insert_data(request: Request, id: str, dominodata: DominoDataCreated, db: Session = Depends(get_db)):
+    return new_data(request=request, boletus_id=id, dominodata=dominodata, db=db)
