@@ -21,6 +21,7 @@ class DominoBoletus(Base):
     round_id = Column(String, ForeignKey("events.domino_rounds.id"), nullable=False)
     table_id = Column(String, ForeignKey("events.domino_tables.id"), nullable=False)
     is_valid = Column(Boolean, nullable=False, default=True)
+    status_id  = Column(Integer, ForeignKey("resources.entities_status.id"), nullable=False)
     
     boletus_position = relationship("DominoBoletusPosition")
     boletus_pairs = relationship("DominoBoletusPairs")
@@ -48,7 +49,8 @@ class DominoBoletusPairs(Base):
     pairs_id = Column(String, ForeignKey("events.domino_rounds_pairs.id"), primary_key=True)
     is_initiator = Column(Boolean, nullable=False, default=False)
     is_winner = Column(Boolean, nullable=False, default=False)
-    number_points = Column(Integer)
+    positive_points = Column(Integer)
+    negative_points = Column(Integer)
     start_date =  Column(DateTime, nullable=False, default=datetime.now())
     end_date =  Column(DateTime, nullable=False, default=datetime.now())
     duration = Column(Float)  # tiempo en minutos,, despues tengo que ver el tipo  de datos
@@ -59,7 +61,8 @@ class DominoBoletusPairs(Base):
             "pairs_id": self.pairs_id,
             "is_initiator": self.is_initiator,
             "is_winner": self.is_winner,
-            "number_points": self.number_points,
+            "positive_points": self.positive_points,
+            "negative_points": self.negative_points,
             "duration": self.duration,
             }
                

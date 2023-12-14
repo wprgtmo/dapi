@@ -167,15 +167,15 @@ def created_boletus_for_round(tourney_id, round_id, db:Session):
             dict_tables['lst_player'].append(lst_pairs[j])
         lst_dist_tables.append(dict_tables)
 
+    one_status_init = get_one_status_by_name('INITIADED', db=db)
+    
     # Por cada mesa, ubicar los jugadores
     for item_tab in lst_dist_tables:
         boletus_id = str(uuid.uuid4())
         one_boletus = DominoBoletus(id=boletus_id, tourney_id=tourney_id, round_id=round_id, table_id=item_tab['table_id'],
                                     is_valid=True)
+        one_boletus.status_id = one_status_init.id
         
-        one_data = DominoBoletusData(id=str(uuid.uuid4()), boletus_id=boletus_id, data_number=1)
-        one_boletus.boletus_data.append(one_data)
-    
         if item_tab['lst_player']:
             boletus_pair_one = DominoBoletusPairs(boletus_id=boletus_id, pairs_id=item_tab['lst_player'][0]['id'], is_initiator=True)
             one_boletus.boletus_pairs.append(boletus_pair_one)

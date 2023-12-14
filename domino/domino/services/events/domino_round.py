@@ -332,18 +332,11 @@ def create_pair_for_profile_single(tourney_id: str, round_id: str, db: Session, 
         "Where rsca.tourney_id = '" + tourney_id + "' AND rsca.round_id = '" + round_id + "' order by rsca.position_number ASC "
     
     lst_pair = db.execute(str_user)
-    print('la consulta')
-    print(str_user)
-    print('************')
-    
     lst_all_pair = []
     for item in lst_pair:
         lst_all_pair.append({'name': item.name, 'player_id': item.player_id, 
                              'profile_id': item.profile_id, 'scale_number': item.position_number})
     
-    print('lst_all_pair')
-    print(lst_all_pair)
-    print('*************')
     lst_par, lst_impar, pos = [], [], 0
     for i in lst_all_pair:   
         if  pos % 2 == 0:
@@ -352,24 +345,10 @@ def create_pair_for_profile_single(tourney_id: str, round_id: str, db: Session, 
             lst_impar.append(lst_all_pair[pos])
         pos+=1 
     
-    print('dos arreglos')
-    print('pares')
-    print(lst_par)    
-    print('****************')
-    print('impares')
-    print(lst_impar) 
     amount_pair_div = divmod(len(lst_all_pair),2)
     position_number=0
     
-    print('amount_pair_div')
-    print(amount_pair_div)
-    print('*************')
-    
     for num in range(0, amount_pair_div[0]-1, 2):
-        print('numeros')
-        print(num)
-        print('***************')
-        
         position_number+=1
         name = lst_par[num]['name'] + " - " + lst_par[num+1]['name']
         created_one_pair(tourney_id, round_id, lst_par[num]['profile_id'], lst_par[num+1]['profile_id'], name, 

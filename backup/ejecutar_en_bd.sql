@@ -1,12 +1,19 @@
-ALTER TABLE IF EXISTS events.domino_rounds_scale
-    ADD COLUMN category_id character varying;
+ALTER TABLE IF EXISTS events.domino_boletus
+    ADD COLUMN status_id integer;
+ALTER TABLE IF EXISTS events.domino_boletus
+    ADD CONSTRAINT dfomino_boletus_status_id_fkey FOREIGN KEY (status_id)
+    REFERENCES resources.entities_status (id) MATCH SIMPLE
+    ON UPDATE NO ACTION
+    ON DELETE NO ACTION
+    NOT VALID;
 
+ALTER TABLE IF EXISTS events.domino_boletus_pairs
+    RENAME number_points TO positive_points;
 
-DELETE from events.domino_rounds_scale;
-DELETE FROM events.domino_rounds;
-DELETE FROM events.domino_tables_files;
-DELETE FROM events.domino_tables
-DELETE FROM events.setting_tourney
+ALTER TABLE IF EXISTS events.domino_boletus_pairs
+    ADD COLUMN negative_points integer;
+
+    
     
     
 

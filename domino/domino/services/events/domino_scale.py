@@ -331,81 +331,124 @@ def get_all_tables_by_round(request:Request, page: int, per_page: int, round_id:
     
     locale = request.headers["accept-language"].split(",")[0].split("-")[0];
     
+    api_uri = str(settings.api_uri)
+    
     result = ResultObject() 
     
+    str_from = "FROM events.domino_boletus dbol join events.domino_rounds dron ON dron.id = dbol.round_id " +\
+        "join events.domino_tables dtable ON dtable.id = dbol.table_id " +\
+        "Where dbol.round_id = '" + round_id + "' "
+        
+    str_count = "Select count(*) " + str_from
+    str_query = "Select dron.round_number, dtable.table_number, dtable.is_smart, dbol.id as boletus_id, " +\
+        "dbol.status_id " + str_from 
+        
+    if page and page > 0 and not per_page:
+        raise HTTPException(status_code=404, detail=_(locale, "commun.invalid_param"))
+    
+    result = get_result_count(page=page, per_page=per_page, str_count=str_count, db=db)
+    
+    str_query += " ORDER BY dtable.table_number ASC " 
+    if page != 0:
+        str_query += "LIMIT " + str(per_page) + " OFFSET " + str(page*per_page-per_page)
+    
+    lst_data_exec = db.execute(str_query)
+    
     lst_data = []
+    one_status_init = get_one_status_by_name('INITIADED', db=db)
+    
+    for item in lst_data_exec:
+        status_id = '1' if item.status_id == one_status_init.id else 0
+        lst_data.append({'round_number': item.round_number, 'table_number':item.table_number, 
+                         'table_type': 'Inteligente' if item.is_smart else 'Tradicional',
+                         'boletus_id': item.boletus_id, 'status': status_id, 
+                         'status_partida': 'Partido Terminado' if status_id == '1' else 'Partido Jugando',
+                         'pair_one' : {'name': 'Juan - Pepe', 'player_one': 'Juan', 'player_two': 'Pepe',
+                                   'avatar_one': 'jug 1', 'avatar_two': 'jug 2',
+                                   'elo_one': '1600.00', 'elo_two': '1700.00',
+                                   'positive_point': '60', 'negative_point': '200', 'difference_point': '-140',
+                                   'is_winner': False},
+                         'pair_two' : {'name': 'Jorge - Joaquin', 'player_one': 'Jorge', 'player_two': 'Joaquin',
+                                    'avatar_one': 'jug 1', 'avatar_two': 'jug 2',
+                                    'elo_one': '1800.00', 'elo_two': '1700.00',
+                                    'positive_point': '200', 'negative_point': '60', 'difference_point': '140',
+                                    'is_winner': True}})
+        
+    # result.data = [create_dict_row(item) for item in lst_data]
+    
+    
+    
     # si el partido no ha terminado is_winner, los dos vienen en falso
     
-    lst_data.append({'round_number': '1', 'table_number': '1', 'table_type': 'Tradicional', 'boletus_id': 'ytytytyyt',
-                     'status': '1', 'status_partida': 'Partido Terminado',
-                     'pair_one' : {'name': 'Juan - Pepe', 'player_one': 'Juan', 'player_two': 'Pepe',
-                                   'avatar_one': 'jug 1', 'avatar_two': 'jug 2',
-                                   'elo_one': '1600.00', 'elo_two': '1700.00',
-                                   'positive_point': '60', 'negative_point': '200', 'difference_point': '-140',
-                                   'is_winner': False},
-                     'pair_two' : {'name': 'Jorge - Joaquin', 'player_one': 'Jorge', 'player_two': 'Joaquin',
-                                   'avatar_one': 'jug 1', 'avatar_two': 'jug 2',
-                                   'elo_one': '1800.00', 'elo_two': '1700.00',
-                                   'positive_point': '200', 'negative_point': '60', 'difference_point': '140',
-                                   'is_winner': True}})
-    lst_data.append({'round_number': '1', 'table_number': '2', 'table_type': 'Inteligente', 'boletus_id': 'ytytytyy3434t',
-                     'status': '0', 'status_partida': 'Partido Jugando',
-                     'pair_one' : {'name': 'Perico - Julio', 'player_one': 'Perico', 'player_two': 'Julio',
-                                   'avatar_one': 'jug 1', 'avatar_two': 'jug 2',
-                                   'elo_one': '1600.00', 'elo_two': '1700.00',
-                                   'positive_point': '60', 'negative_point': '0', 'difference_point': '60',
-                                   'is_winner': False},
-                     'pair_two' : {'name': 'Carlos - Pedro', 'player_one': 'Carlos', 'player_two': 'Pedro',
-                                   'avatar_one': 'jug 1', 'avatar_two': 'jug 2',
-                                   'elo_one': '1800.00', 'elo_two': '1700.00',
-                                   'positive_point': '0', 'negative_point': '60', 'difference_point': '-60',
-                                   'is_winner': False}})
-    lst_data.append({'round_number': '1', 'table_number': '3', 'table_type': 'Tradicional', 'boletus_id': 'ytytytyereryt',
-                     'status': '1', 'status_partida': 'Partido Terminado',
-                     'pair_one' : {'name': 'Juanito - Pepito', 'player_one': 'Juanito', 'player_two': 'Pepito',
-                                   'avatar_one': 'jug 1', 'avatar_two': 'jug 2',
-                                   'elo_one': '1600.00', 'elo_two': '1700.00',
-                                   'positive_point': '60', 'negative_point': '200', 'difference_point': '-140',
-                                   'is_winner': False},
-                     'pair_two' : {'name': 'Jorgito - Luis', 'player_one': 'Jorgito', 'player_two': 'Luis',
-                                   'avatar_one': 'jug 1', 'avatar_two': 'jug 2',
-                                   'elo_one': '1800.00', 'elo_two': '1700.00',
-                                   'positive_point': '200', 'negative_point': '60', 'difference_point': '140',
-                                   'is_winner': True}})
+    # lst_data.append({'round_number': '1', 'table_number': '1', 'table_type': 'Tradicional', 'boletus_id': 'ytytytyyt',
+    #                  'status': '1', 'status_partida': 'Partido Terminado',
+    #                  'pair_one' : {'name': 'Juan - Pepe', 'player_one': 'Juan', 'player_two': 'Pepe',
+    #                                'avatar_one': 'jug 1', 'avatar_two': 'jug 2',
+    #                                'elo_one': '1600.00', 'elo_two': '1700.00',
+    #                                'positive_point': '60', 'negative_point': '200', 'difference_point': '-140',
+    #                                'is_winner': False},
+    #                  'pair_two' : {'name': 'Jorge - Joaquin', 'player_one': 'Jorge', 'player_two': 'Joaquin',
+    #                                'avatar_one': 'jug 1', 'avatar_two': 'jug 2',
+    #                                'elo_one': '1800.00', 'elo_two': '1700.00',
+    #                                'positive_point': '200', 'negative_point': '60', 'difference_point': '140',
+    #                                'is_winner': True}})
+    # lst_data.append({'round_number': '1', 'table_number': '2', 'table_type': 'Inteligente', 'boletus_id': 'ytytytyy3434t',
+    #                  'status': '0', 'status_partida': 'Partido Jugando',
+    #                  'pair_one' : {'name': 'Perico - Julio', 'player_one': 'Perico', 'player_two': 'Julio',
+    #                                'avatar_one': 'jug 1', 'avatar_two': 'jug 2',
+    #                                'elo_one': '1600.00', 'elo_two': '1700.00',
+    #                                'positive_point': '60', 'negative_point': '0', 'difference_point': '60',
+    #                                'is_winner': False},
+    #                  'pair_two' : {'name': 'Carlos - Pedro', 'player_one': 'Carlos', 'player_two': 'Pedro',
+    #                                'avatar_one': 'jug 1', 'avatar_two': 'jug 2',
+    #                                'elo_one': '1800.00', 'elo_two': '1700.00',
+    #                                'positive_point': '0', 'negative_point': '60', 'difference_point': '-60',
+    #                                'is_winner': False}})
+    # lst_data.append({'round_number': '1', 'table_number': '3', 'table_type': 'Tradicional', 'boletus_id': 'ytytytyereryt',
+    #                  'status': '1', 'status_partida': 'Partido Terminado',
+    #                  'pair_one' : {'name': 'Juanito - Pepito', 'player_one': 'Juanito', 'player_two': 'Pepito',
+    #                                'avatar_one': 'jug 1', 'avatar_two': 'jug 2',
+    #                                'elo_one': '1600.00', 'elo_two': '1700.00',
+    #                                'positive_point': '60', 'negative_point': '200', 'difference_point': '-140',
+    #                                'is_winner': False},
+    #                  'pair_two' : {'name': 'Jorgito - Luis', 'player_one': 'Jorgito', 'player_two': 'Luis',
+    #                                'avatar_one': 'jug 1', 'avatar_two': 'jug 2',
+    #                                'elo_one': '1800.00', 'elo_two': '1700.00',
+    #                                'positive_point': '200', 'negative_point': '60', 'difference_point': '140',
+    #                                'is_winner': True}})
     
     
     result.data = lst_data
     
     return result
 
-    api_uri = str(settings.api_uri)
+def get_info_of_boletus_pair(pair_id: str, db: Session):
     
+    dict_result = {'round_number': '', 'table_number': '', 
+                   'pair_one' : {'pairs_id': '', 'name': '', 'total_point': 0},
+                   'pair_two' : {'pairs_id': '', 'name': '', 'total_point': 0}}
     
-    str_from = "FROM events.domino_rounds_scale rsca " +\
-        "JOIN events.players players ON players.id = rsca.player_id " +\
-        "JOIN enterprise.profile_member mmb ON players.profile_id = mmb.id " +\
-        "left join resources.city ON city.id = mmb.city_id " +\
-        "left join resources.country ON country.id = city.country_id " 
-    
-    str_count = "Select count(*) " + str_from
-    str_query = "SELECT players.id player_id, mmb.id profile_id, mmb.name profile_name, mmb.photo, rsca.position_number, " +\
-        "city.name as city_name, country.name as country_name, rsca.elo, rsca.elo_variable, rsca.games_played, " +\
-        "rsca.games_won, rsca.games_lost, rsca.points_positive, rsca.points_negative, rsca.points_difference " + str_from
+    str_query = "Select dron.round_number, dtable.table_number, pairs_id, positive_points, duration, dpair.name " +\
+        "from events.domino_boletus_pairs dbpair " +\
+        "join events.domino_boletus dbol ON dbol.id = dbpair.boletus_id " +\
+        "join events.domino_rounds dron ON dron.id = dbol.round_id " +\
+        "join events.domino_tables dtable ON dtable.id = dbol.table_id " +\
+        "join events.domino_rounds_pairs dpair ON dpair.id = dbpair.pairs_id " +\
+        "where boletus_id = '" + boletus_id + "' "
         
-    str_where = "WHERE rsca.is_active is True AND rsca.round_id = '" + round_id + "' "
-        
-    str_count += str_where
-    str_query += str_where + " ORDER BY rsca.position_number "
-
-    if page and page > 0 and not per_page:
-        raise HTTPException(status_code=404, detail=_(locale, "commun.invalid_param"))
+    lst_data_exec = db.execute(str_query)
+    pair_number = 1
+    for item in lst_data_exec:
+        dict_result['round_number'] = item.round_number
+        dict_result['table_number'] = item.table_number
+        if pair_number == 1:
+            dict_result['pair_one']['pairs_id'] = item.pairs_id
+            dict_result['pair_one']['name'] = item.name
+            dict_result['pair_one']['total_point'] = int(item.positive_points)
+            pair_number += 1
+        else:
+            dict_result['pair_two']['pairs_id'] = item.pairs_id
+            dict_result['pair_two']['name'] = item.name
+            dict_result['pair_two']['total_point'] = int(item.positive_points)
     
-    result = get_result_count(page=page, per_page=per_page, str_count=str_count, db=db)
-    
-    if page != 0:
-        str_query += "LIMIT " + str(per_page) + " OFFSET " + str(page*per_page-per_page)
-    
-    lst_data = db.execute(str_query)
-    result.data = [create_dict_row_scale(item, db=db, api_uri=api_uri) for item in lst_data]
-    
-    return result
+    return dict_result
