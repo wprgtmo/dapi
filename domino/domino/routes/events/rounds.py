@@ -87,7 +87,7 @@ def start_round(request:Request, tourney_id: str, db: Session = Depends(get_db))
 
 @rounds_route.get("/rounds/boletus/all/{id}", response_model=Dict, summary="Obtain a list of Tables at Rounds.")
 def get_tables(request: Request, id: str, page: int = 1, per_page: int = 6, db: Session = Depends(get_db)):
-    return get_all_tables_by_round(request=request, round_id=id, page=page, per_page=per_page, db=db)
+    return get_all_tables_by_round(request=request, round_id='0e0fbe17-b8e9-4f62-9cde-65a6c9671c3f', page=1, per_page=12, db=db)
 
 @rounds_route.get("/rounds/boletus/data/{id}", response_model=Dict, summary="Obtain a all datas of one boletus")
 def get_tables(request: Request, id: str, page: int = 1, per_page: int = 6, db: Session = Depends(get_db)):

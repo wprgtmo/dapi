@@ -342,7 +342,7 @@ def get_all_tables_by_round(request:Request, page: int, per_page: int, round_id:
     str_count = "Select count(*) " + str_from
     str_query = "Select dron.round_number, dtable.table_number, dtable.is_smart, dbol.id as boletus_id, " +\
         "dbol.status_id " + str_from 
-        
+    
     if page and page > 0 and not per_page:
         raise HTTPException(status_code=404, detail=_(locale, "commun.invalid_param"))
     
@@ -374,12 +374,8 @@ def get_all_tables_by_round(request:Request, page: int, per_page: int, round_id:
                                     'positive_point': '200', 'negative_point': '60', 'difference_point': '140',
                                     'is_winner': True}})
         
-    # result.data = [create_dict_row(item) for item in lst_data]
-    
-    
     
     # si el partido no ha terminado is_winner, los dos vienen en falso
-    
     # lst_data.append({'round_number': '1', 'table_number': '1', 'table_type': 'Tradicional', 'boletus_id': 'ytytytyyt',
     #                  'status': '1', 'status_partida': 'Partido Terminado',
     #                  'pair_one' : {'name': 'Juan - Pepe', 'player_one': 'Juan', 'player_two': 'Pepe',
@@ -419,7 +415,6 @@ def get_all_tables_by_round(request:Request, page: int, per_page: int, round_id:
     
     
     result.data = lst_data
-    
     return result
 
 def get_info_of_boletus_pair(pair_id: str, db: Session):
