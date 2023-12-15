@@ -358,7 +358,11 @@ def get_all_tables_by_round(request:Request, page: int, per_page: int, round_id:
     one_status_init = get_one_status_by_name('INITIADED', db=db)
     
     for item in lst_data_exec:
-        status_id = '1' if item.status_id == one_status_init.id else 0
+        if not item.status_id:
+            status_id = '0'
+        else:
+            status_id = '0' if item.status_id == one_status_init.id else 1
+            
         lst_data.append({'round_number': item.round_number, 'table_number':item.table_number, 
                          'table_type': 'Inteligente' if item.is_smart else 'Tradicional',
                          'boletus_id': item.boletus_id, 'status': status_id, 
