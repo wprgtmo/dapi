@@ -331,9 +331,9 @@ def get_all_tables_by_round(request:Request, page: int, per_page: int, round_id:
     
     locale = request.headers["accept-language"].split(",")[0].split("-")[0];
     
-    api_uri = str(settings.api_uri)
-    
     result = ResultObject() 
+    
+    api_uri = str(settings.api_uri) 
     
     str_from = "FROM events.domino_boletus dbol join events.domino_rounds dron ON dron.id = dbol.round_id " +\
         "join events.domino_tables dtable ON dtable.id = dbol.table_id " +\
@@ -360,20 +360,20 @@ def get_all_tables_by_round(request:Request, page: int, per_page: int, round_id:
     for item in lst_data_exec:
         status_id = '0' if not item.status_id else '0' if item.status_id == one_status_init.id else 1
         
-        dict_inf_pair = get_info_of_boletus_pair(item.boletus_id, db=db)
+        dict_inf_pair = get_info_of_boletus_pair(item.boletus_id, api_uri=api_uri, db=db)
         dict_inf_pair['round_number'] = item.round_number
         dict_inf_pair['table_number'] = item.table_number
         dict_inf_pair['table_type'] = 'Inteligente' if item.is_smart else 'Tradicional'
         dict_inf_pair['boletus_id'] = item.boletus_id
         dict_inf_pair['status'] = status_id
         dict_inf_pair['status_partida'] = 'Partido Terminado' if status_id == '1' else 'Partido Jugando'
-        
         lst_data.append(dict_inf_pair)
     
     result.data = lst_data
+    # print(lst_data)
     return result
 
-def get_info_of_boletus_pair(boletus_id: str, db: Session):
+def get_info_of_boletus_pair(boletus_id: str, api_uri: str, db: Session):
     
     dict_result = {'pair_one' : {'name': '', 'player_one': '', 'player_two': '', 
                                  'avatar_one': '', 'avatar_two': '', 'elo_one': '', 'elo_two': '',
@@ -385,7 +385,8 @@ def get_info_of_boletus_pair(boletus_id: str, db: Session):
                                  'is_winner': False}}
     
     str_query = "Select dpair.name, pairs_id, dbpair.positive_points, dbpair.negative_points, " +\
-        "dbpair.is_winner, sca_one.elo elo_one, sca_two.elo elo_two, pmone.name name_one, pmtwo.name name_two " +\
+        "dbpair.is_winner, sca_one.elo elo_one, sca_two.elo elo_two, pmone.name name_one, pmtwo.name name_two, " +\
+        "pmone.photo photo_one, pmtwo.photo photo_two, pmone.id profile_id_one, pmtwo.id profile_id_two " +\
         "from events.domino_boletus_pairs dbpair " +\
         "join events.domino_boletus dbol ON dbol.id = dbpair.boletus_id " +\
         "join events.domino_rounds_pairs dpair ON dpair.id = dbpair.pairs_id " +\
@@ -399,12 +400,11 @@ def get_info_of_boletus_pair(boletus_id: str, db: Session):
     pair_number = 1
     for item in lst_data_exec:
         name_key = 'pair_one' if pair_number == 1 else 'pair_two'
-        # if pair_number == 1:
         dict_result[name_key]['name'] = item.name
         dict_result[name_key]['player_one'] = item.name_one
         dict_result[name_key]['player_two'] = item.name_two
-        dict_result[name_key]['avatar_one'] = item.name
-        dict_result[name_key]['avatar_two'] = item.name
+        dict_result[name_key]['avatar_one'] = get_url_avatar(item.profile_id_one, item.photo_one, api_uri=api_uri)
+        dict_result[name_key]['avatar_two'] = get_url_avatar(item.profile_id_two, item.photo_two, api_uri=api_uri)
         dict_result[name_key]['elo_one'] = item.elo_one
         dict_result[name_key]['elo_two'] = item.elo_two
         dict_result[name_key]['positive_point'] = int(item.positive_points) if item.positive_points else 0
@@ -412,17 +412,5 @@ def get_info_of_boletus_pair(boletus_id: str, db: Session):
         dict_result[name_key]['difference_point'] = dict_result['pair_one']['positive_point'] - dict_result['pair_one']['negative_point']
         dict_result[name_key]['is_winner'] = item.is_winner
         pair_number += 1
-        # else:
-        #     dict_result['pair_two']['name'] = item.name
-        #     dict_result['pair_two']['player_one'] = item.name_one
-        #     dict_result['pair_two']['player_two'] = item.name_two
-        #     dict_result['pair_two']['avatar_one'] = item.name
-        #     dict_result['pair_two']['avatar_two'] = item.name
-        #     dict_result['pair_two']['elo_one'] = item.elo_one
-        #     dict_result['pair_two']['elo_two'] = item.elo_two
-        #     dict_result['pair_two']['positive_point'] = int(item.positive_points) if item.positive_points else 0
-        #     dict_result['pair_two']['negative_point'] = int(item.negative_points) if item.negative_points else 0
-        #     dict_result['pair_two']['difference_point'] = dict_result['pair_one']['positive_point'] - dict_result['pair_one']['negative_point']
-        #     dict_result['pair_two']['is_winner'] = item.is_winner
-    
+        
     return dict_result
