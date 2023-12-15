@@ -92,12 +92,12 @@ def get_info_of_boletus(boletus_id: str, db: Session):
         if pair_number == 1:
             dict_result['pair_one']['pairs_id'] = item.pairs_id
             dict_result['pair_one']['name'] = item.name
-            dict_result['pair_one']['total_point'] = int(item.positive_points)
+            dict_result['pair_one']['total_point'] = int(item.positive_points) if item.positive_points else 0
             pair_number += 1
         else:
             dict_result['pair_two']['pairs_id'] = item.pairs_id
             dict_result['pair_two']['name'] = item.name
-            dict_result['pair_two']['total_point'] = int(item.positive_points)
+            dict_result['pair_two']['total_point'] = int(item.positive_points) if item.positive_points else 0
     
     return dict_result
 
