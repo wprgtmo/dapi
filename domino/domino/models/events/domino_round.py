@@ -97,6 +97,8 @@ class DominoRoundsPairs(Base):
     is_active = Column(Boolean, nullable=False, default=True)
     scale_number_one_player = Column(Integer) 
     scale_number_two_player = Column(Integer) 
+    scale_id_one_player = Column(String) 
+    scale_id_two_player = Column(String) 
     
     def dict(self):
         return {
@@ -107,5 +109,7 @@ class DominoRoundsPairs(Base):
             "two_player_id": self.two_player_id,
             "name": self.name,
             "scale_number_one_player": self.scale_number_one_player,
-            "scale_number_two_player": self.scale_number_two_player
+            "scale_number_two_player": self.scale_number_two_player,
+            'scale_id_one_player': self.scale_id_one_player,
+            'scale_id_two_player': self.scale_id_two_player
         }

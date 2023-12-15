@@ -284,12 +284,14 @@ def create_pair_for_rounds(tourney_id: str, round_id: str, modality:str, db: Ses
 
 def created_one_pair(tourney_id:str, round_id:str, one_player_id:str, two_player_id:str, name:str, profile_type:str,
                      created_by:str, db: Session, position_number:int, scale_number_one_player:int, 
-                     scale_number_two_player:int, player_id:str=None):
+                     scale_number_two_player:int, scale_id_one_player:str, scale_id_two_player:str,
+                     player_id:str=None):
     
     one_pair = DominoRoundsPairs(id=str(uuid.uuid4()), tourney_id=tourney_id, round_id=round_id, one_player_id=one_player_id,
                                  two_player_id=two_player_id, name=name, profile_type=profile_type, player_id=player_id,
                                  position_number=position_number, 
                                  scale_number_one_player=scale_number_one_player, scale_number_two_player=scale_number_two_player,
+                                 scale_id_one_player=scale_id_one_player, scale_id_two_player=scale_id_two_player,
                                  created_by=created_by, updated_by=created_by, 
                                  created_date=datetime.today(), updated_date=datetime.today(), is_active=True)
     
@@ -324,7 +326,7 @@ def create_pair_for_profile_pair(tourney_id: str, round_id: str, db: Session, cr
 
 def create_pair_for_profile_single(tourney_id: str, round_id: str, db: Session, created_by: str):
     
-    str_user = "Select mmb.name, puse.single_profile_id as profile_id, rsca.player_id, rsca.position_number " +\
+    str_user = "Select mmb.name, puse.single_profile_id as profile_id, rsca.player_id, rsca.position_number, rsca.id " +\
         "from events.domino_rounds_scale rsca " +\
         "JOIN events.players play ON play.id = rsca.player_id " +\
         "JOIN enterprise.profile_member mmb ON play.profile_id = mmb.id " +\
@@ -335,7 +337,8 @@ def create_pair_for_profile_single(tourney_id: str, round_id: str, db: Session, 
     lst_all_pair = []
     for item in lst_pair:
         lst_all_pair.append({'name': item.name, 'player_id': item.player_id, 
-                             'profile_id': item.profile_id, 'scale_number': item.position_number})
+                             'profile_id': item.profile_id, 'scale_number': item.position_number,
+                             'scale_id': item.id})
     
     lst_par, lst_impar, pos = [], [], 0
     for i in lst_all_pair:   
@@ -354,20 +357,27 @@ def create_pair_for_profile_single(tourney_id: str, round_id: str, db: Session, 
         created_one_pair(tourney_id, round_id, lst_par[num]['profile_id'], lst_par[num+1]['profile_id'], name, 
                          'Individual', created_by=created_by, db=db, position_number=position_number, 
                          scale_number_one_player=lst_par[num]['scale_number'],
-                         scale_number_two_player=lst_par[num+1]['scale_number'], player_id=None)
+                         scale_number_two_player=lst_par[num+1]['scale_number'], 
+                         scale_id_one_player=lst_par[num]['scale_id'],
+                         scale_id_two_player=lst_par[num+1]['scale_id'],
+                         player_id=None)
         position_number+=1
         name = lst_impar[num]['name'] + " - " + lst_impar[num+1]['name']
         created_one_pair(tourney_id, round_id, lst_impar[num]['profile_id'], lst_impar[num+1]['profile_id'], name, 
                          'Individual', created_by=created_by, db=db, position_number=position_number, 
                          scale_number_one_player=lst_impar[num]['scale_number'],
-                         scale_number_two_player=lst_impar[num+1]['scale_number'], player_id=None)
+                         scale_number_two_player=lst_impar[num+1]['scale_number'], 
+                         scale_id_one_player=lst_impar[num]['scale_id'],
+                         scale_id_two_player=lst_impar[num+1]['scale_id'], 
+                         player_id=None)
 
     if  amount_pair_div[1] > 0:  # parejas impar  
         created_one_pair(tourney_id, round_id, lst_par[len(lst_par)-1]['profile_id'], None, 
                          lst_par[len(lst_par)-1]['name'], 'Individual', created_by=created_by, 
                          db=db, position_number=position_number+1, 
                          scale_number_one_player=lst_par[len(lst_par)-1]['scale_number'],
-                         scale_number_two_player=None, player_id=None) 
+                         scale_number_two_player=None, scale_id_one_player=lst_par[len(lst_par)-1]['scale_id'],
+                         scale_id_two_player=None, player_id=None) 
             
     return True
     

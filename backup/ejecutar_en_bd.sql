@@ -1,19 +1,7 @@
-ALTER TABLE IF EXISTS events.domino_boletus
-    ADD COLUMN status_id integer;
-ALTER TABLE IF EXISTS events.domino_boletus
-    ADD CONSTRAINT dfomino_boletus_status_id_fkey FOREIGN KEY (status_id)
-    REFERENCES resources.entities_status (id) MATCH SIMPLE
-    ON UPDATE NO ACTION
-    ON DELETE NO ACTION
-    NOT VALID;
-
-ALTER TABLE IF EXISTS events.domino_boletus_pairs
-    RENAME number_points TO positive_points;
-
-ALTER TABLE IF EXISTS events.domino_boletus_pairs
-    ADD COLUMN negative_points integer;
-
-    
+ALTER TABLE IF EXISTS events.domino_rounds_pairs
+    ADD COLUMN scale_id_one_player character varying;
+ALTER TABLE IF EXISTS events.domino_rounds_pairs
+    ADD COLUMN scale_id_two_player character varying;   
     
     
 

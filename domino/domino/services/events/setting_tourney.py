@@ -16,10 +16,8 @@ from domino.app import _
 from fastapi.responses import FileResponse
 from os import getcwd
 
-from domino.models.events.domino_round import DominoRounds, DominoRoundsPairs
 from domino.models.events.tourney import SettingTourney
 
-from domino.schemas.events.events import EventBase, EventSchema
 from domino.schemas.resources.result_object import ResultObject
 
 from domino.services.resources.status import get_one_by_name as get_one_status_by_name, get_one as get_one_status

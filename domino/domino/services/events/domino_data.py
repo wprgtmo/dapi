@@ -57,13 +57,6 @@ def get_all_data_by_boletus(request:Request, page: int, per_page: int, boletus_i
             
         lst_data.append({'number': item.data_number, 'pair_one': point_one, 'pair_two': point_two})
         
-    # lst_data = [{'number': '1', 'pair_one': 10, 'pair_two': 0}, {'number': '2', 'pair_one': 0, 'pair_two': 20},
-    #             {'number': '3', 'pair_one': 50, 'pair_two': 0}, {'number': '4', 'pair_one': 0, 'pair_two': 182}]
-                    
-    # dict_result = {'round_number': '1', 'table_number': '1', 
-    #                'pair_one' : {'pairs_id': '556666', 'name': 'Juan - Pepe', 'total_point': '60'},
-    #                'pair_two' : {'pairs_id': '556677', 'name': 'Jorge - Joaquin', 'total_point': '202'},
-    #                'lst_data': lst_data}
     dict_result['lst_data'] = lst_data
     
     result.data = dict_result
