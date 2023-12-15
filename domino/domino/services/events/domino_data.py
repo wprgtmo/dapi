@@ -31,10 +31,6 @@ def get_all_data_by_boletus(request:Request, page: int, per_page: int, boletus_i
     locale = request.headers["accept-language"].split(",")[0].split("-")[0];
     result = ResultObject() 
     
-    print('boleta')
-    print(boletus_id)
-    print('**********')
-    
     str_from = "FROM events.domino_boletus_data ddata where boletus_id = '" + boletus_id + "' "
     str_count = "Select count(*) " + str_from
     str_query = "Select ddata.data_number, win_pair_id, number_points, duration " + str_from 

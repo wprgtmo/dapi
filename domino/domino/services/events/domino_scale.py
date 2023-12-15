@@ -358,7 +358,7 @@ def get_all_tables_by_round(request:Request, page: int, per_page: int, round_id:
     one_status_init = get_one_status_by_name('INITIADED', db=db)
     
     for item in lst_data_exec:
-        status_id = '0' if not item.status_id else '0' if item.status_id == one_status_init.id else 1
+        status_id = '0' if not item.status_id else '0' if item.status_id == one_status_init.id else '1'
         
         dict_inf_pair = get_info_of_boletus_pair(item.boletus_id, api_uri=api_uri, db=db)
         dict_inf_pair['round_number'] = item.round_number
