@@ -40,7 +40,7 @@ def get_all_data_by_boletus(request:Request, page: int, per_page: int, boletus_i
     
     result = get_result_count(page=page, per_page=per_page, str_count=str_count, db=db)
     
-    str_query += " ORDER BY ddata.data_number DESC " 
+    str_query += " ORDER BY ddata.data_number ASC " 
     if page != 0:
         str_query += "LIMIT " + str(per_page) + " OFFSET " + str(page*per_page-per_page)
     
