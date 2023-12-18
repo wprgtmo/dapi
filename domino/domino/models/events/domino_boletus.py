@@ -27,6 +27,8 @@ class DominoBoletus(Base):
     boletus_pairs = relationship("DominoBoletusPairs")
     boletus_data = relationship('DominoBoletusData')
     
+    rounds = relationship('DominoRounds')
+    
     tourney = ("Tourney")
     
     def dict(self):

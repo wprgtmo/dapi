@@ -5,6 +5,7 @@ from datetime import date
 from sqlalchemy import Column, ForeignKey, Index, UniqueConstraint
 from sqlalchemy.sql.sqltypes import String, Integer, Date, Boolean, Text, DateTime, Float
 from ...config.db import Base
+from sqlalchemy.orm import relationship
 
 def generate_uuid():
     return str(uuid.uuid4())
@@ -27,6 +28,8 @@ class DominoRounds(Base):
     created_date = Column(Date, nullable=False, default=date.today())
     updated_by = Column(String, ForeignKey("enterprise.users.username"), nullable=True)
     updated_date = Column(Date, nullable=False, default=date.today())
+    
+    tourney = relationship('Tourney')
     
     idx_number_table = UniqueConstraint('tourney_id', 'round_number')
     

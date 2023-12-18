@@ -9,8 +9,7 @@ from domino.auth_bearer import JWTBearer
 from domino.services.enterprise.exampledata import insert_user_examples, insert_others_profiles, create_events, \
     create_tourneys, created_invitations_tourneys, accepted_invitations_tourneys, created_players, update_elo, \
     clear_all_bd
-  
-from domino.services.events.domino_round import configure_rounds
+
 from domino.services.events.domino_boletus import created_boletus_for_round
 
 exampledata_route = APIRouter(
@@ -53,10 +52,6 @@ def acepted_invitations_tourney_data(request:Request, tourney_name: str, db: Ses
 @exampledata_route.post("/exampledata/step_9_players", summary="Created Players")
 def insert_players_data(request:Request, tourney_name: str, db: Session = Depends(get_db)):
     return created_players(request, tourney_name=tourney_name, db=db)
-
-# @exampledata_route.post("/exampledata/step_10_scale", summary="Crear Parejas por Rondas a partir del sorteo")
-# def configure_pairs_rounds(request:Request, tourney_id:str, round_id:str, modality:str, db: Session = Depends(get_db)):
-#     return configure_rounds(tourney_id=tourney_id, round_id=round_id, modality=modality, db=db)
 
 @exampledata_route.post("/exampledata/step_11_players", summary="Crear Boletas y redsitribuir parejas por mesas")
 def configure_boletus(request:Request, tourney_id:str, round_id:str, db: Session = Depends(get_db)):

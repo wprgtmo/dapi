@@ -22,10 +22,8 @@ from domino.schemas.resources.result_object import ResultObject
 from domino.schemas.events.domino_data import DominoDataCreated
 
 from domino.services.events.domino_boletus import get_one as get_one_boletus
-from domino.services.events.domino_scale import update_info_pairs
+from domino.services.events.domino_scale import update_info_pairs, close_round_with_verify
 from domino.services.resources.status import get_one_by_name as get_one_status_by_name
-from domino.services.events.domino_round import close_round_with_verify
-
 from domino.services.resources.utils import get_result_count
 
 def get_all_data_by_boletus(request:Request, page: int, per_page: int, boletus_id: str, db: Session):  
@@ -138,7 +136,7 @@ def new_data(request: Request, boletus_id:str, dominodata: DominoDataCreated, db
         
     close_data = True if pair_win.positive_points >= number_points_to_win else False
     if close_data: 
-        if pair_win.positive_points > number_points_to_win:
+        if pair_win.positive_points >= number_points_to_win:
             pair_win.positive_points = number_points_to_win
             pair_win.negative_points = 0 if not pair_win.negative_points else pair_win.negative_points
             pair_win.is_winner = True
@@ -165,7 +163,7 @@ def new_data(request: Request, boletus_id:str, dominodata: DominoDataCreated, db
             raise HTTPException(status_code=404, detail=_(locale, "status.not_found"))
         one_boletus.status_id = one_status_end.id
         
-        close_round_with_verify(one_boletus.round_id, one_status_end, db=db)
+        close_round_with_verify(one_boletus.rounds, one_status_end, username=currentUser['username'], db=db)
         
     try:
         one_boletus.boletus_data.append(one_data)

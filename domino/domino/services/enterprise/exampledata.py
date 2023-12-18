@@ -40,7 +40,6 @@ from domino.services.events.invitations import generate_for_tourney, get_one_by_
 from domino.services.events.player import get_one_by_invitation_id as get_one_player_by_invitation_id
 
 from domino.services.events.domino_boletus import created_boletus_for_round
-from domino.services.events.domino_round import get_one as get_one_round, configure_rounds
 from domino.services.events.domino_scale import initial_scale_by_manual_lottery
 
 pwd_context = CryptContext(schemes=["bcrypt"], deprecated="auto")
@@ -868,24 +867,6 @@ def clear_all_bd(request:Request, db: Session):
 
 
 #endregion
-
-# def distribute_all_player(request:Request, tourney_id:str, round_id:str, db: Session):
-    
-#     # tourney_ind = get_tourney_by_name(tourney_name='Serie Nacional del Domino.Torneo Individual', db=db)
-#     # if not tourney_ind:
-#     #     return True
-    
-#     db_tourney = get_one_tourney(tourney_id, db=db)
-#     if not db_tourney:
-#         return True
-    
-#     round_initial = get_one_round(round_id, db=db)
-#     if not round_initial:
-#         return True
-    
-#     configure_rounds(db_tourney.id, round_initial.id, db_tourney.modality, db=db)
-    
-#     return True
     
 #llenado de las tablas a partir del fichero cvs
 

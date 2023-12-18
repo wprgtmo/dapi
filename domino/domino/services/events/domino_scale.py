@@ -29,21 +29,22 @@ from domino.services.enterprise.userprofile import get_one as get_one_profile
 from domino.services.enterprise.auth import get_url_avatar
 
 from domino.services.events.player import get_lst_id_player_by_elo
-from domino.services.events.domino_round import get_one as get_one_round, get_first_by_tourney, configure_rounds
+from domino.services.events.domino_round import get_one as get_one_round, get_first_by_tourney, configure_rounds, configure_new_rounds
 from domino.services.events.domino_boletus import created_boletus_for_round
 from domino.services.enterprise.auth import get_url_advertising
-
     
 def new_initial_manual_round(request: Request, tourney_id:str, dominoscale: list[DominoManualScaleCreated], db: Session):
     locale = request.headers["accept-language"].split(",")[0].split("-")[0];
     result = ResultObject() 
+    
+    currentUser = get_current_user(request) 
     
     round_id, modality = get_round_to_configure(locale, tourney_id, db=db)
     one_status_init = get_one_status_by_name('INITIADED', db=db)
     
     initial_scale_by_manual_lottery(tourney_id, round_id, dominoscale, modality, db=db)
     
-    configure_tables_by_round(tourney_id, round_id, modality, db=db)
+    configure_tables_by_round(tourney_id, round_id, modality, currentUser['username'], db=db)
     
     # cambiar estado del torneo a Iniciado
     str_update = "UPDATE events.tourney SET status_id=" + str(one_status_init.id) + " WHERE id = '" + tourney_id + "';"
@@ -53,12 +54,13 @@ def new_initial_manual_round(request: Request, tourney_id:str, dominoscale: list
     
     return result
 
-def configure_tables_by_round(tourney_id:str, round_id: str, modality:str, db: Session):
+def configure_tables_by_round(tourney_id:str, round_id: str, modality:str, created_by:str, db: Session, round_number:int=1):
     
-    update_elo_initial_scale(tourney_id, round_id, modality, db=db)
+    if round_number == 1:
+        update_elo_initial_scale(tourney_id, round_id, modality, db=db)
     
     #configurar parejas y rondas
-    configure_rounds(tourney_id=tourney_id, round_id=round_id, modality=modality, db=db)
+    configure_rounds(tourney_id=tourney_id, round_id=round_id, modality=modality, created_by=created_by, db=db)
     
     #ubicar por mesas las parejas
     created_boletus_for_round(tourney_id=tourney_id, round_id=round_id, db=db)
@@ -111,9 +113,11 @@ def update_elo_initial_scale(tourney_id: str, round_id: str, modality:str, db: S
         
     return True
 
-def create_one_scale(tourney_id: str, round_id: str, round_number, position_number: int, player_id: str, category_id:str, db: Session ):
+def create_one_scale(tourney_id: str, round_id: str, round_number, position_number: int, player_id: str, category_id:str, db: Session, 
+                     elo:float=None):
     one_scale = DominoRoundsScale(id=str(uuid.uuid4()), tourney_id=tourney_id, round_id=round_id, round_number=round_number, 
-                                  position_number=int(position_number), player_id=player_id, is_active=True, category_id=category_id)
+                                  position_number=int(position_number), player_id=player_id, is_active=True, category_id=category_id,
+                                  elo=elo)
     db.add(one_scale)
         
     return True
@@ -146,7 +150,7 @@ def configure_automatic_lottery(db_tourney, db_round, one_status_init, db: Sessi
         position_number=created_automatic_lottery(
             db_tourney.id, db_tourney.modality, db_round.id, item_cat.elo_min, item_cat.elo_max, position_number, item_cat.id, db=db)
         
-    configure_tables_by_round(db_tourney.id, db_round.id, db_tourney.modality, db=db)
+    configure_tables_by_round(db_tourney.id, db_round.id, db_tourney.modality, db_tourney.created_by, db=db)
     
     db_tourney.status_id = one_status_init.id
     db_tourney.event.status_id = one_status_init.id
@@ -165,6 +169,76 @@ def created_automatic_lottery(tourney_id: str, modality:str, round_id: str, elo_
         create_one_scale(tourney_id, round_id, 1, position_number, item_pos, category_id, db=db)
     db.commit()
     return position_number
+
+def configure_new_lottery_by_round(db_round, db_round_new, modality:str, db: Session):
+    
+    # buscar las categorias definidas. 
+    str_query = "SELECT * FROM events.domino_categories where tourney_id = '" + db_round.tourney_id + "' ORDER BY position_number"
+    lst_categories = db.execute(str_query).fetchall()
+    
+    position_number = 0
+    for item_cat in lst_categories:  
+        position_number=created_automatic_lottery_by_round_cat(
+            db_round.tourney_id, db_round.id, db_round_new.id, db_round_new.round_number, item_cat.id, position_number, db=db)
+        
+    configure_tables_by_round(db_round.tourney_id, db_round_new.id, modality, db_round.created_by, db=db)
+    
+    db.commit()
+    
+    return True
+
+def close_round_with_verify(db_round: str, status_end, username: str, db: Session):
+    
+    str_count = "SELECT count(id) FROM events.domino_boletus Where round_id = '" + db_round.id + "' AND status_id != " + str(status_end.id)
+    
+    # verificar si ya todas las boletas cerraron, debemos cerrar la ronda.
+    amount_boletus = db.execute(str_count).fetchone()[0]
+    if amount_boletus != 0:
+        return True
+    
+    db_round.close_date = datetime.now()
+    
+    last_number = db_round.round_number + 1
+    
+    # crear la nueva ronda
+    new_round = configure_new_rounds(db_round.tourney_id, 'Ronda Nro.' + str(last_number), db, created_by=username, round_number=last_number)
+    
+    configure_new_lottery_by_round(db_round, new_round, db_round.tourney.modality, db=db)
+    
+    db_round.status_id = status_end.id
+    if username:
+        db_round.updated_by = username
+    db_round.updated_date = datetime.now()
+    
+    db.add(db_round)
+    db.commit()
+    
+    return True
+
+def created_automatic_lottery_by_round_cat(tourney_id: str, round_id: str, new_round_id: str, new_round_number: int, category_id: str, 
+                                       position_number:int, db: Session):
+    
+    list_player, dict_player = get_lst_player_by_scale_category(round_id, category_id, db=db)
+    
+    lst_groups = sorted(list_player, key=lambda y:random.randint(0, len(list_player)))
+    for item_pos in lst_groups:
+        position_number += 1
+        create_one_scale(tourney_id, new_round_id, new_round_number, position_number, item_pos, category_id, db=db, elo=dict_player[item_pos])
+    db.commit()
+    return position_number
+
+def get_lst_player_by_scale_category(round_id: str, category_id: str, db: Session):  
+    
+    str_query = "SELECT player_id, elo_variable FROM events.domino_rounds_scale WHERE is_active = True " +\
+        "AND round_id = '" + round_id + "' AND category_id = '" + category_id + "' "
+    lst_data = db.execute(str_query)
+    dict_player = {}
+    lst_players = []
+    for item in lst_data:
+        lst_players.append(item.player_id)
+        dict_player[item.player_id] = item.elo_variable
+    
+    return lst_players, dict_player
 
 def get_lst_players(tourney_id: str, round_id: str, db: Session):  
     return db.query(DominoRoundsScale).filter(DominoRoundsScale.tourney_id == tourney_id).\
@@ -518,3 +592,16 @@ def calculate_elo(point: int, elo_actual: float):
     
     elo_actual = float(elo_actual) + point if elo_actual else point
     return elo_actual
+
+def get_values_elo_by_scale(round_id: str, db: Session):  
+    
+    str_query = "SELECT MAX(elo_variable) elo_max, MIN(elo_variable) elo_min " +\
+        "FROM events.domino_rounds_scale Where round_id = '" + round_id + "' "
+    
+    lst_data = db.execute(str_query)
+    elo_max, elo_min = float(0.00), float(0.00)
+    for item in lst_data:
+        elo_max = item.elo_max
+        elo_min = item.elo_min
+    
+    return elo_max, elo_min

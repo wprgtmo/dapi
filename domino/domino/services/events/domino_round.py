@@ -27,7 +27,6 @@ from domino.services.resources.utils import get_result_count, upfile, create_dir
 from domino.services.enterprise.users import get_one_by_username
 from domino.services.enterprise.userprofile import get_one as get_one_profile
 from domino.services.events.domino_boletus import created_boletus_for_round
-# from domino.services.events.tourney import get_one as get_one_tourney
                          
 def get_all(request:Request, tourney_id:str, page: int, per_page: int, criteria_key: str, criteria_value: str, db: Session):  
     locale = request.headers["accept-language"].split(",")[0].split("-")[0];
@@ -246,34 +245,9 @@ def close_round(request: Request, round_id: str, db: Session):
     
     return result
 
-def close_round_with_verify(round_id: str, status_end, db: Session):
-    
-    str_count = "SELECT count(id) FROM events.domino_boletus Where round_id = '" + round_id + "' AND status_id != " + str(status_end.id)
-    
-    # verificar si ya todas las boletas cerraron, debemos cerrar la ronda.
-    amount_boletus = db.execute(str_count).fetchone()[0]
-    if amount_boletus != 0:
-        return True
-    
-    db_round = get_one(round_id, db=db)
-    if not db_round:
-        return False 
-    
-    last_number = db_round.round_number + 1
-    # crear la nueva ronda
-    new_round = configure_new_rounds(db_round.tourney_id, 'Ronda Nro.' + str(last_number), db, created_by='', round_number=last_number)
-    
-    # crear la nueva escala
-    # distribuir los jugadores...
-       
-    
-    change_status_round(db_round, status_end, '', db=db)
-    
-    return True
-            
 def change_status_round(db_round, status, username, db: Session):
     
-    db_round.sttaus_id = status.id
+    db_round.status_id = status.id
     if username:
         db_round.updated_by = username
     db_round.updated_date = datetime.now()
@@ -410,15 +384,15 @@ def create_pair_for_profile_single(tourney_id: str, round_id: str, db: Session, 
             
     return True
     
-def configure_rounds(tourney_id: str, round_id: str, modality:str, db: Session):
+def configure_rounds(tourney_id: str, round_id: str, modality:str, created_by:str, db: Session):
 
     # si la modalidad es pareja, es vaciar la tabla del escalafón.
     # si es individual, aplico el algoritmo de distribuir por mesas...
     
     if modality == 'Parejas':
-        create_pair_for_profile_pair(tourney_id, round_id, db=db, created_by='miry')
+        create_pair_for_profile_pair(tourney_id, round_id, db=db, created_by=created_by)
     else:
-        create_pair_for_profile_single(tourney_id, round_id, db=db, created_by='miry')
+        create_pair_for_profile_single(tourney_id, round_id, db=db, created_by=created_by)
         
     db.commit()    
     
