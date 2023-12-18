@@ -133,18 +133,21 @@ def get_first_by_tourney(tourney_id: str, db: Session):
     
     return round_id[0]
 
-def configure_new_rounds(db_tourney, summary:str, db:Session, created_by:str):
-  
-    str_number = "SELECT round_number FROM events.domino_rounds where tourney_id = '" + db_tourney.id + "' " +\
-        "ORDER BY round_number DESC LIMIT 1; "
-    last_number = db.execute(str_number).fetchone()
+def configure_new_rounds(tourney_id, summary:str, db:Session, created_by:str, round_number=''):
+ 
+    if round_number:
+        real_round_number = round_number
+    else:
+        str_number = "SELECT round_number FROM events.domino_rounds where tourney_id = '" + tourney_id + "' " +\
+            "ORDER BY round_number DESC LIMIT 1; "
+        last_number = db.execute(str_number).fetchone()
     
-    round_number = 1 if not last_number else int(last_number[0]) + 1
+        real_round_number = 1 if not last_number else int(last_number[0]) + 1
     
     status_creat = get_one_status_by_name('CREATED', db=db)
     
     id = str(uuid.uuid4())
-    db_round = DominoRounds(id=id, tourney_id=db_tourney.id, round_number=round_number, summary=summary,
+    db_round = DominoRounds(id=id, tourney_id=tourney_id, round_number=real_round_number, summary=summary,
                             start_date=datetime.now(), close_date=datetime.now(), created_by=created_by, 
                             updated_by=created_by, created_date=datetime.now(), updated_date=datetime.now(),
                             status_id=status_creat.id)
@@ -242,11 +245,37 @@ def close_round(request: Request, round_id: str, db: Session):
     change_status_round(db_round, status_init, currentUser['username'], db=db)
     
     return result
+
+def close_round_with_verify(round_id: str, status_end, db: Session):
+    
+    str_count = "	SELECT count(id) FROM events.domino_boletus Where round_id = '" + round_id + "' AND status_id != " + status_end.id
+    
+    # verificar si ya todas las boletas cerraron, debemos cerrar la ronda.
+    amount_boletus = db.execute(str_count).fetchone()[0]
+    if amount_boletus != 0:
+        return True
+    
+    db_round = get_one(round_id, db=db)
+    if not db_round:
+        return False 
+    
+    last_number = db_round.round_number + 1
+    # crear la nueva ronda
+    new_round = configure_new_rounds(db_round.tourney_id, 'Ronda Nro.' + str(last_number), db, created_by='', round_number=last_number)
+    
+    # crear la nueva escala
+    # distribuir los jugadores...
+       
+    
+    change_status_round(db_round, status_end, '', db=db)
+    
+    return True
             
 def change_status_round(db_round, status, username, db: Session):
     
     db_round.sttaus_id = status.id
-    db_round.updated_by = username
+    if username:
+        db_round.updated_by = username
     db_round.updated_date = datetime.now()
             
     try:

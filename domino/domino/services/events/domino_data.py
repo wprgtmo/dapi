@@ -22,7 +22,9 @@ from domino.schemas.resources.result_object import ResultObject
 from domino.schemas.events.domino_data import DominoDataCreated
 
 from domino.services.events.domino_boletus import get_one as get_one_boletus
+from domino.services.events.domino_scale import update_info_pairs
 from domino.services.resources.status import get_one_by_name as get_one_status_by_name
+from domino.services.events.domino_round import close_round_with_verify
 
 from domino.services.resources.utils import get_result_count
 
@@ -140,9 +142,12 @@ def new_data(request: Request, boletus_id:str, dominodata: DominoDataCreated, db
             pair_win.positive_points = number_points_to_win
             pair_win.negative_points = 0 if not pair_win.negative_points else pair_win.negative_points
             pair_win.is_winner = True
+            
             if lost_pair: 
                 lost_pair.negative_points = number_points_to_win  
                 lost_pair.positive_points = 0 if not lost_pair.positive_points else lost_pair.positive_points  
+            
+            update_info_pairs(pair_win.pairs_id, lost_pair.pairs_id, dominodata.point, db=db)
             
     str_number = "SELECT data_number FROM events.domino_boletus_data where boletus_id = '" + boletus_id + "' " +\
         "ORDER BY data_number DESC LIMIT 1; "
@@ -160,8 +165,8 @@ def new_data(request: Request, boletus_id:str, dominodata: DominoDataCreated, db
             raise HTTPException(status_code=404, detail=_(locale, "status.not_found"))
         one_boletus.status_id = one_status_end.id
         
-        # verificar si ya todas las boletas cerraron, debemos cerrar la ronda.
-        # llenar los datos de los juegos ganados en la scala de la ronda
+        close_round_with_verify(one_boletus.round_id, one_status_end, db=db)
+        
     try:
         one_boletus.boletus_data.append(one_data)
         db.commit()            

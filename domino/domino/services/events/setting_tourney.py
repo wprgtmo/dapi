@@ -138,7 +138,7 @@ def close_configure_one_tourney(request, tourney_id: str, db: Session):
         raise HTTPException(status_code=404, detail=_(locale, "tourney.setting_tables_failed"))
     
     # crear la primera ronda
-    db_round_ini = configure_new_rounds(db_tourney, 'Ronda Inicial del Torneo', db=db, created_by=currentUser['username'])
+    db_round_ini = configure_new_rounds(db_tourney.id, 'Ronda Inicial del Torneo', db=db, created_by=currentUser['username'])
     if not db_round_ini:
         raise HTTPException(status_code=404, detail=_(locale, "tourney.setting_rounds_failed"))
     
