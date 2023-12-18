@@ -248,7 +248,7 @@ def close_round(request: Request, round_id: str, db: Session):
 
 def close_round_with_verify(round_id: str, status_end, db: Session):
     
-    str_count = "	SELECT count(id) FROM events.domino_boletus Where round_id = '" + round_id + "' AND status_id != " + status_end.id
+    str_count = "SELECT count(id) FROM events.domino_boletus Where round_id = '" + round_id + "' AND status_id != " + str(status_end.id)
     
     # verificar si ya todas las boletas cerraron, debemos cerrar la ronda.
     amount_boletus = db.execute(str_count).fetchone()[0]
