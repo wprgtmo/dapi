@@ -194,7 +194,7 @@ def close_round_with_verify(db_round: str, status_end, username: str, db: Sessio
     # verificar si ya todas las boletas cerraron, debemos cerrar la ronda.
     amount_boletus = db.execute(str_count).fetchone()[0]
     if amount_boletus != 0:
-        return True
+        return {'closed_round': False}
     
     db_round.close_date = datetime.now()
     
@@ -213,7 +213,7 @@ def close_round_with_verify(db_round: str, status_end, username: str, db: Sessio
     db.add(db_round)
     db.commit()
     
-    return True
+    return {'closed_round': True}
 
 def created_automatic_lottery_by_round_cat(tourney_id: str, round_id: str, new_round_id: str, new_round_number: int, category_id: str, 
                                        position_number:int, db: Session):

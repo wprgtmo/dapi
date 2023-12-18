@@ -44,7 +44,8 @@ def get_all_data_by_boletus(request:Request, page: int, per_page: int, boletus_i
     if page != 0:
         str_query += "LIMIT " + str(per_page) + " OFFSET " + str(page*per_page-per_page)
     
-    dict_result = get_info_of_boletus(boletus_id, db=db)
+    
+    dict_result = get_info_of_boletus(boletus_id, number_points_to_win=200, db=db)
     
     lst_data_exec = db.execute(str_query)
     lst_data = []
@@ -63,9 +64,9 @@ def get_all_data_by_boletus(request:Request, page: int, per_page: int, boletus_i
     
     return result
 
-def get_info_of_boletus(boletus_id: str, db: Session):
+def get_info_of_boletus(boletus_id: str, number_points_to_win: int, db: Session):
     
-    dict_result = {'round_number': '', 'table_number': '', 
+    dict_result = {'round_number': '', 'table_number': '', 'number_points_to_win': number_points_to_win,
                    'pair_one' : {'pairs_id': '', 'name': '', 'total_point': 0},
                    'pair_two' : {'pairs_id': '', 'name': '', 'total_point': 0}}
     
@@ -157,13 +158,15 @@ def new_data(request: Request, boletus_id:str, dominodata: DominoDataCreated, db
                                  number_points=dominodata.point, duration=dominodata.duration)
     
     #verificar si ya llego fin del partido cerrar la boleta
+    result.data = {'closed_round': False}
+    
     if close_data:
         one_status_end = get_one_status_by_name('FINALIZED', db=db)
         if not one_status_end:
             raise HTTPException(status_code=404, detail=_(locale, "status.not_found"))
         one_boletus.status_id = one_status_end.id
         
-        close_round_with_verify(one_boletus.rounds, one_status_end, username=currentUser['username'], db=db)
+        result.data = close_round_with_verify(one_boletus.rounds, one_status_end, username=currentUser['username'], db=db)
         
     try:
         one_boletus.boletus_data.append(one_data)
