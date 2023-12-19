@@ -28,6 +28,7 @@ class DominoBoletus(Base):
     boletus_data = relationship('DominoBoletusData')
     
     rounds = relationship('DominoRounds')
+    tables = relationship('DominoTables')
     
     tourney = ("Tourney")
     

@@ -30,7 +30,20 @@ def get_rounds(
     db: Session = Depends(get_db)
 ):
     return get_all(request=request, page=page, per_page=per_page, tourney_id=tourney_id, criteria_key=criteria_key, 
-                   criteria_value=criteria_value, db=db)
+                   criteria_value=criteria_value, db=db, only_initiaded=False)
+    
+@rounds_route.get("/rounds/rounds/initiaded/", response_model=Dict, summary="Obtain a list of INITIADED Rounds.")
+def get_rounds_initiaded(
+    request: Request,
+    tourney_id: str,
+    page: int = 1, 
+    per_page: int = 6, 
+    criteria_key: str = "",
+    criteria_value: str = "",
+    db: Session = Depends(get_db)
+):
+    return get_all(request=request, page=page, per_page=per_page, tourney_id=tourney_id, criteria_key=criteria_key, 
+                   criteria_value=criteria_value, db=db, only_initiaded=True)
 
 @rounds_route.get("/rounds/rounds/one/", response_model=Dict, summary="Obtain info of Round.")
 def get_one_round(

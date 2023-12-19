@@ -23,6 +23,7 @@ from domino.schemas.events.domino_data import DominoDataCreated
 
 from domino.services.events.domino_boletus import get_one as get_one_boletus
 from domino.services.events.domino_scale import update_info_pairs, close_round_with_verify
+from domino.services.events.tourney import get_setting_tourney
 from domino.services.resources.status import get_one_by_name as get_one_status_by_name
 from domino.services.resources.utils import get_result_count
 
@@ -44,8 +45,20 @@ def get_all_data_by_boletus(request:Request, page: int, per_page: int, boletus_i
     if page != 0:
         str_query += "LIMIT " + str(per_page) + " OFFSET " + str(page*per_page-per_page)
     
+    db_boletus = get_one_boletus(boletus_id, db=db)
+    if not db_boletus:
+        raise HTTPException(status_code=404, detail=_(locale, "tourney.not_found"))
     
-    dict_result = get_info_of_boletus(boletus_id, number_points_to_win=200, db=db)
+    one_settingtourney = get_setting_tourney(db_boletus.tourney_id, db=db)
+    if not one_settingtourney:
+        raise HTTPException(status_code=404, detail=_(locale, "tourney.setting_tourney_failed"))
+    
+    dict_result = {'round_number': db_boletus.rounds.round_number, 'table_number': db_boletus.tables.table_number, 
+                   'number_points_to_win': one_settingtourney.number_points_to_win,
+                   'pair_one' : {'pairs_id': '', 'name': '', 'total_point': 0},
+                   'pair_two' : {'pairs_id': '', 'name': '', 'total_point': 0}}
+    
+    dict_result = get_info_of_boletus(boletus_id, dict_result, db=db)
     
     lst_data_exec = db.execute(str_query)
     lst_data = []
@@ -64,25 +77,17 @@ def get_all_data_by_boletus(request:Request, page: int, per_page: int, boletus_i
     
     return result
 
-def get_info_of_boletus(boletus_id: str, number_points_to_win: int, db: Session):
+def get_info_of_boletus(boletus_id: str, dict_result, db: Session):
     
-    dict_result = {'round_number': '', 'table_number': '', 'number_points_to_win': number_points_to_win,
-                   'pair_one' : {'pairs_id': '', 'name': '', 'total_point': 0},
-                   'pair_two' : {'pairs_id': '', 'name': '', 'total_point': 0}}
-    
-    str_query = "Select dron.round_number, dtable.table_number, pairs_id, positive_points, duration, dpair.name " +\
+    str_query = "Select pairs_id, positive_points, duration, dpair.name " +\
         "from events.domino_boletus_pairs dbpair " +\
         "join events.domino_boletus dbol ON dbol.id = dbpair.boletus_id " +\
-        "join events.domino_rounds dron ON dron.id = dbol.round_id " +\
-        "join events.domino_tables dtable ON dtable.id = dbol.table_id " +\
         "join events.domino_rounds_pairs dpair ON dpair.id = dbpair.pairs_id " +\
         "where boletus_id = '" + boletus_id + "' "
         
     lst_data_exec = db.execute(str_query)
     pair_number = 1
     for item in lst_data_exec:
-        dict_result['round_number'] = item.round_number
-        dict_result['table_number'] = item.table_number
         if pair_number == 1:
             dict_result['pair_one']['pairs_id'] = item.pairs_id
             dict_result['pair_one']['name'] = item.name

@@ -96,7 +96,6 @@ def close_configure_one_tourney(request, tourney_id: str, db: Session):
     currentUser = get_current_user(request)
     
     one_status_conf = get_one_status_by_name('CONFIGURATED', db=db)
-    one_status_new = get_one_status_by_name('CREATED', db=db)
     
     str_query = "SELECT count(tourney_id) FROM events.setting_tourney where tourney_id = '" + tourney_id + "' "
     amount = db.execute(str_query).fetchone()[0]
@@ -112,9 +111,6 @@ def close_configure_one_tourney(request, tourney_id: str, db: Session):
     if not db_tourney:
         raise HTTPException(status_code=404, detail=_(locale, "tourney.not_found"))
     
-    # if db_tourney.status_id != one_status_new.id:
-    #     raise HTTPException(status_code=404, detail=_(locale, "tourney.tourney_closed"))
-    
     one_settingtourney = get_setting_tourney(db_tourney.id, db=db)
     if not one_settingtourney:
         raise HTTPException(status_code=404, detail=_(locale, "tourney.setting_tourney_failed"))
@@ -129,8 +125,6 @@ def close_configure_one_tourney(request, tourney_id: str, db: Session):
     except:
         raise HTTPException(status_code=404, detail=_(locale, "tourney.error_at_closed"))
     
-    # raise HTTPException(status_code=404, detail=_(locale, "tourney.error_at_closed"))
-  
     # crear las mesas y sus ficheros
     result_init = configure_domino_tables(
         db_tourney, one_settingtourney, db, currentUser['username'], file=None)
@@ -138,7 +132,8 @@ def close_configure_one_tourney(request, tourney_id: str, db: Session):
         raise HTTPException(status_code=404, detail=_(locale, "tourney.setting_tables_failed"))
     
     # crear la primera ronda
-    db_round_ini = configure_new_rounds(db_tourney.id, 'Ronda Inicial del Torneo', db=db, created_by=currentUser['username'])
+    db_round_ini = configure_new_rounds(db_tourney.id, 'Ronda Nro. 1', db=db, created_by=currentUser['username'],
+                                        round_number=1)
     if not db_round_ini:
         raise HTTPException(status_code=404, detail=_(locale, "tourney.setting_rounds_failed"))
     

@@ -28,7 +28,8 @@ from domino.services.enterprise.users import get_one_by_username
 from domino.services.enterprise.userprofile import get_one as get_one_profile
 from domino.services.events.domino_boletus import created_boletus_for_round
                          
-def get_all(request:Request, tourney_id:str, page: int, per_page: int, criteria_key: str, criteria_value: str, db: Session):  
+def get_all(request:Request, tourney_id:str, page: int, per_page: int, criteria_key: str, criteria_value: str, db: Session,
+            only_initiaded=False):  
     locale = request.headers["accept-language"].split(",")[0].split("-")[0];
     
     api_uri = str(settings.api_uri)
@@ -52,12 +53,14 @@ def get_all(request:Request, tourney_id:str, page: int, per_page: int, criteria_
     str_where = " WHERE drounds.tourney_id = '" + tourney_id + "' "  
     
     dict_query = {'round_number': " AND round_number = " + criteria_value}
-    
-    str_count += str_where
-    str_query += str_where
-    
     if criteria_key and criteria_key not in dict_query:
         raise HTTPException(status_code=404, detail=_(locale, "commun.invalid_param"))
+    
+    if only_initiaded:
+        str_where += "AND sta.name != 'CREATED' "
+          
+    str_count += str_where
+    str_query += str_where
     
     if page and page > 0 and not per_page:
         raise HTTPException(status_code=404, detail=_(locale, "commun.invalid_param"))
@@ -70,7 +73,8 @@ def get_all(request:Request, tourney_id:str, page: int, per_page: int, criteria_
     str_query += " ORDER BY round_number ASC " 
     if page != 0:
         str_query += "LIMIT " + str(per_page) + " OFFSET " + str(page*per_page-per_page)
-    
+    print(str_query)
+    print('************')
     lst_data = db.execute(str_query)
     result.data = [create_dict_row(item) for item in lst_data]
     
