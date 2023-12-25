@@ -207,7 +207,7 @@ def get_all_players_by_elo(request:Request, page: int, per_page: int, tourney_id
     
     result = get_result_count(page=page, per_page=per_page, str_count=str_count, db=db)
     
-    str_query += " ORDER BY player.ranking ASC " 
+    str_query += " ORDER BY player.elo DESC " 
     if page != 0:
         str_query += "LIMIT " + str(per_page) + " OFFSET " + str(page*per_page-per_page)
     
@@ -236,7 +236,7 @@ def get_lst_id_player_by_elo(tourney_id: str, modality:str, min_elo: float, max_
     
     str_query += str_where
 
-    str_query += " ORDER BY player.ranking ASC " 
+    str_query += " ORDER BY player.elo DESC " 
     lst_data = db.execute(str_query)
     lst_players = []
     for item in lst_data:
@@ -279,7 +279,7 @@ def get_all_players_by_category(request:Request, page: int, per_page: int, categ
     if tourney_is_init:
         str_query += ", rscale.position_number " 
     else:
-        str_query += ", player.ranking position_number " 
+        str_query += ", player.elo, position_number " 
 
     str_query += str_from
     
@@ -306,7 +306,7 @@ def get_all_players_by_category(request:Request, page: int, per_page: int, categ
     
     result = get_result_count(page=page, per_page=per_page, str_count=str_count, db=db)
     
-    str_query += " ORDER BY player.ranking ASC " 
+    str_query += " ORDER BY player.elo DESC " 
     if page != 0:
         str_query += "LIMIT " + str(per_page) + " OFFSET " + str(page*per_page-per_page)
     
@@ -362,7 +362,7 @@ def get_all_players_by_tourney(request:Request, page: int, per_page: int, tourne
     
     result = get_result_count(page=page, per_page=per_page, str_count=str_count, db=db)
     
-    str_query += " ORDER BY player.ranking ASC " 
+    str_query += " ORDER BY player.elo DESC " 
     if page != 0:
         str_query += "LIMIT " + str(per_page) + " OFFSET " + str(page*per_page-per_page)
     
@@ -377,7 +377,8 @@ def create_dict_row(item, page, db: Session, api_uri):
     
     new_row = {'id': item['id'], 'name': item['name'], 
                'profile_type': item['profile_type'],  
-               'country': item['country_name'], 'city_name': item['city_name'],  
+               'country': item['country_name'] if item['country_name'] else '', 
+               'city_name': item['city_name'] if item['city_name'] else '',  
                'photo' : image, 'elo': item['elo'], 'ranking': item['ranking'], 'level': item['level'],
                'position_number': item.position_number}
     if page != 0:

@@ -47,7 +47,12 @@ def get_one_configure_tourney(request:Request, tourney_id: str, db: Session):
 
     setting = get_setting_tourney(tourney_id, db=db)
     
-    amount_tables = calculate_amount_tables(tourney_id=tourney_id, modality=db_tourney.modality, db=db) if not setting else setting.amount_tables
+    amount_tables = calculate_amount_tables(tourney_id=tourney_id, modality=db_tourney.modality, db=db) 
+    
+    if setting and setting.amount_tables != amount_tables:
+        setting.amount_tables = amount_tables
+        db.add(setting)
+        db.commit()
     
     elo_max, elo_min = get_values_elo_by_tourney(tourney_id=tourney_id, modality=db_tourney.modality, db=db)
     

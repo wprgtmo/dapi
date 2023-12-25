@@ -54,7 +54,8 @@ def new_profile_single_player(request: Request, singleprofile: SingleProfileCrea
                               True, True, "USERPROFILE", currentUser['username'], currentUser['username'], file, is_confirmed=True,
                               single_profile_id=id)
     
-    one_single_player = SingleProfile(profile_id=id, elo=0, ranking=None, level=singleprofile['level'], updated_by=currentUser['username'])
+    # a solicitud de Senen cuando los jugadores se creen un perfil de jugador simple, va con un elo de 1600
+    one_single_player = SingleProfile(profile_id=id, elo=1600, ranking=None, level=singleprofile['level'], updated_by=currentUser['username'])
     one_profile.profile_single_player.append(one_single_player)
     
     try:   
@@ -159,7 +160,7 @@ def new_profile_pair_player(request: Request, pairprofile: PairProfileCreated, f
                               is_confirmed=True, single_profile_id=me_profile_id)
     
     one_pair_player = PairProfile(profile_id=id, level=pairprofile['level'], updated_by=currentUser['username'],
-                                  elo=0, ranking=None)
+                                  elo=1600, ranking=None)
     one_profile.profile_pair_player.append(one_pair_player)
     
     if pairprofile['other_profile_id']:   # el segundo jugador de la pareja
@@ -206,7 +207,7 @@ def new_profile_team_player(request: Request, teamprofile: TeamProfileCreated, f
                               single_profile_id=me_profile_id)
     
     one_team_player = TeamProfile(profile_id=id, level=teamprofile['level'], amount_members=0, #teamprofile['amount_members'], 
-                                  elo=0, ranking=None, updated_by=currentUser['username'])
+                                  elo=1600, ranking=None, updated_by=currentUser['username'])
     one_profile.profile_team_player.append(one_team_player)
     
     # if int(teamprofile['amount_members']) < len(teamprofile['others_profile_id']):

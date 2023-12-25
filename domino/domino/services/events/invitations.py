@@ -86,19 +86,30 @@ def get_all_invitations_by_tourney(request, tourney_id: str, page: int, per_page
     
     api_uri = str(settings.api_uri)
     
+    db_tourney = get_tourney_by_id(tourney_id, db=db)
+    if not db_tourney:
+        raise HTTPException(status_code=404, detail=_(locale, "tourney.not_found"))
+    
     # voy a devolver lasa confirmadas tambien
     str_from = "FROM events.invitations " + \
         "inner join enterprise.profile_member ON profile_member.id = invitations.profile_id " + \
         "left join resources.city ON city.id = profile_member.city_id " +\
         "left join resources.country ON country.id = city.country_id " +\
-        "JOIN resources.entities_status sta ON sta.name = invitations.status_name " +\
-        "WHERE invitations.tourney_id = '" + tourney_id + "' " +\
+        "JOIN resources.entities_status sta ON sta.name = invitations.status_name "
+        
+    dict_modality = {'Individual': "join enterprise.profile_single_player player ON player.profile_id = profile_member.id ",
+                     'Parejas': "join enterprise.profile_pair_player player ON player.profile_id = profile_member.id ",
+                     'Equipo': "join enterprise.profile_team_player player ON player.profile_id = profile_member.id "}
+    
+    str_from += dict_modality[db_tourney.modality]
+    str_from += "WHERE invitations.tourney_id = '" + tourney_id + "' " +\
         " AND (status_name = 'ACCEPTED' or status_name = 'CONFIRMED') " + \
         "and profile_member.is_active = True and profile_member.is_ready = True "
         
     str_count = "Select count(*) " + str_from
     str_query = "SELECT invitations.id, invitations.profile_id, profile_member.name, profile_member.photo, " + \
         "city.name as city_name, country.name country_name, " +\
+        "player.level, player.elo, player.ranking, " +\
         "sta.id as status_id, sta.name as status_name, sta.description as status_description " + str_from
     
     dict_query = {'name': " AND eve.name ilike '%" + criteria_value + "%'",
@@ -118,7 +129,7 @@ def get_all_invitations_by_tourney(request, tourney_id: str, page: int, per_page
     
     result = get_result_count(page=page, per_page=per_page, str_count=str_count, db=db)
     
-    str_query += " ORDER BY profile_member.name ASC " 
+    str_query += " ORDER BY player.elo DESC " 
     if page != 0:
         str_query += "LIMIT " + str(per_page) + " OFFSET " + str(page*per_page-per_page)
     
@@ -130,8 +141,9 @@ def get_all_invitations_by_tourney(request, tourney_id: str, page: int, per_page
 def create_dict_row_for_tourney(item, api_uri=""):
     
     new_row = {'id': item.id, 'profile_id': item.profile_id, 
-               'country': item.country_name, 'city_name': item.city_name,
+               'country': item.country_name if item.country_name else '', 'city_name': item.city_name if item.city_name else '',
                'name': item['name'], 'status_id': item['status_id'], 
+               'elo': item['elo'], 'ranking': item['ranking'], 'level': item['level'],
                'status_name': item['status_name'], 'status_description': item['status_description'],
                'photo' : get_url_avatar(item.profile_id, item.photo, api_uri=api_uri)}
     

@@ -444,9 +444,6 @@ def configure_one_tourney(request, tourney_id: str, settingtourney: SettingTourn
         update_initializes_tourney(one_settingtourney, amount_smart_tables, amount_rounds, number_points_to_win, 
                                    time_to_win, game_system, use_bonus, lottery_type, penalties_limit, db=db)
     
-    print('*********************')
-    print(lottery_type)
-    
     return result
 
 def configure_categories_tourney(request, tourney_id: str, lst_categories: List[DominoCategoryCreated], db: Session):

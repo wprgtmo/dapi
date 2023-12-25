@@ -28,6 +28,8 @@ from domino.services.enterprise.users import get_one_by_username
 
 from domino.services.resources.utils import get_result_count, upfile, create_dir, del_image, get_ext_at_file, remove_dir, copy_image
 from domino.services.enterprise.userprofile import get_one as get_one_profile, get_one_profile_by_user, get_one_default_user
+
+from domino.services.enterprise.auth import get_url_advertising
             
 def get_all(request:Request, profile_id:str, page: int, per_page: int, criteria_key: str, criteria_value: str, db: Session):  
     locale = request.headers["accept-language"].split(",")[0].split("-")[0];
@@ -228,7 +230,7 @@ def create_dict_row(item, page, db: Session, incluye_tourney=False, api_uri="", 
         new_row['selected'] = False
     
     if incluye_tourney:
-        new_row['tourney'] = get_lst_tourney_by_event_id(item['id'], db=db, only_iniciaded=only_iniciaded)
+        new_row['tourney'] = get_lst_tourney_by_event_id(item['id'], db=db, only_iniciaded=only_iniciaded, api_uri=api_uri)
     
     new_row['amount_people'] = get_number_people_at_event(item['id'], "EVENT", db=db) 
         
@@ -440,22 +442,26 @@ def update(request: Request, event_id: str, event: EventBase, db: Session, file:
     else:
         raise HTTPException(status_code=404, detail=_(locale, "event.not_found"))
 
-def get_lst_tourney_by_event_id(event_id: str, db: Session, only_iniciaded=False): 
+def get_lst_tourney_by_event_id(event_id: str, db: Session, only_iniciaded=False, api_uri=""): 
     
+    if not api_uri:
+        api_uri = str(settings.api_uri)
+        
     lst_return = []
     
     str_from = "FROM events.tourney tou " +\
-        "JOIN resources.entities_status sta ON sta.id = tou.status_id "
+        "JOIN resources.entities_status sta ON sta.id = tou.status_id " +\
+        "LEFT JOIN events.setting_tourney se ON se.tourney_id = tou.id "
     
     str_query = "Select tou.id, event_id, tou.modality, tou.name, tou.summary, tou.start_date, " +\
-        "tou.status_id, sta.name as status_name " + str_from
+        "tou.status_id, sta.name as status_name, se.image " + str_from
     
     if only_iniciaded:
         str_query += " WHERE (sta.name = 'INITIADED' or sta.name = 'FINALIZED') and event_id = '" + str(event_id) + "' ORDER BY start_date "  
     else:
         str_query += " WHERE sta.name != 'CANCELLED' and event_id = '" + str(event_id) + "' ORDER BY start_date "  
     lst_data = db.execute(str_query)
-    lst_return = [create_dict_row_tourney(item) for item in lst_data]
+    lst_return = [create_dict_row_tourney(item, api_uri=api_uri) for item in lst_data]
     
     return lst_return
 
@@ -477,10 +483,14 @@ def get_number_people_at_event(id: str, type_event: str, db: Session):
     
     return db.execute(str_query).fetchone()[0]
 
-def create_dict_row_tourney(item):
+def create_dict_row_tourney(item, api_uri=""):
+    
+    if not api_uri:
+        api_uri = str(settings.api_uri)
     
     new_row = {'id': item['id'], 'event_id': item['event_id'], 'name': item['name'], 
                'modality': item['modality'], 'summary' : item['summary'], 'startDate': item['start_date'],
+               'image': get_url_advertising(tourney_id=item['id'], file_name=item['image'] if item['image'] else None, api_uri=api_uri),
                'status_id': item['status_id'], 'status_name': item['status_name'] 
                }
        

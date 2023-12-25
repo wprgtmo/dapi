@@ -192,7 +192,7 @@ def new(request: Request, db: Session, user: UserCreate):
     if not profile_type:
         raise HTTPException(status_code=400, detail=_(locale, "profiletype.not_found"))
     
-    full_name = user.first_name + ' ' + user.last_name if user.last_name else '' 
+    full_name = user.first_name + ' ' + user.last_name if user.last_name else user.first_name if user.first_name else ''
     profile_id = id  # voy a ahecr coincidir el id de usuario con el del perfil de usuario, tema fotos                     
     one_profile_user = new_profile_default_user(profile_type, profile_id, id, user.username, full_name, user.email, None,
                                                 False, user.username, user.username, None, None, None, None, None)
