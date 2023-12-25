@@ -85,7 +85,7 @@ def get_lst_categories_of_tourney(tourney_id: str, db: Session):
     lst_categories = []
     
     str_query = "SELECT id, category_number, position_number, elo_min, elo_max " +\
-        "FROM events.domino_categories WHERE tourney_id = '" + tourney_id + "' "
+        "FROM events.domino_categories WHERE tourney_id = '" + tourney_id + "' Order by position_number "
         
     lst_all_category = db.execute(str_query).fetchall()
     for item in lst_all_category:
@@ -123,6 +123,8 @@ def close_configure_one_tourney(request, tourney_id: str, db: Session):
     try:
         elo_max, elo_min = get_values_elo_by_tourney(tourney_id=tourney_id, modality=db_tourney.modality, db=db)
         
+        lst_category = get_lst_categories_of_tourney(tourney_id=tourney_id, db=db)
+        
         one_settingtourney.elo_max = elo_max
         one_settingtourney.elo_min = elo_min
         db.add(one_settingtourney)
@@ -130,17 +132,21 @@ def close_configure_one_tourney(request, tourney_id: str, db: Session):
     except:
         raise HTTPException(status_code=404, detail=_(locale, "tourney.error_at_closed"))
     
+    # validar todas las categorias estén contempladas entre los elo de los jugadores.
+    if not verify_category_is_valid(float(elo_max), float(elo_min), lst_category=lst_category):
+        raise HTTPException(status_code=400, detail=_(locale, "tourney.setting_category_incorrect"))
+    
     # crear las mesas y sus ficheros
     result_init = configure_domino_tables(
         db_tourney, one_settingtourney, db, currentUser['username'], file=None)
     if not result_init:
-        raise HTTPException(status_code=404, detail=_(locale, "tourney.setting_tables_failed"))
+        raise HTTPException(status_code=400, detail=_(locale, "tourney.setting_tables_failed"))
     
     # crear la primera ronda
     db_round_ini = configure_new_rounds(db_tourney.id, 'Ronda Nro. 1', db=db, created_by=currentUser['username'],
                                         round_number=1)
     if not db_round_ini:
-        raise HTTPException(status_code=404, detail=_(locale, "tourney.setting_rounds_failed"))
+        raise HTTPException(status_code=400, detail=_(locale, "tourney.setting_rounds_failed"))
     
     db_tourney.updated_by = currentUser['username']
     
@@ -163,3 +169,18 @@ def close_configure_one_tourney(request, tourney_id: str, db: Session):
     
     return result
 
+def verify_category_is_valid(elo_max: float, elo_min: float, lst_category: list):
+    
+    current_elo_max = float(elo_max)
+    current_elo_min = float(elo_min)
+    for item in lst_category:
+        if current_elo_max !=  float(item['elo_max']):
+            return False
+        else:
+            current_elo_max = float(item['elo_min']) - 1 
+            current_elo_min = float(item['elo_min'])
+    
+    if current_elo_min != float(elo_min):
+        return False
+    
+    return True
