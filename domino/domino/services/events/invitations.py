@@ -79,7 +79,7 @@ def get_all(request:Request, profile_id:str, page: int, per_page: int, criteria_
     
     return result
            
-def get_all_invitations_by_tourney(request, tourney_id: str, status_id: str, page: int, per_page: int, criteria_key: str, criteria_value: str, db: Session):  
+def get_all_invitations_by_tourney(request, tourney_id: str, page: int, per_page: int, criteria_key: str, criteria_value: str, db: Session):  
     locale = request.headers["accept-language"].split(",")[0].split("-")[0];
     
     result = ResultObject() 
@@ -91,7 +91,9 @@ def get_all_invitations_by_tourney(request, tourney_id: str, status_id: str, pag
         raise HTTPException(status_code=404, detail=_(locale, "tourney.not_found"))
    
     # Me pasan status_id para filtrar por este parametro: 0: todas, 1: Aceptadas, 2: Rechazadas
-    str_status = '' if status_id == '0' else " AND (status_name = 'ACCEPTED' or status_name = 'CONFIRMED') " if status_id == '1' else " AND status_name = 'REFUTED' "  
+    str_status = ''
+    if criteria_key and criteria_key == 'status_id':
+        str_status = '' if criteria_value == '0' else " AND (status_name = 'ACCEPTED' or status_name = 'CONFIRMED') " if criteria_value == '1' else " AND status_name = 'REFUTED' "  
     
     # voy a devolver lasa confirmadas tambien
     str_from = "FROM events.invitations " + \

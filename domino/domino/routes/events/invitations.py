@@ -23,13 +23,12 @@ def get_all(request:Request, profile_id: str, status_name:str, db: Session = Dep
 def get_for_tourney(
     request:Request, 
     tourney_id: str, 
-    status_id: str = "1",
     page: int = 1, 
     per_page: int = 6, 
     criteria_key: str = "",
     criteria_value: str = "",
     db: Session = Depends(get_db)):
-    return get_all_invitations_by_tourney(request=request, tourney_id=tourney_id, status_id=status_id, page=page, per_page=per_page, criteria_key=criteria_key, criteria_value=criteria_value, db=db)
+    return get_all_invitations_by_tourney(request=request, tourney_id=tourney_id, page=page, per_page=per_page, criteria_key=criteria_key, criteria_value=criteria_value, db=db)
 
 @invitation_route.post("/invitation", response_model=ResultObject, summary="Generate user invitations")
 def generate(request:Request, tourney_id: str, db: Session = Depends(get_db)):
