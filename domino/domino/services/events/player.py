@@ -306,7 +306,11 @@ def get_all_players_by_category(request:Request, page: int, per_page: int, categ
     
     result = get_result_count(page=page, per_page=per_page, str_count=str_count, db=db)
     
-    str_query += " ORDER BY player.elo DESC " 
+    if tourney_is_init:
+        str_query += " ORDER BY rscale.position_number ASC "
+    else:
+        str_query += " ORDER BY player.elo DESC "  
+    
     if page != 0:
         str_query += "LIMIT " + str(per_page) + " OFFSET " + str(page*per_page-per_page)
     

@@ -138,7 +138,7 @@ def get_all_invitations_by_tourney(request, tourney_id: str, status_id: str, pag
     str_query += " ORDER BY player.elo DESC " 
     if page != 0:
         str_query += "LIMIT " + str(per_page) + " OFFSET " + str(page*per_page-per_page)
-    print(str_query)
+    
     lst_data = db.execute(str_query)
     result.data = [create_dict_row_for_tourney(item, api_uri=api_uri) for item in lst_data]
     
