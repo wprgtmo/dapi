@@ -298,7 +298,8 @@ def calculate_amount_tables(tourney_id: str, modality: str, db: Session):
     if not mod_play:
         return int(0)
     
-    return int(mod_play[0]) + 1 if mod_play[1] > 0 else int(mod_play[0])
+    amount_table = int(mod_play[0]) if mod_play[1] > 0 else int(mod_play[0])
+    return amount_table
 
 def calculate_elo_by_tourney(tourney_id: str, modality:str, db: Session):
     
