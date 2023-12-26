@@ -36,7 +36,7 @@ def new(request: Request, invitation_id: str, db: Session):
     if not one_invitation:
         raise HTTPException(status_code=404, detail=_(locale, "invitation.not_found"))
     
-    if one_invitation.status_name != 'ACCEPTED':
+    if one_invitation.status_name != 'ACCEPTED' and one_invitation.status_name != 'REFUTED':
         raise HTTPException(status_code=404, detail=_(locale, "invitation.status_incorrect"))
     
     db_tourney = get_torneuy_by_eid(one_invitation.tourney_id, db=db)
