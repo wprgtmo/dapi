@@ -298,9 +298,9 @@ def update(request: Request, id: str, db: Session, file: File):
     
     if not file:
         db_table.image = None
-    else:        
+    else:   
         ext = get_ext_at_file(file.filename)
-        file.filename = str(id) + "." + ext
+        file.filename = str(uuid.uuid4()) + "." + ext
         
         upfile(file=file, path=path_tourney)
         db_table.image = file.filename
