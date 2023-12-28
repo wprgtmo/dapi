@@ -7,7 +7,6 @@ authors = ["migue <miguel.lau@etecsa.cu>"]
 [tool.poetry.dependencies]
 python = "^3.9"
 fastapi = "^0.89.1"
-uvicorn = "^0.20.0"
 psycopg2-binary = "^2.9.5"
 itsdangerous = "^2.1.2"
 passlib = "^1.7.4"
@@ -21,6 +20,7 @@ alembic = "1.8.1"
 SQLAlchemy = "1.4.41"
 python-multipart = "^0.0.6"
 aiofiles = "^23.1.0"
+uvicorn = {extras = ["standard"], version = "^0.25.0"}
 
 [tool.poetry.dev-dependencies]
 pytest = "^5.2"

@@ -1,6 +1,7 @@
 # app.py
 
-from fastapi import FastAPI, HTTPException, Request, UploadFile, File, Header, Response, status, Depends
+from fastapi import FastAPI, HTTPException, Request, UploadFile, File, Header, Response, status, Depends, WebSocket, WebSocketDisconnect, APIRouter
+
 from fastapi.responses import FileResponse, JSONResponse, StreamingResponse
 from os import getcwd, remove, path, stat
 import aiofiles
@@ -95,6 +96,64 @@ async def redoc_html():
         redoc_js_url="/static/redoc.standalone.js",
     )
 
+
+class WebSocketConnectionModel:
+    client_id: int
+    socket: WebSocket
+
+class ConnectionManager:
+    def __init__(self):
+        self.active_connections: list[WebSocket] = []
+
+    async def connect(self, conection: WebSocketConnectionModel):
+        await conection.socket.accept()
+        self.active_connections.append(conection)
+
+    def disconnect(self, conection: WebSocketConnectionModel):
+        self.active_connections.remove(conection)
+
+    async def send_personal_message(self, message: str, conection: WebSocketConnectionModel):
+        await conection.socket.send_text(message)
+
+    async def broadcast(self, message: str):
+        for connection in self.active_connections:
+            await connection.socket.send_text(message)
+
+    async def notification(self, message: str, client_id: int):
+        for connection in self.active_connections:
+            if connection.client_id == client_id:
+                await connection.socket.send_text(message)
+
+manager = ConnectionManager()
+    
+@app.websocket("/ws/{client_id}")
+async def websocket_endpoint(websocket: WebSocket, client_id: int):
+    connetion = WebSocketConnectionModel()
+    connetion.client_id=client_id
+    connetion.socket=websocket
+    
+    await manager.connect(connetion)
+    
+    try:
+        while True:
+            data = await connetion.socket.receive_text()
+            print(data)
+            await manager.send_personal_message(f"You wrote: {data}", connetion)
+            await manager.broadcast(f"Client #{client_id} says: {data}")
+    except WebSocketDisconnect:
+        manager.disconnect(connetion)
+        await manager.broadcast(f"Client #{client_id} left the chat")
+
+notifications_route = APIRouter(
+    tags=["Notifications"],  
+    # dependencies=[Depends(JWTBearer())]   
+)
+    
+@notifications_route.get("/notifications", summary="Send Notifications to client")
+async def getNotifications(client_id: int):
+    await manager.notification("You have five notifications !", client_id)
+    return True   
+
 app.include_router(auth_routes, prefix="/api")
 app.include_router(user_route, prefix="/api")
 app.include_router(country_route, prefix="/api")
@@ -123,6 +182,7 @@ app.include_router(exampledata_route, prefix="/api")
 app.include_router(settingtourney_route, prefix="/api")
 app.include_router(dominoscale_route, prefix="/api")
 app.include_router(rounds_route, prefix="/api")
+app.include_router(notifications_route, prefix="/api")
 
 @app.post("/file")
 def upfile(file: UploadFile = File(...)):
