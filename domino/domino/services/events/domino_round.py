@@ -17,9 +17,7 @@ from fastapi.responses import FileResponse
 from os import getcwd
 
 from domino.models.events.domino_round import DominoRounds, DominoRoundsPairs
-from domino.models.events.tourney import SettingTourney
 
-from domino.schemas.events.events import EventBase, EventSchema
 from domino.schemas.resources.result_object import ResultObject
 
 from domino.services.resources.status import get_one_by_name as get_one_status_by_name, get_one as get_one_status
@@ -73,8 +71,7 @@ def get_all(request:Request, tourney_id:str, page: int, per_page: int, criteria_
     str_query += " ORDER BY round_number ASC " 
     if page != 0:
         str_query += "LIMIT " + str(per_page) + " OFFSET " + str(page*per_page-per_page)
-    print(str_query)
-    print('************')
+    
     lst_data = db.execute(str_query)
     result.data = [create_dict_row(item) for item in lst_data]
     

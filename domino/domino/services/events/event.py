@@ -450,11 +450,10 @@ def get_lst_tourney_by_event_id(event_id: str, db: Session, only_iniciaded=False
     lst_return = []
     
     str_from = "FROM events.tourney tou " +\
-        "JOIN resources.entities_status sta ON sta.id = tou.status_id " +\
-        "LEFT JOIN events.setting_tourney se ON se.tourney_id = tou.id "
+        "JOIN resources.entities_status sta ON sta.id = tou.status_id "
     
     str_query = "Select tou.id, event_id, tou.modality, tou.name, tou.summary, tou.start_date, " +\
-        "tou.status_id, sta.name as status_name, se.image " + str_from
+        "tou.status_id, sta.name as status_name, tou.image " + str_from
     
     if only_iniciaded:
         str_query += " WHERE (sta.name = 'INITIADED' or sta.name = 'FINALIZED') and event_id = '" + str(event_id) + "' ORDER BY start_date "  
@@ -471,11 +470,11 @@ def get_number_people_at_event(id: str, type_event: str, db: Session):
     str_from_ref = "FROM events.referees eve_r "
     str_from_play = "FROM events.players eve_r "
     str_inner = "INNER JOIN events.tourney tor ON tor.id = eve_r.tourney_id "
-    str_where = "WHERE is_active = True "
+    
     if type_event == 'EVENT':
-        str_where += "AND tor.event_id = '" + str(id) + "' "
+        str_where = " WHERE tor.event_id = '" + str(id) + "' "
     elif type_event == 'TOURNEY':
-        str_where += "AND tor.tourney_id = '" + str(id) + "' "
+        str_where = " WHERE tor.tourney_id = '" + str(id) + "' "
     
     str_query = "Select count(*) FROM (" + str_select + str_from_ref + str_inner + str_where
     str_query += " UNION " + str_select + str_from_play + str_inner + str_where

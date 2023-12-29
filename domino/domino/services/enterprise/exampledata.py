@@ -19,7 +19,8 @@ from domino.config.config import settings
 
 from domino.models.enterprise.userprofile import ProfileUsers, SingleProfile, RefereeProfile, PairProfile, EventAdmonProfile
 from domino.models.events.events import Event
-from domino.models.events.tourney import Tourney, Players
+from domino.models.events.tourney import Tourney
+from domino.models.events.player import Players
     
 from domino.schemas.enterprise.user import UserCreate
 
@@ -836,12 +837,12 @@ def clear_all_bd(request:Request, db: Session):
     
     #limpiando configuracion de torneos y eventos
     str_del_events = "DELETE FROM events.events_followers; DELETE FROM events.domino_boletus_data; " +\
-        "DELETE FROM events.trace_lottery_automaic; DELETE FROM events.trace_lottery_manual; " +\
+        "DELETE FROM events.trace_lottery_manual; " +\
         "DELETE FROM events.domino_boletus_position; DELETE FROM events.domino_boletus_pairs; " +\
         "DELETE FROM events.domino_boletus; DELETE FROM events.domino_rounds_pairs; " +\
         "DELETE FROM events.domino_boletus_data; DELETE FROM events.domino_rounds_scale; DELETE FROM events.domino_categories; " +\
         "DELETE FROM events.domino_rounds; DELETE FROM events.domino_tables_files; DELETE FROM events.domino_tables; " +\
-        "DELETE FROM events.setting_tourney; DELETE FROM events.players; DELETE FROM events.referees; " +\
+        "DELETE FROM events.players; DELETE FROM events.referees; " +\
         "DELETE FROM events.invitations; DELETE FROM events.tourney; DELETE FROM events.events; " +\
         "COMMIT; " 
     

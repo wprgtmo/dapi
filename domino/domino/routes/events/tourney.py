@@ -5,11 +5,11 @@ from typing import List, Dict
 from starlette import status
 from domino.auth_bearer import JWTBearer
 
-from domino.schemas.events.tourney import TourneyBase, TourneyCreated, SettingTourneyCreated, DominoCategoryCreated
+from domino.schemas.events.tourney import TourneyCreated
 from domino.schemas.resources.result_object import ResultObject
 
 from domino.services.events.tourney import get_all, new, get_one_by_id, delete, update, get_all_by_event_id, \
-    get_amount_tables, configure_one_tourney
+    get_amount_tables
     
 from domino.services.events.player import created_all_players
   

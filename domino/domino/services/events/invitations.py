@@ -110,8 +110,6 @@ def get_all_invitations_by_tourney(request, tourney_id: str, page: int, per_page
     str_from += "WHERE invitations.tourney_id = '" + tourney_id + "' " +\
         "and profile_member.is_active = True and profile_member.is_ready = True "
         
-        #" AND (status_name = 'ACCEPTED' or status_name = 'CONFIRMED') " + \
-    
     str_from += str_status
         
     str_count = "Select count(*) " + str_from

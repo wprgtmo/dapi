@@ -18,7 +18,7 @@ from fastapi.responses import FileResponse
 from os import getcwd
 
 from domino.models.events.domino_round import DominoRoundsScale, DominoRoundsPairs
-from domino.models.events.tourney import TraceLotteryManual, TraceLotteryAutomatic
+from domino.models.events.tourney import TraceLotteryManual
 
 from domino.schemas.events.domino_rounds import DominoManualScaleCreated, DominoAutomaticScaleCreated
 from domino.schemas.resources.result_object import ResultObject, ResultData
@@ -283,11 +283,11 @@ def get_all_players_by_tables_and_rounds(request:Request, page: int, per_page: i
     
     str_from = "FROM events.domino_boletus bol " +\
         "JOIN events.domino_tables dtab ON dtab.id = bol.table_id " +\
-        "JOIN events.setting_tourney stou ON stou.tourney_id = dtab.tourney_id " 
+        "JOIN events.tourney tou ON tou.id = dtab.tourney_id " 
     
     str_count = "Select count(*) " + str_from
     str_query = "SELECT DISTINCT dtab.id as table_id, dtab.table_number, is_smart, dtab.image as table_image, " +\
-        "stou.image as tourney_image, bol.id as boletus_id, dtab.tourney_id " + str_from
+        "tou.image as tourney_image, bol.id as boletus_id, dtab.tourney_id " + str_from
         
     str_where = "WHERE bol.is_valid is True AND dtab.is_active is True " + \
         "AND  dtab.tourney_id = '" + tourney_id + "' AND bol.round_id = '" + round_id + "' "

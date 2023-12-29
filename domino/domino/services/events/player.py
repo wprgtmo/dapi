@@ -14,14 +14,13 @@ from domino.functions_jwt import get_current_user
 from domino.config.config import settings
 from domino.app import _
 
-from domino.models.events.tourney import Players
-from domino.schemas.events.player import PlayerBase
+from domino.models.events.player import Players
+
 from domino.schemas.resources.result_object import ResultObject
 
 from domino.services.resources.status import get_one_by_name, get_one as get_one_status
 from domino.services.events.invitations import get_one_by_id as get_invitation_by_id
-from domino.services.enterprise.users import get_one_by_username
-from domino.services.events.tourney import get_one as get_torneuy_by_eid, get_one_domino_category, get_info_categories_tourney
+from domino.services.events.tourney import get_one as get_torneuy_by_eid, get_info_categories_tourney
 
 from domino.services.resources.utils import get_result_count
 from domino.services.enterprise.auth import get_url_avatar

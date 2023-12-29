@@ -16,8 +16,6 @@ from domino.app import _
 from fastapi.responses import FileResponse
 from os import getcwd
 
-from domino.models.events.tourney import SettingTourney
-
 from domino.schemas.resources.result_object import ResultObject
 
 from domino.services.resources.status import get_one_by_name as get_one_status_by_name, get_one as get_one_status
@@ -30,7 +28,7 @@ from domino.services.events.domino_table import configure_domino_tables
 from domino.services.events.domino_round import configure_new_rounds
 from domino.services.events.domino_scale import configure_automatic_lottery, update_elo_initial_scale
 
-from domino.services.events.tourney import get_one as get_one_tourney, get_setting_tourney, calculate_amount_tables, \
+from domino.services.events.tourney import get_one as get_one_tourney, calculate_amount_tables, \
     get_count_players_by_tourney, get_values_elo_by_tourney
 from domino.services.enterprise.auth import get_url_advertising
 
@@ -102,11 +100,6 @@ def close_configure_one_tourney(request, tourney_id: str, db: Session):
     
     one_status_conf = get_one_status_by_name('CONFIGURATED', db=db)
     
-    str_query = "SELECT count(tourney_id) FROM events.setting_tourney where tourney_id = '" + tourney_id + "' "
-    amount = db.execute(str_query).fetchone()[0]
-    if amount < 1:
-        raise HTTPException(status_code=404, detail=_(locale, "tourney.is_not_configurated"))
-    
     str_query = "SELECT count(tourney_id) FROM events.domino_categories where tourney_id = '" + tourney_id + "' "
     amount = db.execute(str_query).fetchone()[0]
     if amount == 0:
@@ -116,18 +109,14 @@ def close_configure_one_tourney(request, tourney_id: str, db: Session):
     if not db_tourney:
         raise HTTPException(status_code=404, detail=_(locale, "tourney.not_found"))
     
-    one_settingtourney = get_setting_tourney(db_tourney.id, db=db)
-    if not one_settingtourney:
-        raise HTTPException(status_code=404, detail=_(locale, "tourney.setting_tourney_failed"))
-    
     try:
         elo_max, elo_min = get_values_elo_by_tourney(tourney_id=tourney_id, modality=db_tourney.modality, db=db)
         
         lst_category = get_lst_categories_of_tourney(tourney_id=tourney_id, db=db)
         
-        one_settingtourney.elo_max = elo_max
-        one_settingtourney.elo_min = elo_min
-        db.add(one_settingtourney)
+        db_tourney.elo_max = elo_max
+        db_tourney.elo_min = elo_min
+        db.add(db_tourney)
         db.commit()
     except:
         raise HTTPException(status_code=404, detail=_(locale, "tourney.error_at_closed"))
@@ -138,7 +127,7 @@ def close_configure_one_tourney(request, tourney_id: str, db: Session):
     
     # crear las mesas y sus ficheros
     result_init = configure_domino_tables(
-        db_tourney, one_settingtourney, db, currentUser['username'], file=None)
+        db_tourney, db, currentUser['username'], file=None)
     if not result_init:
         raise HTTPException(status_code=400, detail=_(locale, "tourney.setting_tables_failed"))
     
@@ -150,7 +139,7 @@ def close_configure_one_tourney(request, tourney_id: str, db: Session):
     
     db_tourney.updated_by = currentUser['username']
     
-    if one_settingtourney.lottery_type  == 'AUTOMATIC':
+    if db_tourney.lottery_type  == 'AUTOMATIC':
         one_status_init = get_one_status_by_name('INITIADED', db=db)
         
         # si el sorteo es automático, crear el sorteo inicial, y ya iniciar evento y torneo

@@ -23,7 +23,6 @@ from domino.schemas.events.domino_data import DominoDataCreated
 
 from domino.services.events.domino_boletus import get_one as get_one_boletus
 from domino.services.events.domino_scale import update_info_pairs, close_round_with_verify
-from domino.services.events.tourney import get_setting_tourney
 from domino.services.resources.status import get_one_by_name as get_one_status_by_name
 from domino.services.resources.utils import get_result_count
 
@@ -49,12 +48,12 @@ def get_all_data_by_boletus(request:Request, page: int, per_page: int, boletus_i
     if not db_boletus:
         raise HTTPException(status_code=404, detail=_(locale, "tourney.not_found"))
     
-    one_settingtourney = get_setting_tourney(db_boletus.tourney_id, db=db)
-    if not one_settingtourney:
-        raise HTTPException(status_code=404, detail=_(locale, "tourney.setting_tourney_failed"))
+    # one_settingtourney = get_setting_tourney(db_boletus.tourney_id, db=db)
+    # if not one_settingtourney:
+    #     raise HTTPException(status_code=404, detail=_(locale, "tourney.setting_tourney_failed"))
     
     dict_result = {'round_number': db_boletus.rounds.round_number, 'table_number': db_boletus.tables.table_number, 
-                   'number_points_to_win': one_settingtourney.number_points_to_win,
+                   'number_points_to_win': db_boletus.tourney.number_points_to_win,
                    'pair_one' : {'pairs_id': '', 'name': '', 'total_point': 0},
                    'pair_two' : {'pairs_id': '', 'name': '', 'total_point': 0}}
     
@@ -119,9 +118,6 @@ def new_data(request: Request, boletus_id:str, dominodata: DominoDataCreated, db
     if one_boletus.status_id != one_status_init.id:
         raise HTTPException(status_code=404, detail=_(locale, "boletus.status_incorrect"))
 
-    str_query = "Select number_points_to_win from events.setting_tourney where tourney_id = '" + one_boletus.tourney_id + "' "
-    number_points_to_win = db.execute(str_query).fetchone()[0]
-    
     # cargar las boletas de las parejas para poder verificar si ya alguien gano y actualizar la info de la otra pareja
     lst_boletus_pair = one_boletus.boletus_pairs
     close_data = False
@@ -140,15 +136,15 @@ def new_data(request: Request, boletus_id:str, dominodata: DominoDataCreated, db
         lost_pair.negative_points = dominodata.point if not lost_pair.negative_points else lost_pair.negative_points + dominodata.point  
         lost_pair.positive_points = 0 if not lost_pair.positive_points else lost_pair.positive_points  
         
-    close_data = True if pair_win.positive_points >= number_points_to_win else False
+    close_data = True if pair_win.positive_points >= one_boletus.tourney.number_points_to_win else False
     if close_data: 
-        if pair_win.positive_points >= number_points_to_win:
-            pair_win.positive_points = number_points_to_win
+        if pair_win.positive_points >= one_boletus.tourney.number_points_to_win:
+            pair_win.positive_points = one_boletus.tourney.number_points_to_win
             pair_win.negative_points = 0 if not pair_win.negative_points else pair_win.negative_points
             pair_win.is_winner = True
             
             if lost_pair: 
-                lost_pair.negative_points = number_points_to_win  
+                lost_pair.negative_points = one_boletus.tourney.number_points_to_win  
                 lost_pair.positive_points = 0 if not lost_pair.positive_points else lost_pair.positive_points  
             
             update_info_pairs(pair_win.pairs_id, lost_pair.pairs_id, dominodata.point, db=db)

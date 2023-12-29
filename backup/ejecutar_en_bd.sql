@@ -32,8 +32,6 @@ DELETE FROM events.domino_rounds
 where tourney_id = '0fbe52e9-e9bc-4f6c-b99d-ac9a2208b983';
 DELETE FROM events.domino_categories
 where tourney_id = '0fbe52e9-e9bc-4f6c-b99d-ac9a2208b983';
-DELETE FROM events.setting_tourney
-where tourney_id = '0fbe52e9-e9bc-4f6c-b99d-ac9a2208b983';
 update events.tourney
 SET status_id = 1
 where id = '0fbe52e9-e9bc-4f6c-b99d-ac9a2208b983';
