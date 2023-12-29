@@ -22,12 +22,21 @@ class DominoRounds(Base):
     summary = Column(Text, nullable=True)
     start_date = Column(DateTime, nullable=False)
     close_date = Column(DateTime, nullable=False)
-    status_id  = Column(Integer, ForeignKey("resources.entities_status.id"), nullable=False)
+    
+    is_first = Column(Boolean, nullable=False, default=False)
+    is_last = Column(Boolean, nullable=False, default=False)
+    
+    use_segmentation = Column(Boolean, nullable=False, default=False)
+    use_bonus = Column(Boolean, nullable=False, default=False)
+    amount_bonus_tables = Column(Integer, nullable=False, default=0)
+    amount_bonus_points = Column(Integer, nullable=False, default=0)
     
     created_by = Column(String, ForeignKey("enterprise.users.username"), nullable=False)
     created_date = Column(Date, nullable=False, default=date.today())
     updated_by = Column(String, ForeignKey("enterprise.users.username"), nullable=True)
     updated_date = Column(Date, nullable=False, default=date.today())
+    
+    status_id  = Column(Integer, ForeignKey("resources.entities_status.id"), nullable=False)
     
     tourney = relationship('Tourney')
     

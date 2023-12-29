@@ -14,7 +14,7 @@ from domino.functions_jwt import get_current_user
 from domino.config.config import settings
 from domino.app import _
 
-from domino.models.events.tourney import Referees
+from domino.models.events.referees import Referees
 from domino.schemas.events.referee import RefereeBase
 from domino.schemas.resources.result_object import ResultObject
 

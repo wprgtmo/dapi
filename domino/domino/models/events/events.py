@@ -82,3 +82,28 @@ class EventsFollowers(Base):
             "is_active": self.is_active
         }
         
+# Los patrocinadores son de eventos    
+# class Sponsors(Base):
+#     """Sponsors Class contains standard information for a Sponsors of Tourney.""" # patrocinadores
+
+#     __tablename__ = "sponsors"
+#     __table_args__ = {'schema' : 'events'}
+    
+#     id = Column(Integer, primary_key=True)
+#     tourney_id = Column(String, ForeignKey("events.tourney.id"))
+#     name = Column(Text, nullable=False)
+    
+#     created_by = Column(String, ForeignKey("enterprise.users.username"), nullable=False)
+#     created_date = Column(Date, nullable=False, default=date.today())
+#     updated_by = Column(String, ForeignKey("enterprise.users.username"), nullable=False)
+#     updated_date = Column(Date, nullable=False, default=date.today())
+    
+#     is_active = Column(Boolean, nullable=False, default=True)
+    
+#     def dict(self):
+#         return {
+#             "id": self.id,
+#             "tourney_id": self.tourney_id,
+#             "name": self.name
+#         }
+        

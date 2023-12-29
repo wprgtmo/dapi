@@ -17,10 +17,7 @@ from fastapi.responses import FileResponse
 from os import getcwd
 
 from domino.models.events.domino_tables import DominoTables, DominoTablesFiles
-from domino.models.events.tourney import SettingTourney
 
-from domino.schemas.events.tourney import TourneyCreated, SettingTourneyCreated
-from domino.schemas.events.events import EventBase, EventSchema
 from domino.schemas.resources.result_object import ResultObject, ResultData
 
 from domino.services.resources.status import get_one_by_name as get_one_status_by_name, get_one as get_one_status
@@ -42,12 +39,11 @@ def get_all(request:Request, profile_id:str, tourney_id:str, page: int, per_page
         raise HTTPException(status_code=400, detail=_(locale, "userprofile.user_not_event_admon"))
     
     str_from = "FROM events.domino_tables dtab " +\
-        "JOIN events.tourney dtou ON dtou.id = dtab.tourney_id " +\
-        "JOIN events.setting_tourney stou ON stou.tourney_id = dtou.id "  
+        "JOIN events.tourney dtou ON dtou.id = dtab.tourney_id " 
         
     str_count = "Select count(*) " + str_from
     str_query = "Select dtab.id, table_number, is_smart, amount_bonus, dtab.image, dtab.is_active, " +\
-        "dtou.id as tourney_id, dtou.name, stou.image as image_tourney " + str_from
+        "dtou.id as tourney_id, dtou.name, dtou.image as image_tourney " + str_from
     
     str_where = " WHERE dtab.tourney_id = '" + tourney_id + "' "  
     
@@ -125,72 +121,15 @@ def get_one_by_id(table_id: str, db: Session):
     
     return result
 
-def new(request: Request, profile_id:str, event: EventBase, db: Session, file: File):
+def configure_domino_tables(db_tourney, db: Session, created_by:str, file=None):
     
-    locale = request.headers["accept-language"].split(",")[0].split("-")[0];
-    
-    result = ResultObject() 
-    currentUser = get_current_user(request)
-    
-    # si el perfil no es de administrador de eventos, no lo puede crear
-    
-    db_member_profile = get_one_profile(id=profile_id, db=db)
-    if not db_member_profile:
-        raise HTTPException(status_code=400, detail=_(locale, "userprofile.not_found"))
-   
-    if db_member_profile.profile_type != 'EVENTADMON':
-        raise HTTPException(status_code=400, detail=_(locale, "userprofile.user_not_event_admon"))
-    
-    one_status = get_one_status_by_name('CREATED', db=db)
-    if not one_status:
-        raise HTTPException(status_code=404, detail=_(locale, "status.not_found"))
-    
-    verify_dates(event['start_date'], event['close_date'], locale)
-    
-    id = str(uuid.uuid4())
-    if file:
-        ext = get_ext_at_file(file.filename)
-        file.filename = str(id) + "." + ext
-        
-        path = create_dir(entity_type="EVENT", user_id=str(db_member_profile.id), entity_id=str(id))
-    
-    db_event = Event(id=id, name=event['name'], summary=event['summary'], start_date=event['start_date'], 
-                    close_date=event['close_date'], registration_date=event['start_date'], 
-                    image=file.filename if file else None, registration_price=float(0.00), 
-                    city_id=event['city_id'], main_location=event['main_location'], status_id=one_status.id,
-                    created_by=currentUser['username'], updated_by=currentUser['username'], 
-                    profile_id=profile_id)
-    
-    try:
-        if file:
-            upfile(file=file, path=path)
-        
-        db.add(db_event)
-        db.commit()
-        result.data = {'id': id}
-        return result
-       
-    except (Exception, SQLAlchemyError, IntegrityError) as e:
-        print(e)
-        msg = _(locale, "event.error_new_event")               
-        raise HTTPException(status_code=403, detail=msg)
-
-def verify_dates(start_date, close_date, locale):
-    
-    if start_date > close_date:
-        raise HTTPException(status_code=404, detail=_(locale, "dominotable.start_date_incorrect"))
-    
-    return True
-
-def configure_domino_tables(db_tourney, settingtourney: SettingTourney, db: Session, created_by:str, file=None):
-    
-    bonus = settingtourney.amount_bonus_points
+    bonus = db_tourney.amount_bonus_points
     table_number = 0
-    amount_trad_tables = settingtourney.amount_tables - settingtourney.amount_smart_tables
+    amount_trad_tables = db_tourney.amount_tables - db_tourney.amount_smart_tables
    
     # crear las mesas inteligentes
-    if settingtourney.amount_smart_tables > 0:
-        for i in range(settingtourney.amount_smart_tables):
+    if db_tourney.amount_smart_tables > 0:
+        for i in range(db_tourney.amount_smart_tables):
             table_number += 1
             created_one_domino_tables(db_tourney, table_number, True, bonus, db, created_by)
             bonus -= 2

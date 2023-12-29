@@ -17,16 +17,10 @@ from fastapi.responses import FileResponse
 from os import getcwd
 
 from domino.models.events.domino_boletus import DominoBoletus, DominoBoletusPosition, DominoBoletusPairs
-from domino.models.events.domino_data import DominoBoletusData
-from domino.models.events.tourney import SettingTourney
 
-from domino.schemas.events.events import EventBase, EventSchema
 from domino.schemas.resources.result_object import ResultObject
 
 from domino.services.resources.status import get_one_by_name as get_one_status_by_name, get_one as get_one_status
-from domino.services.resources.utils import get_result_count, upfile, create_dir, del_image, get_ext_at_file, remove_dir
-from domino.services.enterprise.users import get_one_by_username
-from domino.services.enterprise.userprofile import get_one as get_one_profile
 from domino.services.events.domino_table import get_lst_tables
    
 def get_one(boletus_id: str, db: Session):  

@@ -13,10 +13,9 @@ from domino.functions_jwt import get_current_user
 from domino.app import _
 from domino.config.config import settings
 
-from domino.models.events.tourney import Tourney, SettingTourney
-from domino.models.events.domino_categories import DominoCategory
+from domino.models.events.tourney import Tourney, DominoCategory
 
-from domino.schemas.events.tourney import TourneyBase, TourneySchema, TourneyCreated, SettingTourneyCreated, DominoCategoryCreated
+from domino.schemas.events.tourney import TourneyCreated, SettingTourneyCreated, DominoCategoryCreated
 from domino.schemas.resources.result_object import ResultObject, ResultData
 
 from domino.services.resources.status import get_one_by_name as get_one_status_by_name, get_one as get_one_status
@@ -36,7 +35,7 @@ def get_all(request:Request, page: int, per_page: int, criteria_key: str, criter
     
     str_count = "Select count(*) " + str_from
     str_query = "Select tou.id, event_id, eve.name as event_name, tou.modality, tou.name, tou.summary, tou.start_date, " +\
-        "tou.status_id, sta.name as status_name, sta.description as status_description " + str_from
+        "tou.status_id, sta.name as status_name, sta.description as status_description, lottery_type " + str_from
     
     str_where = " WHERE sta.name != 'CANCELLED' "  
     
@@ -74,7 +73,8 @@ def create_dict_row(item, page, db: Session):
     
     new_row = {'id': item['id'], 'event_id': item['event_id'], 'event_name': item['event_name'], 'name': item['name'], 
                'modality': item['modality'], 'summary' : item['summary'], 'startDate': item['start_date'],
-               'status_id': item['status_id'], 'status_name': item['status_name'], 'status_description': item['status_description'] 
+               'status_id': item['status_id'], 'status_name': item['status_name'], 'status_description': item['status_description'],
+               'lottery_type': item['lottery_type'] 
                }
        
     if page != 0:
@@ -87,12 +87,12 @@ def get_one(tourney_id: str, db: Session):
 def get_one_by_name(tourney_name: str, db: Session):  
     return db.query(Tourney).filter(Tourney.name == tourney_name).first()
 
-def get_setting_tourney(tourney_id: str, db: Session):  
-    return db.query(SettingTourney).filter(SettingTourney.tourney_id == tourney_id).first()
+# def get_setting_tourney(tourney_id: str, db: Session):  
+#     return db.query(SettingTourney).filter(SettingTourney.tourney_id == tourney_id).first()
 
-def get_setting_tourney_to_interface(tourney_id: str, db: Session):  
-    one_setting = get_setting_tourney(tourney_id=tourney_id, db=db)
-    return one_setting.__dict__ if one_setting else None
+# def get_setting_tourney_to_interface(tourney_id: str, db: Session):  
+#     one_setting = get_setting_tourney(tourney_id=tourney_id, db=db)
+#     return one_setting.__dict__ if one_setting else None
 
 def get_one_by_id(tourney_id: str, db: Session): 
     result = ResultObject()  
@@ -100,6 +100,7 @@ def get_one_by_id(tourney_id: str, db: Session):
     api_uri = str(settings.api_uri)
     
     str_query = "Select tou.id, event_id, eve.name as event_name, tou.modality, tou.name, tou.summary, tou.start_date, " +\
+        "lottery_type, " +\
         "tou.status_id, sta.name as status_name, sta.description as status_description FROM events.tourney tou " +\
         "JOIN events.events eve ON eve.id = tou.event_id " +\
         "JOIN resources.entities_status sta ON sta.id = tou.status_id " +\
@@ -110,9 +111,6 @@ def get_one_by_id(tourney_id: str, db: Session):
         for item in lst_data:
             result.data = create_dict_row(item, 0, db=db)
             
-    # incluir tipo de sorteo
-    one_setting = get_setting_tourney(tourney_id=tourney_id, db=db)
-    result.data['lottery_type'] = one_setting.lottery_type if one_setting else ''
     result.data['amount_player'] = get_count_players_by_tourney(tourney_id, result.data['modality'], db=db)
     
     return result
@@ -129,7 +127,7 @@ def get_count_players_by_tourney(tourney_id: str, modality: str, db: Session):
     
     str_query += dict_modality[modality]
     
-    str_query += "WHERE pro.is_ready is True and players.is_active is True " +\
+    str_query += "WHERE pro.is_ready is True " +\
         " AND players.tourney_id = '" + tourney_id + "' " 
     
     amount_player = db.execute(str_query).scalar()
@@ -144,7 +142,7 @@ def get_all_by_event_id(event_id: str, db: Session):
         "JOIN resources.entities_status sta ON sta.id = tou.status_id "
     
     str_query = "Select tou.id, event_id, eve.name as event_name, tou.modality, tou.name, tou.summary, tou.start_date, " +\
-        "tou.status_id, sta.name as status_name " + str_from
+        "tou.status_id, sta.name as status_name, lottery_type " + str_from
     
     str_query += " WHERE sta.name != 'CANCELLED' and event_id = '" + str(event_id) + "' ORDER BY start_date "  
     lst_data = db.execute(str_query)
@@ -180,6 +178,7 @@ def new(request, event_id: str, tourney: TourneyCreated, db: Session):
     db_tourney = Tourney(id=id, event_id=event_id, modality=tourney.modality, name=tourney.name, 
                          summary=tourney.summary, start_date=tourney.startDate, 
                          status_id=one_status.id, created_by=currentUser['username'], 
+                         game_system='SUIZO',
                          updated_by=currentUser['username'], profile_id=one_event.profile_id)
     db.add(db_tourney)
     
@@ -503,10 +502,9 @@ def get_list_categories_tourney(tourney_id: str, db: Session):
 
 def get_info_categories_tourney(category_id: str, db: Session):
     
-    str_query = "SELECT cat.id, cat.tourney_id, tourney.modality, cat.elo_min, cat.elo_max, stourney.lottery_type, st.name as status_name " +\
+    str_query = "SELECT cat.id, cat.tourney_id, tourney.modality, cat.elo_min, cat.elo_max, tourney.lottery_type, st.name as status_name " +\
         "FROM events.domino_categories cat JOIN events.tourney ON " +\
         "tourney.id = cat.tourney_id JOIN resources.entities_status st ON st.id = tourney.status_id " +\
-        "LEFT JOIN events.setting_tourney stourney ON stourney.tourney_id = tourney.id " + \
         "where cat.id = '" + category_id + "' "
     lst_cat = db.execute(str_query).fetchall()
     
@@ -530,17 +528,12 @@ def save_image_tourney(request, tourney_id: str, file: File, db: Session):
     if not db_tourney:
         raise HTTPException(status_code=404, detail=_(locale, "tourney.not_found"))
     
-    one_settingtourney = get_setting_tourney(db_tourney.id, db=db)
-    # si no existe creo una totalmente vacia
-    if not one_settingtourney:
-        one_settingtourney = init_setting(tourney_id, db_tourney.modality, db=db)
-    
     path = create_dir(entity_type="SETTOURNEY", user_id=None, entity_id=str(db_tourney.id))
     
     # si torneo tiene imagen ya, eliminarla primero
-    if one_settingtourney.image:
+    if db_tourney.image:
         try:
-            del_image(path, one_settingtourney.image)
+            del_image(path, db_tourney.image)
         except:
             pass
     
@@ -548,17 +541,17 @@ def save_image_tourney(request, tourney_id: str, file: File, db: Session):
     if file:
         ext = get_ext_at_file(file.filename)
         file.filename = str(image_id) + "." + ext
-        one_settingtourney.image = file.filename
+        db_tourney.image = file.filename
         upfile(file=file, path=path)
     else:
         image_domino="public/smartdomino.png"
         filename = str(image_id) + ".png"
         image_destiny = path + filename
         copy_image(image_domino, image_destiny)
-        one_settingtourney.image = filename
+        db_tourney.image = filename
      
     try:
-        db.add(one_settingtourney)
+        db.add(db_tourney)
         
         db.commit()
         return result
