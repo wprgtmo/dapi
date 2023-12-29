@@ -16,7 +16,7 @@ from domino.models.resources.status import StatusElement
 from domino.models.events.invitations import Invitations
 from domino.models.events.tourney import Tourney
 
-from domino.schemas.events.invitations import InvitationBase, InvitationAccepted
+from domino.schemas.events.invitations import InvitationAccepted, InvitationFilters
 from domino.schemas.resources.result_object import ResultObject, ResultData
 
 from domino.services.resources.utils import get_result_count
@@ -197,7 +197,7 @@ def create_dict_row_invitation(item, api_uri=""):
     
     return new_row
            
-def generate_all_user(request, db: Session, tourney_id: str):
+def generate_all_user(request, db: Session, tourney_id: str, filters_invitation: InvitationFilters):
     locale = request.headers["accept-language"].split(",")[0].split("-")[0];
     
     result = ResultObject() 
@@ -218,25 +218,51 @@ def generate_all_user(request, db: Session, tourney_id: str):
     if not db_status_send:
         raise HTTPException(status_code=404, detail=_(locale, "status.not_exist"))
     
-    result = generate_for_tourney(db_tourney, db_status_send, currentUser['username'], db=db)
+    result = generate_for_tourney(db_tourney, db_status_send, currentUser['username'], filters_invitation, db=db)
     
     return result
     
-def generate_for_tourney(db_tourney:Tourney, db_status: StatusElement, username: str, db: Session):
+def generate_for_tourney(db_tourney:Tourney, db_status: StatusElement, username: str, filters_invitation: InvitationFilters, db: Session):
     
     dict_modality = {'Individual': "'SINGLE_PLAYER', 'REFEREE'",
                      'Parejas': "'PAIR_PLAYER', 'REFEREE'",
                      'Equipo': "'TEAM_PLAYER', 'REFEREE'"}
     str_profile = dict_modality[db_tourney.modality]
+    
+    str_join_country = "left join resources.city ON city.id = enterprise.profile_member.city_id " +\
+        "left join resources.country ON country.id = city.country_id "
+        
+    dict_modality_join = {'Individual': "join enterprise.profile_single_player player ON player.profile_id = profile_member.id ",
+                          'Parejas': "join enterprise.profile_pair_player player ON player.profile_id = profile_member.id ",
+                          'Equipo': "join enterprise.profile_team_player player ON player.profile_id = profile_member.id "}
+    
+    str_join_elo = dict_modality_join[db_tourney.modality]
+            
+    str_where = "where profile_member.is_active=True and profile_member.is_ready=True and eve.name IN (" + str_profile + ") " +\
+        "and profile_member.id NOT IN (Select profile_id FROM events.invitations where tourney_id = '" + db_tourney.id + "') "
         
     str_users = "SELECT profile_member.id profile_id, eve.name as rolevent_name  " + \
         "FROM enterprise.profile_member " +\
         "inner join enterprise.profile_users ON profile_users.profile_id = profile_member.id and profile_users.is_principal is True " +\
-        "inner join enterprise.profile_type eve ON eve.name = profile_member.profile_type " +\
-        "where profile_member.is_active=True and profile_member.is_ready=True and eve.name IN (" + str_profile + ") " +\
-        "and profile_member.id NOT IN (Select profile_id FROM events.invitations where tourney_id = '" + db_tourney.id + "') "
-
+        "inner join enterprise.profile_type eve ON eve.name = profile_member.profile_type "
+    
+    str_filter = ''
+    if filters_invitation:  # viene con filtros
+        if filters_invitation.player:
+            str_filter += " AND enterprise.profile_member.name ilike '%" + filters_invitation.player + "%'"
+        if filters_invitation.country:
+            str_users += str_join_country
+            str_filter += " AND resources.country.id = " + str(filters_invitation.country) 
+        if filters_invitation.elo_min or filters_invitation.elo_max:
+            str_users += str_join_elo
+            if filters_invitation.elo_min:
+                str_filter += " AND player.elo >= " + str(filters_invitation.elo_min) 
+            if filters_invitation.elo_max:
+                str_filter += " AND player.elo <= " + str(filters_invitation.elo_max) 
+    
+    str_users += str_where + str_filter
     lst_data = db.execute(str_users)
+    
     try:
         for item in lst_data:
             one_invitation = Invitations(tourney_id=db_tourney.id, profile_id=item.profile_id, 
