@@ -35,7 +35,7 @@ def get_all(request:Request, page: int, per_page: int, criteria_key: str, criter
     
     str_count = "Select count(*) " + str_from
     str_query = "Select tou.id, event_id, eve.name as event_name, tou.modality, tou.name, tou.summary, tou.start_date, " +\
-        "tou.status_id, sta.name as status_name, sta.description as status_description, lottery_type, number_rounds, image " + str_from
+        "tou.status_id, sta.name as status_name, sta.description as status_description, lottery_type, number_rounds, tou.image " + str_from
     
     str_where = " WHERE sta.name != 'CANCELLED' "  
     
@@ -100,7 +100,7 @@ def get_one_by_id(tourney_id: str, db: Session):
     api_uri = str(settings.api_uri)
     
     str_query = "Select tou.id, event_id, eve.name as event_name, tou.modality, tou.name, tou.summary, tou.start_date, " +\
-        "lottery_type, image, " +\
+        "lottery_type, number_rounds, tou.image, " +\
         "tou.status_id, sta.name as status_name, sta.description as status_description FROM events.tourney tou " +\
         "JOIN events.events eve ON eve.id = tou.event_id " +\
         "JOIN resources.entities_status sta ON sta.id = tou.status_id " +\
@@ -142,7 +142,7 @@ def get_all_by_event_id(event_id: str, db: Session):
         "JOIN resources.entities_status sta ON sta.id = tou.status_id "
     
     str_query = "Select tou.id, event_id, eve.name as event_name, tou.modality, tou.name, tou.summary, tou.start_date, " +\
-        "tou.status_id, sta.name as status_name, lottery_type, number_rounds, image " + str_from
+        "tou.status_id, sta.name as status_name, lottery_type, number_rounds, tou.image " + str_from
     
     str_query += " WHERE sta.name != 'CANCELLED' and event_id = '" + str(event_id) + "' ORDER BY start_date "  
     lst_data = db.execute(str_query)
