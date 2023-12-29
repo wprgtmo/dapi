@@ -47,6 +47,7 @@ class TourneyCreated(BaseModel):
     modality: Optional[str]
     summary: Optional[str]
     startDate: Optional[date]
+    number_rounds: Optional[int]
     
 class SettingTourneyCreated(BaseModel):
     
