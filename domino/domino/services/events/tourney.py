@@ -35,7 +35,7 @@ def get_all(request:Request, page: int, per_page: int, criteria_key: str, criter
     
     str_count = "Select count(*) " + str_from
     str_query = "Select tou.id, event_id, eve.name as event_name, tou.modality, tou.name, tou.summary, tou.start_date, " +\
-        "tou.status_id, sta.name as status_name, sta.description as status_description, lottery_type " + str_from
+        "tou.status_id, sta.name as status_name, sta.description as status_description, lottery_type, number_rounds,  " + str_from
     
     str_where = " WHERE sta.name != 'CANCELLED' "  
     
@@ -178,7 +178,7 @@ def new(request, event_id: str, tourney: TourneyCreated, db: Session):
     db_tourney = Tourney(id=id, event_id=event_id, modality=tourney.modality, name=tourney.name, 
                          summary=tourney.summary, start_date=tourney.startDate, 
                          status_id=one_status.id, created_by=currentUser['username'], 
-                         game_system='SUIZO',
+                         game_system='SUIZO', number_rounds=tourney.number_rounds,
                          updated_by=currentUser['username'], profile_id=one_event.profile_id)
     db.add(db_tourney)
     
@@ -265,7 +265,53 @@ def update(request: Request, tourney_id: str, tourney: TourneyCreated, db: Sessi
         print(e.code)
         if e.code == "gkpj":
             raise HTTPException(status_code=400, detail=_(locale, "tourney.already_exist"))
-   
+
+def update_image_tourney(request: Request, tourney_id: str, file: File, db: Session):
+    locale = request.headers["accept-language"].split(",")[0].split("-")[0];
+    
+    result = ResultObject() 
+    currentUser = get_current_user(request) 
+    
+    one_status_end = get_one_status_by_name('FINALIZED', db=db)
+    
+    db_tourney = get_one(tourney_id, db=db)
+    if not db_tourney:
+        raise HTTPException(status_code=404, detail=_(locale, "tourney.not_found"))
+    
+    if db_tourney.status_id == one_status_end.id:
+        raise HTTPException(status_code=404, detail=_(locale, "tourney.tourney_closed"))
+    
+    db_tourney.updated_by = currentUser['username']
+    db_tourney.updated_date = datetime.now()
+    
+    path_tourney = create_dir(entity_type="SETTOURNEY", user_id=None, entity_id=str(db_tourney.id))
+    
+    #puede venir la foto o no venir y eso es para borrarla.
+    if db_tourney.image:  # ya tiene una imagen asociada
+        current_image = db_tourney.image
+        try:
+            del_image(path=path_tourney, name=str(current_image))
+        except:
+            pass
+    
+    if not file:
+        db_tourney.image = None
+    else:   
+        ext = get_ext_at_file(file.filename)
+        file.filename = str(uuid.uuid4()) + "." + ext
+        
+        upfile(file=file, path=path_tourney)
+        db_tourney.image = file.filename
+    
+    try:
+        db.add(db_tourney)
+        db.commit()
+        return result
+    except (Exception, SQLAlchemyError) as e:
+        print(e.code)
+        if e.code == "gkpj":
+            raise HTTPException(status_code=400, detail=_(locale, "tourney.already_exist"))
+           
 def get_amount_tables(request: Request, tourney_id: str, db: Session): 
     locale = request.headers["accept-language"].split(",")[0].split("-")[0];
     
