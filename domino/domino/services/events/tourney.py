@@ -25,9 +25,13 @@ from domino.services.events.event import get_one as get_one_event, get_all as ge
 
 from domino.services.resources.utils import get_result_count, upfile, create_dir, del_image, get_ext_at_file, remove_dir, copy_image, del_image
 from domino.services.enterprise.userprofile import get_one as get_one_profile
+
+from domino.services.enterprise.auth import get_url_advertising
             
 def get_all(request:Request, page: int, per_page: int, criteria_key: str, criteria_value: str, db: Session):  
     locale = request.headers["accept-language"].split(",")[0].split("-")[0];
+    
+    api_uri = str(settings.api_uri)
     
     str_from = "FROM events.tourney tou " +\
         "JOIN events.events eve ON eve.id = tou.event_id " +\
@@ -65,16 +69,17 @@ def get_all(request:Request, page: int, per_page: int, criteria_key: str, criter
         str_query += "LIMIT " + str(per_page) + " OFFSET " + str(page*per_page-per_page)
      
     lst_data = db.execute(str_query)
-    result.data = [create_dict_row(item, page, db=db) for item in lst_data]
+    result.data = [create_dict_row(item, page, api_uri=api_uri, db=db) for item in lst_data]
     
     return result
 
-def create_dict_row(item, page, db: Session):
+def create_dict_row(item, page, api_uri:str, db: Session):
     
     new_row = {'id': item['id'], 'event_id': item['event_id'], 'event_name': item['event_name'], 'name': item['name'], 
                'modality': item['modality'], 'summary' : item['summary'], 'startDate': item['start_date'],
                'status_id': item['status_id'], 'status_name': item['status_name'], 'status_description': item['status_description'],
-               'lottery_type': item['lottery_type'], 'number_rounds': item['number_rounds']
+               'lottery_type': item['lottery_type'], 'number_rounds': item['number_rounds'],
+               'image': get_url_advertising(tourney_id=item['id'], file_name=item['image'] if item['image'] else None, api_uri=api_uri)
                }
        
     if page != 0:
@@ -109,7 +114,7 @@ def get_one_by_id(tourney_id: str, db: Session):
     lst_data = db.execute(str_query)
     if lst_data:
         for item in lst_data:
-            result.data = create_dict_row(item, 0, db=db)
+            result.data = create_dict_row(item, 0, api_uri, db=db)
             
     result.data['amount_player'] = get_count_players_by_tourney(tourney_id, result.data['modality'], db=db)
     
@@ -135,7 +140,9 @@ def get_count_players_by_tourney(tourney_id: str, modality: str, db: Session):
     return amount_player
 
 def get_all_by_event_id(event_id: str, db: Session): 
-    result = ResultObject()  
+    result = ResultObject() 
+    
+    api_uri = str(settings.api_uri) 
     
     str_from = "FROM events.tourney tou " +\
         "JOIN events.events eve ON eve.id = tou.event_id " +\
@@ -146,7 +153,7 @@ def get_all_by_event_id(event_id: str, db: Session):
     
     str_query += " WHERE sta.name != 'CANCELLED' and event_id = '" + str(event_id) + "' ORDER BY start_date "  
     lst_data = db.execute(str_query)
-    result.data = [create_dict_row(item, 0, db=db) for item in lst_data]
+    result.data = [create_dict_row(item, 0, api_uri, db=db) for item in lst_data]
     
     return result
 
