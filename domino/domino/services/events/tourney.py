@@ -35,7 +35,7 @@ def get_all(request:Request, page: int, per_page: int, criteria_key: str, criter
     
     str_count = "Select count(*) " + str_from
     str_query = "Select tou.id, event_id, eve.name as event_name, tou.modality, tou.name, tou.summary, tou.start_date, " +\
-        "tou.status_id, sta.name as status_name, sta.description as status_description, lottery_type, number_rounds,  " + str_from
+        "tou.status_id, sta.name as status_name, sta.description as status_description, lottery_type, number_rounds, image " + str_from
     
     str_where = " WHERE sta.name != 'CANCELLED' "  
     
