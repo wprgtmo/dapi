@@ -24,10 +24,11 @@ def get_for_tourney(
     per_page: int = 6, 
     criteria_key: str = "",
     criteria_value: str = "",
+    player_name: str = "", 
     db: Session = Depends(get_db)
 ):
     return get_all_players_by_tourney(request=request, page=page, per_page=per_page, tourney_id=tourney_id, is_active=is_active, 
-                                      criteria_key=criteria_key, criteria_value=criteria_value, db=db)
+                                      criteria_key=criteria_key, criteria_value=criteria_value, player_name=player_name, db=db)
 
 @player_route.get("/player/elo/", response_model=Dict, summary="Get All Players by min elo and max elo")
 def get_for_tourney_by_elo(

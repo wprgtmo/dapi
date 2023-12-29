@@ -5,6 +5,7 @@ from datetime import date
 from sqlalchemy import Column, ForeignKey
 from sqlalchemy.sql.sqltypes import String, Integer, Date
 from ...config.db import Base
+from sqlalchemy.orm import relationship
 
 def generate_uuid():
     return str(uuid.uuid4())
@@ -24,6 +25,8 @@ class Invitations(Base):
     created_date = Column(Date, nullable=False, default=date.today())
     updated_by = Column(String, ForeignKey("enterprise.users.username"), nullable=True)
     updated_date = Column(Date, nullable=False, default=date.today())
+    
+    tourney = relationship('Tourney')
     
     def dict(self):
         return {

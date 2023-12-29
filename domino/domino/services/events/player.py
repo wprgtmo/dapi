@@ -22,6 +22,8 @@ from domino.services.resources.status import get_one_by_name, get_one as get_one
 from domino.services.events.invitations import get_one_by_id as get_invitation_by_id
 from domino.services.events.tourney import get_one as get_torneuy_by_eid, get_info_categories_tourney
 
+from domino.services.enterprise.userprofile import get_one as get_one_profile
+
 from domino.services.resources.utils import get_result_count
 from domino.services.enterprise.auth import get_url_avatar
 
@@ -38,21 +40,28 @@ def new(request: Request, invitation_id: str, db: Session):
     if one_invitation.status_name != 'ACCEPTED' and one_invitation.status_name != 'REFUTED':
         raise HTTPException(status_code=404, detail=_(locale, "invitation.status_incorrect"))
     
-    db_tourney = get_torneuy_by_eid(one_invitation.tourney_id, db=db)
-    if not db_tourney:
-        raise HTTPException(status_code=404, detail=_(locale, "tourney.not_found"))
+    status_end = get_one_by_name('FINALIZED', db=db)
     
-    status_created = get_one_by_name('CREATED', db=db)
-    if db_tourney.status_id != status_created.id:
+    if one_invitation.tourney.status_id == status_end.id:
         raise HTTPException(status_code=404, detail=_(locale, "tourney.status_incorrect"))
         
     one_player = get_one_by_invitation_id(invitation_id, db=db)
     if one_player:
         raise HTTPException(status_code=404, detail=_(locale, "players.already_exist"))
     
+    # devolver el elo, nivel y rbking el jugador...
+    dict_player = get_info_of_player(one_invitation.profile_id, db=db)
+    
+    status_confirmed = get_one_by_name('CONFIRMED', db=db)    
     one_player = Players(id=str(uuid.uuid4()), tourney_id=one_invitation.tourney_id, 
-                         profile_id=one_invitation.profile_id, nivel='NORMAL', invitation_id=one_invitation.id,
-                         created_by=currentUser['username'], updated_by=currentUser['username'], is_active=True)
+                         profile_id=one_invitation.profile_id, invitation_id=one_invitation.id,
+                         created_by=currentUser['username'], updated_by=currentUser['username'], status_id=status_confirmed.id)
+    
+    if dict_player:
+        one_player.elo = dict_player['elo']
+        one_player.ranking = dict_player['ranking']
+        one_player.level = dict_player['level']
+    
     # cambiar estado a la invitacion para que no salga mas en el listado de propuesta de jugadores
     status_confirmed = get_one_by_name('CONFIRMED', db=db)
     if status_confirmed:
@@ -83,12 +92,8 @@ def reject_one_invitation(request: Request, invitation_id: str, db: Session):
     if one_invitation.status_name != 'ACCEPTED':
         raise HTTPException(status_code=404, detail=_(locale, "invitation.status_incorrect"))
     
-    db_tourney = get_torneuy_by_eid(one_invitation.tourney_id, db=db)
-    if not db_tourney:
-        raise HTTPException(status_code=404, detail=_(locale, "tourney.not_found"))
-    
-    status_created = get_one_by_name('CREATED', db=db)
-    if db_tourney.status_id != status_created.id:
+    status_created = get_one_by_name('FINALIZED', db=db)
+    if one_invitation.tourney.status_id == status_created.id:
         raise HTTPException(status_code=404, detail=_(locale, "tourney.status_incorrect"))
     
     status_confirmed = get_one_by_name('REFUTED', db=db)
@@ -117,15 +122,13 @@ def remove_player(request: Request, player_id: str, db: Session):
         db_player = db.query(Players).filter(Players.id == player_id).first()
         if db_player:
             
-            db_tourney = get_torneuy_by_eid(db_player.tourney_id, db=db)
-            if not db_tourney:
-                raise HTTPException(status_code=404, detail=_(locale, "tourney.not_found"))
-            
-            status_created = get_one_by_name('CREATED', db=db)
-            if db_tourney.status_id != status_created.id:
+            status_created = get_one_by_name('FINALIZED', db=db)
+            if db_player.tourney.status_id == status_created.id:
                 raise HTTPException(status_code=404, detail=_(locale, "tourney.status_incorrect"))
     
-            db_player.is_active = False
+            status_canc = get_one_by_name('CANCELLED', db=db)
+            
+            db_player.status_id = status_canc.id
             
             db_player.updated_by = currentUser['username']
             db_player.updated_date = datetime.now()
@@ -148,26 +151,35 @@ def get_number_players_by_elo(request:Request, tourney_id:str, min_elo:float, ma
     if not db_tourney:
         raise HTTPException(status_code=404, detail=_(locale, "tourney.not_found"))
     
-    str_from = "FROM events.players " +\
-        "inner join enterprise.profile_member pro ON pro.id = players.profile_id " +\
-        "inner join enterprise.profile_type prot ON prot.name = pro.profile_type " 
+    str_query = "SELECT count(players.id) FROM events.players player " 
     
-    dict_modality = {'Individual': "join enterprise.profile_single_player player ON player.profile_id = pro.id ",
-                     'Parejas': "join enterprise.profile_pair_player player ON player.profile_id = pro.id ",
-                     'Equipo': "join enterprise.profile_team_player player ON player.profile_id = pro.id "}
+    status_canc = get_one_by_name('CANCELLED', db=db)
     
-    str_from += dict_modality[db_tourney.modality]
-       
-    str_query = "SELECT count(players.id) " + str_from
-    
-    str_where = "WHERE pro.is_ready is True and players.is_active is True " 
-    str_where += " AND players.tourney_id = '" + tourney_id + "' "  +\
+    str_where = "WHERE status_id != " + str(status_canc.id)
+    str_where += " AND player.tourney_id = '" + tourney_id + "' "  +\
         "AND player.elo >= " + str(min_elo) + " AND player.elo <= " + str(max_elo)
     
     str_query += str_where
     result.data = db.execute(str_query).fetchone()[0]
     
     return result
+
+def get_info_of_player(profile_id: str, db: Session):  
+    
+    one_profile = get_one_profile(profile_id, db=db)
+    if not one_profile:
+        return {}
+    
+    if one_profile.profile_type == 'SINGLE_PLAYER':
+        one_info = one_profile.profile_single_player[0]
+    elif one_profile.profile_type == 'PAIR_PLAYER':
+        one_info = one_profile.profile_pair_player[0]
+    elif one_profile.profile_type == 'TEAM_PLAYER':
+        one_info = one_profile.profile_team_player[0]
+    else:
+        one_info = None
+        
+    return {'elo': one_info.elo, 'ranking': one_info.ranking, 'level': one_info.level} if one_info else {}
 
 def get_all_players_by_elo(request:Request, page: int, per_page: int, tourney_id: str, min_elo: float, max_elo: float, db: Session):  
     locale = request.headers["accept-language"].split(",")[0].split("-")[0];
@@ -178,24 +190,17 @@ def get_all_players_by_elo(request:Request, page: int, per_page: int, tourney_id
     if not db_tourney:
         raise HTTPException(status_code=404, detail=_(locale, "tourney.not_found"))
     
-    str_from = "FROM events.players " +\
-        "inner join enterprise.profile_member pro ON pro.id = players.profile_id " +\
-        "inner join enterprise.profile_type prot ON prot.name = pro.profile_type " +\
+    str_from = "FROM events.players player " +\
+        "inner join enterprise.profile_member pro ON pro.id = player.profile_id " +\
         "left join resources.city ON city.id = pro.city_id " + \
         "left join resources.country ON country.id = city.country_id "
-    
-    dict_modality = {'Individual': "join enterprise.profile_single_player player ON player.profile_id = pro.id ",
-                     'Parejas': "join enterprise.profile_pair_player player ON player.profile_id = pro.id ",
-                     'Equipo': "join enterprise.profile_team_player player ON player.profile_id = pro.id "}
-    
-    str_from += dict_modality[db_tourney.modality]
-       
+        
     str_count = "Select count(*) " + str_from
-    str_query = "SELECT players.id, pro.name as name, prot.description as profile_type, pro.photo, pro.id as profile_id, " +\
+    str_query = "SELECT players.id, pro.name as name, pro.photo, pro.id as profile_id, " +\
         "city.name as city_name, country.name as country_name, player.level, player.elo, player.ranking, player.ranking position_number " + str_from
-    
-    str_where = "WHERE pro.is_ready is True and players.is_active is True " 
-    str_where += " AND players.tourney_id = '" + tourney_id + "' "  +\
+        
+    str_where = "WHERE pro.is_ready is True " 
+    str_where += " AND player.tourney_id = '" + tourney_id + "' "  +\
         "AND player.elo >= " + str(min_elo) + " AND player.elo <= " + str(max_elo)
     
     str_count += str_where
@@ -217,20 +222,9 @@ def get_all_players_by_elo(request:Request, page: int, per_page: int, tourney_id
 
 def get_lst_id_player_by_elo(tourney_id: str, modality:str, min_elo: float, max_elo: float, db: Session):  
     
-    str_from = "FROM events.players " +\
-        "inner join enterprise.profile_member pro ON pro.id = players.profile_id " +\
-        "inner join enterprise.profile_type prot ON prot.name = pro.profile_type " 
+    str_query = "SELECT players.id FROM events.players player "
     
-    dict_modality = {'Individual': "join enterprise.profile_single_player player ON player.profile_id = pro.id ",
-                     'Parejas': "join enterprise.profile_pair_player player ON player.profile_id = pro.id ",
-                     'Equipo': "join enterprise.profile_team_player player ON player.profile_id = pro.id "}
-    
-    str_from += dict_modality[modality]
-       
-    str_query = "SELECT players.id " + str_from
-    
-    str_where = "WHERE pro.is_ready is True and players.is_active is True " 
-    str_where += " AND players.tourney_id = '" + tourney_id + "' "  +\
+    str_where = "WHERE player.tourney_id = '" + tourney_id + "' "  +\
         "AND player.elo >= " + str(min_elo) + " AND player.elo <= " + str(max_elo)
     
     str_query += str_where
@@ -255,24 +249,17 @@ def get_all_players_by_category(request:Request, page: int, per_page: int, categ
     if not dict_result:
         raise HTTPException(status_code=404, detail=_(locale, "tourney.category_not_exist"))
     
-    str_from = "FROM events.players " +\
-        "inner join enterprise.profile_member pro ON pro.id = players.profile_id " +\
-        "inner join enterprise.profile_type prot ON prot.name = pro.profile_type " +\
+    str_from = "FROM events.players player " +\
+        "inner join enterprise.profile_member pro ON pro.id = player.profile_id " +\
         "left join resources.city ON city.id = pro.city_id " + \
         "left join resources.country ON country.id = city.country_id "
     
     tourney_is_init = True if dict_result['status_name'] == 'INITIADED' or dict_result['status_name'] == 'FINALIZED' else False
     if tourney_is_init:
-        str_from += "LEFT JOIN events.domino_rounds_scale rscale ON rscale.player_id = players.id "   
-    
-    dict_modality = {'Individual': "join enterprise.profile_single_player player ON player.profile_id = pro.id ",
-                     'Parejas': "join enterprise.profile_pair_player player ON player.profile_id = pro.id ",
-                     'Equipo': "join enterprise.profile_team_player player ON player.profile_id = pro.id "}
-    
-    str_from += dict_modality[dict_result['modality']]
+        str_from += "LEFT JOIN events.domino_rounds_scale rscale ON rscale.player_id = player.id "   
     
     str_count = "Select count(*) " + str_from
-    str_query = "SELECT players.id, pro.name as name, prot.description as profile_type, pro.photo, pro.id as profile_id, " +\
+    str_query = "SELECT player.id, pro.name as name, pro.photo, pro.id as profile_id, " +\
         "city.name as city_name, country.name as country_name, player.level, player.elo, player.ranking " 
         
     if tourney_is_init:
@@ -282,8 +269,8 @@ def get_all_players_by_category(request:Request, page: int, per_page: int, categ
 
     str_query += str_from
     
-    str_where = "WHERE pro.is_ready is True and players.is_active is True " 
-    str_where += " AND players.tourney_id = '" + dict_result['tourney_id'] + "' " 
+    str_where = "WHERE pro.is_ready is True " 
+    str_where += " AND player.tourney_id = '" + dict_result['tourney_id'] + "' " 
     
     if tourney_is_init:
         str_where += " AND rscale.category_id = '" + category_id + "' "
@@ -318,7 +305,8 @@ def get_all_players_by_category(request:Request, page: int, per_page: int, categ
     
     return result
   
-def get_all_players_by_tourney(request:Request, page: int, per_page: int, tourney_id: str, is_active: bool, criteria_key: str, criteria_value: str, db: Session):  
+def get_all_players_by_tourney(request:Request, page: int, per_page: int, tourney_id: str, 
+                               criteria_key: str, criteria_value: str, player_name: str, db: Session):  
     locale = request.headers["accept-language"].split(",")[0].split("-")[0];
     
     api_uri = str(settings.api_uri)
@@ -327,28 +315,17 @@ def get_all_players_by_tourney(request:Request, page: int, per_page: int, tourne
     if not db_tourney:
         raise HTTPException(status_code=404, detail=_(locale, "tourney.not_found"))
     
-    # status_created = get_one_by_name('CREATED', db=db)
-    # if db_tourney.status_id != status_created.id:
-    #     raise HTTPException(status_code=404, detail=_(locale, "tourney.status_incorrect"))
-            
-    str_from = "FROM events.players " +\
-        "inner join enterprise.profile_member pro ON pro.id = players.profile_id " +\
-        "inner join enterprise.profile_type prot ON prot.name = pro.profile_type " +\
+    str_from = "FROM events.players player " +\
+        "inner join enterprise.profile_member pro ON pro.id = player.profile_id " +\
         "left join resources.city ON city.id = pro.city_id " + \
         "left join resources.country ON country.id = city.country_id "
     
-    dict_modality = {'Individual': "join enterprise.profile_single_player player ON player.profile_id = pro.id ",
-                     'Parejas': "join enterprise.profile_pair_player player ON player.profile_id = pro.id ",
-                     'Equipo': "join enterprise.profile_team_player player ON player.profile_id = pro.id "}
-    
-    str_from += dict_modality[db_tourney.modality]
-       
     str_count = "Select count(*) " + str_from
-    str_query = "SELECT players.id, pro.name as name, prot.description as profile_type, pro.photo, pro.id as profile_id, " +\
+    str_query = "SELECT player.id, pro.name as name, pro.photo, pro.id as profile_id, " +\
         "city.name as city_name, country.name as country_name, player.level, player.elo, player.ranking, player.ranking position_number " + str_from
     
-    str_where = "WHERE pro.is_ready is True and players.is_active is " + str(is_active) 
-    str_where += " AND players.tourney_id = '" + tourney_id + "' " 
+    str_where = "WHERE pro.is_ready is True " 
+    str_where += " AND player.tourney_id = '" + tourney_id + "' " 
     
     dict_query = {'username': " AND username = '" + criteria_value + "'"}
     if criteria_key and criteria_key not in dict_query:
@@ -379,7 +356,6 @@ def create_dict_row(item, page, db: Session, api_uri):
     image = get_url_avatar(item['profile_id'], item['photo'], api_uri=api_uri)
     
     new_row = {'id': item['id'], 'name': item['name'], 
-               'profile_type': item['profile_type'],  
                'country': item['country_name'] if item['country_name'] else '', 
                'city_name': item['city_name'] if item['city_name'] else '',  
                'photo' : image, 'elo': item['elo'], 'ranking': item['ranking'], 'level': item['level'],
@@ -399,15 +375,15 @@ def created_all_players(request:Request, tourney_id:str, db: Session):
     result = ResultObject() 
     currentUser = get_current_user(request)
     
-    one_status = get_one_by_name('CREATED', db=db)
-    if not one_status:
+    status_end = get_one_by_name('FINALIZED', db=db)
+    if not status_end:
         return True
     
     db_tourney = get_torneuy_by_eid(tourney_id, db=db)
     if not db_tourney:
         raise HTTPException(status_code=404, detail=_(locale, "tourney.not_found"))
     
-    if db_tourney.status_id != one_status.id:
+    if db_tourney.status_id == status_end.id:
         raise HTTPException(status_code=404, detail=_(locale, "tourney.status_incorrect"))
     
     status_confirmed = get_one_by_name('CONFIRMED', db=db)
@@ -428,9 +404,15 @@ def created_all_players(request:Request, tourney_id:str, db: Session):
         if not one_invitation:
             continue
         
+        dict_player = get_info_of_player(one_invitation.profile_id, db=db)
         one_player = Players(id=str(uuid.uuid4()), tourney_id=one_invitation.tourney_id, 
-                            profile_id=one_invitation.profile_id, nivel='NORMAL', invitation_id=one_invitation.id,
-                            created_by=currentUser['username'], updated_by=currentUser['username'], is_active=True)
+                         profile_id=one_invitation.profile_id, invitation_id=one_invitation.id,
+                         created_by=currentUser['username'], updated_by=currentUser['username'], status_id=status_confirmed.id)
+        
+        if dict_player:
+            one_player.elo = dict_player['elo']
+            one_player.ranking = dict_player['ranking']
+            one_player.level = dict_player['level']
         
         one_invitation.updated_by = currentUser['username']
         one_invitation.updated_date = datetime.now()
