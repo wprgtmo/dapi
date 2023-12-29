@@ -240,13 +240,12 @@ def update(request: Request, tourney_id: str, tourney: TourneyCreated, db: Sessi
     
     one_status_end = get_one_status_by_name('FINALIZED', db=db)
     one_status_new = get_one_status_by_name('CREATED', db=db)
-    one_status_canc = get_one_status_by_name('CANCELLED', db=db)
     
     db_tourney = get_one(tourney_id, db=db)
     if not db_tourney:
         raise HTTPException(status_code=404, detail=_(locale, "tourney.not_found"))
     
-    if db_tourney.status_id != one_status_new.id:
+    if db_tourney.status_id == one_status_end.id:
         raise HTTPException(status_code=404, detail=_(locale, "tourney.tourney_closed"))
     
     if db_tourney.name != tourney.name:
@@ -260,6 +259,9 @@ def update(request: Request, tourney_id: str, tourney: TourneyCreated, db: Sessi
         
     if db_tourney.start_date != tourney.startDate:
         db_tourney.start_date = tourney.startDate
+        
+    if db_tourney.number_rounds != tourney.number_rounds:
+        db_tourney.number_rounds = tourney.number_rounds
         
     db_tourney.updated_by = currentUser['username']
     db_tourney.updated_date = datetime.now()

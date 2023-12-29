@@ -6,7 +6,7 @@ from starlette import status
 from domino.auth_bearer import JWTBearer
 
 from domino.schemas.resources.result_object import ResultObject
-from domino.schemas.events.invitations import InvitationAccepted
+from domino.schemas.events.invitations import InvitationAccepted, InvitationFilters
 
 from domino.services.events.invitations import generate_all_user, update, get_all_invitations_by_user, get_all_invitations_by_tourney
   
@@ -31,8 +31,8 @@ def get_for_tourney(
     return get_all_invitations_by_tourney(request=request, tourney_id=tourney_id, page=page, per_page=per_page, criteria_key=criteria_key, criteria_value=criteria_value, db=db)
 
 @invitation_route.post("/invitation", response_model=ResultObject, summary="Generate user invitations")
-def generate(request:Request, tourney_id: str, db: Session = Depends(get_db)):
-    return generate_all_user(request=request, tourney_id=tourney_id, db=db)
+def generate(request:Request, tourney_id: str, filters_invitation: InvitationFilters, db: Session = Depends(get_db)):
+    return generate_all_user(request=request, tourney_id=tourney_id, filters_invitation=filters_invitation, db=db)
 
 @invitation_route.put("/invitation/{id}", response_model=ResultObject, summary="Accept or Rejected Invitation")
 def update_invitation(request:Request, id: str, invitation: InvitationAccepted, db: Session = Depends(get_db)):

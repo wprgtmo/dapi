@@ -38,3 +38,9 @@ class InvitationSchema(InvitationBase):
 class InvitationAccepted(BaseModel):
     accept: bool = True
         
+        
+class InvitationFilters(BaseModel):
+    player: Optional[str]
+    country: Optional[str]
+    elo_min: Optional[float]
+    elo_max: Optional[float]
