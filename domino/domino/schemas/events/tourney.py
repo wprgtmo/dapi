@@ -68,4 +68,5 @@ class DominoCategoryCreated(BaseModel):
     category_number: str
     elo_min: float
     elo_max: float
+    amount_players: int = 0
     

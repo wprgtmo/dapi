@@ -27,8 +27,11 @@ def get_for_tourney(
     per_page: int = 6, 
     criteria_key: str = "",
     criteria_value: str = "",
+    player_name: str = "", 
     db: Session = Depends(get_db)):
-    return get_all_invitations_by_tourney(request=request, tourney_id=tourney_id, page=page, per_page=per_page, criteria_key=criteria_key, criteria_value=criteria_value, db=db)
+    return get_all_invitations_by_tourney(
+        request=request, tourney_id=tourney_id, page=page, per_page=per_page, criteria_key=criteria_key, criteria_value=criteria_value, 
+        player_name=player_name, db=db)
 
 @invitation_route.post("/invitation", response_model=ResultObject, summary="Generate user invitations")
 def generate(request:Request, tourney_id: str, filters_invitation: InvitationFilters, db: Session = Depends(get_db)):

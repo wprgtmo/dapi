@@ -1,8 +1,16 @@
-ALTER TABLE IF EXISTS events.domino_rounds_pairs
-    ADD COLUMN scale_id_one_player character varying;
-ALTER TABLE IF EXISTS events.domino_rounds_pairs
-    ADD COLUMN scale_id_two_player character varying;   
-    
+
+ALTER TABLE IF EXISTS events.domino_rounds
+    ADD COLUMN amount_tables integer DEFAULT 0;
+ALTER TABLE IF EXISTS events.domino_rounds
+    ADD COLUMN amount_players_playing integer DEFAULT 0;
+ALTER TABLE IF EXISTS events.domino_rounds
+    ADD COLUMN amount_players_waiting integer DEFAULT 0;
+ALTER TABLE IF EXISTS events.domino_rounds
+    ADD COLUMN amount_players_pause integer DEFAULT 0;
+ALTER TABLE IF EXISTS events.domino_rounds
+    ADD COLUMN amount_players_expelled integer DEFAULT 0; 
+ALTER TABLE IF EXISTS events.domino_rounds
+    ADD COLUMN amount_categories integer DEFAULT 0;    
     
 
 

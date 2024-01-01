@@ -33,6 +33,8 @@ class Players(Base):
     
     status_id  = Column(Integer, ForeignKey("resources.entities_status.id"), nullable=False)
     
+    tourney = relationship('Tourney')
+    
     def dict(self):
         return {
             "tourney_id": self.tourney_id,

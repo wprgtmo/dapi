@@ -79,7 +79,8 @@ def get_all(request:Request, profile_id:str, page: int, per_page: int, criteria_
     
     return result
            
-def get_all_invitations_by_tourney(request, tourney_id: str, page: int, per_page: int, criteria_key: str, criteria_value: str, db: Session):  
+def get_all_invitations_by_tourney(request, tourney_id: str, page: int, per_page: int, criteria_key: str, criteria_value: str, 
+                                   player_name:str, db: Session):  
     locale = request.headers["accept-language"].split(",")[0].split("-")[0];
     
     result = ResultObject() 
@@ -93,9 +94,11 @@ def get_all_invitations_by_tourney(request, tourney_id: str, page: int, per_page
     # Me pasan status_id para filtrar por este parametro: 0: todas, 1: Aceptadas, 2: Rechazadas
     str_status = ''
     if criteria_key and criteria_key == 'status_id':
-        str_status = '' if criteria_value == '0' else " AND (status_name = 'ACCEPTED' or status_name = 'CONFIRMED') " if criteria_value == '1' else " AND status_name = 'REFUTED' "  
+        # str_status = '' if criteria_value == '0' else " AND (status_name = 'ACCEPTED' or status_name = 'CONFIRMED') " \
+        #     if criteria_value == '1' else " AND status_name = 'REFUTED' "  
+        str_status = '' if criteria_value == '0' else " AND (status_name = 'ACCEPTED' or status_name = 'CONFIRMED') " \
+            if criteria_value == '1' else " AND status_name = 'REFUTED' " if criteria_value == '2' else " AND status_name = 'SEND' " 
     
-    # voy a devolver lasa confirmadas tambien
     str_from = "FROM events.invitations " + \
         "inner join enterprise.profile_member ON profile_member.id = invitations.profile_id " + \
         "left join resources.city ON city.id = profile_member.city_id " +\
@@ -111,6 +114,9 @@ def get_all_invitations_by_tourney(request, tourney_id: str, page: int, per_page
         "and profile_member.is_active = True and profile_member.is_ready = True "
         
     str_from += str_status
+    
+    if player_name:    
+        str_from += " AND profile_member.name ilike '%" + player_name + "%'"
         
     str_count = "Select count(*) " + str_from
     str_query = "SELECT invitations.id, invitations.profile_id, profile_member.name, profile_member.photo, " + \
@@ -137,6 +143,7 @@ def get_all_invitations_by_tourney(request, tourney_id: str, page: int, per_page
     result = get_result_count(page=page, per_page=per_page, str_count=str_count, db=db)
     
     str_query += " ORDER BY player.elo DESC " 
+    
     if page != 0:
         str_query += "LIMIT " + str(per_page) + " OFFSET " + str(page*per_page-per_page)
     

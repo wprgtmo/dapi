@@ -121,7 +121,31 @@ def get_one_by_id(table_id: str, db: Session):
     
     return result
 
-def configure_domino_tables(db_tourney, db: Session, created_by:str, file=None):
+def created_tables_default(db_tourney, db: Session):
+    
+    # buscar ls mesas del torneo y volverlas a crear. Si tienen imgane, no importa
+    str_query = "DELETE FROM events.domino_tables_files WHERE table_id IN (" + \
+        "SELECT id FROM events.domino_tables WHERE tourney_id = '" + db_tourney.id + "'); " +\
+        "DELETE FROM events.domino_tables WHERE tourney_id = '" + db_tourney.id + "';COMMIT; "
+    db.execute(str_query)
+    
+    table_number = 0
+    amount_trad_tables = db_tourney.amount_tables - db_tourney.amount_smart_tables
+   
+    # crear las mesas inteligentes
+    if db_tourney.amount_smart_tables > 0:
+        for i in range(db_tourney.amount_smart_tables):
+            table_number += 1
+            created_one_domino_tables(db_tourney, table_number, True, 0, db, db_tourney.updated_by)
+    
+    # crear las mesas tradicionales
+    for i in range(amount_trad_tables):
+        table_number += 1
+        created_one_domino_tables(db_tourney, table_number, False, 0, db, db_tourney.updated_by)
+        
+    return True
+
+def configure_domino_tables_original_borrar(db_tourney, db: Session, created_by:str, file=None):
     
     bonus = db_tourney.amount_bonus_points
     table_number = 0
