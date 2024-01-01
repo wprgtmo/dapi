@@ -38,6 +38,14 @@ class DominoRounds(Base):
     
     status_id  = Column(Integer, ForeignKey("resources.entities_status.id"), nullable=False)
     
+    amount_tables = Column(Integer, nullable=False, default=0)
+    amount_categories = Column(Integer, nullable=False, default=0)
+    
+    amount_players_playing = Column(Integer, nullable=False, default=0)
+    amount_players_waiting = Column(Integer, nullable=False, default=0)
+    amount_players_pause = Column(Integer, nullable=False, default=0)
+    amount_players_expelled = Column(Integer, nullable=False, default=0)
+    
     tourney = relationship('Tourney')
     
     idx_number_table = UniqueConstraint('tourney_id', 'round_number')

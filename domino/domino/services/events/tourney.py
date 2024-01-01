@@ -116,24 +116,14 @@ def get_one_by_id(tourney_id: str, db: Session):
         for item in lst_data:
             result.data = create_dict_row(item, 0, api_uri, db=db)
             
-    result.data['amount_player'] = get_count_players_by_tourney(tourney_id, result.data['modality'], db=db)
+    result.data['amount_player'] = get_count_players_by_tourney(tourney_id, db=db)
     
     return result
 
-def get_count_players_by_tourney(tourney_id: str, modality: str, db: Session):  
-    
-    dict_modality = {'Individual': "join enterprise.profile_single_player player ON player.profile_id = pro.id ",
-                     'Parejas': "join enterprise.profile_pair_player player ON player.profile_id = pro.id ",
-                     'Equipo': "join enterprise.profile_team_player player ON player.profile_id = pro.id "}
+def get_count_players_by_tourney(tourney_id: str, db: Session):  
     
     str_query = "Select count(*) FROM events.players " +\
-        "inner join enterprise.profile_member pro ON pro.id = players.profile_id " +\
-        "inner join enterprise.profile_type prot ON prot.name = pro.profile_type "
-    
-    str_query += dict_modality[modality]
-    
-    str_query += "WHERE pro.is_ready is True " +\
-        " AND players.tourney_id = '" + tourney_id + "' " 
+        "WHERE players.tourney_id = '" + tourney_id + "' " 
     
     amount_player = db.execute(str_query).scalar()
     
@@ -336,7 +326,7 @@ def get_amount_tables(request: Request, tourney_id: str, db: Session):
 
 def calculate_amount_tables(tourney_id: str, modality: str, db: Session):
     
-    str_query = "Select count(*) From events.players Where is_active = True and tourney_id = '" + tourney_id + "' "
+    str_query = "Select count(*) From events.players Where tourney_id = '" + tourney_id + "' "
     amount_players = db.execute(str_query).fetchone()[0]
     
     if amount_players == 0:
@@ -355,10 +345,36 @@ def calculate_amount_tables(tourney_id: str, modality: str, db: Session):
     amount_table = int(mod_play[0]) if mod_play[1] > 0 else int(mod_play[0])
     return amount_table
 
+def calculate_amount_categories(tourney_id: str, db: Session):
+    
+    str_query = "Select count(*) From events.domino_categories Where tourney_id = '" + tourney_id + "' "
+    amount_category = db.execute(str_query).fetchone()[0]
+    
+    return int(amount_category)
+
+def calculate_amount_players_playing(tourney_id: str, db: Session):
+    
+    one_sta_conf = get_one_status_by_name('CONFIRMED', db=db)
+    one_sta_play = get_one_status_by_name('PLAYING', db=db)
+    
+    str_query = "Select count(*) From events.players Where tourney_id = '" + tourney_id + "' " +\
+        "AND status_id IN (" + str(one_sta_conf.id) + "," + str(one_sta_play.id) + ") "
+    amount_play = db.execute(str_query).fetchone()[0]
+    
+    return int(amount_play)
+
+def calculate_amount_players_by_status(tourney_id: str, status_name: str, db: Session):
+    
+    one_sta = get_one_status_by_name(status_name)
+    str_query = "Select count(*) From events.players Where tourney_id = '" + tourney_id + "' " +\
+        "AND status_id = " + str(one_sta.id)
+    amount_play = db.execute(str_query).fetchone()[0]
+    
+    return int(amount_play)
+
 def calculate_elo_by_tourney(tourney_id: str, modality:str, db: Session):
     
-    str_query = "Select count(*) From events.players Where is_active = True and tourney_id = '" + tourney_id + "' "
-    amount_players = db.execute(str_query).fetchone()[0]
+    amount_players = calculate_amount_players_playing(tourney_id=tourney_id, db=db)
     
     if amount_players == 0:
         return int(0)
@@ -375,131 +391,51 @@ def calculate_elo_by_tourney(tourney_id: str, modality:str, db: Session):
     
     return int(mod_play[0]) + 1 if mod_play[1] > 0 else int(mod_play[0])
 
-def initializes_tourney(tourney_id, amount_tables, amount_smart_tables, amount_rounds, number_points_to_win, 
-                        time_to_win, game_system, use_bonus, lottery_type, penalties_limit, db: Session):
+# def initializes_tourney(tourney_id, amount_tables, amount_smart_tables, amount_rounds, number_points_to_win, 
+#                         time_to_win, game_system, use_bonus, lottery_type, penalties_limit, db: Session):
     
-    amount_bonus_tables = amount_rounds // 4 
-    divmod_round = divmod(amount_rounds,5)
-    number_bonus_round = amount_rounds + 1 if amount_rounds <= 9 else 4 if amount_rounds <= 15 else \
-        divmod_round[0] if divmod_round[1] == 0 else divmod_round[0] + 1
-    amount_bonus_points = amount_bonus_tables * 2
+#     amount_bonus_tables = amount_rounds // 4 
+#     divmod_round = divmod(amount_rounds,5)
+#     number_bonus_round = amount_rounds + 1 if amount_rounds <= 9 else 4 if amount_rounds <= 15 else \
+#         divmod_round[0] if divmod_round[1] == 0 else divmod_round[0] + 1
+#     amount_bonus_points = amount_bonus_tables * 2
     
-    sett_tourney = SettingTourney(amount_tables=amount_tables, amount_smart_tables=amount_smart_tables, 
-                                  amount_rounds=amount_rounds, use_bonus=use_bonus,
-                                  amount_bonus_tables=amount_bonus_tables, amount_bonus_points=amount_bonus_points, 
-                                  number_bonus_round=number_bonus_round, 
-                                  number_points_to_win=number_points_to_win, time_to_win=time_to_win, 
-                                  game_system=game_system, lottery_type=lottery_type, penalties_limit=penalties_limit)
+#     sett_tourney = SettingTourney(amount_tables=amount_tables, amount_smart_tables=amount_smart_tables, 
+#                                   amount_rounds=amount_rounds, use_bonus=use_bonus,
+#                                   amount_bonus_tables=amount_bonus_tables, amount_bonus_points=amount_bonus_points, 
+#                                   number_bonus_round=number_bonus_round, 
+#                                   number_points_to_win=number_points_to_win, time_to_win=time_to_win, 
+#                                   game_system=game_system, lottery_type=lottery_type, penalties_limit=penalties_limit)
     
-    sett_tourney.tourney_id = tourney_id
+#     sett_tourney.tourney_id = tourney_id
     
-    try:
-        db.add(sett_tourney)
-        db.commit()
-        return True
+#     try:
+#         db.add(sett_tourney)
+#         db.commit()
+#         return True
        
-    except (Exception, SQLAlchemyError, IntegrityError) as e:
-        return False
+#     except (Exception, SQLAlchemyError, IntegrityError) as e:
+#         return False
     
-def init_setting(tourney_id, modality, db: Session):
+# def init_setting(tourney_id, modality, db: Session):
     
-    amount_tables = calculate_amount_tables(tourney_id, modality=modality, db=db)
-    elo_max, elo_min = get_values_elo_by_tourney(tourney_id=tourney_id, modality=modality, db=db)
+#     amount_tables = calculate_amount_tables(tourney_id, modality=modality, db=db)
+#     elo_max, elo_min = get_values_elo_by_tourney(tourney_id=tourney_id, modality=modality, db=db)
     
-    sett_tourney = SettingTourney(
-        amount_tables=amount_tables, amount_smart_tables=0, amount_rounds=0, use_bonus=False, amount_bonus_tables=0, 
-        amount_bonus_points=0, number_bonus_round=0, number_points_to_win=0, time_to_win=0, 
-        game_system='', lottery_type='', penalties_limit=0, elo_min=elo_min, elo_max=elo_max, image='')
+#     sett_tourney = SettingTourney(
+#         amount_tables=amount_tables, amount_smart_tables=0, amount_rounds=0, use_bonus=False, amount_bonus_tables=0, 
+#         amount_bonus_points=0, number_bonus_round=0, number_points_to_win=0, time_to_win=0, 
+#         game_system='', lottery_type='', penalties_limit=0, elo_min=elo_min, elo_max=elo_max, image='')
     
-    sett_tourney.tourney_id = tourney_id
+#     sett_tourney.tourney_id = tourney_id
     
-    try:
-        db.add(sett_tourney)
-        db.commit()
-        return sett_tourney
+#     try:
+#         db.add(sett_tourney)
+#         db.commit()
+#         return sett_tourney
        
-    except (Exception, SQLAlchemyError, IntegrityError) as e:
-        return None
-    
-def update_initializes_tourney(one_setting, amount_smart_tables, amount_rounds, number_points_to_win, 
-                        time_to_win, game_system, use_bonus, lottery_type, penalties_limit, db: Session):
-    
-    divmod_round = divmod(amount_rounds,5)
-    
-    one_setting.amount_smart_tables = amount_smart_tables
-    one_setting.amount_rounds = amount_rounds
-    one_setting.use_bonus = use_bonus
-    one_setting.amount_bonus_tables = amount_rounds // 4 
-    one_setting.amount_bonus_points = (amount_rounds // 4) * 2
-    one_setting.number_bonus_round = amount_rounds + 1 if amount_rounds <= 9 else 4 if amount_rounds <= 15 else \
-        divmod_round[0] if divmod_round[1] == 0 else divmod_round[0] + 1
-    one_setting.number_points_to_win = number_points_to_win
-    
-    one_setting.time_to_win = time_to_win
-    one_setting.game_system = game_system
-    one_setting.lottery_type = lottery_type
-    one_setting.penalties_limit = penalties_limit
-    
-    try:
-        db.add(one_setting)
-        db.commit()
-        return True
-       
-    except (Exception, SQLAlchemyError, IntegrityError) as e:
-        return False
-   
-def configure_one_tourney(request, tourney_id: str, settingtourney: SettingTourneyCreated, db: Session):
-    locale = request.headers["accept-language"].split(",")[0].split("-")[0];
-    
-    result = ResultObject() 
-    currentUser = get_current_user(request)
-    
-    one_status_new = get_one_status_by_name('CREATED', db=db)
-    
-    db_tourney = get_one(tourney_id, db=db)
-    if not db_tourney:
-        raise HTTPException(status_code=404, detail=_(locale, "tourney.not_found"))
-    
-    if db_tourney.status_id != one_status_new.id:
-        raise HTTPException(status_code=404, detail=_(locale, "tourney.tourney_closed"))
-    
-    amount_tables = calculate_amount_tables(db_tourney.id, db_tourney.modality, db=db)
-    
-    try:
-        amount_smart_tables = int(settingtourney['amount_smart_tables'])
-        amount_rounds = int(settingtourney['amount_rounds'])
-        number_points_to_win = int(settingtourney['number_points_to_win'])
-        time_to_win = int(settingtourney['time_to_win'])
-        game_system = str(settingtourney['game_system'])
-        lottery_type = str(settingtourney['lottery'])
-        lottery_type = 'MANUAL' if not lottery_type else lottery_type
-        penalties_limit = int(settingtourney['limitPenaltyPoints'])
-        use_bonus = True if str(settingtourney['bonus']) == 'YES' else False 
-        
-    except:
-        raise HTTPException(status_code=404, detail=_(locale, "tourney.setting_incorrect"))
-    
-    if amount_smart_tables > amount_tables:
-        raise HTTPException(status_code=404, detail=_(locale, "tourney.smarttable_incorrect"))
-    
-    if amount_rounds <= 0:
-        raise HTTPException(status_code=404, detail=_(locale, "tourney.amountrounds_incorrect"))
-    
-    if number_points_to_win <= 0:
-        raise HTTPException(status_code=404, detail=_(locale, "tourney.numberpoints_towin_incorrect"))
-    
-    time_to_win = 12 if not time_to_win else time_to_win
-    
-    one_settingtourney = get_setting_tourney(db_tourney.id, db=db)
-    if not one_settingtourney:
-        initializes_tourney(
-            tourney_id, amount_tables, amount_smart_tables, amount_rounds, number_points_to_win, time_to_win, game_system, 
-            use_bonus, lottery_type, penalties_limit, db=db)
-    else:
-        update_initializes_tourney(one_settingtourney, amount_smart_tables, amount_rounds, number_points_to_win, 
-                                   time_to_win, game_system, use_bonus, lottery_type, penalties_limit, db=db)
-    
-    return result
+#     except (Exception, SQLAlchemyError, IntegrityError) as e:
+#         return None
 
 def configure_categories_tourney(request, tourney_id: str, lst_categories: List[DominoCategoryCreated], db: Session):
     locale = request.headers["accept-language"].split(",")[0].split("-")[0];
@@ -510,9 +446,9 @@ def configure_categories_tourney(request, tourney_id: str, lst_categories: List[
     if not db_tourney:
         raise HTTPException(status_code=404, detail=_(locale, "tourney.not_found"))
    
-    status_created = get_one_status_by_name('CREATED', db=db)
+    status_created = get_one_status_by_name('FINALIZED', db=db)
     
-    if db_tourney.status_id != status_created.id:
+    if db_tourney.status_id == status_created.id:
         raise HTTPException(status_code=404, detail=_(locale, "tourney.is_configurated"))
     
     str_query = "SELECT count(tourney_id) FROM events.domino_categories where tourney_id = '" + tourney_id + "' "
@@ -525,7 +461,9 @@ def configure_categories_tourney(request, tourney_id: str, lst_categories: List[
     for item in lst_categories:
         position_number += 1
         db_one_category = DominoCategory(id=str(uuid.uuid4()), tourney_id=tourney_id, category_number=item.category_number,
-                                         position_number=position_number, elo_min=item.elo_min, elo_max=item.elo_max) 
+                                         position_number=position_number, elo_min=item.elo_min, elo_max=item.elo_max,
+                                         amount_players=item.amount_players if item.amount_players else 0) 
+        
         db.add(db_one_category)
     
     try:
@@ -616,22 +554,15 @@ def save_image_tourney(request, tourney_id: str, file: File, db: Session):
  
     return result
    
-def get_values_elo_by_tourney(tourney_id: str, modality:str, db: Session):  
+def get_values_elo_by_tourney(tourney_id: str, db: Session):  
     
-    str_from = "FROM events.players " +\
-        "inner join enterprise.profile_member pro ON pro.id = players.profile_id " +\
-        "inner join enterprise.profile_type prot ON prot.name = pro.profile_type " 
+    str_from = "FROM events.players player " +\
+        "inner join enterprise.profile_member pro ON pro.id = player.profile_id "
     
-    dict_modality = {'Individual': "join enterprise.profile_single_player player ON player.profile_id = pro.id ",
-                     'Parejas': "join enterprise.profile_pair_player player ON player.profile_id = pro.id ",
-                     'Equipo': "join enterprise.profile_team_player player ON player.profile_id = pro.id "}
-    
-    str_from += dict_modality[modality]
-       
     str_query = "SELECT MAX(elo) elo_max, MIN(elo) elo_min " + str_from
     
-    str_where = "WHERE pro.is_ready is True and players.is_active is True " 
-    str_where += " AND players.tourney_id = '" + tourney_id + "' "  
+    str_where = "WHERE pro.is_ready is True " 
+    str_where += " AND player.tourney_id = '" + tourney_id + "' "  
     
     str_query += str_where
 

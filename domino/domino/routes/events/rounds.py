@@ -7,8 +7,9 @@ from domino.auth_bearer import JWTBearer
 
 from domino.schemas.resources.result_object import ResultObject
 from domino.schemas.events.domino_data import DominoDataCreated
+from domino.schemas.events.domino_rounds import DominoRoundsCreated, DominoRoundsAperture
 
-from domino.services.events.domino_round import get_all, get_one_by_id, start_one_round
+from domino.services.events.domino_round import get_all, get_one_by_id, start_one_round, get_info_to_aperture, aperture_new_round
     
 from domino.services.events.domino_scale import get_all_players_by_tables, get_all_players_by_tables_and_round, \
     get_all_scale_by_round, get_all_tables_by_round
@@ -109,3 +110,11 @@ def get_tables(request: Request, id: str, page: int = 1, per_page: int = 6, db: 
 @rounds_route.post("/rounds/boletus/data/{id}", response_model=ResultObject, summary="Insert Info of data")
 def insert_data(request: Request, id: str, dominodata: DominoDataCreated, db: Session = Depends(get_db)):
     return new_data(request=request, boletus_id=id, dominodata=dominodata, db=db)
+
+@rounds_route.get("/rounds/aperture/{id}", response_model=Dict, summary="Obtain information to open Round.")
+def get_info_aperture(request: Request, id: str, db: Session = Depends(get_db)):
+    return get_info_to_aperture(request=request, tourney_id=id, db=db)
+
+@rounds_route.post("/rounds/aperture/{id}", response_model=ResultObject, summary="Open new Round.")
+def aperture_round(request: Request, id: str, round: DominoRoundsAperture, db: Session = Depends(get_db)):
+    return aperture_new_round(request=request, tourney_id=id, round=round, db=db)
