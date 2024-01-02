@@ -626,6 +626,8 @@ def get_values_elo_by_scale(round_id: str, db: Session):
 def aperture_new_round(request:Request, round_id:str, round: DominoRoundsAperture, db:Session):
     locale = request.headers["accept-language"].split(",")[0].split("-")[0];
     
+    # si la ronda no se ha publicado, puede eliminarse y volver a configurar..
+    
     result = ResultObject() 
     currentUser = get_current_user(request)
     
@@ -637,12 +639,15 @@ def aperture_new_round(request:Request, round_id:str, round: DominoRoundsApertur
     if not one_status_created:
         raise HTTPException(status_code=404, detail=_(locale, "status.not_found"))
     
-    if db_round.status_id != one_status_created.id:
+    one_status_conf = get_one_status_by_name('CONFIGURATED', db=db)
+    if not one_status_conf:
+        raise HTTPException(status_code=404, detail=_(locale, "status.not_found"))
+    
+    if db_round.status_id != one_status_created.id and db_round.status_id != one_status_conf.id:
         raise HTTPException(status_code=404, detail=_(locale, "round.status_incorrect"))
     
     info_round = get_obj_info_to_aperturate(db_round, db) 
     
-    # verificar que lo que viene de la interfaz coincide con lo de la base de datos
     if info_round.amount_players_playing < 8:
         raise HTTPException(status_code=404, detail=_(locale, "tourney.amount_player_incorrect"))
     
@@ -667,10 +672,6 @@ def aperture_new_round(request:Request, round_id:str, round: DominoRoundsApertur
             raise HTTPException(status_code=404, detail=_(locale, "tourney.setting_initial_scale_failed"))
     
     # configure_tables_by_round(db_round.tourney.id, db_round.id, db_round.tourney.modality, db_round.tourney.updated_by, db=db)
-    
-    one_status_conf = get_one_status_by_name('CONFIGURATED', db=db)
-    if not one_status_conf:
-        raise HTTPException(status_code=404, detail=_(locale, "status.not_found"))
     
     db_round.status_id = one_status_conf.id
      
@@ -706,6 +707,7 @@ def verify_category_is_valid(elo_max: float, elo_min: float, lst_category: list)
     
     current_elo_max = float(elo_max)
     current_elo_min = float(elo_min)
+    
     for item in lst_category:
         if current_elo_max !=  float(item['elo_max']):
             return False
@@ -713,7 +715,7 @@ def verify_category_is_valid(elo_max: float, elo_min: float, lst_category: list)
             current_elo_max = float(item['elo_min']) - 1 
             current_elo_min = float(item['elo_min'])
     
-    if current_elo_min != float(elo_min):
+    if current_elo_min != float(elo_min) and current_elo_min < elo_min:
         return False
     
     return True
