@@ -9,7 +9,8 @@ from domino.schemas.resources.result_object import ResultObject
 from domino.schemas.events.domino_data import DominoDataCreated
 from domino.schemas.events.domino_rounds import DominoRoundsCreated, DominoRoundsAperture
 
-from domino.services.events.domino_round import get_all, get_one_by_id, start_one_round, get_info_to_aperture, aperture_new_round
+from domino.services.events.domino_round import get_all, get_one_by_id, start_one_round, get_info_to_aperture, aperture_new_round, \
+    close_one_round, publicate_one_round
     
 from domino.services.events.domino_scale import get_all_players_by_tables, get_all_players_by_tables_and_round, \
     get_all_scale_by_round, get_all_tables_by_round
@@ -95,10 +96,6 @@ def get_scale_by_rounds(
 ):
     return get_all_scale_by_round(request=request, page=page, per_page=per_page, round_id=round_id, db=db)
 
-@rounds_route.post("/rounds/{tourney_id}", response_model=ResultObject, summary="Start game round")
-def start_round(request:Request, tourney_id: str, db: Session = Depends(get_db)):
-    return start_one_round(request=request, tourney_id=tourney_id, db=db)
-
 @rounds_route.get("/rounds/boletus/all/{id}", response_model=Dict, summary="Obtain a list of Tables at Rounds.")
 def get_tables(request: Request, id: str, page: int = 1, per_page: int = 6, db: Session = Depends(get_db)):
     return get_all_tables_by_round(request=request, round_id=id, page=page, per_page=per_page, db=db)
@@ -111,10 +108,34 @@ def get_tables(request: Request, id: str, page: int = 1, per_page: int = 6, db: 
 def insert_data(request: Request, id: str, dominodata: DominoDataCreated, db: Session = Depends(get_db)):
     return new_data(request=request, boletus_id=id, dominodata=dominodata, db=db)
 
-@rounds_route.get("/rounds/aperture/{id}", response_model=Dict, summary="Obtain information to open Round.")
-def get_info_aperture(request: Request, id: str, db: Session = Depends(get_db)):
-    return get_info_to_aperture(request=request, tourney_id=id, db=db)
+# @rounds_route.post("/rounds/actions/create/{id}", response_model=ResultObject, summary="Create new Round.")
+# def created_round(request: Request, id: str, db: Session = Depends(get_db)):
+#     return aperture_new_round(request=request, round_id=id, db=db)
 
-@rounds_route.post("/rounds/aperture/{id}", response_model=ResultObject, summary="Open new Round.")
+@rounds_route.post("/rounds/actions/aperture/{id}", response_model=ResultObject, summary="Aperturate Round.")
 def aperture_round(request: Request, id: str, round: DominoRoundsAperture, db: Session = Depends(get_db)):
-    return aperture_new_round(request=request, tourney_id=id, round=round, db=db)
+    return aperture_new_round(request=request, round_id=id, round=round, db=db)
+
+@rounds_route.get("/rounds/actions/aperture/{id}", response_model=Dict, summary="Obtain information to open Round.")
+def get_info_aperture(request: Request, id: str, db: Session = Depends(get_db)):
+    return get_info_to_aperture(request=request, round_id=id, db=db)
+
+@rounds_route.post("/rounds/actions/publicate/{id}", response_model=ResultObject, summary="Publicate Round.")
+def publicate_round(request: Request, id: str, db: Session = Depends(get_db)):
+    return publicate_one_round(request=request, round_id=id, db=db)
+
+@rounds_route.post("/rounds/actions/started/{id}", response_model=ResultObject, summary="Start Round.")
+def start_round(request: Request, id: str, db: Session = Depends(get_db)):
+    return start_one_round(request=request, round_id=id, db=db)
+
+# @rounds_route.post("/rounds/{tourney_id}", response_model=ResultObject, summary="Start game round")
+# def start_round(request:Request, tourney_id: str, db: Session = Depends(get_db)):
+#     return start_one_round(request=request, tourney_id=tourney_id, db=db)
+
+@rounds_route.post("/rounds/actions/close/{id}", response_model=ResultObject, summary="Close Round.")
+def close_round(request: Request, id: str, open_new: bool, db: Session = Depends(get_db)):
+    return close_one_round(request=request, round_id=id, open_new=open_new, db=db)
+
+
+
+
