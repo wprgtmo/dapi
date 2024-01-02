@@ -321,14 +321,16 @@ def get_all_players_by_tourney(request:Request, page: int, per_page: int, tourne
         raise HTTPException(status_code=404, detail=_(locale, "tourney.not_found"))
     
     status_canc = get_one_by_name('CANCELLED', db=db)
-    
     str_status = ''
     if criteria_key and criteria_key == 'status_id':
         str_status = " AND sta.name = 'CONFIRMED' " if criteria_value == '0' else " AND sta.name = 'PLAYING' " \
             if criteria_value == '1' else " AND sta.name = 'WAITING' " if criteria_value == '2' else \
             " AND sta.name = 'EXPELLED' " if criteria_value == '3' else " AND sta.name = 'PAUSE' " \
-            if criteria_value == '4' else " AND sta.name != '" + str(status_canc.id)
-             
+            if criteria_value == '4' else ""
+    
+    if not str_status:  # no me paso estado, devolver todos menos los cancelados 
+        str_status = "AND sta.name != '" + str(status_canc.name) + "' "     
+           
     str_from = "FROM events.players player " +\
         "inner join enterprise.profile_member pro ON pro.id = player.profile_id " +\
         "left join resources.city ON city.id = pro.city_id " + \
@@ -337,7 +339,9 @@ def get_all_players_by_tourney(request:Request, page: int, per_page: int, tourne
     
     str_count = "Select count(*) " + str_from
     str_query = "SELECT player.id, pro.name as name, pro.photo, pro.id as profile_id, " +\
-        "city.name as city_name, country.name as country_name, player.level, player.elo, player.ranking, player.ranking position_number " + str_from
+        "city.name as city_name, country.name as country_name, player.level, player.elo, " +\
+        "player.ranking, player.ranking position_number, sta.id as status_id, " +\
+        "sta.name as status_name, sta.description as status_description " + str_from
     
     str_where = "WHERE pro.is_ready is True "
     str_where += " AND player.tourney_id = '" + tourney_id + "' " 
@@ -372,7 +376,8 @@ def create_dict_row(item, page, db: Session, api_uri):
                'country': item['country_name'] if item['country_name'] else '', 
                'city_name': item['city_name'] if item['city_name'] else '',  
                'photo' : image, 'elo': item['elo'], 'ranking': item['ranking'], 'level': item['level'],
-               'position_number': item.position_number}
+               'status_name': item['status_name'], 'status_description': item['status_description'],
+               'status_id': item['status_id'], 'position_number': item.position_number}
     if page != 0:
         new_row['selected'] = False
     
