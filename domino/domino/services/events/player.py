@@ -321,14 +321,16 @@ def get_all_players_by_tourney(request:Request, page: int, per_page: int, tourne
         raise HTTPException(status_code=404, detail=_(locale, "tourney.not_found"))
     
     status_canc = get_one_by_name('CANCELLED', db=db)
-    
     str_status = ''
     if criteria_key and criteria_key == 'status_id':
         str_status = " AND sta.name = 'CONFIRMED' " if criteria_value == '0' else " AND sta.name = 'PLAYING' " \
             if criteria_value == '1' else " AND sta.name = 'WAITING' " if criteria_value == '2' else \
             " AND sta.name = 'EXPELLED' " if criteria_value == '3' else " AND sta.name = 'PAUSE' " \
-            if criteria_value == '4' else " AND sta.name != '" + str(status_canc.id)
-             
+            if criteria_value == '4' else ""
+    
+    if not str_status:  # no me paso estado, devolver todos menos los cancelados 
+        str_status = "AND sta.name != '" + str(status_canc.name) + "' "     
+           
     str_from = "FROM events.players player " +\
         "inner join enterprise.profile_member pro ON pro.id = player.profile_id " +\
         "left join resources.city ON city.id = pro.city_id " + \
