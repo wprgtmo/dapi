@@ -324,15 +324,16 @@ def get_all_players_by_tourney(request:Request, page: int, per_page: int, tourne
     
     str_status = ''
     if criteria_key and criteria_key == 'status_id':
-        str_status = " AND status_name = 'CONFIRMED' " if criteria_value == '0' else " AND status_name = 'PLAYING' " \
-            if criteria_value == '1' else " AND status_name = 'WAITING' " if criteria_value == '2' else \
-            " AND status_name = 'EXPELLED' " if criteria_value == '3' else " AND status_name = 'PAUSE' " \
-            if criteria_value == '4' else " AND status_name != '" + str(status_canc.id)
+        str_status = " AND sta.name = 'CONFIRMED' " if criteria_value == '0' else " AND sta.name = 'PLAYING' " \
+            if criteria_value == '1' else " AND sta.name = 'WAITING' " if criteria_value == '2' else \
+            " AND sta.name = 'EXPELLED' " if criteria_value == '3' else " AND sta.name = 'PAUSE' " \
+            if criteria_value == '4' else " AND sta.name != '" + str(status_canc.id)
              
     str_from = "FROM events.players player " +\
         "inner join enterprise.profile_member pro ON pro.id = player.profile_id " +\
         "left join resources.city ON city.id = pro.city_id " + \
-        "left join resources.country ON country.id = city.country_id "
+        "left join resources.country ON country.id = city.country_id " +\
+        "join resources.entities_status sta ON sta.id = player.status_id "
     
     str_count = "Select count(*) " + str_from
     str_query = "SELECT player.id, pro.name as name, pro.photo, pro.id as profile_id, " +\
