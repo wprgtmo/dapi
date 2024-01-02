@@ -322,6 +322,11 @@ def get_all_players_by_tourney(request:Request, page: int, per_page: int, tourne
     
     status_canc = get_one_by_name('CANCELLED', db=db)
     
+    str_status = ''
+    if criteria_key and criteria_key == 'status_id':
+        str_status = " AND status_name = 'CONFIRMED' " if criteria_value == '0' else " AND status_name = 'ACCEPTED' " \
+            if criteria_value == '1' else " AND status_name = 'REFUTED' " # if criteria_value == '2' else " AND status_name = 'SEND' " 
+            
     str_from = "FROM events.players player " +\
         "inner join enterprise.profile_member pro ON pro.id = player.profile_id " +\
         "left join resources.city ON city.id = pro.city_id " + \
@@ -334,12 +339,15 @@ def get_all_players_by_tourney(request:Request, page: int, per_page: int, tourne
     str_where = "WHERE pro.is_ready is True AND status_id != " + str(status_canc.id)  
     str_where += " AND player.tourney_id = '" + tourney_id + "' " 
     
-    dict_query = {'username': " AND username = '" + criteria_value + "'"}
-    if criteria_key and criteria_key not in dict_query:
-        raise HTTPException(status_code=404, detail=_(locale, "commun.invalid_param"))
-    else:
-        if criteria_key == 'username' and criteria_value:
-            str_where += "AND pro.id IN (Select profile_id from enterprise.profile_users WHERE username ilike '%" + str(criteria_value) + "%')"
+    if player_name:    
+        str_from += " AND profile_member.name ilike '%" + player_name + "%'"
+        
+    # dict_query = {'username': " AND username = '" + criteria_value + "'"}
+    # if criteria_key and criteria_key not in dict_query:
+    #     raise HTTPException(status_code=404, detail=_(locale, "commun.invalid_param"))
+    # else:
+    #     if criteria_key == 'username' and criteria_value:
+    #         str_where += "AND pro.id IN (Select profile_id from enterprise.profile_users WHERE username ilike '%" + str(criteria_value) + "%')"
                     
     str_count += str_where
     str_query += str_where
