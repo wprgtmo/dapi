@@ -1,4 +1,10 @@
 
+
+INSERT INTO resources.entities_status(
+	id, name, description, created_by, created_date)
+	VALUES (11, 'PLAYING', 'Jugando', 'miry', '2023-12-31 00:00:00');
+
+    
 ALTER TABLE IF EXISTS events.domino_rounds
     ADD COLUMN amount_tables integer DEFAULT 0;
 ALTER TABLE IF EXISTS events.domino_rounds
