@@ -2,9 +2,25 @@
 
 INSERT INTO resources.entities_status(
 	id, name, description, created_by, created_date)
-	VALUES (11, 'PLAYING', 'Jugando', 'miry', '2023-12-31 00:00:00');
+	VALUES (12, 'WAITING', 'En espera', 'miry', '2023-12-31 00:00:00');
+	
+	INSERT INTO resources.entities_status(
+	id, name, description, created_by, created_date)
+	VALUES (13, 'PAUSE', 'En pausa', 'miry', '2023-12-31 00:00:00');
+	
+	INSERT INTO resources.entities_status(
+	id, name, description, created_by, created_date)
+	VALUES (14, 'EXPELLED', 'Expulsado', 'miry', '2023-12-31 00:00:00');
+	
+	INSERT INTO resources.entities_status(
+	id, name, description, created_by, created_date)
+	VALUES (15, 'REVIEW', 'Revisando', 'miry', '2023-12-31 00:00:00');
+	
+	INSERT INTO resources.entities_status(
+	id, name, description, created_by, created_date)
+	VALUES (16, 'PUBLICATED', 'Publicado', 'miry', '2023-12-31 00:00:00');
 
-    
+
 ALTER TABLE IF EXISTS events.domino_rounds
     ADD COLUMN amount_tables integer DEFAULT 0;
 ALTER TABLE IF EXISTS events.domino_rounds
