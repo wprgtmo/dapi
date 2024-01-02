@@ -9,11 +9,11 @@ from domino.schemas.resources.result_object import ResultObject
 from domino.schemas.events.domino_data import DominoDataCreated
 from domino.schemas.events.domino_rounds import DominoRoundsCreated, DominoRoundsAperture
 
-from domino.services.events.domino_round import get_all, get_one_by_id, start_one_round, get_info_to_aperture, aperture_new_round, \
+from domino.services.events.domino_round import get_all, get_one_by_id, start_one_round, get_info_to_aperture, \
     close_one_round, publicate_one_round
     
 from domino.services.events.domino_scale import get_all_players_by_tables, get_all_players_by_tables_and_round, \
-    get_all_scale_by_round, get_all_tables_by_round
+    get_all_scale_by_round, get_all_tables_by_round, aperture_new_round
 from domino.services.events.domino_data import get_all_data_by_boletus, new_data
   
 rounds_route = APIRouter(
