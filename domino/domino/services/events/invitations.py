@@ -91,13 +91,13 @@ def get_all_invitations_by_tourney(request, tourney_id: str, page: int, per_page
     if not db_tourney:
         raise HTTPException(status_code=404, detail=_(locale, "tourney.not_found"))
    
-    # Me pasan status_id para filtrar por este parametro: 0: todas, 1: Aceptadas, 2: Rechazadas
+    # Me pasan status_id para filtrar por este parametro: 0: Enviadas, 1: Aceptadas, 2: Rechazadas
     str_status = ''
     if criteria_key and criteria_key == 'status_id':
         # str_status = '' if criteria_value == '0' else " AND (status_name = 'ACCEPTED' or status_name = 'CONFIRMED') " \
         #     if criteria_value == '1' else " AND status_name = 'REFUTED' "  
-        str_status = '' if criteria_value == '0' else " AND (status_name = 'ACCEPTED' or status_name = 'CONFIRMED') " \
-            if criteria_value == '1' else " AND status_name = 'REFUTED' " if criteria_value == '2' else " AND status_name = 'SEND' " 
+        str_status = " AND status_name = 'SEND' " if criteria_value == '0' else " AND (status_name = 'ACCEPTED' or status_name = 'CONFIRMED') " \
+            if criteria_value == '1' else " AND status_name = 'REFUTED' " # if criteria_value == '2' else " AND status_name = 'SEND' " 
     
     str_from = "FROM events.invitations " + \
         "inner join enterprise.profile_member ON profile_member.id = invitations.profile_id " + \

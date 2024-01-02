@@ -210,6 +210,14 @@ def delete(request: Request, tourney_id: str, db: Session):
     try:
         db_tourney= db.query(Tourney).filter(Tourney.id == tourney_id).first()
         if db_tourney:
+            path_tourney = create_dir(entity_type="SETTOURNEY", user_id=None, entity_id=str(tourney_id))
+            
+            if db_tourney.image:  # tiene una imagen asociada
+                try:
+                    del_image(path=path_tourney, name=str(db_tourney.image))
+                except:
+                    pass
+                    
             db_tourney.status_id = one_status.id
             db_tourney.updated_by = currentUser['username']
             db_tourney.updated_date = datetime.now()
@@ -390,6 +398,21 @@ def calculate_elo_by_tourney(tourney_id: str, modality:str, db: Session):
         return int(0)
     
     return int(mod_play[0]) + 1 if mod_play[1] > 0 else int(mod_play[0])
+
+def get_lst_categories_of_tourney(tourney_id: str, db: Session):
+    
+    lst_categories = []
+    
+    str_query = "SELECT id, category_number, position_number, elo_min, elo_max, amount_players " +\
+        "FROM events.domino_categories WHERE tourney_id = '" + tourney_id + "' Order by position_number "
+        
+    lst_all_category = db.execute(str_query).fetchall()
+    for item in lst_all_category:
+        lst_categories.append({'category_number': item.category_number,
+                              'position_number': item.position_number,
+                              'amount_players': item.amount_players,
+                              'elo_min': item.elo_min, 'elo_max': item.elo_max})
+    return lst_categories
 
 # def initializes_tourney(tourney_id, amount_tables, amount_smart_tables, amount_rounds, number_points_to_win, 
 #                         time_to_win, game_system, use_bonus, lottery_type, penalties_limit, db: Session):

@@ -7,6 +7,7 @@ from unicodedata import name
 from fastapi import HTTPException
 from sqlalchemy.orm import Session
 from sqlalchemy.exc import SQLAlchemyError, IntegrityError
+from sqlalchemy.sql import and_
 from passlib.context import CryptContext
 import json
 from domino.auth_bearer import decodeJWT
@@ -27,7 +28,7 @@ from domino.services.enterprise.users import get_one_by_username
 from domino.services.enterprise.userprofile import get_one as get_one_profile
 from domino.services.events.domino_boletus import created_boletus_for_round
 from domino.services.events.tourney import get_one as get_tourney_by_id, calculate_amount_tables, calculate_amount_categories, \
-    calculate_amount_players_playing, calculate_amount_players_by_status
+    calculate_amount_players_playing, calculate_amount_players_by_status, get_lst_categories_of_tourney
 
                          
 def get_all(request:Request, tourney_id:str, page: int, per_page: int, criteria_key: str, criteria_value: str, db: Session,
@@ -97,12 +98,18 @@ def create_dict_row(item, amount_tables=0, amount_pairs=0):
 def get_one(round_id: str, db: Session):  
     return db.query(DominoRounds).filter(DominoRounds.id == round_id).first()
 
+def get_one_by_number(round_number: int, db: Session): 
+    status_canceled = get_one_status_by_name('CANCELLED', db=db) 
+    return db.query(DominoRounds).filter(and_(DominoRounds.round_number==round_number).\
+        filter(DominoRounds.status_id != status_canceled.id)).first()
+    # return db.query(DominoRounds).filter_by(round_number=round_number, status_id = db_status.id).first()
+
 def get_one_by_id(round_id: str, db: Session): 
     result = ResultObject()  
     
     one_round = get_one(round_id, db=db)
     if not one_round:
-        raise HTTPException(status_code=404, detail="dominoround.not_found")
+        raise HTTPException(status_code=404, detail="round.not_found")
     
     str_query = "Select drounds.id, round_number, drounds.summary, drounds.start_date, drounds.close_date, " +\
         "sta.name as status_name, sta.description as status_description " +\
@@ -123,7 +130,7 @@ def get_one_by_id(round_id: str, db: Session):
         result.data = create_dict_row(item, amount_tables=amount_tables, amount_pairs=amount_pairs)
         
     if not result.data:
-        raise HTTPException(status_code=404, detail="dominoround.not_found")
+        raise HTTPException(status_code=404, detail="round.not_found")
     
     return result
 
@@ -133,7 +140,7 @@ def get_first_by_tourney(tourney_id: str, db: Session):
     round_id = db.execute(str_query).fetchone()
     
     if not round_id:
-        raise HTTPException(status_code=404, detail="dominoround.not_found")
+        raise HTTPException(status_code=404, detail="round.not_found")
     
     return round_id[0]
 
@@ -196,50 +203,32 @@ def configure_new_rounds(tourney_id, summary:str, db:Session, created_by:str, ro
     except (Exception, SQLAlchemyError, IntegrityError) as e:
         return None
     
-def get_info_to_aperture(request:Request, tourney_id:str, db:Session):
+def get_info_to_aperture(request:Request, round_id:str, db:Session):
     locale = request.headers["accept-language"].split(",")[0].split("-")[0];
     
     result = ResultObject() 
     
-    db_tourney = get_tourney_by_id(tourney_id=tourney_id, db=db)
-    if not db_tourney:
-        raise HTTPException(status_code=404, detail=_(locale, "tourney.not_found"))
+    db_round = get_one(round_id=round_id, db=db)
+    if not db_round:
+        raise HTTPException(status_code=404, detail=_(locale, "round.not_found"))
     
-    one_status_end = get_one_status_by_name('FINALIZED', db=db)
-    if not one_status_end:
-        raise HTTPException(status_code=404, detail=_(locale, "status.not_found"))
-    
-    if db_tourney.status_id == one_status_end.id:
-        raise HTTPException(status_code=404, detail=_(locale, "tourney.tourney_closed"))
-    
-    result.data = get_obj_info_to_aperturate(db_tourney, db, locale=locals)   
+    result.data = get_obj_info_to_aperturate(db_round, db)   
      
     return result
 
-def get_obj_info_to_aperturate(db_tourney, db:Session, locale):
-    
-    # buscar la utima ronda del torneo
-    str_number = "SELECT id FROM events.domino_rounds where tourney_id = '" + str(db_tourney.id) + "' " +\
-        "ORDER BY round_number DESC LIMIT 1; "
-    last_id = db.execute(str_number).fetchone()
-    # primera_ronda
-    is_first = True if not last_id else False
-    new_round = DominoRoundsCreated()
+def get_obj_info_to_aperturate(db_round, db:Session):
     
     one_status_created = get_one_status_by_name('CREATED', db=db)
-    if not one_status_created:
-        raise HTTPException(status_code=404, detail=_(locale, "status.not_found"))
     
-    amount_tables = calculate_amount_tables(db_tourney.id, db_tourney.modality, db=db)
-    amount_categories = calculate_amount_categories(db_tourney.id, db=db)
+    new_round = DominoRoundsCreated()
     
-    new_round.amount_tables, new_round.amount_categories = amount_tables, amount_categories
+    new_round.amount_tables = calculate_amount_tables(db_round.tourney.id, db_round.tourney.modality, db=db)
+    new_round.amount_categories = calculate_amount_categories(db_round.tourney.id, db=db)
+    new_round.amount_players_playing = calculate_amount_players_playing(db_round.tourney.id, db=db)
     
-    new_round.amount_players_playing = calculate_amount_players_playing(db_tourney.id, db=db)
-    
-    if is_first:
-        new_round.round_number = 1
-        new_round.is_first, new_round.is_last = is_first, False
+    if db_round.is_first:
+        new_round.round_number = db_round.round_number
+        new_round.is_first, new_round.is_last = db_round.is_first, False
         new_round.can_segment, new_round.use_segmentation = True, 'SI'
         
         new_round.can_bonus, new_round.use_bonus = False, 'NO'
@@ -249,16 +238,17 @@ def get_obj_info_to_aperturate(db_tourney, db:Session, locale):
         new_round.amount_players_pause, new_round.amount_players_expelled = 0, 0
         
     else:
-        db_round_previous = get_one(last_id[0], db=db)
+        number_previous = int(db_round.round_number) -1
+        db_round_previous = get_one_by_number(number_previous, db=db)
         one_status_canceled = get_one_status_by_name('CANCELLED', db=db)
         
-        str_count = "SELECT count(id) FROM events.domino_rounds where tourney_id = '" + str(db_tourney.id) + "' " +\
-        "and status_id != " +str(one_status_canceled.id)
+        str_count = "SELECT count(id) FROM events.domino_rounds where tourney_id = '" + str(db_round.tourney.id) + "' " +\
+            "and status_id != " + str(one_status_canceled.id)
         
         count_round = db.execute(str_count).fetchone()
-        is_last = True if int(count_round) == int(db_tourney.number_rounds) else False
+        is_last = True if int(count_round) == int(db_round.tourney.number_rounds) else False
         
-        new_round.round_number = int(db_round_previous.round_number) + 1
+        new_round.round_number = int(db_round.round_number)
         new_round.is_first, new_round.is_last = False, is_last
         new_round.can_segment = True if db_round_previous.use_segmentation else False 
         new_round.use_segmentation = 'NO'
@@ -268,34 +258,65 @@ def get_obj_info_to_aperturate(db_tourney, db:Session, locale):
         new_round.amount_bonus_tables = db_round_previous.use_bonus.amount_bonus_tables if new_round.can_bonus else 0
         new_round.amount_bonus_points = db_round_previous.use_bonus.amount_bonus_points if new_round.can_bonus else 0
         
-        new_round.amount_players_waiting = calculate_amount_players_by_status(db_tourney.id, "WAITING", db=db)
-        new_round.amount_players_pause = calculate_amount_players_by_status(db_tourney.id, "PAUSE", db=db)
-        new_round.amount_players_expelled = calculate_amount_players_by_status(db_tourney.id, "EXPELLED", db=db)
+        new_round.amount_players_waiting = calculate_amount_players_by_status(db_round.tourney.id, "WAITING", db=db)
+        new_round.amount_players_pause = calculate_amount_players_by_status(db_round.tourney.id, "PAUSE", db=db)
+        new_round.amount_players_expelled = calculate_amount_players_by_status(db_round.tourney.id, "EXPELLED", db=db)
         
     new_round.status_id, new_round.status_name = one_status_created.id, one_status_created.name
     new_round.status_description = one_status_created.description
     
     return new_round
 
-def aperture_new_round(request:Request, tourney_id:str, round: DominoRoundsAperture, db:Session):
+def aperture_new_round(request:Request, round_id:str, round: DominoRoundsAperture, db:Session):
     locale = request.headers["accept-language"].split(",")[0].split("-")[0];
     
     result = ResultObject() 
     currentUser = get_current_user(request)
     
-    db_tourney = get_tourney_by_id(tourney_id=tourney_id, db=db)
-    if not db_tourney:
-        raise HTTPException(status_code=404, detail=_(locale, "tourney.not_found"))
+    db_round = get_one(round_id=round_id, db=db)
+    if not db_round:
+        raise HTTPException(status_code=404, detail=_(locale, "round.not_found"))
     
-    info_round = get_obj_info_to_aperturate(db_tourney, db, locale=locals) 
-    print(info_round.amount_players_playing)
+    one_status_created = get_one_status_by_name('CREATED', db=db)
+    if not one_status_created:
+        raise HTTPException(status_code=404, detail=_(locale, "status.not_found"))
+    
+    if db_round.status_id != one_status_created:
+        raise HTTPException(status_code=404, detail=_(locale, "round.status_incorrect"))
+    
+    info_round = get_obj_info_to_aperturate(db_round.tourney, db, locale=locale) 
     
     # verificar que lo que viene de la interfaz coincide con lo de la base de datos
     if info_round.amount_players_playing < 8:
         raise HTTPException(status_code=404, detail=_(locale, "tourney.amount_player_incorrect"))
+    
+    str_query = "SELECT count(tourney_id) FROM events.domino_categories where tourney_id = '" + db_round.tourney.id + "' "
+    amount = db.execute(str_query).fetchone()[0]
+    if amount == 0:
+        raise HTTPException(status_code=404, detail=_(locale, "tourney.category_not_configurated"))
+    
+    if db_round.is_first:
+        # validar todas las categorias estén contempladas entre los elo de los jugadores.
+        lst_category = get_lst_categories_of_tourney(tourney_id=db_round.tourney.id, db=db)
+        if not verify_category_is_valid(float(db_round.tourney.elo_max), float(db_round.tourney.elo_min), lst_category=lst_category):
+            raise HTTPException(status_code=400, detail=_(locale, "tourney.setting_category_incorrect"))
+        if db_round.tourney.lottery_type == "MANUAL":
+            result_init = configure_automatic_lottery(db_tourney, db_round_ini, one_status_init, db=db)
+#         if not result_init:
+#             raise HTTPException(status_code=404, detail=_(locale, "tourney.setting_initial_scale_failed"))
+
+        # salvar posicionamiento manual
+        # 0 crear el primer posicionamiento automático.
+    else:
+        pass
+        # crear el posiciinamiento según criterio de ordenamiento de las rondas
         
+    # distribuir parejas , mesas, etc.
+    
+    # poner la ronda en estado de configurada, para que pase a ser publicada.
+        
+
     try:
-        print('vpy a crear')
         configure_new_rounds(
             tourney_id=tourney_id, summary='', db=db, created_by=currentUser['username'], round_number=info_round.round_number,
             is_first=info_round.is_first, is_last=info_round.is_last, use_segmentation=round.use_segmentation, 
@@ -307,45 +328,61 @@ def aperture_new_round(request:Request, tourney_id:str, round: DominoRoundsApert
     
     except (Exception, SQLAlchemyError, IntegrityError) as e:
         raise HTTPException(status_code=404, detail=_(locale, "round.error_started_round"))
-    
-def start_one_round(request:Request, tourney_id:str, db:Session):
-    locale = request.headers["accept-language"].split(",")[0].split("-")[0];
-    
-    result = ResultObject() 
-    currentUser = get_current_user(request)
-    
-    one_status_created = get_one_status_by_name('CREATED', db=db)
-    if not one_status_created:
-        raise HTTPException(status_code=404, detail=_(locale, "status.not_found"))
-    
-    one_status_end = get_one_status_by_name('INITIADED', db=db)
-    if not one_status_end:
-        raise HTTPException(status_code=404, detail=_(locale, "status.not_found"))
-    
-    # buscar la utima ronda abierta del torneo
-    str_number = "SELECT id FROM events.domino_rounds where tourney_id = '" + str(tourney_id) + "' " +\
-        "and status_id = " +str(one_status_created.id) + " ORDER BY round_number DESC LIMIT 1; "
-       
-    last_id = db.execute(str_number).fetchone()
-    if not last_id:
-        raise HTTPException(status_code=404, detail=_(locale, "round.not_exist_created_round"))
 
-    round_id = last_id[0]
-    db_round = get_one(round_id, db=db)
-        
-    try:
-        db_round.status_id = one_status_end.id
-        db_round.start_date = datetime.now()
-        db_round.close_date = datetime.now()
-        db_round.updated_by = currentUser['username']
-        db_round.updated_date = datetime.now()
-        
-        db.add(db_round)
-        db.commit()
-        return result
+def verify_category_is_valid(elo_max: float, elo_min: float, lst_category: list):
     
-    except (Exception, SQLAlchemyError, IntegrityError) as e:
-        raise HTTPException(status_code=404, detail=_(locale, "round.error_started_round"))
+    current_elo_max = float(elo_max)
+    current_elo_min = float(elo_min)
+    for item in lst_category:
+        if current_elo_max !=  float(item['elo_max']):
+            return False
+        else:
+            current_elo_max = float(item['elo_min']) - 1 
+            current_elo_min = float(item['elo_min'])
+    
+    if current_elo_min != float(elo_min):
+        return False
+    
+    return True
+    
+# def start_one_round(request:Request, tourney_id:str, db:Session):
+#     locale = request.headers["accept-language"].split(",")[0].split("-")[0];
+    
+#     result = ResultObject() 
+#     currentUser = get_current_user(request)
+    
+#     one_status_created = get_one_status_by_name('CREATED', db=db)
+#     if not one_status_created:
+#         raise HTTPException(status_code=404, detail=_(locale, "status.not_found"))
+    
+#     one_status_end = get_one_status_by_name('INITIADED', db=db)
+#     if not one_status_end:
+#         raise HTTPException(status_code=404, detail=_(locale, "status.not_found"))
+    
+#     # buscar la utima ronda abierta del torneo
+#     str_number = "SELECT id FROM events.domino_rounds where tourney_id = '" + str(tourney_id) + "' " +\
+#         "and status_id = " +str(one_status_created.id) + " ORDER BY round_number DESC LIMIT 1; "
+       
+#     last_id = db.execute(str_number).fetchone()
+#     if not last_id:
+#         raise HTTPException(status_code=404, detail=_(locale, "round.not_exist_created_round"))
+
+#     round_id = last_id[0]
+#     db_round = get_one(round_id, db=db)
+        
+#     try:
+#         db_round.status_id = one_status_end.id
+#         db_round.start_date = datetime.now()
+#         db_round.close_date = datetime.now()
+#         db_round.updated_by = currentUser['username']
+#         db_round.updated_date = datetime.now()
+        
+#         db.add(db_round)
+#         db.commit()
+#         return result
+    
+#     except (Exception, SQLAlchemyError, IntegrityError) as e:
+#         raise HTTPException(status_code=404, detail=_(locale, "round.error_started_round"))
     
 def delete(request: Request, round_id: str, db: Session):
     locale = request.headers["accept-language"].split(",")[0].split("-")[0];
@@ -355,7 +392,7 @@ def delete(request: Request, round_id: str, db: Session):
     
     db_round = get_one(round_id, db=db)
     if not db_round:
-        raise HTTPException(status_code=404, detail=_(locale, "dominoround.not_found"))
+        raise HTTPException(status_code=404, detail=_(locale, "round.not_found"))
     
     status_canc = get_one_status_by_name('CANCELLED', db=db)
         
@@ -363,7 +400,7 @@ def delete(request: Request, round_id: str, db: Session):
     
     return result
 
-def start_round(request: Request, round_id: str, db: Session):
+def start_one_round(request: Request, round_id: str, db: Session):
     locale = request.headers["accept-language"].split(",")[0].split("-")[0];
     
     result = ResultObject() 
@@ -371,15 +408,19 @@ def start_round(request: Request, round_id: str, db: Session):
     
     db_round = get_one(round_id, db=db)
     if not db_round:
-        raise HTTPException(status_code=404, detail=_(locale, "dominoround.not_found"))
+        raise HTTPException(status_code=404, detail=_(locale, "round.not_found"))
     
+    status_publicted = get_one_status_by_name('PUBLICATED', db=db)
     status_init = get_one_status_by_name('INITIADED', db=db)
+    
+    if db_round.status_id != status_publicted.id:
+        raise HTTPException(status_code=404, detail=_(locale, "round.status_incorrect"))
     
     change_status_round(db_round, status_init, currentUser['username'], db=db)
     
     return result
 
-def close_round(request: Request, round_id: str, db: Session):
+def publicate_one_round(request: Request, round_id: str, db: Session):
     locale = request.headers["accept-language"].split(",")[0].split("-")[0];
     
     result = ResultObject() 
@@ -387,11 +428,38 @@ def close_round(request: Request, round_id: str, db: Session):
     
     db_round = get_one(round_id, db=db)
     if not db_round:
-        raise HTTPException(status_code=404, detail=_(locale, "dominoround.not_found"))
+        raise HTTPException(status_code=404, detail=_(locale, "round.not_found"))
+    
+    status_init = get_one_status_by_name('INITIADED', db=db)
+    status_publicated = get_one_status_by_name('PUBLICATED', db=db)
+    
+    if db_round.status_id != status_init.id:
+        raise HTTPException(status_code=404, detail=_(locale, "round.status_incorrect"))
+    
+    change_status_round(db_round, status_publicated, currentUser['username'], db=db)
+    
+    return result
+
+def close_one_round(request: Request, round_id: str, open_new: bool, db: Session):
+    locale = request.headers["accept-language"].split(",")[0].split("-")[0];
+    
+    result = ResultObject() 
+    currentUser = get_current_user(request) 
+    
+    db_round = get_one(round_id, db=db)
+    if not db_round:
+        raise HTTPException(status_code=404, detail=_(locale, "round.not_found"))
     
     status_init = get_one_status_by_name('FINALIZED', db=db)
+    status_review = get_one_status_by_name('REVIEW', db=db)
+    
+    if db_round.status_id != status_review.id:
+        raise HTTPException(status_code=404, detail=_(locale, "round.status_incorrect"))
     
     change_status_round(db_round, status_init, currentUser['username'], db=db)
+    if open_new:
+        next_number = int(db_round.round_number) + 1
+        created_round_default(db_round.tourney, 'Ronda Nro. ' + str(next_number), db=db, round_number=next_number, is_first=False, is_last=False)
     
     return result
 
@@ -546,5 +614,25 @@ def configure_rounds(tourney_id: str, round_id: str, modality:str, created_by:st
         
     db.commit()    
     
-    return True           
+    return True      
+
+def order_round_to_init(db_round, db:Session):
+    
+    # if db_round.tourney.lottery_type == "MANUAL":
+    #     pass
+    # else:
+    #     result_init = configure_automatic_lottery(db_tourney, db_round_ini, one_status_init, db=db)
+        
+    # if not result_init:
+    #     raise HTTPException(status_code=404, detail=_(locale, "tourney.setting_initial_scale_failed"))
+    
+    return True   
+
+def order_round_to_play(db_round, db:Session):
+    
+    return True  
+
+def order_round_to_end(db_round, db:Session):
+    
+    return True 
 
