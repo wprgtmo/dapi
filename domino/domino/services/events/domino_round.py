@@ -618,13 +618,13 @@ def configure_rounds(tourney_id: str, round_id: str, modality:str, created_by:st
 
 def order_round_to_init(db_round, db:Session):
     
-    if db_round.tourney.lottery_type == "MANUAL":
-        pass
-    else:
-        result_init = configure_automatic_lottery(db_tourney, db_round_ini, one_status_init, db=db)
+    # if db_round.tourney.lottery_type == "MANUAL":
+    #     pass
+    # else:
+    #     result_init = configure_automatic_lottery(db_tourney, db_round_ini, one_status_init, db=db)
         
-    if not result_init:
-        raise HTTPException(status_code=404, detail=_(locale, "tourney.setting_initial_scale_failed"))
+    # if not result_init:
+    #     raise HTTPException(status_code=404, detail=_(locale, "tourney.setting_initial_scale_failed"))
     
     return True   
 

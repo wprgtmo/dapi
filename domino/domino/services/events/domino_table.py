@@ -25,18 +25,18 @@ from domino.services.resources.utils import get_result_count, upfile, create_dir
 from domino.services.enterprise.userprofile import get_one as get_one_profile
 from domino.services.enterprise.auth import get_url_advertising
                          
-def get_all(request:Request, profile_id:str, tourney_id:str, page: int, per_page: int, criteria_key: str, criteria_value: str, db: Session):  
+def get_all(request:Request, tourney_id:str, page: int, per_page: int, criteria_key: str, criteria_value: str, db: Session):  
     locale = request.headers["accept-language"].split(",")[0].split("-")[0];
     
     api_uri = str(settings.api_uri)
     
     # verificar que el perfil sea admon del evento al cual pertenece el torneo.
-    db_member_profile = get_one_profile(id=profile_id, db=db)
-    if not db_member_profile:
-        raise HTTPException(status_code=400, detail=_(locale, "userprofile.not_found"))
+    # db_member_profile = get_one_profile(id=profile_id, db=db)
+    # if not db_member_profile:
+    #     raise HTTPException(status_code=400, detail=_(locale, "userprofile.not_found"))
    
-    if db_member_profile.profile_type != 'EVENTADMON':
-        raise HTTPException(status_code=400, detail=_(locale, "userprofile.user_not_event_admon"))
+    # if db_member_profile.profile_type != 'EVENTADMON':
+    #     raise HTTPException(status_code=400, detail=_(locale, "userprofile.user_not_event_admon"))
     
     str_from = "FROM events.domino_tables dtab " +\
         "JOIN events.tourney dtou ON dtou.id = dtab.tourney_id " 
@@ -77,8 +77,8 @@ def create_dict_row(item, tourney_id, page, db: Session, api_uri=""):
     table_image = get_url_advertising(tourney_id, item['image'] if item['image'] else item['image_tourney'], api_uri=api_uri)
             
     new_row = {'id': item['id'], 'table_number': item['table_number'], 
-               'is_smart': item['is_smart'], 'amount_bonus': item['amount_bonus'], 
-               'tourney_name': item['name'], 'is_active': item['is_active'],
+               'is_smart': item['is_smart'], 'tourney_name': item['name'], 
+               'is_active': item['is_active'],
                'photo' : table_image, 'filetables':[]}
     if page != 0:
         new_row['selected'] = False
@@ -123,6 +123,17 @@ def get_one_by_id(table_id: str, db: Session):
 
 def created_tables_default(db_tourney, db: Session):
     
+    str_borrar_image = "SELECT image FROM events.domino_tables WHERE tourney_id = '" + db_tourney.id + "' "
+    lst_images = db.execute(str_borrar_image)
+    
+    path_tourney = create_dir(entity_type="SETTOURNEY", user_id=None, entity_id=str(db_tourney.id))
+    
+    for item in lst_images:
+        try:
+            del_image(path=path_tourney, name=str(item))
+        except:
+            continue
+        
     # buscar ls mesas del torneo y volverlas a crear. Si tienen imgane, no importa
     str_query = "DELETE FROM events.domino_tables_files WHERE table_id IN (" + \
         "SELECT id FROM events.domino_tables WHERE tourney_id = '" + db_tourney.id + "'); " +\

@@ -30,7 +30,7 @@ from domino.services.events.domino_round import created_round_default
 from domino.services.events.domino_scale import configure_automatic_lottery, update_elo_initial_scale
 
 from domino.services.events.tourney import get_one as get_one_tourney, calculate_amount_tables, \
-    get_count_players_by_tourney, get_values_elo_by_tourney
+    get_count_players_by_tourney, get_values_elo_by_tourney, get_lst_categories_of_tourney
 from domino.services.enterprise.auth import get_url_advertising
 
 def get_one_configure_tourney(request:Request, tourney_id: str, db: Session):  
@@ -77,20 +77,20 @@ def get_one_configure_tourney(request:Request, tourney_id: str, db: Session):
     
     return result
     
-def get_lst_categories_of_tourney(tourney_id: str, db: Session):
+# def get_lst_categories_of_tourney(tourney_id: str, db: Session):
     
-    lst_categories = []
+#     lst_categories = []
     
-    str_query = "SELECT id, category_number, position_number, elo_min, elo_max, amount_players " +\
-        "FROM events.domino_categories WHERE tourney_id = '" + tourney_id + "' Order by position_number "
+#     str_query = "SELECT id, category_number, position_number, elo_min, elo_max, amount_players " +\
+#         "FROM events.domino_categories WHERE tourney_id = '" + tourney_id + "' Order by position_number "
         
-    lst_all_category = db.execute(str_query).fetchall()
-    for item in lst_all_category:
-        lst_categories.append({'category_number': item.category_number,
-                              'position_number': item.position_number,
-                              'amount_players': item.amount_players,
-                              'elo_min': item.elo_min, 'elo_max': item.elo_max})
-    return lst_categories
+#     lst_all_category = db.execute(str_query).fetchall()
+#     for item in lst_all_category:
+#         lst_categories.append({'category_number': item.category_number,
+#                               'position_number': item.position_number,
+#                               'amount_players': item.amount_players,
+#                               'elo_min': item.elo_min, 'elo_max': item.elo_max})
+#     return lst_categories
 
 # def close_configure_one_tourney(request, tourney_id: str, db: Session):
 #     locale = request.headers["accept-language"].split(",")[0].split("-")[0];
@@ -157,22 +157,6 @@ def get_lst_categories_of_tourney(tourney_id: str, db: Session):
 #         raise HTTPException(status_code=404, detail=_(locale, "tourney.error_at_closed"))
     
 #     return result
-
-def verify_category_is_valid(elo_max: float, elo_min: float, lst_category: list):
-    
-    current_elo_max = float(elo_max)
-    current_elo_min = float(elo_min)
-    for item in lst_category:
-        if current_elo_max !=  float(item['elo_max']):
-            return False
-        else:
-            current_elo_max = float(item['elo_min']) - 1 
-            current_elo_min = float(item['elo_min'])
-    
-    if current_elo_min != float(elo_min):
-        return False
-    
-    return True
 
 def configure_one_tourney(request, tourney_id: str, settingtourney: SettingTourneyCreated, db: Session):
     locale = request.headers["accept-language"].split(",")[0].split("-")[0];

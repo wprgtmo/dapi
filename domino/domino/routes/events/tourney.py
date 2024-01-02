@@ -8,6 +8,7 @@ from domino.auth_bearer import JWTBearer
 from domino.schemas.events.tourney import TourneyCreated
 from domino.schemas.resources.result_object import ResultObject
 
+from domino.services.events.domino_table import get_all as get_all_tables_for_tourney
 from domino.services.events.tourney import get_all, new, get_one_by_id, delete, update, get_all_by_event_id, \
     get_amount_tables, update_image_tourney
     
@@ -28,6 +29,18 @@ def get_tourney(
     db: Session = Depends(get_db)
 ):
     return get_all(request=request, page=page, per_page=per_page, criteria_key=criteria_key, criteria_value=criteria_value, db=db)
+
+@tourney_route.get("/tourney/tables/{id}", response_model=ResultObject, summary="Get List of Tables for Tourney.")
+def get_all_tables(
+    request:Request,
+    id: str, 
+    page: int = 1, 
+    per_page: int = 6, 
+    criteria_key: str = "",
+    criteria_value: str = "",
+    db: Session = Depends(get_db)):
+    return get_all_tables_for_tourney(
+        request=request, tourney_id=id, page=page, per_page=per_page, criteria_key=criteria_key, criteria_value=criteria_value, db=db)
 
 @tourney_route.get("/tourney/event/{event_id}", response_model=ResultObject, summary="Get List of Tourney for Event.")
 def get_by_event(event_id: str, db: Session = Depends(get_db)):
