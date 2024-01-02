@@ -324,9 +324,11 @@ def get_all_players_by_tourney(request:Request, page: int, per_page: int, tourne
     
     str_status = ''
     if criteria_key and criteria_key == 'status_id':
-        str_status = " AND status_name = 'CONFIRMED' " if criteria_value == '0' else " AND status_name = 'ACCEPTED' " \
-            if criteria_value == '1' else " AND status_name = 'REFUTED' " # if criteria_value == '2' else " AND status_name = 'SEND' " 
-            
+        str_status = " AND status_name = 'CONFIRMED' " if criteria_value == '0' else " AND status_name = 'PLAYING' " \
+            if criteria_value == '1' else " AND status_name = 'WAITING' " if criteria_value == '2' else \
+            " AND status_name = 'EXPELLED' " if criteria_value == '3' else " AND status_name = 'PAUSE' " \
+            if criteria_value == '4' else " AND status_name != '" + str(status_canc.id)
+             
     str_from = "FROM events.players player " +\
         "inner join enterprise.profile_member pro ON pro.id = player.profile_id " +\
         "left join resources.city ON city.id = pro.city_id " + \
@@ -336,19 +338,14 @@ def get_all_players_by_tourney(request:Request, page: int, per_page: int, tourne
     str_query = "SELECT player.id, pro.name as name, pro.photo, pro.id as profile_id, " +\
         "city.name as city_name, country.name as country_name, player.level, player.elo, player.ranking, player.ranking position_number " + str_from
     
-    str_where = "WHERE pro.is_ready is True AND status_id != " + str(status_canc.id)  
+    str_where = "WHERE pro.is_ready is True "
     str_where += " AND player.tourney_id = '" + tourney_id + "' " 
     
     if player_name:    
         str_from += " AND profile_member.name ilike '%" + player_name + "%'"
+    
+    str_where += str_status
         
-    # dict_query = {'username': " AND username = '" + criteria_value + "'"}
-    # if criteria_key and criteria_key not in dict_query:
-    #     raise HTTPException(status_code=404, detail=_(locale, "commun.invalid_param"))
-    # else:
-    #     if criteria_key == 'username' and criteria_value:
-    #         str_where += "AND pro.id IN (Select profile_id from enterprise.profile_users WHERE username ilike '%" + str(criteria_value) + "%')"
-                    
     str_count += str_where
     str_query += str_where
 
