@@ -195,11 +195,14 @@ def get_all_players_by_elo(request:Request, page: int, per_page: int, tourney_id
     str_from = "FROM events.players player " +\
         "inner join enterprise.profile_member pro ON pro.id = player.profile_id " +\
         "left join resources.city ON city.id = pro.city_id " + \
-        "left join resources.country ON country.id = city.country_id "
+        "left join resources.country ON country.id = city.country_id " +\
+        "join resources.entities_status sta ON sta.id = player.status_id "
         
     str_count = "Select count(*) " + str_from
     str_query = "SELECT players.id, pro.name as name, pro.photo, pro.id as profile_id, " +\
-        "city.name as city_name, country.name as country_name, player.level, player.elo, player.ranking, player.ranking position_number " + str_from
+        "city.name as city_name, country.name as country_name, player.level, player.elo, " +\
+        "player.ranking, player.ranking position_number, sta.id as status_id, " +\
+        "sta.name as status_name, sta.description as status_description  " + str_from
         
     str_where = "WHERE pro.is_ready is True AND status_id != " + str(status_canc.id) 
     str_where += " AND player.tourney_id = '" + tourney_id + "' "  +\
@@ -257,7 +260,8 @@ def get_all_players_by_category(request:Request, page: int, per_page: int, categ
     str_from = "FROM events.players player " +\
         "inner join enterprise.profile_member pro ON pro.id = player.profile_id " +\
         "left join resources.city ON city.id = pro.city_id " + \
-        "left join resources.country ON country.id = city.country_id "
+        "left join resources.country ON country.id = city.country_id " +\
+        "join resources.entities_status sta ON sta.id = player.status_id "
     
     tourney_is_init = True if dict_result['status_name'] == 'INITIADED' or dict_result['status_name'] == 'FINALIZED' else False
     if tourney_is_init:
@@ -265,7 +269,8 @@ def get_all_players_by_category(request:Request, page: int, per_page: int, categ
     
     str_count = "Select count(*) " + str_from
     str_query = "SELECT player.id, pro.name as name, pro.photo, pro.id as profile_id, " +\
-        "city.name as city_name, country.name as country_name, player.level, player.elo, player.ranking " 
+        "city.name as city_name, country.name as country_name, player.level, player.elo, player.ranking, " +\
+        "sta.id as status_id, sta.name as status_name, sta.description as status_description "  
         
     if tourney_is_init:
         str_query += ", rscale.position_number " 
