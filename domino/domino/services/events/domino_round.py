@@ -267,83 +267,83 @@ def get_obj_info_to_aperturate(db_round, db:Session):
     
     return new_round
 
-def aperture_new_round(request:Request, round_id:str, round: DominoRoundsAperture, db:Session):
-    locale = request.headers["accept-language"].split(",")[0].split("-")[0];
+# def aperture_new_round(request:Request, round_id:str, round: DominoRoundsAperture, db:Session):
+#     locale = request.headers["accept-language"].split(",")[0].split("-")[0];
     
-    result = ResultObject() 
-    currentUser = get_current_user(request)
+#     result = ResultObject() 
+#     currentUser = get_current_user(request)
     
-    db_round = get_one(round_id=round_id, db=db)
-    if not db_round:
-        raise HTTPException(status_code=404, detail=_(locale, "round.not_found"))
+#     db_round = get_one(round_id=round_id, db=db)
+#     if not db_round:
+#         raise HTTPException(status_code=404, detail=_(locale, "round.not_found"))
     
-    one_status_created = get_one_status_by_name('CREATED', db=db)
-    if not one_status_created:
-        raise HTTPException(status_code=404, detail=_(locale, "status.not_found"))
+#     one_status_created = get_one_status_by_name('CREATED', db=db)
+#     if not one_status_created:
+#         raise HTTPException(status_code=404, detail=_(locale, "status.not_found"))
     
-    if db_round.status_id != one_status_created:
-        raise HTTPException(status_code=404, detail=_(locale, "round.status_incorrect"))
+#     if db_round.status_id != one_status_created:
+#         raise HTTPException(status_code=404, detail=_(locale, "round.status_incorrect"))
     
-    info_round = get_obj_info_to_aperturate(db_round.tourney, db, locale=locale) 
+#     info_round = get_obj_info_to_aperturate(db_round.tourney, db, locale=locale) 
     
-    # verificar que lo que viene de la interfaz coincide con lo de la base de datos
-    if info_round.amount_players_playing < 8:
-        raise HTTPException(status_code=404, detail=_(locale, "tourney.amount_player_incorrect"))
+#     # verificar que lo que viene de la interfaz coincide con lo de la base de datos
+#     if info_round.amount_players_playing < 8:
+#         raise HTTPException(status_code=404, detail=_(locale, "tourney.amount_player_incorrect"))
     
-    str_query = "SELECT count(tourney_id) FROM events.domino_categories where tourney_id = '" + db_round.tourney.id + "' "
-    amount = db.execute(str_query).fetchone()[0]
-    if amount == 0:
-        raise HTTPException(status_code=404, detail=_(locale, "tourney.category_not_configurated"))
+#     str_query = "SELECT count(tourney_id) FROM events.domino_categories where tourney_id = '" + db_round.tourney.id + "' "
+#     amount = db.execute(str_query).fetchone()[0]
+#     if amount == 0:
+#         raise HTTPException(status_code=404, detail=_(locale, "tourney.category_not_configurated"))
     
-    if db_round.is_first:
-        # validar todas las categorias estén contempladas entre los elo de los jugadores.
-        lst_category = get_lst_categories_of_tourney(tourney_id=db_round.tourney.id, db=db)
-        if not verify_category_is_valid(float(db_round.tourney.elo_max), float(db_round.tourney.elo_min), lst_category=lst_category):
-            raise HTTPException(status_code=400, detail=_(locale, "tourney.setting_category_incorrect"))
-        if db_round.tourney.lottery_type == "MANUAL":
-            result_init = configure_automatic_lottery(db_tourney, db_round_ini, one_status_init, db=db)
-#         if not result_init:
-#             raise HTTPException(status_code=404, detail=_(locale, "tourney.setting_initial_scale_failed"))
+#     if db_round.is_first:
+#         # validar todas las categorias estén contempladas entre los elo de los jugadores.
+#         lst_category = get_lst_categories_of_tourney(tourney_id=db_round.tourney.id, db=db)
+#         if not verify_category_is_valid(float(db_round.tourney.elo_max), float(db_round.tourney.elo_min), lst_category=lst_category):
+#             raise HTTPException(status_code=400, detail=_(locale, "tourney.setting_category_incorrect"))
+#         if db_round.tourney.lottery_type == "MANUAL":
+#             result_init = configure_automatic_lottery(db_tourney, db_round_ini, one_status_init, db=db)
+# #         if not result_init:
+# #             raise HTTPException(status_code=404, detail=_(locale, "tourney.setting_initial_scale_failed"))
 
-        # salvar posicionamiento manual
-        # 0 crear el primer posicionamiento automático.
-    else:
-        pass
-        # crear el posiciinamiento según criterio de ordenamiento de las rondas
+#         # salvar posicionamiento manual
+#         # 0 crear el primer posicionamiento automático.
+#     else:
+#         pass
+#         # crear el posiciinamiento según criterio de ordenamiento de las rondas
         
-    # distribuir parejas , mesas, etc.
+#     # distribuir parejas , mesas, etc.
     
-    # poner la ronda en estado de configurada, para que pase a ser publicada.
+#     # poner la ronda en estado de configurada, para que pase a ser publicada.
         
 
-    try:
-        configure_new_rounds(
-            tourney_id=tourney_id, summary='', db=db, created_by=currentUser['username'], round_number=info_round.round_number,
-            is_first=info_round.is_first, is_last=info_round.is_last, use_segmentation=round.use_segmentation, 
-            use_bonus=round.use_bonus, amount_bonus_tables=round.amount_bonus_tables, amount_bonus_points=round.amount_bonus_points,
-            amount_tables=info_round.amount_tables, amount_categories=info_round.amount_categories, 
-            amount_players_playing=info_round.amount_players_playing, amount_players_waiting=info_round.amount_players_waiting,
-            amount_players_pause=info_round.amount_players_pause, amount_players_expelled=info_round.amount_players_expelled)
-        return result
+#     try:
+#         configure_new_rounds(
+#             tourney_id=tourney_id, summary='', db=db, created_by=currentUser['username'], round_number=info_round.round_number,
+#             is_first=info_round.is_first, is_last=info_round.is_last, use_segmentation=round.use_segmentation, 
+#             use_bonus=round.use_bonus, amount_bonus_tables=round.amount_bonus_tables, amount_bonus_points=round.amount_bonus_points,
+#             amount_tables=info_round.amount_tables, amount_categories=info_round.amount_categories, 
+#             amount_players_playing=info_round.amount_players_playing, amount_players_waiting=info_round.amount_players_waiting,
+#             amount_players_pause=info_round.amount_players_pause, amount_players_expelled=info_round.amount_players_expelled)
+#         return result
     
-    except (Exception, SQLAlchemyError, IntegrityError) as e:
-        raise HTTPException(status_code=404, detail=_(locale, "round.error_started_round"))
+#     except (Exception, SQLAlchemyError, IntegrityError) as e:
+#         raise HTTPException(status_code=404, detail=_(locale, "round.error_started_round"))
 
-def verify_category_is_valid(elo_max: float, elo_min: float, lst_category: list):
+# def verify_category_is_valid(elo_max: float, elo_min: float, lst_category: list):
     
-    current_elo_max = float(elo_max)
-    current_elo_min = float(elo_min)
-    for item in lst_category:
-        if current_elo_max !=  float(item['elo_max']):
-            return False
-        else:
-            current_elo_max = float(item['elo_min']) - 1 
-            current_elo_min = float(item['elo_min'])
+#     current_elo_max = float(elo_max)
+#     current_elo_min = float(elo_min)
+#     for item in lst_category:
+#         if current_elo_max !=  float(item['elo_max']):
+#             return False
+#         else:
+#             current_elo_max = float(item['elo_min']) - 1 
+#             current_elo_min = float(item['elo_min'])
     
-    if current_elo_min != float(elo_min):
-        return False
+#     if current_elo_min != float(elo_min):
+#         return False
     
-    return True
+#     return True
     
 # def start_one_round(request:Request, tourney_id:str, db:Session):
 #     locale = request.headers["accept-language"].split(",")[0].split("-")[0];
@@ -615,24 +615,3 @@ def configure_rounds(tourney_id: str, round_id: str, modality:str, created_by:st
     db.commit()    
     
     return True      
-
-def order_round_to_init(db_round, db:Session):
-    
-    # if db_round.tourney.lottery_type == "MANUAL":
-    #     pass
-    # else:
-    #     result_init = configure_automatic_lottery(db_tourney, db_round_ini, one_status_init, db=db)
-        
-    # if not result_init:
-    #     raise HTTPException(status_code=404, detail=_(locale, "tourney.setting_initial_scale_failed"))
-    
-    return True   
-
-def order_round_to_play(db_round, db:Session):
-    
-    return True  
-
-def order_round_to_end(db_round, db:Session):
-    
-    return True 
-

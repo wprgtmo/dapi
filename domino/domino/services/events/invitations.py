@@ -124,19 +124,6 @@ def get_all_invitations_by_tourney(request, tourney_id: str, page: int, per_page
         "player.level, player.elo, player.ranking, " +\
         "sta.id as status_id, sta.name as status_name, sta.description as status_description " + str_from
     
-    if criteria_key and criteria_key != 'status_id':
-        dict_query = {'name': " AND eve.name ilike '%" + criteria_value + "%'",
-                    'summary': " AND summary ilike '%" + criteria_value + "%'",
-                    'city_name': " AND city_name ilike '%" + criteria_value + "%'",
-                    'start_date': " AND start_date >= '%" + criteria_value + "%'",
-                    }
-        
-        if criteria_key and criteria_key not in dict_query:
-            raise HTTPException(status_code=404, detail=_(locale, "commun.invalid_param"))
-        
-        str_count += dict_query[criteria_key] if criteria_value else "" 
-        str_query += dict_query[criteria_key] if criteria_value else ""
-    
     if page and page > 0 and not per_page:
         raise HTTPException(status_code=404, detail=_(locale, "commun.invalid_param"))
     

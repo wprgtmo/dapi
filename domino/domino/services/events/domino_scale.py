@@ -20,7 +20,7 @@ from os import getcwd
 from domino.models.events.domino_round import DominoRoundsScale, DominoRoundsPairs
 from domino.models.events.tourney import TraceLotteryManual
 
-from domino.schemas.events.domino_rounds import DominoManualScaleCreated, DominoAutomaticScaleCreated
+from domino.schemas.events.domino_rounds import DominoManualScaleCreated, DominoRoundsAperture
 from domino.schemas.resources.result_object import ResultObject, ResultData
 
 from domino.services.resources.status import get_one_by_name as get_one_status_by_name, get_one as get_one_status
@@ -29,9 +29,12 @@ from domino.services.enterprise.userprofile import get_one as get_one_profile
 from domino.services.enterprise.auth import get_url_avatar
 
 from domino.services.events.player import get_lst_id_player_by_elo
-from domino.services.events.domino_round import get_one as get_one_round, get_first_by_tourney, configure_rounds, configure_new_rounds
+from domino.services.events.domino_round import get_one as get_one_round, get_first_by_tourney, configure_rounds, configure_new_rounds, \
+    get_obj_info_to_aperturate
+    
 from domino.services.events.domino_boletus import created_boletus_for_round
 from domino.services.enterprise.auth import get_url_advertising
+from domino.services.events.tourney import get_lst_categories_of_tourney
 
 from domino.services.events.calculation_serv import calculate_new_elo
     
@@ -141,24 +144,17 @@ def initial_scale_by_manual_lottery(tourney_id: str, round_id: str, dominoscale:
     return True
 
 
-def configure_automatic_lottery(db_tourney, db_round, one_status_init, db: Session):
+def configure_automatic_lottery(db_round, db: Session):
     
     # buscar las categorias definidas. 
-    str_query = "SELECT * FROM events.domino_categories where tourney_id = '" + db_tourney.id + "' ORDER BY position_number"
+    str_query = "SELECT * FROM events.domino_categories where tourney_id = '" + db_round.tourney.id + "' ORDER BY position_number"
     lst_categories = db.execute(str_query).fetchall()
     
     position_number=0
     for item_cat in lst_categories:   
         position_number=created_automatic_lottery(
-            db_tourney.id, db_tourney.modality, db_round.id, item_cat.elo_min, item_cat.elo_max, position_number, item_cat.id, db=db)
-        
-    configure_tables_by_round(db_tourney.id, db_round.id, db_tourney.modality, db_tourney.created_by, db=db)
-    
-    db_tourney.status_id = one_status_init.id
-    db_tourney.event.status_id = one_status_init.id
-    
-    db.commit()
-    
+            db_round.tourney.id, db_round.tourney.modality, db_round.id, item_cat.elo_min, item_cat.elo_max, position_number, item_cat.id, db=db)
+   
     return True
 
 def created_automatic_lottery(tourney_id: str, modality:str, round_id: str, elo_min:float, elo_max:float, position_number:int, category_id, db: Session):
@@ -626,3 +622,119 @@ def get_values_elo_by_scale(round_id: str, db: Session):
         elo_min = item.elo_min
     
     return elo_max, elo_min
+
+def aperture_new_round(request:Request, round_id:str, round: DominoRoundsAperture, db:Session):
+    locale = request.headers["accept-language"].split(",")[0].split("-")[0];
+    
+    result = ResultObject() 
+    currentUser = get_current_user(request)
+    
+    db_round = get_one_round(round_id=round_id, db=db)
+    if not db_round:
+        raise HTTPException(status_code=404, detail=_(locale, "round.not_found"))
+    
+    one_status_created = get_one_status_by_name('CREATED', db=db)
+    if not one_status_created:
+        raise HTTPException(status_code=404, detail=_(locale, "status.not_found"))
+    
+    if db_round.status_id != one_status_created.id:
+        raise HTTPException(status_code=404, detail=_(locale, "round.status_incorrect"))
+    
+    info_round = get_obj_info_to_aperturate(db_round, db) 
+    
+    # verificar que lo que viene de la interfaz coincide con lo de la base de datos
+    if info_round.amount_players_playing < 8:
+        raise HTTPException(status_code=404, detail=_(locale, "tourney.amount_player_incorrect"))
+    
+    str_query = "SELECT count(tourney_id) FROM events.domino_categories where tourney_id = '" + db_round.tourney.id + "' "
+    amount = db.execute(str_query).fetchone()[0]
+    if amount == 0:
+        raise HTTPException(status_code=404, detail=_(locale, "tourney.category_not_configurated"))
+    
+    if db_round.is_first:
+        # validar todas las categorias estén contempladas entre los elo de los jugadores.
+        lst_category = get_lst_categories_of_tourney(tourney_id=db_round.tourney.id, db=db)
+        if not verify_category_is_valid(float(db_round.tourney.elo_max), float(db_round.tourney.elo_min), lst_category=lst_category):
+            raise HTTPException(status_code=400, detail=_(locale, "tourney.setting_category_incorrect"))
+        
+        result_init = order_round_to_init(db_round, db=db)
+        if not result_init:
+            raise HTTPException(status_code=404, detail=_(locale, "tourney.setting_initial_scale_failed"))
+
+    else:
+        result_init = order_round_to_play(db_round, db=db)
+        if not result_init:
+            raise HTTPException(status_code=404, detail=_(locale, "tourney.setting_initial_scale_failed"))
+    
+    # configure_tables_by_round(db_round.tourney.id, db_round.id, db_round.tourney.modality, db_round.tourney.updated_by, db=db)
+    
+    one_status_conf = get_one_status_by_name('CONFIGURATED', db=db)
+    if not one_status_conf:
+        raise HTTPException(status_code=404, detail=_(locale, "status.not_found"))
+    
+    db_round.status_id = one_status_conf.id
+     
+    one_status_init = get_one_status_by_name('INITIADED', db=db)
+    if not one_status_init:
+        raise HTTPException(status_code=404, detail=_(locale, "status.not_found"))
+    
+    db_round.tourney.status_id = one_status_init.id
+    db_round.tourney.event.status_id = one_status_init.id
+    
+    db.add(db_round)
+    db.add(db_round.tourney)
+    db.add(db_round.tourney.event)
+    
+    db.commit()
+    
+    # try:
+    #     configure_new_rounds(
+    #         tourney_id=tourney_id, summary='', db=db, created_by=currentUser['username'], round_number=info_round.round_number,
+    #         is_first=info_round.is_first, is_last=info_round.is_last, use_segmentation=round.use_segmentation, 
+    #         use_bonus=round.use_bonus, amount_bonus_tables=round.amount_bonus_tables, amount_bonus_points=round.amount_bonus_points,
+    #         amount_tables=info_round.amount_tables, amount_categories=info_round.amount_categories, 
+    #         amount_players_playing=info_round.amount_players_playing, amount_players_waiting=info_round.amount_players_waiting,
+    #         amount_players_pause=info_round.amount_players_pause, amount_players_expelled=info_round.amount_players_expelled)
+    #     return result
+    
+    # except (Exception, SQLAlchemyError, IntegrityError) as e:
+    #     raise HTTPException(status_code=404, detail=_(locale, "round.error_started_round"))
+
+    return result
+
+def verify_category_is_valid(elo_max: float, elo_min: float, lst_category: list):
+    
+    current_elo_max = float(elo_max)
+    current_elo_min = float(elo_min)
+    for item in lst_category:
+        if current_elo_max !=  float(item['elo_max']):
+            return False
+        else:
+            current_elo_max = float(item['elo_min']) - 1 
+            current_elo_min = float(item['elo_min'])
+    
+    if current_elo_min != float(elo_min):
+        return False
+    
+    return True
+
+def order_round_to_init(db_round, db:Session):
+    
+    if db_round.tourney.lottery_type == "MANUAL":
+        # salvar la escala manual
+        result_init = configure_manual_lottery(db_round, db=db)
+    else:
+        result_init = configure_automatic_lottery(db_round, db=db)
+            
+    if not result_init:
+        return False
+    
+    return True   
+
+def order_round_to_play(db_round, db:Session):
+    
+    return True  
+
+def order_round_to_end(db_round, db:Session):
+    
+    return True 
