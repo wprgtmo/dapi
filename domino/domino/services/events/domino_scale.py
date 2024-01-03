@@ -34,7 +34,7 @@ from domino.services.events.domino_round import get_one as get_one_round, get_fi
     
 from domino.services.events.domino_boletus import created_boletus_for_round
 from domino.services.enterprise.auth import get_url_advertising
-from domino.services.events.tourney import get_lst_categories_of_tourney
+from domino.services.events.tourney import get_lst_categories_of_tourney, create_category_by_default
 
 from domino.services.events.calculation_serv import calculate_new_elo
     
@@ -144,7 +144,7 @@ def initial_scale_by_manual_lottery(tourney_id: str, round_id: str, dominoscale:
     return True
 
 
-def configure_automatic_lottery(db_round, db: Session):
+def configure_automatic_lottery(db_round, db: Session, uses_segmentation=False):
     
     # buscar las categorias definidas. 
     str_query = "SELECT * FROM events.domino_categories where tourney_id = '" + db_round.tourney.id + "' ORDER BY position_number "
@@ -651,18 +651,27 @@ def aperture_new_round(request:Request, round_id:str, round: DominoRoundsApertur
     if info_round.amount_players_playing < 8:
         raise HTTPException(status_code=404, detail=_(locale, "tourney.amount_player_incorrect"))
     
+    if db_round.status.name == 'CONFIGURATED':
+        # borrar todo lo que se configuro
+        remove_configurate_round(db_round.tourney_id, db_round.id, db=db)
+    
     str_query = "SELECT count(tourney_id) FROM events.domino_categories where tourney_id = '" + db_round.tourney.id + "' "
     amount = db.execute(str_query).fetchone()[0]
     if amount == 0:
         raise HTTPException(status_code=404, detail=_(locale, "tourney.category_not_configurated"))
     
     if db_round.is_first:
-        # validar todas las categorias estén contempladas entre los elo de los jugadores.
-        lst_category = get_lst_categories_of_tourney(tourney_id=db_round.tourney.id, db=db)
-        if not verify_category_is_valid(float(db_round.tourney.elo_max), float(db_round.tourney.elo_min), lst_category=lst_category):
-            raise HTTPException(status_code=400, detail=_(locale, "tourney.setting_category_incorrect"))
+        # sino usas las categorias en la primera, borro si tiene configuradas y creo una por defecto.
+        if round.use_bonus and round.use_bonus == 'YES':
+            # validar todas las categorias estén contempladas entre los elo de los jugadores.
+            lst_category = get_lst_categories_of_tourney(tourney_id=db_round.tourney.id, db=db)
+            if not verify_category_is_valid(float(db_round.tourney.elo_max), float(db_round.tourney.elo_min), lst_category=lst_category):
+                raise HTTPException(status_code=400, detail=_(locale, "tourney.setting_category_incorrect"))
+        else:
+            create_category_by_default(
+                db_round.tourney.id, db_round.tourney.elo_max, db_round.tourney.elo_min, info_round.amount_players_playing, db=db)
         
-        result_init = order_round_to_init(db_round, db=db)
+        result_init = order_round_to_init(db_round, db=db, uses_segmentation=round.use_bonus)
         if not result_init:
             raise HTTPException(status_code=404, detail=_(locale, "tourney.setting_initial_scale_failed"))
 
@@ -671,7 +680,7 @@ def aperture_new_round(request:Request, round_id:str, round: DominoRoundsApertur
         if not result_init:
             raise HTTPException(status_code=404, detail=_(locale, "tourney.setting_initial_scale_failed"))
     
-    # configure_tables_by_round(db_round.tourney.id, db_round.id, db_round.tourney.modality, db_round.tourney.updated_by, db=db)
+    configure_tables_by_round(db_round.tourney.id, db_round.id, db_round.tourney.modality, db_round.tourney.updated_by, db=db)
     
     db_round.status_id = one_status_conf.id
      
@@ -720,23 +729,47 @@ def verify_category_is_valid(elo_max: float, elo_min: float, lst_category: list)
     
     return True
 
-def order_round_to_init(db_round, db:Session):
+def order_round_to_init(db_round, db:Session, uses_segmentation=False):
     
     if db_round.tourney.lottery_type == "MANUAL":
         # salvar la escala manual
         result_init = configure_manual_lottery(db_round, db=db)
     else:
-        result_init = configure_automatic_lottery(db_round, db=db)
+        result_init = configure_automatic_lottery(db_round, db=db, uses_segmentation=uses_segmentation)
             
     if not result_init:
         return False
     
     return True   
 
-def order_round_to_play(db_round, db:Session):
+def order_round_to_play(db_round, db:Session, uses_segmentation=True):
     
     return True  
 
-def order_round_to_end(db_round, db:Session):
+def order_round_to_end(db_round, db:Session, uses_segmentation=False):
     
     return True 
+
+def remove_configurate_round(tourney_id: str, round_id: str, db: Session):
+    
+    str_round = "WHERE round_id = '" + round_id + "'; "
+    str_id_boletus = "(SELECT id from events.domino_boletus where round_id = '" + round_id + "') "
+    
+    # if manual la loteria y se va a borrar tambien se pone sino NO.
+    
+    #Posicionamiento
+    str_loterry = "DELETE FROM events.trace_lottery_manual WHERE touney_id = '" + tourney_id + "'; " 
+    str_scale = "DELETE FROM events.domino_rounds_scale " + str_round +\
+        "DELETE FROM events.domino_rounds_pairs " + str_round
+    
+    #boleta
+    domino_boletus = "DELETE from events.domino_boletus_position where boletus_id IN " + str_id_boletus + "; " +\
+        "DELETE from events.domino_boletus_data where boletus_id IN " + str_id_boletus + "; " +\
+        "DELETE from events.domino_boletus_pairs where boletus_id IN " + str_id_boletus + "; "
+        
+    domino_boletus += "DELETE FROM events.domino_boletus where round_id = '" + round_id + "'; " 
+    
+    str_delete = domino_boletus + str_scale + "COMMIT; " 
+    db.execute(str_delete)
+    
+    return True

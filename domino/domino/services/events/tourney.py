@@ -311,6 +311,21 @@ def update_image_tourney(request: Request, tourney_id: str, file: File, db: Sess
         print(e.code)
         if e.code == "gkpj":
             raise HTTPException(status_code=400, detail=_(locale, "tourney.already_exist"))
+
+def create_category_by_default(tourney_id:str, elo_max: float, elo_min: float, amount_players: int, db:Session):
+    
+    #borrar las que existen primero
+    str_delete = "DELETE FROM events.domino_categories WHERE tourney_id = '" + tourney_id + "'; COMMIT; "
+    db.execute(str_delete)
+    
+    db_one_category = DominoCategory(id=str(uuid.uuid4()), tourney_id=tourney_id, category_number=1,
+                                     position_number=1, elo_min=elo_min, elo_max=elo_max, 
+                                     amount_players=amount_players) 
+        
+    db.add(db_one_category)
+    db.commit()    
+   
+    return True
            
 def get_amount_tables(request: Request, tourney_id: str, db: Session): 
     locale = request.headers["accept-language"].split(",")[0].split("-")[0];
