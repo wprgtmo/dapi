@@ -150,6 +150,8 @@ def change_status_player(request: Request, player_id: str, status: str, db: Sess
     result = ResultObject() 
     currentUser = get_current_user(request)
     
+    print(player_id)
+    print(status)
     # posibilidades son:
     # Jugando (Expulsado, Pausa)
     # Pausa (Jugando, Expulsado)
@@ -165,10 +167,14 @@ def change_status_player(request: Request, player_id: str, status: str, db: Sess
     if db_player.tourney.status.name == "FINALIZED":
         raise HTTPException(status_code=404, detail=_(locale, "tourney.status_incorrect"))
     
+    #puede que no existan rondas todavia
     last_round = get_last_by_tourney(db_player.tourney_id, db=db)
-    if last_round.status.name != 'CREATED':
-        raise HTTPException(status_code=404, detail=_(locale, "round.status_incorrect"))
-        
+    if last_round:
+        if last_round.status.name not in ('CREATED', 'CONFIGURATED'):
+            raise HTTPException(status_code=404, detail=_(locale, "round.status_incorrect"))
+    
+    print(db_player.status.name)   
+    print('**********************') 
     if db_player.status.name not in ('CONFIRMED', 'PLAYING', 'PAUSE'):
         raise HTTPException(status_code=404, detail=_(locale, "player.status_incorrect"))
 
@@ -376,7 +382,6 @@ def get_all_players_by_tourney(request:Request, page: int, per_page: int, tourne
     locale = request.headers["accept-language"].split(",")[0].split("-")[0];
     
     api_uri = str(settings.api_uri)
-    
     db_tourney = get_torneuy_by_eid(tourney_id, db=db)
     if not db_tourney:
         raise HTTPException(status_code=404, detail=_(locale, "tourney.not_found"))
@@ -404,17 +409,16 @@ def get_all_players_by_tourney(request:Request, page: int, per_page: int, tourne
         "player.ranking, player.ranking position_number, sta.id as status_id, " +\
         "sta.name as status_name, sta.description as status_description " + str_from
     
-    str_where = "WHERE pro.is_ready is True "
-    str_where += " AND player.tourney_id = '" + tourney_id + "' " 
+    str_where = "WHERE pro.is_ready is True AND player.tourney_id = '" + tourney_id + "' " 
     
-    if player_name:    
-        str_from += " AND profile_member.name ilike '%" + player_name + "%'"
+    if player_name:   
+        str_where += " AND pro.name ilike '%" + player_name + "%' "
     
     str_where += str_status
         
     str_count += str_where
     str_query += str_where
-
+    
     if page and page > 0 and not per_page:
         raise HTTPException(status_code=404, detail=_(locale, "commun.invalid_param"))
     
