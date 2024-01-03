@@ -261,14 +261,14 @@ def get_all_players_by_tables(request:Request, page: int, per_page: int, tourney
     # SI LA RONDA VIENE VACIA ES LA PRIMERA DEL TORNEO.
     
     if not round_id:
-        round_id = get_first_by_tourney(tourney_id, db=db)
+        db_round = get_first_by_tourney(tourney_id, db=db)
+        round_id = db_round.id
     
     return get_all_players_by_tables_and_rounds(request, page, per_page=per_page, tourney_id=tourney_id, round_id=round_id, db=db)
         
 def get_all_players_by_tables_and_round(request:Request, page: int, per_page: int, round_id: str, db: Session):  
     
     db_round = get_one_round(round_id, db=db)
-    
     return get_all_players_by_tables_and_rounds(request, page, per_page=per_page, tourney_id=db_round.tourney_id, round_id=round_id, db=db)
     
 def get_all_players_by_tables_and_rounds(request:Request, page: int, per_page: int, tourney_id: str, round_id: str, db: Session):  

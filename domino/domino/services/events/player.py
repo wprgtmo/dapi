@@ -21,6 +21,7 @@ from domino.schemas.resources.result_object import ResultObject
 from domino.services.resources.status import get_one_by_name, get_one as get_one_status
 from domino.services.events.invitations import get_one_by_id as get_invitation_by_id
 from domino.services.events.tourney import get_one as get_torneuy_by_eid, get_info_categories_tourney
+from domino.services.events.domino_round import get_last_by_tourney
 
 from domino.services.enterprise.userprofile import get_one as get_one_profile
 
@@ -137,6 +138,64 @@ def remove_player(request: Request, player_id: str, db: Session):
         else:
             raise HTTPException(status_code=404, detail=_(locale, "player.not_found"))
         
+    except (Exception, SQLAlchemyError) as e:
+        print(e)
+        raise HTTPException(status_code=404, detail="No es posible eliminar")
+    return result
+
+def change_status_player(request: Request, player_id: str, status: str, db: Session):
+    
+    locale = request.headers["accept-language"].split(",")[0].split("-")[0];
+    
+    result = ResultObject() 
+    currentUser = get_current_user(request)
+    
+    # posibilidades son:
+    # Jugando (Expulsado, Pausa)
+    # Pausa (Jugando, Expulsado)
+    # Aceptado (Cancelado)
+    
+    # el torneo no puede edstar finalizado y la ronda actual tienr que estar en estado creada.
+    status_new = get_one_by_name(status, db=db)
+    
+    db_player = db.query(Players).filter(Players.id == player_id).first()
+    if not db_player:
+        raise HTTPException(status_code=404, detail=_(locale, "player.not_found"))
+    
+    if db_player.tourney.status.name == "FINALIZED":
+        raise HTTPException(status_code=404, detail=_(locale, "tourney.status_incorrect"))
+    
+    last_round = get_last_by_tourney(db_player.tourney_id, db=db)
+    if last_round.status.name != 'CREATED':
+        raise HTTPException(status_code=404, detail=_(locale, "round.status_incorrect"))
+        
+    if db_player.status.name not in ('CONFIRMED', 'PLAYING', 'PAUSE'):
+        raise HTTPException(status_code=404, detail=_(locale, "player.status_incorrect"))
+
+    if status_new.name == 'EXPELLED':
+        if db_player.status_id not in ('PLAYING', 'PAUSE'):
+            raise HTTPException(status_code=404, detail=_(locale, "player.status_incorrect"))
+        
+    elif status_new.name == 'PAUSE':
+        if db_player.status.name != 'PLAYING':
+            raise HTTPException(status_code=404, detail=_(locale, "player.status_incorrect"))
+        
+    elif status_new.name == 'PLAYING':
+        if db_player.status.name != 'PAUSE':
+            raise HTTPException(status_code=404, detail=_(locale, "player.status_incorrect"))
+        
+    elif status_new.name == 'CANCELLED':
+        if db_player.status.name != 'CONFIRMED':
+            raise HTTPException(status_code=404, detail=_(locale, "player.status_incorrect"))
+        
+        
+    
+    db_player.status_id = status_new.id
+    db_player.updated_by = currentUser['username']
+    db_player.updated_date = datetime.now()
+    
+    try:
+        db.commit() 
     except (Exception, SQLAlchemyError) as e:
         print(e)
         raise HTTPException(status_code=404, detail="No es posible eliminar")

@@ -7,7 +7,7 @@ from typing import List, Dict
 
 from domino.schemas.resources.result_object import ResultObject
 from domino.services.events.player import new, remove_player, get_all_players_by_tourney, reject_one_invitation, \
-    get_all_players_by_elo, get_number_players_by_elo
+    get_all_players_by_elo, get_number_players_by_elo, change_status_player
 
   
 player_route = APIRouter(
@@ -64,3 +64,7 @@ def reject_player(request:Request, invitation_id: str, db: Session = Depends(get
 @player_route.delete("/player/{id}", response_model=ResultObject, summary="Deactivate a Player by its ID.")
 def delete_player(request:Request, id: str, db: Session = Depends(get_db)):
     return remove_player(request=request, player_id=str(id), db=db)
+
+@player_route.post("/player/changestatus/{id}", response_model=ResultObject, summary="Change Status for Player")
+def change_status(request:Request, id: str, status: str, db: Session = Depends(get_db)):
+    return change_status_player(request=request, player_id=str(id), status=str(status), db=db)

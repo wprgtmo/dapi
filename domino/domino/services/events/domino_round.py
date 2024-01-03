@@ -135,15 +135,15 @@ def get_one_by_id(round_id: str, db: Session):
     return result
 
 def get_first_by_tourney(tourney_id: str, db: Session): 
+    status_canceled = get_one_status_by_name('CANCELLED', db=db) 
+    return db.query(DominoRounds).filter(DominoRounds.tourney_id==tourney_id).\
+        filter(DominoRounds.status_id != status_canceled.id).order_by(DominoRounds.round_number.asc()).first()
+        
+def get_last_by_tourney(tourney_id: str, db: Session): 
+    status_canceled = get_one_status_by_name('CANCELLED', db=db) 
+    return db.query(DominoRounds).filter(DominoRounds.tourney_id==tourney_id).\
+        filter(DominoRounds.status_id != status_canceled.id).order_by(DominoRounds.round_number.desc()).first()
     
-    str_query = "SELECT id FROM events.domino_rounds Where tourney_id = '" + tourney_id + "' ORDER BY round_number ASC limit 1 " 
-    round_id = db.execute(str_query).fetchone()
-    
-    if not round_id:
-        raise HTTPException(status_code=404, detail="round.not_found")
-    
-    return round_id[0]
-
 def created_round_default(db_tourney, summary:str, db:Session, round_number:int , is_first=False, is_last=False):
  
     # busxcar por el numero de ronda si existe, no hacer nada, ya esta creada.
