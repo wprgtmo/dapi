@@ -30,7 +30,7 @@ from domino.services.events.domino_round import created_round_default
 from domino.services.events.domino_scale import configure_automatic_lottery, update_elo_initial_scale
 
 from domino.services.events.tourney import get_one as get_one_tourney, calculate_amount_tables, \
-    get_count_players_by_tourney, get_values_elo_by_tourney, get_lst_categories_of_tourney
+    get_count_players_by_tourney, get_values_elo_by_tourney, get_lst_categories_of_tourney, get_categories_of_tourney
 from domino.services.enterprise.auth import get_url_advertising
 
 def get_one_configure_tourney(request:Request, tourney_id: str, db: Session):  
@@ -244,6 +244,21 @@ def update_initializes_tourney(db_tourney, amount_smart_tables, amount_rounds, n
     if not db_round_ini:
         raise HTTPException(status_code=400, detail=_(locale, "tourney.setting_rounds_failed"))
     
+    # actualizar elos de las categorias si existen
+    lst_category = get_categories_of_tourney(tourney_id=db_tourney.id, db=db)
+    first_category, last_category = None, None
+    for item in lst_category:
+        if not first_category:
+            first_category = item 
+        last_category = item
+    if first_category.elo_max != elo_max:
+        first_category.elo_max = elo_max 
+        db.add(first_category)
+        
+    if last_category.elo_min != elo_min:
+        last_category.elo_min = elo_min 
+        db.add(last_category)
+        
     try:
         db.add(db_tourney)
         db.commit()

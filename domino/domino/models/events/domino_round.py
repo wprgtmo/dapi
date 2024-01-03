@@ -47,6 +47,7 @@ class DominoRounds(Base):
     amount_players_expelled = Column(Integer, nullable=False, default=0)
     
     tourney = relationship('Tourney')
+    status = relationship("StatusElement")
     
     idx_number_table = UniqueConstraint('tourney_id', 'round_number')
     

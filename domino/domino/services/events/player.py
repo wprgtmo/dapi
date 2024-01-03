@@ -21,6 +21,7 @@ from domino.schemas.resources.result_object import ResultObject
 from domino.services.resources.status import get_one_by_name, get_one as get_one_status
 from domino.services.events.invitations import get_one_by_id as get_invitation_by_id
 from domino.services.events.tourney import get_one as get_torneuy_by_eid, get_info_categories_tourney
+from domino.services.events.domino_round import get_last_by_tourney
 
 from domino.services.enterprise.userprofile import get_one as get_one_profile
 
@@ -142,6 +143,64 @@ def remove_player(request: Request, player_id: str, db: Session):
         raise HTTPException(status_code=404, detail="No es posible eliminar")
     return result
 
+def change_status_player(request: Request, player_id: str, status: str, db: Session):
+    
+    locale = request.headers["accept-language"].split(",")[0].split("-")[0];
+    
+    result = ResultObject() 
+    currentUser = get_current_user(request)
+    
+    # posibilidades son:
+    # Jugando (Expulsado, Pausa)
+    # Pausa (Jugando, Expulsado)
+    # Aceptado (Cancelado)
+    
+    # el torneo no puede edstar finalizado y la ronda actual tienr que estar en estado creada.
+    status_new = get_one_by_name(status, db=db)
+    
+    db_player = db.query(Players).filter(Players.id == player_id).first()
+    if not db_player:
+        raise HTTPException(status_code=404, detail=_(locale, "player.not_found"))
+    
+    if db_player.tourney.status.name == "FINALIZED":
+        raise HTTPException(status_code=404, detail=_(locale, "tourney.status_incorrect"))
+    
+    last_round = get_last_by_tourney(db_player.tourney_id, db=db)
+    if last_round.status.name != 'CREATED':
+        raise HTTPException(status_code=404, detail=_(locale, "round.status_incorrect"))
+        
+    if db_player.status.name not in ('CONFIRMED', 'PLAYING', 'PAUSE'):
+        raise HTTPException(status_code=404, detail=_(locale, "player.status_incorrect"))
+
+    if status_new.name == 'EXPELLED':
+        if db_player.status_id not in ('PLAYING', 'PAUSE'):
+            raise HTTPException(status_code=404, detail=_(locale, "player.status_incorrect"))
+        
+    elif status_new.name == 'PAUSE':
+        if db_player.status.name != 'PLAYING':
+            raise HTTPException(status_code=404, detail=_(locale, "player.status_incorrect"))
+        
+    elif status_new.name == 'PLAYING':
+        if db_player.status.name != 'PAUSE':
+            raise HTTPException(status_code=404, detail=_(locale, "player.status_incorrect"))
+        
+    elif status_new.name == 'CANCELLED':
+        if db_player.status.name != 'CONFIRMED':
+            raise HTTPException(status_code=404, detail=_(locale, "player.status_incorrect"))
+        
+        
+    
+    db_player.status_id = status_new.id
+    db_player.updated_by = currentUser['username']
+    db_player.updated_date = datetime.now()
+    
+    try:
+        db.commit() 
+    except (Exception, SQLAlchemyError) as e:
+        print(e)
+        raise HTTPException(status_code=404, detail="No es posible eliminar")
+    return result
+
 def get_number_players_by_elo(request:Request, tourney_id:str, min_elo:float, max_elo:float, db:Session):  
     locale = request.headers["accept-language"].split(",")[0].split("-")[0];
     
@@ -195,11 +254,14 @@ def get_all_players_by_elo(request:Request, page: int, per_page: int, tourney_id
     str_from = "FROM events.players player " +\
         "inner join enterprise.profile_member pro ON pro.id = player.profile_id " +\
         "left join resources.city ON city.id = pro.city_id " + \
-        "left join resources.country ON country.id = city.country_id "
+        "left join resources.country ON country.id = city.country_id " +\
+        "join resources.entities_status sta ON sta.id = player.status_id "
         
     str_count = "Select count(*) " + str_from
     str_query = "SELECT players.id, pro.name as name, pro.photo, pro.id as profile_id, " +\
-        "city.name as city_name, country.name as country_name, player.level, player.elo, player.ranking, player.ranking position_number " + str_from
+        "city.name as city_name, country.name as country_name, player.level, player.elo, " +\
+        "player.ranking, player.ranking position_number, sta.id as status_id, " +\
+        "sta.name as status_name, sta.description as status_description  " + str_from
         
     str_where = "WHERE pro.is_ready is True AND status_id != " + str(status_canc.id) 
     str_where += " AND player.tourney_id = '" + tourney_id + "' "  +\
@@ -224,11 +286,9 @@ def get_all_players_by_elo(request:Request, page: int, per_page: int, tourney_id
 
 def get_lst_id_player_by_elo(tourney_id: str, modality:str, min_elo: float, max_elo: float, db: Session):  
     
-    status_canc = get_one_by_name('CANCELLED', db=db)
+    str_query = "SELECT player.id FROM events.players player join resources.entities_status sta ON sta.id = player.status_id "
     
-    str_query = "SELECT players.id FROM events.players player "
-    
-    str_where = "WHERE player.tourney_id = '" + tourney_id + "' AND status_id != " + str(status_canc.id) +\
+    str_where = "WHERE player.tourney_id = '" + tourney_id + "' AND sta.name IN ('CONFIRMED', 'PLAYING', 'WAITING') " +\
         "AND player.elo >= " + str(min_elo) + " AND player.elo <= " + str(max_elo)
     
     str_query += str_where
@@ -248,7 +308,6 @@ def get_all_players_by_category(request:Request, page: int, per_page: int, categ
     api_uri = str(settings.api_uri)
     
     # si el torneo es automatico, ya lo saco de la scala directamente.
-    status_canc = get_one_by_name('CANCELLED', db=db)
     
     dict_result = get_info_categories_tourney(category_id=category_id, db=db)
     if not dict_result:
@@ -257,7 +316,8 @@ def get_all_players_by_category(request:Request, page: int, per_page: int, categ
     str_from = "FROM events.players player " +\
         "inner join enterprise.profile_member pro ON pro.id = player.profile_id " +\
         "left join resources.city ON city.id = pro.city_id " + \
-        "left join resources.country ON country.id = city.country_id "
+        "left join resources.country ON country.id = city.country_id " +\
+        "join resources.entities_status sta ON sta.id = player.status_id "
     
     tourney_is_init = True if dict_result['status_name'] == 'INITIADED' or dict_result['status_name'] == 'FINALIZED' else False
     if tourney_is_init:
@@ -265,7 +325,8 @@ def get_all_players_by_category(request:Request, page: int, per_page: int, categ
     
     str_count = "Select count(*) " + str_from
     str_query = "SELECT player.id, pro.name as name, pro.photo, pro.id as profile_id, " +\
-        "city.name as city_name, country.name as country_name, player.level, player.elo, player.ranking " 
+        "city.name as city_name, country.name as country_name, player.level, player.elo, player.ranking, " +\
+        "sta.id as status_id, sta.name as status_name, sta.description as status_description "  
         
     if tourney_is_init:
         str_query += ", rscale.position_number " 
@@ -274,7 +335,7 @@ def get_all_players_by_category(request:Request, page: int, per_page: int, categ
 
     str_query += str_from
     
-    str_where = "WHERE pro.is_ready is True AND status_id != " + str(status_canc.id) 
+    str_where = "WHERE pro.is_ready is True AND sta.name != 'CANCELLED' " 
     str_where += " AND player.tourney_id = '" + dict_result['tourney_id'] + "' " 
     
     if tourney_is_init:
