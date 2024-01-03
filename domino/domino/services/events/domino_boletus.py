@@ -31,7 +31,7 @@ def get_one_by_id(round_id: str, db: Session):
     
     one_boletus = get_one(round_id, db=db)
     if not one_boletus:
-        raise HTTPException(status_code=404, detail="dominoboletus.not_found")
+        raise HTTPException(status_code=404, detail="boletus.not_found")
     
     str_query = "SELECT dtab.id, dtab.tourney_id, table_number, is_smart, amount_bonus, dtab.image, dtab.is_active, tourney.name " +\
         "FROM events.domino_tables dtab " + \
@@ -43,7 +43,7 @@ def get_one_by_id(round_id: str, db: Session):
         result.data = [create_dict_row(item, one_boletus.tourney_id, 0, db=db) for item in lst_data]
         
     if not result.data:
-        raise HTTPException(status_code=404, detail="dominoround.not_found")
+        raise HTTPException(status_code=404, detail="round.not_found")
     
     return result
 
@@ -142,7 +142,7 @@ def created_boletus_for_round(tourney_id, round_id, db:Session):
     # obtener listado de mesas del torneo
     lst_tables = get_lst_tables(tourney_id, db=db)
     if not lst_tables:
-        raise HTTPException(status_code=404, detail="dominotables.not_exists")
+        raise HTTPException(status_code=404, detail="tables.not_found")
     
     # obtener escalafon de parejas.
     lst_pairs = get_list_rounds_pairs(round_id, db=db)

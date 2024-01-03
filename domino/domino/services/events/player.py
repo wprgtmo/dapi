@@ -48,7 +48,7 @@ def new(request: Request, invitation_id: str, db: Session):
         
     one_player = get_one_by_invitation_id(invitation_id, db=db)
     if one_player:
-        raise HTTPException(status_code=404, detail=_(locale, "players.already_exist"))
+        raise HTTPException(status_code=404, detail=_(locale, "player.already_exist"))
     
     # devolver el elo, nivel y rbking el jugador...
     dict_player = get_info_of_player(one_invitation.profile_id, db=db)
@@ -150,8 +150,6 @@ def change_status_player(request: Request, player_id: str, status: str, db: Sess
     result = ResultObject() 
     currentUser = get_current_user(request)
     
-    print(player_id)
-    print(status)
     # posibilidades son:
     # Jugando (Expulsado, Pausa)
     # Pausa (Jugando, Expulsado)
@@ -173,8 +171,6 @@ def change_status_player(request: Request, player_id: str, status: str, db: Sess
         if last_round.status.name not in ('CREATED', 'CONFIGURATED'):
             raise HTTPException(status_code=404, detail=_(locale, "round.status_incorrect"))
     
-    print(db_player.status.name)   
-    print('**********************') 
     if db_player.status.name not in ('CONFIRMED', 'PLAYING', 'PAUSE'):
         raise HTTPException(status_code=404, detail=_(locale, "player.status_incorrect"))
 

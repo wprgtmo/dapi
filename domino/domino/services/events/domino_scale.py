@@ -199,9 +199,9 @@ def close_round_with_verify(db_round: str, status_end, username: str, db: Sessio
     last_number = db_round.round_number + 1
     
     # crear la nueva ronda
-    new_round = configure_new_rounds(db_round.tourney_id, 'Ronda Nro.' + str(last_number), db, created_by=username, round_number=last_number)
+    # new_round = configure_new_rounds(db_round.tourney_id, 'Ronda Nro.' + str(last_number), db, created_by=username, round_number=last_number)
     
-    configure_new_lottery_by_round(db_round, new_round, db_round.tourney.modality, db=db)
+    # configure_new_lottery_by_round(db_round, new_round, db_round.tourney.modality, db=db)
     
     db_round.status_id = status_end.id
     if username:

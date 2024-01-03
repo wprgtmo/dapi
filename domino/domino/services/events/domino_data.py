@@ -48,10 +48,6 @@ def get_all_data_by_boletus(request:Request, page: int, per_page: int, boletus_i
     if not db_boletus:
         raise HTTPException(status_code=404, detail=_(locale, "tourney.not_found"))
     
-    # one_settingtourney = get_setting_tourney(db_boletus.tourney_id, db=db)
-    # if not one_settingtourney:
-    #     raise HTTPException(status_code=404, detail=_(locale, "tourney.setting_tourney_failed"))
-    
     dict_result = {'round_number': db_boletus.rounds.round_number, 'table_number': db_boletus.tables.table_number, 
                    'number_points_to_win': db_boletus.tourney.number_points_to_win,
                    'pair_one' : {'pairs_id': '', 'name': '', 'total_point': 0},
@@ -162,12 +158,30 @@ def new_data(request: Request, boletus_id:str, dominodata: DominoDataCreated, db
     result.data = {'closed_round': False}
     
     if close_data:
+        one_status_review = get_one_status_by_name('REVIEW', db=db)
         one_status_end = get_one_status_by_name('FINALIZED', db=db)
-        if not one_status_end:
-            raise HTTPException(status_code=404, detail=_(locale, "status.not_found"))
-        one_boletus.status_id = one_status_end.id
         
-        result.data = close_round_with_verify(one_boletus.rounds, one_status_end, username=currentUser['username'], db=db)
+        if not one_status_review or not one_status_end:
+            raise HTTPException(status_code=404, detail=_(locale, "status.not_found"))
+        
+        one_boletus.status_id = one_status_end.id
+        one_boletus.updated_by = currentUser['username']
+        one_boletus.updated_date = datetime.now()
+        db.add(one_boletus)  
+        
+        amount_boletus_active = count_boletus_active(one_boletus.rounds.id, one_status_end, db=db)
+        if amount_boletus_active == 0:  # ya todas están cerrados
+            one_boletus.rounds.close_date = datetime.now()
+            one_boletus.rounds.status_id = one_status_review
+            
+            one_boletus.rounds.updated_by = currentUser['username']
+            one_boletus.rounds.updated_date = datetime.now()
+            
+            db.add(one_boletus.rounds)
+            
+            return {'closed_round': True}
+        
+        # result.data = close_round_with_verify(one_boletus.rounds, one_status_end, username=currentUser['username'], db=db)
         
     try:
         one_boletus.boletus_data.append(one_data)
@@ -177,3 +191,27 @@ def new_data(request: Request, boletus_id:str, dominodata: DominoDataCreated, db
         print(e)
         msg = _(locale, "event.error_new_event")               
         raise HTTPException(status_code=403, detail=msg)
+    
+def count_boletus_active(round_id: str, status_end, db: Session):
+    
+    str_count = "SELECT count(id) FROM events.domino_boletus Where round_id = '" + round_id + "' AND status_id != " + str(status_end.id)
+    amount_boletus = db.execute(str_count).fetchone()[0]
+    return amount_boletus
+    
+# def close_round_with_verify(db_round: str, status_end, username: str, db: Session):
+    
+    
+#     # crear la nueva ronda
+#     # new_round = configure_new_rounds(db_round.tourney_id, 'Ronda Nro.' + str(last_number), db, created_by=username, round_number=last_number)
+    
+#     # configure_new_lottery_by_round(db_round, new_round, db_round.tourney.modality, db=db)
+    
+#     # db_round.status_id = status_end.id
+#     if username:
+#         db_round.updated_by = username
+#     db_round.updated_date = datetime.now()
+    
+#     db.add(db_round)
+#     db.commit()
+    
+#     return {'closed_round': True}

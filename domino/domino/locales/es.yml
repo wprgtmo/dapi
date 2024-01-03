@@ -75,6 +75,14 @@ es:
     setting_tourney_failed: 'Falla registro de configuración del Torneo'
     setting_tables_failed: 'Falla configuración de las mesas'
     setting_rounds_failed: 'Falla configuración de las rondas'
+    amount_player_incorrect: 'Cantidad de jugadores incorrecta'
+    category_not_configurated: 'Cantegorías no Configuradas'
+    category_not_exist: 'Categoria no existe'
+    tourney_closed: 'Torneo ya fnalizado'
+    setting_incorrect: 'Configuracion del Torneo incorrecta'
+    smarttable_incorrect: 'Cantidad de mesas inteligentes incorrecta'
+    amountrounds_incorrect: 'Cantidad de Rondas incorrectas'
+    numberpoints_towin_incorrect: 'Puntos para ganar incorrectos'
   invitation:
     not_exist: 'Invitación no existe.'
     not_found: 'Invitación no existe.'
@@ -95,8 +103,19 @@ es:
   player:
     not_found: 'Jugador no encontrado'
     already_exist: 'Perfil ya incluido como jugador en el torneo'
+    status_incorrect: 'Estado del jugador no permite realizar esta accion'
   referee:
     not_found: 'Arbitro no encontrado'
     already_exist: 'Perfil ya incluido como arbitro en el torneo'
   round:
     not_initial_round: 'Torneo no está en la ronda Inicial'
+    not_found: 'Ronda no existe'
+    status_incorrect: 'Estado de la Ronda no permite realizar esta acción'
+    not_initial_round: 'Solo se puede realizar esta acción con la rona en estado creada'
+  tables:
+    not_found: 'Mesa no existe'
+    error_insert_table: 'Error creando mesa de juego'
+    imposible_delete: 'Error borrando Mesa de Juego'
+  boletus:
+    not_found: 'Boleta no existe.'
+    status_incorrect: 'Estado de la Boleta no permite realizar esta acción'

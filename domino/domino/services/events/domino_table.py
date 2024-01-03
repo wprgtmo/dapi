@@ -105,7 +105,7 @@ def get_one_by_id(table_id: str, db: Session):
     
     one_table = get_one(table_id, db=db)
     if not one_table:
-        raise HTTPException(status_code=404, detail="dominotable.not_found")
+        raise HTTPException(status_code=404, detail="tables.not_found")
     
     str_query = "SELECT dtab.id, dtab.tourney_id, table_number, is_smart, amount_bonus, dtab.image, dtab.is_active, tourney.name " +\
         "FROM events.domino_tables dtab " + \
@@ -117,7 +117,7 @@ def get_one_by_id(table_id: str, db: Session):
         result.data = [create_dict_row(item, one_table.tourney_id, 0, db=db, api_uri=api_uri) for item in lst_data]
         
     if not result.data:
-        raise HTTPException(status_code=404, detail="dominotable.not_found")
+        raise HTTPException(status_code=404, detail="tables.not_found")
     
     return result
 
@@ -215,7 +215,7 @@ def created_one_domino_tables(db_tourney, table_number:int, is_smart:bool, amoun
         db.commit()
         return True
     except (Exception, SQLAlchemyError, IntegrityError) as e:
-        raise HTTPException(status_code=403, detail='dominotable.error_insert_dominotable')
+        raise HTTPException(status_code=403, detail='tables.error_insert_table')
     
 def delete(request: Request, table_id: str, db: Session):
     locale = request.headers["accept-language"].split(",")[0].split("-")[0];
@@ -225,7 +225,7 @@ def delete(request: Request, table_id: str, db: Session):
     
     db_table = get_one(table_id, db=db)
     if not db_table:
-        raise HTTPException(status_code=404, detail=_(locale, "dominotable.not_found"))
+        raise HTTPException(status_code=404, detail=_(locale, "tables.not_found"))
         
     try:
         db_table.is_active = False
@@ -244,7 +244,7 @@ def delete(request: Request, table_id: str, db: Session):
         
     except (Exception, SQLAlchemyError) as e:
         print(e)
-        raise HTTPException(status_code=404, detail=_(locale, "dominotable.imposible_delete"))
+        raise HTTPException(status_code=404, detail=_(locale, "tables.imposible_delete"))
     
     return result
   
@@ -258,7 +258,7 @@ def update(request: Request, id: str, db: Session, file: File):
       
     db_table = get_one(id, db=db)
     if not db_table:
-        raise HTTPException(status_code=404, detail=_(locale, "dominotable.not_found"))
+        raise HTTPException(status_code=404, detail=_(locale, "tables.not_found"))
     
     path_tourney = create_dir(entity_type='SETTOURNEY', user_id=None, entity_id=str(db_table.tourney_id))
     
