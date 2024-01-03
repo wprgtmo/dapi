@@ -222,9 +222,9 @@ def get_obj_info_to_aperturate(db_round, db:Session):
     
     new_round = DominoRoundsCreated()
     
+    new_round.amount_players_playing = calculate_amount_players_playing(db_round.tourney.id, db=db)
     new_round.amount_tables = calculate_amount_tables(db_round.tourney.id, db_round.tourney.modality, db=db)
     new_round.amount_categories = calculate_amount_categories(db_round.tourney.id, db=db)
-    new_round.amount_players_playing = calculate_amount_players_playing(db_round.tourney.id, db=db)
     
     if db_round.is_first:
         new_round.round_number = db_round.round_number

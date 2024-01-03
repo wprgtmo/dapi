@@ -147,7 +147,7 @@ def initial_scale_by_manual_lottery(tourney_id: str, round_id: str, dominoscale:
 def configure_automatic_lottery(db_round, db: Session):
     
     # buscar las categorias definidas. 
-    str_query = "SELECT * FROM events.domino_categories where tourney_id = '" + db_round.tourney.id + "' ORDER BY position_number"
+    str_query = "SELECT * FROM events.domino_categories where tourney_id = '" + db_round.tourney.id + "' ORDER BY position_number "
     lst_categories = db.execute(str_query).fetchall()
     
     position_number=0

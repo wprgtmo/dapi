@@ -286,11 +286,9 @@ def get_all_players_by_elo(request:Request, page: int, per_page: int, tourney_id
 
 def get_lst_id_player_by_elo(tourney_id: str, modality:str, min_elo: float, max_elo: float, db: Session):  
     
-    status_canc = get_one_by_name('CANCELLED', db=db)
+    str_query = "SELECT player.id FROM events.players player join resources.entities_status sta ON sta.id = player.status_id "
     
-    str_query = "SELECT players.id FROM events.players player "
-    
-    str_where = "WHERE player.tourney_id = '" + tourney_id + "' AND status_id != " + str(status_canc.id) +\
+    str_where = "WHERE player.tourney_id = '" + tourney_id + "' AND sta.name IN ('CONFIRMED', 'PLAYING', 'WAITING') " +\
         "AND player.elo >= " + str(min_elo) + " AND player.elo <= " + str(max_elo)
     
     str_query += str_where
@@ -310,7 +308,6 @@ def get_all_players_by_category(request:Request, page: int, per_page: int, categ
     api_uri = str(settings.api_uri)
     
     # si el torneo es automatico, ya lo saco de la scala directamente.
-    status_canc = get_one_by_name('CANCELLED', db=db)
     
     dict_result = get_info_categories_tourney(category_id=category_id, db=db)
     if not dict_result:
@@ -338,7 +335,7 @@ def get_all_players_by_category(request:Request, page: int, per_page: int, categ
 
     str_query += str_from
     
-    str_where = "WHERE pro.is_ready is True AND status_id != " + str(status_canc.id) 
+    str_where = "WHERE pro.is_ready is True AND sta.name != 'CANCELLED' " 
     str_where += " AND player.tourney_id = '" + dict_result['tourney_id'] + "' " 
     
     if tourney_is_init:

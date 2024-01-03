@@ -327,9 +327,7 @@ def get_amount_tables(request: Request, tourney_id: str, db: Session):
 
 def calculate_amount_tables(tourney_id: str, modality: str, db: Session):
     
-    str_query = "Select count(*) From events.players Where tourney_id = '" + tourney_id + "' "
-    amount_players = db.execute(str_query).fetchone()[0]
-    
+    amount_players = calculate_amount_players_playing(tourney_id, db=db)
     if amount_players == 0:
         return int(0)
     
@@ -355,11 +353,10 @@ def calculate_amount_categories(tourney_id: str, db: Session):
 
 def calculate_amount_players_playing(tourney_id: str, db: Session):
     
-    one_sta_conf = get_one_status_by_name('CONFIRMED', db=db)
-    one_sta_play = get_one_status_by_name('PLAYING', db=db)
-    
-    str_query = "Select count(*) From events.players Where tourney_id = '" + tourney_id + "' " +\
-        "AND status_id IN (" + str(one_sta_conf.id) + "," + str(one_sta_play.id) + ") "
+    str_query = "Select count(*) From events.players player " + \
+        "JOIN resources.entities_status sta ON sta.id = player.status_id " +\
+        "Where tourney_id = '" + tourney_id + "' " +\
+        "AND sta.name IN ('CONFIRMED', 'PLAYING', 'WAITING') "
     amount_play = db.execute(str_query).fetchone()[0]
     
     return int(amount_play)
