@@ -19,7 +19,6 @@ player_route = APIRouter(
 def get_for_tourney(
     request: Request,
     tourney_id: str,
-    is_active: bool = True,
     page: int = 1, 
     per_page: int = 6, 
     criteria_key: str = "",

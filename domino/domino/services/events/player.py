@@ -387,7 +387,7 @@ def get_all_players_by_tourney(request:Request, page: int, per_page: int, tourne
         str_status = " AND sta.name = 'CONFIRMED' " if criteria_value == '0' else " AND sta.name = 'PLAYING' " \
             if criteria_value == '1' else " AND sta.name = 'WAITING' " if criteria_value == '2' else \
             " AND sta.name = 'EXPELLED' " if criteria_value == '3' else " AND sta.name = 'PAUSE' " \
-            if criteria_value == '4' else ""
+            if criteria_value == '4' else " AND sta.name = 'CANCELLED' " if criteria_value == '5' else ""
     
     if not str_status:  # no me paso estado, devolver todos menos los cancelados 
         str_status = "AND sta.name != '" + str(status_canc.name) + "' "     
