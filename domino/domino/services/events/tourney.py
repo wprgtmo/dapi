@@ -92,13 +92,6 @@ def get_one(tourney_id: str, db: Session):
 def get_one_by_name(tourney_name: str, db: Session):  
     return db.query(Tourney).filter(Tourney.name == tourney_name).first()
 
-# def get_setting_tourney(tourney_id: str, db: Session):  
-#     return db.query(SettingTourney).filter(SettingTourney.tourney_id == tourney_id).first()
-
-# def get_setting_tourney_to_interface(tourney_id: str, db: Session):  
-#     one_setting = get_setting_tourney(tourney_id=tourney_id, db=db)
-#     return one_setting.__dict__ if one_setting else None
-
 def get_one_by_id(tourney_id: str, db: Session): 
     result = ResultObject()  
     
@@ -408,11 +401,13 @@ def get_lst_categories_of_tourney(tourney_id: str, db: Session):
         
     lst_all_category = db.execute(str_query).fetchall()
     for item in lst_all_category:
-        lst_categories.append({'category_number': item.category_number,
-                              'position_number': item.position_number,
-                              'amount_players': item.amount_players,
-                              'elo_min': item.elo_min, 'elo_max': item.elo_max})
+        lst_categories.append(
+            {'id': item.id, 'category_number': item.category_number, 'position_number': item.position_number,
+             'amount_players': item.amount_players, 'elo_min': item.elo_min, 'elo_max': item.elo_max})
     return lst_categories
+
+def get_categories_of_tourney(tourney_id: str, db: Session):
+    return db.query(DominoCategory).filter(DominoCategory.tourney_id == tourney_id).all()
 
 # def initializes_tourney(tourney_id, amount_tables, amount_smart_tables, amount_rounds, number_points_to_win, 
 #                         time_to_win, game_system, use_bonus, lottery_type, penalties_limit, db: Session):
@@ -579,12 +574,15 @@ def save_image_tourney(request, tourney_id: str, file: File, db: Session):
    
 def get_values_elo_by_tourney(tourney_id: str, db: Session):  
     
+    status_canc = get_one_status_by_name('CANCELLED', db=db)
+    
     str_from = "FROM events.players player " +\
-        "inner join enterprise.profile_member pro ON pro.id = player.profile_id "
+        "inner join enterprise.profile_member pro ON pro.id = player.profile_id " +\
+        "join resources.entities_status sta ON sta.id = player.status_id "
     
     str_query = "SELECT MAX(elo) elo_max, MIN(elo) elo_min " + str_from
     
-    str_where = "WHERE pro.is_ready is True " 
+    str_where = "WHERE pro.is_ready is True AND status_id != " + str(status_canc.id) 
     str_where += " AND player.tourney_id = '" + tourney_id + "' "  
     
     str_query += str_where

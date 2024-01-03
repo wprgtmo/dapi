@@ -643,7 +643,7 @@ def aperture_new_round(request:Request, round_id:str, round: DominoRoundsApertur
     if not one_status_conf:
         raise HTTPException(status_code=404, detail=_(locale, "status.not_found"))
     
-    if db_round.status_id != one_status_created.id and db_round.status_id != one_status_conf.id:
+    if db_round.status.name not in ('CREATED', 'CONFIGURATED'):
         raise HTTPException(status_code=404, detail=_(locale, "round.status_incorrect"))
     
     info_round = get_obj_info_to_aperturate(db_round, db) 
