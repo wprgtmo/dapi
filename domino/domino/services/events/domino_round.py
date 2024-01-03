@@ -146,7 +146,7 @@ def get_last_by_tourney(tourney_id: str, db: Session):
     
 def created_round_default(db_tourney, summary:str, db:Session, round_number:int , is_first=False, is_last=False):
  
-    # busxcar por el numero de ronda si existe, no hacer nada, ya esta creada.
+    # buscar por el numero de ronda si existe, no hacer nada, ya esta creada.
     str_number = "SELECT id FROM events.domino_rounds where tourney_id = '" + db_tourney.id + "' " +\
         "AND round_number = '" + str(round_number) + "' "
     last_number = db.execute(str_number).fetchone()

@@ -99,7 +99,7 @@ def update_elo_initial_scale(tourney_id: str, round_id: str, modality:str, db: S
     
     lst_scale = db.execute(str_scale).fetchall()
     
-    str_select = "Select Round(SUM(elo)/2,4) as elo " if modality == 'Parejas' else 'Select elo '
+    str_select = "Select Round(SUM(splay.elo)/2,4) as elo " if modality == 'Parejas' else 'Select splay.elo '
     str_select += "FROM events.players play JOIN enterprise.profile_users puse ON puse.profile_id = play.profile_id " +\
         "JOIN enterprise.profile_single_player splay ON splay.profile_id = puse.single_profile_id "
     
