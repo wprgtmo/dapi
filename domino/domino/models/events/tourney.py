@@ -45,6 +45,7 @@ class Tourney(Base):
     number_bonus_round = Column(Integer, nullable=True, default=0)
     elo_min = Column(Float, nullable=True)
     elo_max = Column(Float, nullable=True)
+    constant_increase_elo = Column(Float, nullable=True)
     
     profile_id = Column(String, ForeignKey("enterprise.profile_member.id"), nullable=False)  # perfil que lo creo
     
@@ -54,6 +55,21 @@ class Tourney(Base):
     created_date = Column(Date, nullable=False, default=date.today())
     updated_date = Column(Date, nullable=False, default=date.today())
     updated_by = Column(String, ForeignKey("enterprise.users.username"), nullable=False)
+    
+    round_ordering_one = Column(String(120), nullable=True)
+    round_ordering_two = Column(String(120), nullable=True)
+    round_ordering_three = Column(String(120), nullable=True)
+    round_ordering_four = Column(String(120), nullable=True)
+    round_ordering_five = Column(String(120), nullable=True)
+    
+    event_ordering_one = Column(String(120), nullable=True)
+    event_ordering_two = Column(String(120), nullable=True)
+    event_ordering_three = Column(String(120), nullable=True)
+    event_ordering_four = Column(String(120), nullable=True)
+    event_ordering_five = Column(String(120), nullable=True)
+    
+    points_penalty_yellow = Column(Integer, nullable=True, default=0)
+    points_penalty_red = Column(Integer, nullable=True, default=0)
     
     event = relationship("Event", back_populates="tourneys")
     

@@ -57,40 +57,35 @@ def get_one_configure_tourney(request:Request, tourney_id: str, db: Session):
         "tourney_id": tourney_id, "amount_tables": amount_tables,
         'amount_player': get_count_players_by_tourney(tourney_id, db=db),
         "amount_smart_tables": 0 if not db_tourney.amount_smart_tables else db_tourney.amount_smart_tables,
-        "amount_rounds": 0 if not db_tourney.number_rounds else db_tourney.number_rounds,
         "use_bonus": 'NO', #if not db_tourney.amount_smart_tables else 'YES' if setting.use_bonus else 'NO',
-        "amount_bonus_tables": 0 if not db_tourney.number_bonus_round else db_tourney.number_bonus_round,
-        "amount_bonus_points": 0 if not db_tourney.amount_bonus_points else db_tourney.amount_bonus_points,
-        "number_bonus_round": 0 if not db_tourney.number_bonus_round else db_tourney.number_bonus_round,
         "number_points_to_win": 0 if not db_tourney.number_points_to_win else db_tourney.number_points_to_win,
         "time_to_win": 0 if not db_tourney.time_to_win else db_tourney.time_to_win,
         "game_system": 'SUIZO' if not db_tourney.game_system else db_tourney.game_system,
         'lottery_type': 'MANUAL' if not db_tourney.lottery_type else db_tourney.lottery_type,
         'penalties_limit': 0 if not db_tourney.penalties_limit else db_tourney.penalties_limit,
+        'points_penalty_yellow': 0 if not db_tourney.points_penalty_yellow else db_tourney.points_penalty_yellow,
+        'points_penalty_red': 0 if not db_tourney.points_penalty_red else db_tourney.points_penalty_red,
         'elo_min': elo_min, 'elo_max': elo_max,
+        'constant_increase_ELO': 0 if not db_tourney.constant_increase_elo else db_tourney.constant_increase_elo,
         'image': get_url_advertising(tourney_id=tourney_id, file_name=db_tourney.image, api_uri=api_uri),
+        'round_ordering_one': '' if not db_tourney.round_ordering_one else db_tourney.round_ordering_one,
+        'round_ordering_two': '' if not db_tourney.round_ordering_two else db_tourney.round_ordering_two,
+        'round_ordering_three': '' if not db_tourney.round_ordering_three else db_tourney.round_ordering_three,
+        'round_ordering_four': '' if not db_tourney.round_ordering_four else db_tourney.round_ordering_four,
+        'round_ordering_five': '' if not db_tourney.round_ordering_five else db_tourney.round_ordering_five,
+        'event_ordering_one': '' if not db_tourney.event_ordering_one else db_tourney.event_ordering_one,
+        'event_ordering_two': '' if not db_tourney.event_ordering_two else db_tourney.event_ordering_two,
+        'event_ordering_three': '' if not db_tourney.event_ordering_three else db_tourney.event_ordering_three,
+        'event_ordering_four': '' if not db_tourney.event_ordering_four else db_tourney.event_ordering_four,
+        'event_ordering_five': '' if not db_tourney.event_ordering_five else db_tourney.event_ordering_five,
         'status_id': db_tourney.status_id,
         'lst_categories': get_lst_categories_of_tourney(tourney_id=tourney_id, db=db),
         'status_name': db_tourney.status.name,
         'status_description': db_tourney.status.description
         }
-    
+        
     return result
     
-# def get_lst_categories_of_tourney(tourney_id: str, db: Session):
-    
-#     lst_categories = []
-    
-#     str_query = "SELECT id, category_number, position_number, elo_min, elo_max, amount_players " +\
-#         "FROM events.domino_categories WHERE tourney_id = '" + tourney_id + "' Order by position_number "
-        
-#     lst_all_category = db.execute(str_query).fetchall()
-#     for item in lst_all_category:
-#         lst_categories.append({'category_number': item.category_number,
-#                               'position_number': item.position_number,
-#                               'amount_players': item.amount_players,
-#                               'elo_min': item.elo_min, 'elo_max': item.elo_max})
-#     return lst_categories
 
 # def close_configure_one_tourney(request, tourney_id: str, db: Session):
 #     locale = request.headers["accept-language"].split(",")[0].split("-")[0];
@@ -186,9 +181,27 @@ def configure_one_tourney(request, tourney_id: str, settingtourney: SettingTourn
         game_system = 'SUIZO' if not game_system else game_system
         lottery_type = str(settingtourney['lottery'])
         lottery_type = 'MANUAL' if not lottery_type else lottery_type
+        
         penalties_limit = int(settingtourney['limitPenaltyPoints'])
+        points_penalty_yellow = int(settingtourney['PenaltyPointsYelow'])
+        points_penalty_red = int(settingtourney['PenaltyPointsRed'])
+        
+        constant_increase_ELO = float(settingtourney['constant_increase_ELO'])
+        
         use_bonus = True if str(settingtourney['bonus']) == 'YES' else False 
         
+        round_ordering_one = str(settingtourney['round_ordering_one'])
+        round_ordering_two = str(settingtourney['round_ordering_two'])
+        round_ordering_three = str(settingtourney['round_ordering_three'])
+        round_ordering_four = str(settingtourney['round_ordering_four'])
+        round_ordering_five = str(settingtourney['round_ordering_five'])
+        
+        event_ordering_one = str(settingtourney['event_ordering_one'])
+        event_ordering_two = str(settingtourney['event_ordering_two'])
+        event_ordering_three = str(settingtourney['event_ordering_three'])
+        event_ordering_four = str(settingtourney['event_ordering_four'])
+        event_ordering_five = str(settingtourney['event_ordering_five'])
+
     except:
         raise HTTPException(status_code=404, detail=_(locale, "tourney.setting_incorrect"))
     
@@ -203,15 +216,20 @@ def configure_one_tourney(request, tourney_id: str, settingtourney: SettingTourn
     
     db_tourney.updated_by=currentUser['username']
     
-    update_initializes_tourney(db_tourney, amount_smart_tables, amount_rounds, number_points_to_win, 
-                                time_to_win, game_system, use_bonus, lottery_type, penalties_limit, db=db,
-                                locale=lottery_type)
+    update_initializes_tourney(
+        db_tourney, amount_smart_tables, amount_rounds, number_points_to_win, time_to_win, game_system, use_bonus, lottery_type, 
+        penalties_limit, db, locale, constant_increase_ELO, points_penalty_yellow, points_penalty_red, round_ordering_one,
+        round_ordering_two, round_ordering_three, round_ordering_four, round_ordering_five, event_ordering_one,
+        event_ordering_two, event_ordering_three, event_ordering_four, event_ordering_five)
     
     return result
 
 def update_initializes_tourney(db_tourney, amount_smart_tables, amount_rounds, number_points_to_win, 
                         time_to_win, game_system, use_bonus, lottery_type, penalties_limit, db: Session,
-                        locale):
+                        locale, constant_increase_ELO=0, points_penalty_yellow=0, points_penalty_red=0, round_ordering_one=None,
+                        round_ordering_two=None, round_ordering_three=None, round_ordering_four=None, round_ordering_five=None,
+                        event_ordering_one=None, event_ordering_two=None, event_ordering_three=None, event_ordering_four=None,
+                        event_ordering_five=None):
     
     divmod_round = divmod(amount_rounds,5)
     
@@ -233,6 +251,22 @@ def update_initializes_tourney(db_tourney, amount_smart_tables, amount_rounds, n
     
     db_tourney.elo_max = elo_max
     db_tourney.elo_min = elo_min
+    
+    db_tourney.constant_increase_ELO = constant_increase_ELO
+    db_tourney.points_penalty_yellow = points_penalty_yellow
+    db_tourney.points_penalty_red = points_penalty_red
+    
+    db_tourney.round_ordering_one = round_ordering_one if round_ordering_one else "JUEGOS_GANADOS"
+    db_tourney.round_ordering_two = round_ordering_two if round_ordering_two else "ELO_ACUMULADO"
+    db_tourney.round_ordering_three = round_ordering_three if round_ordering_three else "DIFERENCIA_TANTOS"
+    db_tourney.round_ordering_four = round_ordering_four
+    db_tourney.round_ordering_five = round_ordering_five
+    
+    db_tourney.event_ordering_one = event_ordering_one if event_ordering_one else "JUEGOS_GANADOS"
+    db_tourney.event_ordering_two = event_ordering_two if event_ordering_two else "BONIFICACION"
+    db_tourney.event_ordering_three = event_ordering_three if event_ordering_three else "ELO"
+    db_tourney.event_ordering_four = event_ordering_four
+    db_tourney.event_ordering_five = event_ordering_five
        
     # crear las mesas y si ya están creadas borrar y volver a crear
     result_init = created_tables_default(db_tourney, db)

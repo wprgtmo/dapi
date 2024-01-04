@@ -53,13 +53,30 @@ class SettingTourneyCreated(BaseModel):
     
     amount_tables: int 
     amount_smart_tables: int 
-    amount_rounds: int 
     number_points_to_win: int 
     time_to_win: int 
-    game_system: str 
     lottery: str 
-    bonus: str
+    constant_increase_ELO: Optional[float]
+    
     limitPenaltyPoints: int
+    PenaltyPointsYelow: Optional[int]
+    PenaltyPointsRed: Optional[int]
+     
+    round_ordering_one: Optional[str] 
+    round_ordering_two: Optional[str]
+    round_ordering_three: Optional[str]
+    round_ordering_four: Optional[str]
+    round_ordering_five: Optional[str]
+    
+    event_ordering_one: Optional[str]
+    event_ordering_two: Optional[str]
+    event_ordering_three: Optional[str]
+    event_ordering_four: Optional[str]
+    event_ordering_five: Optional[str]
+    
+    
+    
+    
     class Config:
         orm_mode = True
 
