@@ -160,56 +160,53 @@ def configure_one_tourney(request, tourney_id: str, settingtourney: SettingTourn
     currentUser = get_current_user(request)
     
     # este metod se va a llmara cualquier cantidad de veces, debo revisar y sobreescribir todo.
-    one_status_end = get_one_status_by_name('FINALIZED', db=db)
+    # one_status_end = get_one_status_by_name('FINALIZED', db=db)
     
     db_tourney = get_one_tourney(tourney_id, db=db)
     if not db_tourney:
         raise HTTPException(status_code=404, detail=_(locale, "tourney.not_found"))
     
-    if db_tourney.status_id == one_status_end.id:
+    if db_tourney.status.name == 'FINALIZED':
         raise HTTPException(status_code=404, detail=_(locale, "tourney.tourney_closed"))
+    
+    if db_tourney.status.name == 'INITIADED':
+        raise HTTPException(status_code=404, detail=_(locale, "tourney.tourney_initiaded"))
     
     amount_tables = calculate_amount_tables(db_tourney.id, db_tourney.modality, db=db)
     
-    try:
-        amount_smart_tables = int(settingtourney['amount_smart_tables'])
-        amount_rounds = int(settingtourney['amount_rounds'])
-        number_points_to_win = int(settingtourney['number_points_to_win'])
-        time_to_win = int(settingtourney['time_to_win'])
-        time_to_win = 12 if not time_to_win else time_to_win
-        game_system = str(settingtourney['game_system'])
-        game_system = 'SUIZO' if not game_system else game_system
-        lottery_type = str(settingtourney['lottery'])
-        lottery_type = 'MANUAL' if not lottery_type else lottery_type
-        
-        penalties_limit = int(settingtourney['limitPenaltyPoints'])
-        points_penalty_yellow = int(settingtourney['PenaltyPointsYelow'])
-        points_penalty_red = int(settingtourney['PenaltyPointsRed'])
-        
-        constant_increase_ELO = float(settingtourney['constant_increase_ELO'])
-        
-        use_bonus = True if str(settingtourney['bonus']) == 'YES' else False 
-        
-        round_ordering_one = str(settingtourney['round_ordering_one'])
-        round_ordering_two = str(settingtourney['round_ordering_two'])
-        round_ordering_three = str(settingtourney['round_ordering_three'])
-        round_ordering_four = str(settingtourney['round_ordering_four'])
-        round_ordering_five = str(settingtourney['round_ordering_five'])
-        
-        event_ordering_one = str(settingtourney['event_ordering_one'])
-        event_ordering_two = str(settingtourney['event_ordering_two'])
-        event_ordering_three = str(settingtourney['event_ordering_three'])
-        event_ordering_four = str(settingtourney['event_ordering_four'])
-        event_ordering_five = str(settingtourney['event_ordering_five'])
+    # try:
+    amount_smart_tables = int(settingtourney['amount_smart_tables'])
+    number_points_to_win = int(settingtourney['number_points_to_win'])
+    time_to_win = int(settingtourney['time_to_win'])
+    time_to_win = 12 if not time_to_win else time_to_win
+    game_system = str(settingtourney['game_system']) if 'game_system' in settingtourney else ''
+    game_system = 'SUIZO' if not game_system else game_system
+    lottery_type = str(settingtourney['lottery'])
+    lottery_type = 'MANUAL' if not lottery_type else lottery_type
+    
+    penalties_limit = int(settingtourney['limitPenaltyPoints'])
+    points_penalty_yellow = int(settingtourney['PenaltyPointsYelow'])
+    points_penalty_red = int(settingtourney['PenaltyPointsRed'])
+    
+    constant_increase_ELO = float(settingtourney['constant_increase_ELO'])
+    
+    round_ordering_one = str(settingtourney['round_ordering_one'])
+    round_ordering_two = str(settingtourney['round_ordering_two'])
+    round_ordering_three = str(settingtourney['round_ordering_three'])
+    round_ordering_four = str(settingtourney['round_ordering_four'])
+    round_ordering_five = str(settingtourney['round_ordering_five'])
+    
+    event_ordering_one = str(settingtourney['event_ordering_one'])
+    event_ordering_two = str(settingtourney['event_ordering_two'])
+    event_ordering_three = str(settingtourney['event_ordering_three'])
+    event_ordering_four = str(settingtourney['event_ordering_four'])
+    event_ordering_five = str(settingtourney['event_ordering_five'])
 
-    except:
-        raise HTTPException(status_code=404, detail=_(locale, "tourney.setting_incorrect"))
+    # except:
+    #     raise HTTPException(status_code=404, detail=_(locale, "tourney.setting_incorrect"))
     
     if amount_smart_tables > amount_tables:
         raise HTTPException(status_code=404, detail=_(locale, "tourney.smarttable_incorrect"))
-    
-    if amount_rounds <= 0:
-        raise HTTPException(status_code=404, detail=_(locale, "tourney.amountrounds_incorrect"))
     
     if number_points_to_win <= 0:
         raise HTTPException(status_code=404, detail=_(locale, "tourney.numberpoints_towin_incorrect"))
@@ -217,28 +214,28 @@ def configure_one_tourney(request, tourney_id: str, settingtourney: SettingTourn
     db_tourney.updated_by=currentUser['username']
     
     update_initializes_tourney(
-        db_tourney, amount_smart_tables, amount_rounds, number_points_to_win, time_to_win, game_system, use_bonus, lottery_type, 
+        db_tourney, amount_smart_tables, number_points_to_win, time_to_win, game_system, lottery_type, 
         penalties_limit, db, locale, constant_increase_ELO, points_penalty_yellow, points_penalty_red, round_ordering_one,
         round_ordering_two, round_ordering_three, round_ordering_four, round_ordering_five, event_ordering_one,
         event_ordering_two, event_ordering_three, event_ordering_four, event_ordering_five)
     
     return result
 
-def update_initializes_tourney(db_tourney, amount_smart_tables, amount_rounds, number_points_to_win, 
-                        time_to_win, game_system, use_bonus, lottery_type, penalties_limit, db: Session,
+def update_initializes_tourney(db_tourney, amount_smart_tables, number_points_to_win, 
+                        time_to_win, game_system, lottery_type, penalties_limit, db: Session,
                         locale, constant_increase_ELO=0, points_penalty_yellow=0, points_penalty_red=0, round_ordering_one=None,
                         round_ordering_two=None, round_ordering_three=None, round_ordering_four=None, round_ordering_five=None,
                         event_ordering_one=None, event_ordering_two=None, event_ordering_three=None, event_ordering_four=None,
                         event_ordering_five=None):
     
-    divmod_round = divmod(amount_rounds,5)
+    divmod_round = divmod(db_tourney.amount_rounds,5)
     
     db_tourney.amount_smart_tables = amount_smart_tables
-    db_tourney.amount_rounds = amount_rounds
-    db_tourney.use_bonus = use_bonus
-    db_tourney.amount_bonus_tables = amount_rounds // 4 
-    db_tourney.amount_bonus_points = (amount_rounds // 4) * 2
-    db_tourney.number_bonus_round = amount_rounds + 1 if amount_rounds <= 9 else 4 if amount_rounds <= 15 else \
+    db_tourney.amount_rounds = db_tourney.amount_rounds
+    db_tourney.use_bonus = False
+    db_tourney.amount_bonus_tables = db_tourney.amount_rounds // 4 
+    db_tourney.amount_bonus_points = (db_tourney.amount_rounds // 4) * 2
+    db_tourney.number_bonus_round = db_tourney.amount_rounds + 1 if db_tourney.amount_rounds <= 9 else 4 if db_tourney.amount_rounds <= 15 else \
         divmod_round[0] if divmod_round[1] == 0 else divmod_round[0] + 1
     db_tourney.number_points_to_win = number_points_to_win
     

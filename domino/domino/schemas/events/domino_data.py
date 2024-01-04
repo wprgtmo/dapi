@@ -9,4 +9,4 @@ from typing import Optional
 class DominoDataCreated(BaseModel):
     pair: str
     point: int
-    duration: int
+    close_for_time: bool

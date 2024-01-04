@@ -83,6 +83,7 @@ es:
     smarttable_incorrect: 'Cantidad de mesas inteligentes incorrecta'
     amountrounds_incorrect: 'Cantidad de Rondas incorrectas'
     numberpoints_towin_incorrect: 'Puntos para ganar incorrectos'
+    tourney_initiaded: 'Torneo ya Iniciado, no puede ser reconfigurado'
   invitation:
     not_exist: 'Invitación no existe.'
     not_found: 'Invitación no existe.'
