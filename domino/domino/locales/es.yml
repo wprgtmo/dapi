@@ -87,6 +87,7 @@ es:
     round_ordering_incorrect: 'Criterio ordenamiento de la ronda incorrecto'
     event_ordering_incorrect: 'Criterio ordenamiento del torneo incorrecto'
     number_player_incorrect: 'Numero de Jugadores incorrects, deben completar dos mesas'
+    elo_max_incorrect: 'Elo maximo no puede ser superior al min de la categoria anterior'
   invitation:
     not_exist: 'Invitación no existe.'
     not_found: 'Invitación no existe.'

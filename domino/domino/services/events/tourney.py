@@ -23,6 +23,7 @@ from domino.services.resources.status import get_one_by_name as get_one_status_b
 from domino.services.resources.utils import get_result_count
 from domino.services.events.event import get_one as get_one_event, get_all as get_all_event
 
+
 from domino.services.resources.utils import get_result_count, upfile, create_dir, del_image, get_ext_at_file, remove_dir, copy_image, del_image
 from domino.services.enterprise.userprofile import get_one as get_one_profile
 
@@ -421,6 +422,9 @@ def get_lst_categories_of_tourney(tourney_id: str, db: Session):
 def get_categories_of_tourney(tourney_id: str, db: Session):
     return db.query(DominoCategory).filter(DominoCategory.tourney_id == tourney_id).all()
 
+def get_one_category_by_id(category_id: str, db: Session):
+    return db.query(DominoCategory).filter(DominoCategory.id == category_id).first()
+
 # def initializes_tourney(tourney_id, amount_tables, amount_smart_tables, amount_rounds, number_points_to_win, 
 #                         time_to_win, game_system, use_bonus, lottery_type, penalties_limit, db: Session):
     
@@ -467,7 +471,43 @@ def get_categories_of_tourney(tourney_id: str, db: Session):
 #     except (Exception, SQLAlchemyError, IntegrityError) as e:
 #         return None
 
-def configure_categories_tourney(request, tourney_id: str, lst_categories: List[DominoCategoryCreated], db: Session):
+#metodo viejo, ya se piede borrar
+# def configure_categories_tourney(request, tourney_id: str, lst_categories: List[DominoCategoryCreated], db: Session):
+#     locale = request.headers["accept-language"].split(",")[0].split("-")[0];
+    
+#     result = ResultObject() 
+    
+#     db_tourney = get_one(tourney_id, db=db)
+#     if not db_tourney:
+#         raise HTTPException(status_code=404, detail=_(locale, "tourney.not_found"))
+   
+#     status_created = get_one_status_by_name('FINALIZED', db=db)
+    
+#     if db_tourney.status_id == status_created.id:
+#         raise HTTPException(status_code=404, detail=_(locale, "tourney.is_configurated"))
+    
+#     str_query = "SELECT count(tourney_id) FROM events.domino_categories where tourney_id = '" + tourney_id + "' "
+#     amount = db.execute(str_query).fetchone()[0]
+#     if amount > 0:  #borrar todo lo que esta salvado y poner siempre nuevo...
+#         str_delete = "DELETE FROM events.domino_categories Where tourney_id = '" + tourney_id + "'; COMMIT; "
+#         db.execute(str_delete)
+    
+#     position_number = 0
+#     for item in lst_categories:
+#         position_number += 1
+#         db_one_category = DominoCategory(id=str(uuid.uuid4()), tourney_id=tourney_id, category_number=item.category_number,
+#                                          position_number=position_number, elo_min=item.elo_min, elo_max=item.elo_max,
+#                                          amount_players=item.amount_players if item.amount_players else 0) 
+        
+#         db.add(db_one_category)
+    
+#     try:
+#         db.commit()
+#         return result
+#     except (Exception, SQLAlchemyError, IntegrityError) as e:
+#         return result
+    
+def insert_categories_tourney(request, tourney_id: str, categories: DominoCategoryCreated, db: Session):
     locale = request.headers["accept-language"].split(",")[0].split("-")[0];
     
     result = ResultObject() 
@@ -476,27 +516,54 @@ def configure_categories_tourney(request, tourney_id: str, lst_categories: List[
     if not db_tourney:
         raise HTTPException(status_code=404, detail=_(locale, "tourney.not_found"))
    
-    status_created = get_one_status_by_name('FINALIZED', db=db)
-    
-    if db_tourney.status_id == status_created.id:
+    if db_tourney.status.name == 'FINALIZED':
         raise HTTPException(status_code=404, detail=_(locale, "tourney.is_configurated"))
     
-    str_query = "SELECT count(tourney_id) FROM events.domino_categories where tourney_id = '" + tourney_id + "' "
-    amount = db.execute(str_query).fetchone()[0]
-    if amount > 0:  #borrar todo lo que esta salvado y poner siempre nuevo...
-        str_delete = "DELETE FROM events.domino_categories Where tourney_id = '" + tourney_id + "'; COMMIT; "
-        db.execute(str_delete)
-    
     position_number = 0
-    for item in lst_categories:
-        position_number += 1
-        db_one_category = DominoCategory(id=str(uuid.uuid4()), tourney_id=tourney_id, category_number=item.category_number,
-                                         position_number=position_number, elo_min=item.elo_min, elo_max=item.elo_max,
-                                         amount_players=item.amount_players if item.amount_players else 0) 
+    str_query = "SELECT position_number, elo_min FROM events.domino_categories where tourney_id = '" + tourney_id + "' " +\
+        "ORDER BY elo_min DESC limit 1 "
+    lst_info = db.execute(str_query).fetchone()
+    print(lst_info)
+    if lst_info:
+        position_number = lst_info[0]
+        elo_min = lst_info[1]
+    
+    if elo_min and categories.elo_max >= elo_min:
+            raise HTTPException(status_code=404, detail=_(locale, "tourney.elo_max_incorrect"))
+    
+    status_canc = get_one_status_by_name('CANCELLED', db=db)    
+    str_query = "SELECT count(player.id) FROM events.players player WHERE status_id != " + str(status_canc.id)
+    str_query += " AND player.tourney_id = '" + tourney_id + "' "  +\
+        "AND player.elo >= " + str(categories.elo_min) + " AND player.elo <= " + str(categories.elo_max)
+    amount_players = db.execute(str_query).fetchone()[0]
+    
+    position_number += 1
+    db_one_category = DominoCategory(id=str(uuid.uuid4()), tourney_id=tourney_id, category_number=categories.category_number,
+                                     position_number=position_number, elo_min=categories.elo_min, elo_max=categories.elo_max,
+                                     amount_players=amount_players) 
+    
+    db.add(db_one_category)
+    
+    # try:
+    db.commit()
+    return result
+    # except (Exception, SQLAlchemyError, IntegrityError) as e:
+    #     return result
+    
+def delete_categories_tourney(request, category_id: str, db: Session):
+    locale = request.headers["accept-language"].split(",")[0].split("-")[0];
+    
+    result = ResultObject() 
+    
+    db_category = get_one_category_by_id(category_id, db=db)
+    if not db_category:
+        raise HTTPException(status_code=404, detail=_(locale, "tourney.category_not_exist"))
         
-        db.add(db_one_category)
+    if db_category.tourney.status.name == 'FINALIZED':
+        raise HTTPException(status_code=404, detail=_(locale, "tourney.is_configurated"))
     
     try:
+        db.delete(db_category)
         db.commit()
         return result
     except (Exception, SQLAlchemyError, IntegrityError) as e:

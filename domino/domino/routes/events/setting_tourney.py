@@ -13,7 +13,7 @@ from domino.schemas.resources.result_object import ResultObject
 
 from domino.services.events.domino_table import get_all, delete, update
 from domino.services.events.setting_tourney import get_one_configure_tourney, configure_one_tourney
-from domino.services.events.tourney import save_image_tourney, configure_categories_tourney, get_all_categories_tourney
+from domino.services.events.tourney import save_image_tourney, insert_categories_tourney, delete_categories_tourney, get_all_categories_tourney
 from domino.services.events.player import get_all_players_by_category
   
 settingtourney_route = APIRouter(
@@ -55,9 +55,17 @@ def configure_tourney(request:Request, id: str, settingtourney: SettingTourneyCr
 def configure_setting_image(request:Request, id: str, image: UploadFile = None, db: Session = Depends(get_db)):
     return save_image_tourney(request=request, tourney_id=id, file=image, db=db)
 
-@settingtourney_route.post("/tourney/setting/categories/{id}", response_model=ResultObject, summary="Configure categories of Tourney..")
-def configure_setting_categories(request:Request, id: str, lst_categories: List[DominoCategoryCreated], db: Session = Depends(get_db)):
-    return configure_categories_tourney(request=request, tourney_id=id, lst_categories=lst_categories, db=db)
+# @settingtourney_route.post("/tourney/setting/categories/{id}", response_model=ResultObject, summary="Configure categories of Tourney..")
+# def configure_setting_categories(request:Request, id: str, lst_categories: List[DominoCategoryCreated], db: Session = Depends(get_db)):
+#     return configure_categories_tourney(request=request, tourney_id=id, lst_categories=lst_categories, db=db)
+
+@settingtourney_route.post("/tourney/setting/categories/{id}", response_model=ResultObject, summary="Configure news categories of Tourney..")
+def created_setting_categories(request:Request, id: str, categories: DominoCategoryCreated, db: Session = Depends(get_db)):
+    return insert_categories_tourney(request=request, tourney_id=id, categories=categories, db=db)
+
+@settingtourney_route.delete("/tourney/setting/categories/{id}", response_model=ResultObject, summary="Remove categories of Tourney..")
+def delete_setting_categories(request:Request, id: str, db: Session = Depends(get_db)):
+    return delete_categories_tourney(request=request, category_id=id, db=db)
 
 @settingtourney_route.get("/tourney/setting/categories/{id}", response_model=Dict, summary="Get categories of Tourney..")
 def get_categories_tourney(request:Request, id: str, db: Session = Depends(get_db)):
