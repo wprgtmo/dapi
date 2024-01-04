@@ -80,14 +80,12 @@ def create_dict_row(item, tourney_id, page, db: Session, api_uri=""):
                'is_smart': item['is_smart'], 'tourney_name': item['name'], 
                'is_active': item['is_active'],
                'photo' : table_image, 'filetables':[]}
-    if page != 0:
-        new_row['selected'] = False
         
-    if item['is_smart']:
-        str_files = "Select id, position, is_ready from events.domino_tables_files Where table_id = '" + item['id'] + "' "
-        lst_files = db.execute(str_files)
-        for item_f in lst_files:
-            new_row['filetables'].append({'file_id': item_f.id, 'position': item_f.position, 'is_ready': item_f.is_ready})
+    # if item['is_smart']:
+    #     str_files = "Select id, position, is_ready from events.domino_tables_files Where table_id = '" + item['id'] + "' "
+    #     lst_files = db.execute(str_files)
+    #     for item_f in lst_files:
+    #         new_row['filetables'].append({'file_id': item_f.id, 'position': item_f.position, 'is_ready': item_f.is_ready})
     
     return new_row
 

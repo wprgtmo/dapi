@@ -30,7 +30,7 @@ def get_tourney(
 ):
     return get_all(request=request, page=page, per_page=per_page, criteria_key=criteria_key, criteria_value=criteria_value, db=db)
 
-@tourney_route.get("/tourney/tables/{id}", response_model=ResultObject, summary="Get List of Tables for Tourney.")
+@tourney_route.get("/tourney/tables/{id}", response_model=Dict, summary="Get List of Tables for Tourney.")
 def get_all_tables(
     request:Request,
     id: str, 
