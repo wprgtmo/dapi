@@ -122,8 +122,8 @@ def new_data(request: Request, boletus_id:str, dominodata: DominoDataCreated, db
     # solo actualizo los puntos de la pareja ganadora
     for item in lst_boletus_pair:
         if item.pairs_id == dominodata.pair:
-            item.positive_points = dominodata.point if not pair_win.positive_points else pair_win.positive_points + dominodata.point
             pair_win = item
+            item.positive_points = dominodata.point if not pair_win.positive_points else pair_win.positive_points + dominodata.point
         else:
             lost_pair = item
     
@@ -187,8 +187,10 @@ def close_data_by_time(request: Request, boletus_id:str, db: Session):
     currentUser = get_current_user(request)
     
     # buscar la boleta
+    print(boletus_id)
     one_boletus = get_one_boletus(boletus_id, db=db)
     if not one_boletus:
+        print('no esta')
         raise HTTPException(status_code=400, detail=_(locale, "boletus.not_found"))
     
     one_status_init = get_one_status_by_name('INITIADED', db=db)
@@ -221,11 +223,11 @@ def close_data_by_time(request: Request, boletus_id:str, db: Session):
     result.data = {'closed_round': False}            
     
     pair_win.positive_points = one_boletus.tourney.number_points_to_win
-    pair_win.negative_points = lost_pair.positive_points
-    lost_pair.negative_points = pair_win.positive_points
+    pair_win.negative_points = pair_lost.positive_points
+    pair_lost.negative_points = pair_win.positive_points
     pair_win.is_winner = True
         
-    update_info_pairs(pair_win.pairs_id, lost_pair.pairs_id, dominodata.point, db=db)
+    update_info_pairs(pair_win.pairs_id, pair_lost.pairs_id, 0, db=db)
     
     one_status_review = get_one_status_by_name('REVIEW', db=db)
     one_status_end = get_one_status_by_name('FINALIZED', db=db)
@@ -251,7 +253,6 @@ def close_data_by_time(request: Request, boletus_id:str, db: Session):
         result.data = {'closed_round': True}
 
     try:
-        one_boletus.boletus_data.append(one_data)
         db.commit()            
         return result
     except (Exception, SQLAlchemyError, IntegrityError) as e:
