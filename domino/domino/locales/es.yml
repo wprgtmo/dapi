@@ -84,6 +84,9 @@ es:
     amountrounds_incorrect: 'Cantidad de Rondas incorrectas'
     numberpoints_towin_incorrect: 'Puntos para ganar incorrectos'
     tourney_initiaded: 'Torneo ya Iniciado, no puede ser reconfigurado'
+    round_ordering_incorrect: 'Criterio ordenamiento de la ronda incorrecto'
+    event_ordering_incorrect: 'Criterio ordenamiento del torneo incorrecto'
+    number_player_incorrect: 'Numero de Jugadores incorrects, deben completar dos mesas'
   invitation:
     not_exist: 'Invitación no existe.'
     not_found: 'Invitación no existe.'

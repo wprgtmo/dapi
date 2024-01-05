@@ -59,8 +59,8 @@ class SettingTourneyCreated(BaseModel):
     constant_increase_ELO: Optional[float]
     
     limitPenaltyPoints: int
-    PenaltyPointsYelow: Optional[int]
-    PenaltyPointsRed: Optional[int]
+    points_penalty_yellow: Optional[int]
+    points_penalty_red: Optional[int]
      
     round_ordering_one: Optional[str] 
     round_ordering_two: Optional[str]
