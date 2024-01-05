@@ -159,9 +159,6 @@ def configure_one_tourney(request, tourney_id: str, settingtourney: SettingTourn
     result = ResultObject() 
     currentUser = get_current_user(request)
     
-    # este metod se va a llmara cualquier cantidad de veces, debo revisar y sobreescribir todo.
-    # one_status_end = get_one_status_by_name('FINALIZED', db=db)
-    
     db_tourney = get_one_tourney(tourney_id, db=db)
     if not db_tourney:
         raise HTTPException(status_code=404, detail=_(locale, "tourney.not_found"))
@@ -174,6 +171,9 @@ def configure_one_tourney(request, tourney_id: str, settingtourney: SettingTourn
     
     amount_tables = calculate_amount_tables(db_tourney.id, db_tourney.modality, db=db)
     
+    if amount_tables < 9:
+        raise HTTPException(status_code=404, detail=_(locale, "tourney.number_player_incorrect"))
+
     # try:
     amount_smart_tables = int(settingtourney['amount_smart_tables'])
     number_points_to_win = int(settingtourney['number_points_to_win'])
@@ -185,23 +185,23 @@ def configure_one_tourney(request, tourney_id: str, settingtourney: SettingTourn
     lottery_type = 'MANUAL' if not lottery_type else lottery_type
     
     penalties_limit = int(settingtourney['limitPenaltyPoints'])
-    points_penalty_yellow = int(settingtourney['PenaltyPointsYelow'])
-    points_penalty_red = int(settingtourney['PenaltyPointsRed'])
+    points_penalty_yellow = int(settingtourney['points_penalty_yellow'])
+    points_penalty_red = int(settingtourney['points_penalty_red'])
     
     constant_increase_ELO = float(settingtourney['constant_increase_ELO'])
     
-    round_ordering_one = str(settingtourney['round_ordering_one'])
-    round_ordering_two = str(settingtourney['round_ordering_two'])
-    round_ordering_three = str(settingtourney['round_ordering_three'])
-    round_ordering_four = str(settingtourney['round_ordering_four'])
-    round_ordering_five = str(settingtourney['round_ordering_five'])
+    round_ordering_one = str(settingtourney['round_ordering_one']) if settingtourney['round_ordering_one'] else None
+    round_ordering_two = str(settingtourney['round_ordering_two']) if settingtourney['round_ordering_two'] else None
+    round_ordering_three = str(settingtourney['round_ordering_three']) if settingtourney['round_ordering_three'] else None
+    round_ordering_four = str(settingtourney['round_ordering_four']) if settingtourney['round_ordering_four'] else None
+    round_ordering_five = str(settingtourney['round_ordering_five']) if settingtourney['round_ordering_five'] else None
     
-    event_ordering_one = str(settingtourney['event_ordering_one'])
-    event_ordering_two = str(settingtourney['event_ordering_two'])
-    event_ordering_three = str(settingtourney['event_ordering_three'])
-    event_ordering_four = str(settingtourney['event_ordering_four'])
-    event_ordering_five = str(settingtourney['event_ordering_five'])
-
+    event_ordering_one = str(settingtourney['event_ordering_one']) if settingtourney['event_ordering_one'] else None
+    event_ordering_two = str(settingtourney['event_ordering_two']) if settingtourney['event_ordering_two'] else None
+    event_ordering_three = str(settingtourney['event_ordering_three']) if settingtourney['event_ordering_three'] else None
+    event_ordering_four = str(settingtourney['event_ordering_four']) if settingtourney['event_ordering_four'] else None
+    event_ordering_five = str(settingtourney['event_ordering_five']) if settingtourney['event_ordering_five'] else None
+    
     # except:
     #     raise HTTPException(status_code=404, detail=_(locale, "tourney.setting_incorrect"))
     
@@ -210,6 +210,12 @@ def configure_one_tourney(request, tourney_id: str, settingtourney: SettingTourn
     
     if number_points_to_win <= 0:
         raise HTTPException(status_code=404, detail=_(locale, "tourney.numberpoints_towin_incorrect"))
+    
+    if not round_ordering_one or not round_ordering_two or not round_ordering_three:
+        raise HTTPException(status_code=404, detail=_(locale, "tourney.round_ordering_incorrect"))
+    
+    if not event_ordering_one or not event_ordering_two or not event_ordering_three:
+        raise HTTPException(status_code=404, detail=_(locale, "tourney.event_ordering_incorrect"))
     
     db_tourney.updated_by=currentUser['username']
     
@@ -290,10 +296,10 @@ def update_initializes_tourney(db_tourney, amount_smart_tables, number_points_to
         last_category.elo_min = elo_min 
         db.add(last_category)
         
-    try:
-        db.add(db_tourney)
-        db.commit()
-        return True
+    # try:
+    db.add(db_tourney)
+    db.commit()
+    return True
        
-    except (Exception, SQLAlchemyError, IntegrityError) as e:
-        return False
+    # except (Exception, SQLAlchemyError, IntegrityError) as e:
+    #     return False
