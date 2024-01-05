@@ -117,10 +117,6 @@ def new_data(request: Request, boletus_id:str, dominodata: DominoDataCreated, db
     # cargar las boletas de las parejas para poder verificar si ya alguien gano y actualizar la info de la otra pareja
     lst_boletus_pair = one_boletus.boletus_pairs
     
-    # if dominodata.close_for_time:
-    #     close_data = True
-    #     pass
-    
     close_data = False
     pair_win, lost_pair = None, None
     # solo actualizo los puntos de la pareja ganadora
@@ -174,6 +170,86 @@ def new_data(request: Request, boletus_id:str, dominodata: DominoDataCreated, db
             
             result.data = {'closed_round': True}
     
+    try:
+        one_boletus.boletus_data.append(one_data)
+        db.commit()            
+        return result
+    except (Exception, SQLAlchemyError, IntegrityError) as e:
+        print(e)
+        msg = _(locale, "event.error_new_event")               
+        raise HTTPException(status_code=403, detail=msg)
+
+def close_data_by_time(request: Request, boletus_id:str, db: Session):
+    
+    locale = request.headers["accept-language"].split(",")[0].split("-")[0];
+    
+    result = ResultObject() 
+    currentUser = get_current_user(request)
+    
+    # buscar la boleta
+    one_boletus = get_one_boletus(boletus_id, db=db)
+    if not one_boletus:
+        raise HTTPException(status_code=400, detail=_(locale, "boletus.not_found"))
+    
+    one_status_init = get_one_status_by_name('INITIADED', db=db)
+    if not one_status_init:
+        raise HTTPException(status_code=404, detail=_(locale, "status.not_found"))
+    
+    if one_boletus.status_id != one_status_init.id:
+        raise HTTPException(status_code=404, detail=_(locale, "boletus.status_incorrect"))
+
+    # cargar las boletas de las parejas para poder verificar si ya alguien gano y actualizar la info de la otra pareja
+    lst_boletus_pair = one_boletus.boletus_pairs
+    
+    pair_one, pair_two = None, None
+    for item in lst_boletus_pair:
+        if not pair_one:
+            pair_one = item
+        else:
+            pair_two = item
+    
+    if pair_one.postive_points == pair_two.positive_points: # estan empatados, no se puede cerrar
+        raise HTTPException(status_code=404, detail=_(locale, "boletus.equal_positive_points"))
+    
+    if pair_one.postive_points > pair_two.positive_points:
+        pair_win = pair_one 
+        pair_lost = pair_two
+    else:
+        pair_win = pair_two
+        pair_lost = pair_one
+        
+    result.data = {'closed_round': False}            
+    
+    pair_win.positive_points = one_boletus.tourney.number_points_to_win
+    pair_win.negative_points = lost_pair.positive_points
+    lost_pair.negative_points = pair_win.positive_points
+    pair_win.is_winner = True
+        
+    update_info_pairs(pair_win.pairs_id, lost_pair.pairs_id, dominodata.point, db=db)
+    
+    one_status_review = get_one_status_by_name('REVIEW', db=db)
+    one_status_end = get_one_status_by_name('FINALIZED', db=db)
+    if not one_status_review or not one_status_end:
+        raise HTTPException(status_code=404, detail=_(locale, "status.not_found"))
+    
+    one_boletus.status_id = one_status_end.id
+    one_boletus.updated_by = currentUser['username']
+    one_boletus.updated_date = datetime.now()
+    db.add(one_boletus)
+    
+    #verificar si ya llego fin del partido cerrar la ronda
+    amount_boletus_active = count_boletus_active(one_boletus.rounds.id, one_status_end, db=db)
+    if amount_boletus_active == 0:  # ya todas están cerrados
+        one_boletus.rounds.close_date = datetime.now()
+        one_boletus.rounds.status_id = one_status_review.id
+        
+        one_boletus.rounds.updated_by = currentUser['username']
+        one_boletus.rounds.updated_date = datetime.now()
+        
+        db.add(one_boletus.rounds)
+        
+        result.data = {'closed_round': True}
+
     try:
         one_boletus.boletus_data.append(one_data)
         db.commit()            
