@@ -665,10 +665,10 @@ def aperture_new_round(request:Request, round_id:str, round: DominoRoundsApertur
         db_round.amount_bonus_tables = int(round.amount_bonus_tables)
         db_round.amount_bonus_points = int(round.amount_bonus_points)
     
-    str_query = "SELECT count(tourney_id) FROM events.domino_categories where tourney_id = '" + db_round.tourney.id + "' "
-    amount = db.execute(str_query).fetchone()[0]
-    if amount == 0:
-        raise HTTPException(status_code=404, detail=_(locale, "tourney.category_not_configurated"))
+    # str_query = "SELECT count(tourney_id) FROM events.domino_categories where tourney_id = '" + db_round.tourney.id + "' "
+    # amount = db.execute(str_query).fetchone()[0]
+    # if amount == 0:
+    #     raise HTTPException(status_code=404, detail=_(locale, "tourney.category_not_configurated"))
     
     if db_round.is_first:
         # sino usas las categorias en la primera, borro si tiene configuradas y creo una por defecto.

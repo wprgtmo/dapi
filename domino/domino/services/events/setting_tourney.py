@@ -26,7 +26,7 @@ from domino.services.enterprise.userprofile import get_one as get_one_profile
 from domino.services.events.domino_boletus import created_boletus_for_round
 
 from domino.services.events.domino_table import created_tables_default
-from domino.services.events.domino_round import created_round_default
+from domino.services.events.domino_round import created_round_default, remove_configurate_round, get_last_by_tourney
 from domino.services.events.domino_scale import configure_automatic_lottery, update_elo_initial_scale
 
 from domino.services.events.tourney import get_one as get_one_tourney, calculate_amount_tables, \
@@ -171,7 +171,7 @@ def configure_one_tourney(request, tourney_id: str, settingtourney: SettingTourn
     
     amount_tables = calculate_amount_tables(db_tourney.id, db_tourney.modality, db=db)
     
-    if amount_tables < 9:
+    if amount_tables < 2:
         raise HTTPException(status_code=404, detail=_(locale, "tourney.number_player_incorrect"))
 
     # try:
@@ -204,7 +204,8 @@ def configure_one_tourney(request, tourney_id: str, settingtourney: SettingTourn
     
     # except:
     #     raise HTTPException(status_code=404, detail=_(locale, "tourney.setting_incorrect"))
-    
+    print('aqui')
+    print('*******************')
     if amount_smart_tables > amount_tables:
         raise HTTPException(status_code=404, detail=_(locale, "tourney.smarttable_incorrect"))
     
@@ -272,14 +273,22 @@ def update_initializes_tourney(db_tourney, amount_smart_tables, number_points_to
     db_tourney.event_ordering_five = event_ordering_five
        
     # crear las mesas y si ya están creadas borrar y volver a crear
+    
+    db_round_ini = get_last_by_tourney(db_tourney.id, db=db)
+    if db_round_ini:
+        result_init = remove_configurate_round(db_tourney.id, db_round_ini.id, db=db)
+        status_creat = get_one_status_by_name('CREATED', db=db)
+        db_round_ini.status_id = status_creat.id
+        
     result_init = created_tables_default(db_tourney, db)
     if not result_init:
         raise HTTPException(status_code=400, detail=_(locale, "tourney.setting_tables_failed"))
     
     # crear la primera ronda, si ya existe, no hacer nada.
-    db_round_ini = created_round_default(db_tourney, 'Ronda Nro. 1', db=db, round_number=1, is_first=True)
     if not db_round_ini:
-        raise HTTPException(status_code=400, detail=_(locale, "tourney.setting_rounds_failed"))
+        db_round_ini = created_round_default(db_tourney, 'Ronda Nro. 1', db=db, round_number=1, is_first=True)
+        if not db_round_ini:
+            raise HTTPException(status_code=400, detail=_(locale, "tourney.setting_rounds_failed"))
     
     # actualizar elos de las categorias si existen
     lst_category = get_categories_of_tourney(tourney_id=db_tourney.id, db=db)
@@ -288,11 +297,11 @@ def update_initializes_tourney(db_tourney, amount_smart_tables, number_points_to
         if not first_category:
             first_category = item 
         last_category = item
-    if first_category.elo_max != elo_max:
+    if first_category and first_category.elo_max != elo_max:
         first_category.elo_max = elo_max 
         db.add(first_category)
         
-    if last_category.elo_min != elo_min:
+    if last_category and last_category.elo_min != elo_min:
         last_category.elo_min = elo_min 
         db.add(last_category)
         
