@@ -655,6 +655,16 @@ def aperture_new_round(request:Request, round_id:str, round: DominoRoundsApertur
         # borrar todo lo que se configuro
         remove_configurate_round(db_round.tourney_id, db_round.id, db=db)
     
+    #guardar los valores configurados a la ronda
+    db_round.use_segmentation = True if round.use_segmentation and round.use_segmentation == 'YES' else False 
+    db_round.use_bonus = True if round.use_bonus and round.use_bonus == 'YES' else False
+    if db_round.use_bonus:
+        if int(round.amount_bonus_tables) < 0 or int(round.amount_bonus_points) < 0:
+            raise HTTPException(status_code=404, detail=_(locale, "tourney.amount_bonus_tables_incorrect"))
+        
+        db_round.amount_bonus_tables = int(round.amount_bonus_tables)
+        db_round.amount_bonus_points = int(round.amount_bonus_points)
+    
     str_query = "SELECT count(tourney_id) FROM events.domino_categories where tourney_id = '" + db_round.tourney.id + "' "
     amount = db.execute(str_query).fetchone()[0]
     if amount == 0:

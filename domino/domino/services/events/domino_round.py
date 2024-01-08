@@ -228,12 +228,14 @@ def get_obj_info_to_aperturate(db_round, db:Session):
     new_round.amount_categories = calculate_amount_categories(db_round.tourney.id, db=db)
     new_round.modality = db_round.tourney.modality
     
+    new_round.use_segmentation = db_round.use_segmentation
+    new_round.use_bonus = db_round.use_bonus
+    
     if db_round.is_first:
         new_round.round_number = db_round.round_number
         new_round.is_first, new_round.is_last = db_round.is_first, False
-        new_round.can_segment, new_round.use_segmentation = True, 'SI'
-        
-        new_round.can_bonus, new_round.use_bonus = False, 'NO'
+        new_round.can_segment, new_round.can_bonus = True, False
+
         new_round.amount_bonus_tables, new_round.amount_bonus_points = 0, 0
         
         new_round.amount_players_waiting = 0
