@@ -442,6 +442,13 @@ def publicate_one_round(request: Request, round_id: str, db: Session):
     
     change_status_round(db_round, status_publicated, currentUser['username'], db=db)
     
+    # cambiar aqui el estado deltorneo a iniciado
+    db_round.tourney.status_id = status_init.id
+    db_round.tourney.event.status_id = status_init.id
+    
+    db.add(db_round.tourney)
+    db.add(db_round.tourney.event)
+    
     return result
 
 def close_one_round(request: Request, round_id: str, open_new: bool, db: Session):

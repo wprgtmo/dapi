@@ -696,16 +696,8 @@ def aperture_new_round(request:Request, round_id:str, round: DominoRoundsApertur
     
     change_status_player_at_init_round(request, db_round, db=db)
      
-    one_status_init = get_one_status_by_name('INITIADED', db=db)
-    if not one_status_init:
-        raise HTTPException(status_code=404, detail=_(locale, "status.not_found"))
-    
-    db_round.tourney.status_id = one_status_init.id
-    db_round.tourney.event.status_id = one_status_init.id
-    
     db.add(db_round)
-    db.add(db_round.tourney)
-    db.add(db_round.tourney.event)
+    # db.add(db_round.tourney)
     
     db.commit()
     
