@@ -722,8 +722,8 @@ def aperture_new_round(request:Request, round_id:str, round: DominoRoundsApertur
     # except (Exception, SQLAlchemyError, IntegrityError) as e:
     #     raise HTTPException(status_code=404, detail=_(locale, "round.error_started_round"))
 
-    db_round = get_one_round(round_id=round_id, db=db)
-    result.data = get_obj_info_to_aperturate(db_round, db) 
+    db_round_ini = get_one_round(round_id=round_id, db=db)
+    result.data = get_obj_info_to_aperturate(db_round_ini, db) 
     
     return result
 

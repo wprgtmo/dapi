@@ -218,7 +218,7 @@ def get_info_to_aperture(request:Request, round_id:str, db:Session):
 
 def get_obj_info_to_aperturate(db_round, db:Session):
     
-    one_status_created = get_one_status_by_name('CREATED', db=db)
+    # one_status_created = get_one_status_by_name('CREATED', db=db)
     
     new_round = DominoRoundsCreated(id=db_round.id)
     
@@ -266,8 +266,8 @@ def get_obj_info_to_aperturate(db_round, db:Session):
         new_round.amount_players_pause = calculate_amount_players_by_status(db_round.tourney.id, "PAUSE", db=db)
         new_round.amount_players_expelled = calculate_amount_players_by_status(db_round.tourney.id, "EXPELLED", db=db)
         
-    new_round.status_id, new_round.status_name = one_status_created.id, one_status_created.name
-    new_round.status_description = one_status_created.description
+    new_round.status_id, new_round.status_name = db_round.status.id, db_round.status.name
+    new_round.status_description = db_round.status.description
     
     return new_round
 
