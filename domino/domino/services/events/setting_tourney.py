@@ -218,7 +218,7 @@ def configure_one_tourney(request, tourney_id: str, settingtourney: SettingTourn
         raise HTTPException(status_code=404, detail=_(locale, "tourney.event_ordering_incorrect"))
     
     db_tourney.updated_by=currentUser['username']
-    
+    print('aqui')
     update_initializes_tourney(
         db_tourney, amount_smart_tables, number_points_to_win, time_to_win, game_system, lottery_type, 
         penalties_limit, db, locale, constant_increase_ELO, points_penalty_yellow, points_penalty_red, round_ordering_one,
