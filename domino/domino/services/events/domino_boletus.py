@@ -150,6 +150,7 @@ def created_boletus_for_round(tourney_id, round_id, db:Session):
     # asociar a cada mesa los 2 parejas que le tocarian.
     lst_dist_tables = []
     amount_tables = len(lst_tables)
+    str_player = ''
     for i in range(amount_tables):
         i+=1
         j=i*2-2
@@ -159,6 +160,7 @@ def created_boletus_for_round(tourney_id, round_id, db:Session):
             if j > len(lst_pairs)-1:
                 break
             dict_tables['lst_player'].append(lst_pairs[j])
+            str_player += ' ' + lst_pairs[j]['id']
         lst_dist_tables.append(dict_tables)
 
     one_status_init = get_one_status_by_name('INITIADED', db=db)
@@ -180,7 +182,24 @@ def created_boletus_for_round(tourney_id, round_id, db:Session):
                 
             created_boletus_position(one_boletus, lst_player=item_tab['lst_player'], db=db)
                     
-        db.add(one_boletus)        
+        db.add(one_boletus) 
+        
+    # los jugadores que no posiciono, ponerlso en estado de espera
+    one_status_wait = get_one_status_by_name('INITIADED', db=db)
+    
+    str_update_play = "UPDATE events.players SET status_id = " + str(one_status_wait.id) +\
+        " WHERE id IN ("
+    str_update_id = ""    
+    for item in lst_pairs:
+        if item['id'] not in str_player:
+            str_update_id += "'" + item['id'] + "',"
+
+    if str_update_id:
+        str_update_id = str_update_id[:-1] + ");COMMIT;"
+    
+        str_update_play += str_update_id       
+    
+        print(str_update_play)    
     
     db.commit()    
     

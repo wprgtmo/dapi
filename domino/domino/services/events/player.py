@@ -513,3 +513,25 @@ def created_all_players(request:Request, tourney_id:str, db: Session):
     except (Exception, SQLAlchemyError) as e:
         return False
     
+def change_status_player_at_init_round(request:Request, db_round, db: Session):
+    locale = request.headers["accept-language"].split(",")[0].split("-")[0];
+    
+    result = ResultObject() 
+    currentUser = get_current_user(request)
+    
+    status_end = get_one_by_name('FINALIZED', db=db)
+    if not status_end:
+        return True
+    
+    # db_tourney = get_torneuy_by_eid(tourney_id, db=db)
+    # if not db_tourney:
+    #     raise HTTPException(status_code=404, detail=_(locale, "tourney.not_found"))
+    
+    # if db_tourney.status_id == status_end.id:
+    #     raise HTTPException(status_code=404, detail=_(locale, "tourney.status_incorrect"))
+    
+    # status_confirmed = get_one_by_name('CONFIRMED', db=db)
+    # if not status_confirmed:
+    #     return True   
+    
+    return result

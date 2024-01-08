@@ -364,7 +364,6 @@ def calculate_amount_categories(tourney_id: str, db: Session):
     
     str_query = "Select count(*) From events.domino_categories Where tourney_id = '" + tourney_id + "' "
     amount_category = db.execute(str_query).fetchone()[0]
-    
     return int(amount_category)
 
 def calculate_amount_players_playing(tourney_id: str, db: Session):
@@ -374,7 +373,6 @@ def calculate_amount_players_playing(tourney_id: str, db: Session):
         "Where tourney_id = '" + tourney_id + "' " +\
         "AND sta.name IN ('CONFIRMED', 'PLAYING', 'WAITING') "
     amount_play = db.execute(str_query).fetchone()[0]
-    print(amount_play)
     return int(amount_play)
 
 def calculate_amount_players_by_status(tourney_id: str, status_name: str, db: Session):
@@ -383,7 +381,6 @@ def calculate_amount_players_by_status(tourney_id: str, status_name: str, db: Se
     str_query = "Select count(*) From events.players Where tourney_id = '" + tourney_id + "' " +\
         "AND status_id = " + str(one_sta.id)
     amount_play = db.execute(str_query).fetchone()[0]
-    
     return int(amount_play)
 
 def calculate_elo_by_tourney(tourney_id: str, modality:str, db: Session):

@@ -647,9 +647,7 @@ def remove_configurate_round(tourney_id: str, round_id: str, db: Session):
         " WHERE id = '" + round_id + "'; "
         
     str_delete = domino_boletus + str_scale + str_update_player + str_update_round + "COMMIT; " 
-    print('ejecura delete')
     db.execute(str_delete)
-    print(str_delete)
     
     db.commit()
     

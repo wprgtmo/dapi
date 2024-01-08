@@ -28,7 +28,7 @@ from domino.services.resources.utils import get_result_count, upfile, create_dir
 from domino.services.enterprise.userprofile import get_one as get_one_profile
 from domino.services.enterprise.auth import get_url_avatar
 
-from domino.services.events.player import get_lst_id_player_by_elo
+from domino.services.events.player import get_lst_id_player_by_elo, change_status_player_at_init_round
 from domino.services.events.domino_round import get_one as get_one_round, get_first_by_tourney, configure_rounds, configure_new_rounds, \
     get_obj_info_to_aperturate, remove_configurate_round
     
@@ -683,6 +683,8 @@ def aperture_new_round(request:Request, round_id:str, round: DominoRoundsApertur
     configure_tables_by_round(db_round.tourney.id, db_round.id, db_round.tourney.modality, db_round.tourney.updated_by, db=db)
     
     db_round.status_id = one_status_conf.id
+    
+    change_status_player_at_init_round(request, db_round, db=db)
      
     one_status_init = get_one_status_by_name('INITIADED', db=db)
     if not one_status_init:
