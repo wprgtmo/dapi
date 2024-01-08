@@ -31,6 +31,7 @@ class DominoRoundsCreated(BaseModel):
     amount_bonus_points: Optional[float]
     
     amount_tables: Optional[int]
+    amount_tables_playing: Optional[int]
     amount_categories: Optional[int]
     amount_players_playing: Optional[int]
     amount_players_waiting: Optional[int]
@@ -40,6 +41,8 @@ class DominoRoundsCreated(BaseModel):
     status_id: Optional[int]
     status_name: Optional[str]
     status_description: Optional[str]
+    
+    modality: Optional[str]
     
 class DominoRoundsAperture(BaseModel):
     id: Optional[str]

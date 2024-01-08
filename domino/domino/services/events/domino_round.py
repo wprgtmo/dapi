@@ -26,7 +26,7 @@ from domino.services.resources.status import get_one_by_name as get_one_status_b
 from domino.services.resources.utils import get_result_count, upfile, create_dir, del_image, get_ext_at_file, remove_dir
 from domino.services.enterprise.users import get_one_by_username
 from domino.services.enterprise.userprofile import get_one as get_one_profile
-from domino.services.events.domino_boletus import created_boletus_for_round
+from domino.services.events.domino_boletus import calculate_amount_tables_playing
 from domino.services.events.tourney import get_one as get_tourney_by_id, calculate_amount_tables, calculate_amount_categories, \
     calculate_amount_players_playing, calculate_amount_players_by_status, get_lst_categories_of_tourney
 
@@ -220,11 +220,13 @@ def get_obj_info_to_aperturate(db_round, db:Session):
     
     one_status_created = get_one_status_by_name('CREATED', db=db)
     
-    new_round = DominoRoundsCreated()
+    new_round = DominoRoundsCreated(id=db_round.id)
     
     new_round.amount_players_playing = calculate_amount_players_playing(db_round.tourney.id, db=db)
     new_round.amount_tables = calculate_amount_tables(db_round.tourney.id, db_round.tourney.modality, db=db)
+    new_round.amount_tables_playing = calculate_amount_tables_playing(db_round.tourney.id, db=db)
     new_round.amount_categories = calculate_amount_categories(db_round.tourney.id, db=db)
+    new_round.modality = db_round.tourney.modality
     
     if db_round.is_first:
         new_round.round_number = db_round.round_number
