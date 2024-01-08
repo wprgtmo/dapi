@@ -374,7 +374,7 @@ def calculate_amount_players_playing(tourney_id: str, db: Session):
         "Where tourney_id = '" + tourney_id + "' " +\
         "AND sta.name IN ('CONFIRMED', 'PLAYING', 'WAITING') "
     amount_play = db.execute(str_query).fetchone()[0]
-    
+    print(amount_play)
     return int(amount_play)
 
 def calculate_amount_players_by_status(tourney_id: str, status_name: str, db: Session):

@@ -45,8 +45,6 @@ class DominoRoundsCreated(BaseModel):
     modality: Optional[str]
     
 class DominoRoundsAperture(BaseModel):
-    id: Optional[str]
-    round_number: Optional[int]
     
     use_segmentation: Optional[str]
     use_bonus: Optional[str]

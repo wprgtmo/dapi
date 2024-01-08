@@ -616,4 +616,41 @@ def configure_rounds(tourney_id: str, round_id: str, modality:str, created_by:st
         
     db.commit()    
     
-    return True      
+    return True 
+
+def remove_configurate_round(tourney_id: str, round_id: str, db: Session):
+    
+    str_round = "WHERE round_id = '" + round_id + "'; "
+    str_id_boletus = "(SELECT id from events.domino_boletus where round_id = '" + round_id + "') "
+    
+    #Posicionamiento
+    str_loterry = "DELETE FROM events.trace_lottery_manual WHERE tourney_id = '" + tourney_id + "'; " 
+    str_scale = "DELETE FROM events.domino_rounds_scale " + str_round +\
+        "DELETE FROM events.domino_rounds_pairs " + str_round
+    
+    #boleta
+    domino_boletus = "DELETE from events.domino_boletus_position where boletus_id IN " + str_id_boletus + "; " +\
+        "DELETE from events.domino_boletus_data where boletus_id IN " + str_id_boletus + "; " +\
+        "DELETE from events.domino_boletus_pairs where boletus_id IN " + str_id_boletus + "; "
+        
+    domino_boletus += "DELETE FROM events.domino_boletus where round_id = '" + round_id + "'; " 
+    
+    # cambiar el estado de los jugadores esperando a JUGANDO
+    status_play = get_one_status_by_name('CONFIRMED', db=db)
+    status_wait = get_one_status_by_name('WAITING', db=db)
+    status_init = get_one_status_by_name('CREATED', db=db)
+    
+    str_update_player = "UPDATE events.players SET status_id=" + str(status_play.id) +\
+        " WHERE tourney_id = '" + tourney_id + "' and status_id = " + str(status_wait.id) + "; "
+        
+    str_update_round = "UPDATE events.domino_rounds SET status_id=" + str(status_init.id) +\
+        " WHERE id = '" + round_id + "'; "
+        
+    str_delete = domino_boletus + str_scale + str_update_player + str_update_round + "COMMIT; " 
+    print('ejecura delete')
+    db.execute(str_delete)
+    print(str_delete)
+    
+    db.commit()
+    
+    return True     

@@ -30,7 +30,7 @@ from domino.services.enterprise.auth import get_url_avatar
 
 from domino.services.events.player import get_lst_id_player_by_elo
 from domino.services.events.domino_round import get_one as get_one_round, get_first_by_tourney, configure_rounds, configure_new_rounds, \
-    get_obj_info_to_aperturate
+    get_obj_info_to_aperturate, remove_configurate_round
     
 from domino.services.events.domino_boletus import created_boletus_for_round
 from domino.services.enterprise.auth import get_url_advertising
@@ -750,26 +750,26 @@ def order_round_to_end(db_round, db:Session, uses_segmentation=False):
     
     return True 
 
-def remove_configurate_round(tourney_id: str, round_id: str, db: Session):
+# def remove_configurate_round(tourney_id: str, round_id: str, db: Session):
     
-    str_round = "WHERE round_id = '" + round_id + "'; "
-    str_id_boletus = "(SELECT id from events.domino_boletus where round_id = '" + round_id + "') "
+#     str_round = "WHERE round_id = '" + round_id + "'; "
+#     str_id_boletus = "(SELECT id from events.domino_boletus where round_id = '" + round_id + "') "
     
-    # if manual la loteria y se va a borrar tambien se pone sino NO.
+#     # if manual la loteria y se va a borrar tambien se pone sino NO.
     
-    #Posicionamiento
-    str_loterry = "DELETE FROM events.trace_lottery_manual WHERE touney_id = '" + tourney_id + "'; " 
-    str_scale = "DELETE FROM events.domino_rounds_scale " + str_round +\
-        "DELETE FROM events.domino_rounds_pairs " + str_round
+#     #Posicionamiento
+#     str_loterry = "DELETE FROM events.trace_lottery_manual WHERE touney_id = '" + tourney_id + "'; " 
+#     str_scale = "DELETE FROM events.domino_rounds_scale " + str_round +\
+#         "DELETE FROM events.domino_rounds_pairs " + str_round
     
-    #boleta
-    domino_boletus = "DELETE from events.domino_boletus_position where boletus_id IN " + str_id_boletus + "; " +\
-        "DELETE from events.domino_boletus_data where boletus_id IN " + str_id_boletus + "; " +\
-        "DELETE from events.domino_boletus_pairs where boletus_id IN " + str_id_boletus + "; "
+#     #boleta
+#     domino_boletus = "DELETE from events.domino_boletus_position where boletus_id IN " + str_id_boletus + "; " +\
+#         "DELETE from events.domino_boletus_data where boletus_id IN " + str_id_boletus + "; " +\
+#         "DELETE from events.domino_boletus_pairs where boletus_id IN " + str_id_boletus + "; "
         
-    domino_boletus += "DELETE FROM events.domino_boletus where round_id = '" + round_id + "'; " 
+#     domino_boletus += "DELETE FROM events.domino_boletus where round_id = '" + round_id + "'; " 
     
-    str_delete = domino_boletus + str_scale + "COMMIT; " 
-    db.execute(str_delete)
+#     str_delete = domino_boletus + str_scale + "COMMIT; " 
+#     db.execute(str_delete)
     
-    return True
+#     return True

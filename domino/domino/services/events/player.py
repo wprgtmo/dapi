@@ -21,7 +21,7 @@ from domino.schemas.resources.result_object import ResultObject
 from domino.services.resources.status import get_one_by_name, get_one as get_one_status
 from domino.services.events.invitations import get_one_by_id as get_invitation_by_id
 from domino.services.events.tourney import get_one as get_torneuy_by_eid, get_info_categories_tourney
-from domino.services.events.domino_round import get_last_by_tourney
+from domino.services.events.domino_round import get_last_by_tourney, remove_configurate_round
 
 from domino.services.enterprise.userprofile import get_one as get_one_profile
 
@@ -71,6 +71,13 @@ def new(request: Request, invitation_id: str, db: Session):
         one_invitation.status_name = status_confirmed.name
     else:
         raise HTTPException(status_code=404, detail=_(locale, "status.not_found"))
+    
+    # verificar el estado de la ultima ronda del torneo.
+    # Despues de Iniciada, no hago nada. En cinfigurada o creada boor todo y pongo la ronda en estado creada.
+    
+    lst_round = get_last_by_tourney(one_invitation.tourney_id, db=db)
+    if lst_round.status.name in ('CREATED', 'CONFIGURATED'):
+        remove_configurate_round(lst_round.tourney_id, lst_round.id, db=db)
     
     try:
         db.add(one_player)
