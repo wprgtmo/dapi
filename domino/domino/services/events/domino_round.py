@@ -228,8 +228,8 @@ def get_obj_info_to_aperturate(db_round, db:Session):
     new_round.amount_categories = calculate_amount_categories(db_round.tourney.id, db=db)
     new_round.modality = db_round.tourney.modality
     
-    new_round.use_segmentation = db_round.use_segmentation
-    new_round.use_bonus = db_round.use_bonus
+    new_round.use_segmentation = "YES" if db_round.use_segmentation else 'NO'
+    new_round.use_bonus = "YES" if db_round.use_bonus else "NO"
     
     if db_round.is_first:
         new_round.round_number = db_round.round_number
@@ -258,7 +258,7 @@ def get_obj_info_to_aperturate(db_round, db:Session):
         new_round.use_segmentation = 'NO'
         
         new_round.can_bonus = True if db_round_previous.use_bonus else False 
-        new_round.use_bonus = 'SI'
+        new_round.use_bonus = 'YES'
         new_round.amount_bonus_tables = db_round_previous.use_bonus.amount_bonus_tables if new_round.can_bonus else 0
         new_round.amount_bonus_points = db_round_previous.use_bonus.amount_bonus_points if new_round.can_bonus else 0
         
