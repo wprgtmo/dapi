@@ -722,6 +722,8 @@ def aperture_new_round(request:Request, round_id:str, round: DominoRoundsApertur
     # except (Exception, SQLAlchemyError, IntegrityError) as e:
     #     raise HTTPException(status_code=404, detail=_(locale, "round.error_started_round"))
 
+    result.data = get_obj_info_to_aperturate(db_round, db) 
+    
     return result
 
 def verify_category_is_valid(elo_max: float, elo_min: float, lst_category: list):
