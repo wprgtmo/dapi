@@ -676,8 +676,10 @@ def aperture_new_round(request:Request, round_id:str, round: DominoRoundsApertur
     
     # si la ronda no se ha publicado, puede eliminarse y volver a configurar..
     
+    print(round)
     result = ResultObject() 
     currentUser = get_current_user(request)
+    
     
     db_round = get_one_round(round_id=round_id, db=db)
     if not db_round:
