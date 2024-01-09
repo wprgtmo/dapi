@@ -199,8 +199,6 @@ def created_boletus_for_round(tourney_id, round_id, db:Session):
     
         str_update_play += str_update_id       
     
-        print(str_update_play)    
-    
     db.commit()    
     
     return True      
