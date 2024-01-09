@@ -13,7 +13,7 @@ from domino.services.events.domino_round import get_all, get_one_by_id, start_on
     close_one_round, publicate_one_round
     
 from domino.services.events.domino_scale import get_all_players_by_tables, get_all_players_by_tables_and_round, \
-    get_all_scale_by_round, get_all_tables_by_round, aperture_new_round
+    get_all_scale_by_round, get_all_tables_by_round, aperture_new_round, get_all_scale_by_round_by_pairs
 from domino.services.events.domino_data import get_all_data_by_boletus, new_data, close_data_by_time
   
 rounds_route = APIRouter(
@@ -86,7 +86,7 @@ def get_tables_by_rounds(
 ):
     return get_all_players_by_tables_and_round(request=request, round_id=round_id, page=page, per_page=per_page, db=db)
 
-@rounds_route.get("/rounds/scale/", response_model=Dict, summary="Obtain Player ranking list")
+@rounds_route.get("/rounds/scale/player/", response_model=Dict, summary="Obtain Player ranking list")
 def get_scale_by_rounds(
     request: Request,
     round_id: str,
@@ -95,6 +95,16 @@ def get_scale_by_rounds(
     db: Session = Depends(get_db)
 ):
     return get_all_scale_by_round(request=request, page=page, per_page=per_page, round_id=round_id, db=db)
+
+@rounds_route.get("/rounds/scale/pairs/", response_model=Dict, summary="Obtain Player ranking list")
+def get_scale_by_rounds(
+    request: Request,
+    round_id: str,
+    page: int = 1, 
+    per_page: int = 6, 
+    db: Session = Depends(get_db)
+):
+    return get_all_scale_by_round_by_pairs(request=request, page=page, per_page=per_page, round_id=round_id, db=db)
 
 @rounds_route.get("/rounds/boletus/all/{id}", response_model=Dict, summary="Obtain a list of Tables at Rounds.")
 def get_tables(request: Request, id: str, page: int = 1, per_page: int = 6, db: Session = Depends(get_db)):
