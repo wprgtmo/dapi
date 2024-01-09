@@ -43,6 +43,7 @@ class DominoRoundsCreated(BaseModel):
     status_description: Optional[str]
     
     modality: Optional[str]
+    lottery_type: Optional[str]
     
 class DominoRoundsAperture(BaseModel):
     

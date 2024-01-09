@@ -59,6 +59,7 @@ def new(request: Request, invitation_id: str, db: Session):
                          created_by=currentUser['username'], updated_by=currentUser['username'], status_id=status_confirmed.id)
     
     if dict_player:
+        # si torneo tiene categorias declaradas, ver si este elo está contemplado en ellas y actualizarlas
         one_player.elo = dict_player['elo']
         one_player.ranking = dict_player['ranking']
         one_player.level = dict_player['level']

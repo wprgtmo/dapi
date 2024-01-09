@@ -269,6 +269,8 @@ def get_obj_info_to_aperturate(db_round, db:Session):
     new_round.status_id, new_round.status_name = db_round.status.id, db_round.status.name
     new_round.status_description = db_round.status.description
     
+    new_round.lottery_type = db_round.tourney.lottery_type
+    
     return new_round
 
 # def aperture_new_round(request:Request, round_id:str, round: DominoRoundsAperture, db:Session):
