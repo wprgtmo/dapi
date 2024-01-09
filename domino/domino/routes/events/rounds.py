@@ -87,8 +87,9 @@ def get_tables_by_rounds(
     return get_all_players_by_tables_and_round(request=request, round_id=round_id, page=page, per_page=per_page, db=db)
 
 @rounds_route.get("/rounds/scale/player/current/{id}", response_model=Dict, summary="Obtain Current Player ranking list")
-def get_scale_by_rounds(
+def get_current_scale_by_rounds(
     request: Request,
+    id: str,
     page: int = 1, 
     per_page: int = 6, 
     db: Session = Depends(get_db)
@@ -96,8 +97,9 @@ def get_scale_by_rounds(
     return get_all_scale_by_round(request=request, page=page, per_page=per_page, round_id=id, db=db)
 
 @rounds_route.get("/rounds/scale/player/accumulated/{id}", response_model=Dict, summary="Obtain Accumulated Player ranking list")
-def get_scale_by_rounds(
+def get_accumulated_scale_by_rounds(
     request: Request,
+    id: str,
     page: int = 1, 
     per_page: int = 6, 
     db: Session = Depends(get_db)

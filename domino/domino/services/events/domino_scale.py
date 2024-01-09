@@ -143,18 +143,30 @@ def initial_scale_by_manual_lottery(tourney_id: str, round_id: str, dominoscale:
     db.commit()
     return True
 
-
+def configure_manual_lottery(db_round, dominoscale:list, db: Session, uses_segmentation=False):
+    
+    for item in dominoscale:
+        create_one_manual_trace(db_round.tourney.id, db_round.tourney.modality, int(item['position_number']), item['id'], db=db)
+        create_one_scale(db_round.tourney.id, db_round.id, 1, int(item['position_number']), item['id'], category_id=item['category'], db=db)
+    db.commit()
+    return True
+    
 def configure_automatic_lottery(db_round, db: Session, uses_segmentation=False):
     
-    # buscar las categorias definidas. 
-    str_query = "SELECT * FROM events.domino_categories where tourney_id = '" + db_round.tourney.id + "' ORDER BY position_number "
-    lst_categories = db.execute(str_query).fetchall()
-    
+    if uses_segmentation:
+        # buscar las categorias definidas. 
+        str_query = "SELECT * FROM events.domino_categories where tourney_id = '" + db_round.tourney.id + "' ORDER BY position_number "
+        lst_categories = db.execute(str_query).fetchall()
+    else:
+        str_query = "SELECT * FROM events.domino_categories where by_default is True and tourney_id = '" +\
+            db_round.tourney.id + "' ORDER BY position_number "
+        lst_categories = db.execute(str_query).fetchall()
+        
     position_number=0
     for item_cat in lst_categories:   
         position_number=created_automatic_lottery(
             db_round.tourney.id, db_round.tourney.modality, db_round.id, item_cat.elo_min, item_cat.elo_max, position_number, item_cat.id, db=db)
-   
+        
     return True
 
 def created_automatic_lottery(tourney_id: str, modality:str, round_id: str, elo_min:float, elo_max:float, position_number:int, category_id, db: Session):
@@ -676,10 +688,8 @@ def aperture_new_round(request:Request, round_id:str, round: DominoRoundsApertur
     
     # si la ronda no se ha publicado, puede eliminarse y volver a configurar..
     
-    print(round)
     result = ResultObject() 
     currentUser = get_current_user(request)
-    
     
     db_round = get_one_round(round_id=round_id, db=db)
     if not db_round:
@@ -731,7 +741,7 @@ def aperture_new_round(request:Request, round_id:str, round: DominoRoundsApertur
             create_category_by_default(
                 db_round.tourney.id, db_round.tourney.elo_max, db_round.tourney.elo_min, info_round.amount_players_playing, db=db)
         
-        result_init = order_round_to_init(db_round, db=db, uses_segmentation=round.use_bonus)
+        result_init = order_round_to_init(db_round, db=db, uses_segmentation=round.use_bonus, round=round)
         if not result_init:
             raise HTTPException(status_code=404, detail=_(locale, "tourney.setting_initial_scale_failed"))
 
@@ -743,10 +753,12 @@ def aperture_new_round(request:Request, round_id:str, round: DominoRoundsApertur
     configure_tables_by_round(db_round.tourney.id, db_round.id, db_round.tourney.modality, db_round.tourney.updated_by, db=db)
     
     db_round.status_id = one_status_conf.id
+    db_round.tourney.status_id = one_status_conf.id
     
     change_status_player_at_init_round(request, db_round, db=db)
      
     db.add(db_round)
+    db.add(db_round.tourney)
     
     db.commit()
     
@@ -785,11 +797,11 @@ def verify_category_is_valid(elo_max: float, elo_min: float, lst_category: list)
     
     return True
 
-def order_round_to_init(db_round, db:Session, uses_segmentation=False):
+def order_round_to_init(db_round, db:Session, round: DominoRoundsAperture, uses_segmentation=False):
     
     if db_round.tourney.lottery_type == "MANUAL":
-        # salvar la escala manual
-        result_init = configure_manual_lottery(db_round, db=db)
+        # salvar la escala manual en trazas
+        result_init = configure_manual_lottery(db_round, round.lottery, db=db)
     else:
         result_init = configure_automatic_lottery(db_round, db=db, uses_segmentation=uses_segmentation)
             
