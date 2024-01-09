@@ -381,7 +381,8 @@ def get_all_players_by_category(request:Request, page: int, per_page: int, categ
         raise HTTPException(status_code=404, detail=_(locale, "commun.invalid_param"))
     else:
         if criteria_key == 'username' and criteria_value:
-            str_where += "AND pro.id IN (Select profile_id from enterprise.profile_users WHERE username ilike '%" + str(criteria_value) + "%')"
+            # str_where += "AND pro.id IN (Select profile_id from enterprise.profile_users WHERE username ilike '%" + str(criteria_value) + "%')"
+            str_where += "AND pro.name ilike '%" + str(criteria_value) + "%'"
     
     str_count += str_where
     str_query += str_where
