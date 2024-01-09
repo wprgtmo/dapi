@@ -218,8 +218,6 @@ def get_info_to_aperture(request:Request, round_id:str, db:Session):
 
 def get_obj_info_to_aperturate(db_round, db:Session):
     
-    # one_status_created = get_one_status_by_name('CREATED', db=db)
-    
     new_round = DominoRoundsCreated(id=db_round.id)
     
     new_round.amount_players_playing = calculate_amount_players_playing(db_round.tourney.id, db=db)
@@ -231,10 +229,12 @@ def get_obj_info_to_aperturate(db_round, db:Session):
     new_round.use_segmentation = "YES" if db_round.use_segmentation else 'NO'
     new_round.use_bonus = "YES" if db_round.use_bonus else "NO"
     
+    # Si el torneo no tiene categoria aunque srea la primera ronda, no puede usar segmentacion
+    
     if db_round.is_first:
         new_round.round_number = db_round.round_number
         new_round.is_first, new_round.is_last = db_round.is_first, False
-        new_round.can_segment, new_round.can_bonus = True, False
+        new_round.can_segment, new_round.can_bonus = True if new_round.amount_categories > 0 else False, False
 
         new_round.amount_bonus_tables, new_round.amount_bonus_points = 0, 0
         
@@ -643,6 +643,7 @@ def remove_configurate_round(tourney_id: str, round_id: str, db: Session):
         "DELETE from events.domino_boletus_pairs where boletus_id IN " + str_id_boletus + "; "
         
     domino_boletus += "DELETE FROM events.domino_boletus where round_id = '" + round_id + "'; " 
+    domino_boletus += "DELETE FROM events.domino_boletus where round_id = '" + round_id + "'; " 
     
     # cambiar el estado de los jugadores esperando a JUGANDO
     status_play = get_one_status_by_name('CONFIRMED', db=db)
@@ -655,9 +656,8 @@ def remove_configurate_round(tourney_id: str, round_id: str, db: Session):
     str_update_round = "UPDATE events.domino_rounds SET status_id=" + str(status_init.id) +\
         " WHERE id = '" + round_id + "'; "
         
-    str_delete = domino_boletus + str_scale + str_update_player + str_update_round + "COMMIT; " 
+    str_delete = str_loterry + domino_boletus + str_scale + str_update_player + str_update_round + "COMMIT; " 
     db.execute(str_delete)
-    
     db.commit()
     
     return True     

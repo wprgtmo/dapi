@@ -154,6 +154,8 @@ class DominoCategory(Base):
     elo_max = Column(Float, nullable=False)
     amount_players = Column(Integer, nullable=False)
     
+    by_default = Column(Boolean, nullable=True)
+    
     tourney = relationship('Tourney')
     
     def dict(self):

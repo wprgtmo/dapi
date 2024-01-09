@@ -30,7 +30,8 @@ from domino.services.events.domino_round import created_round_default, remove_co
 from domino.services.events.domino_scale import configure_automatic_lottery, update_elo_initial_scale
 
 from domino.services.events.tourney import get_one as get_one_tourney, calculate_amount_tables, \
-    get_count_players_by_tourney, get_values_elo_by_tourney, get_lst_categories_of_tourney, get_categories_of_tourney
+    get_count_players_by_tourney, get_values_elo_by_tourney, get_lst_categories_of_tourney, get_categories_of_tourney,\
+    create_category_by_default
 from domino.services.enterprise.auth import get_url_advertising
 
 def get_one_configure_tourney(request:Request, tourney_id: str, db: Session):  
@@ -204,8 +205,6 @@ def configure_one_tourney(request, tourney_id: str, settingtourney: SettingTourn
     
     # except:
     #     raise HTTPException(status_code=404, detail=_(locale, "tourney.setting_incorrect"))
-    print('aqui')
-    print('*******************')
     if amount_smart_tables > amount_tables:
         raise HTTPException(status_code=404, detail=_(locale, "tourney.smarttable_incorrect"))
     
@@ -219,7 +218,7 @@ def configure_one_tourney(request, tourney_id: str, settingtourney: SettingTourn
         raise HTTPException(status_code=404, detail=_(locale, "tourney.event_ordering_incorrect"))
     
     db_tourney.updated_by=currentUser['username']
-    print('aqui')
+    
     update_initializes_tourney(
         db_tourney, amount_smart_tables, number_points_to_win, time_to_win, game_system, lottery_type, 
         penalties_limit, db, locale, constant_increase_ELO, points_penalty_yellow, points_penalty_red, round_ordering_one,
@@ -292,18 +291,21 @@ def update_initializes_tourney(db_tourney, amount_smart_tables, number_points_to
     
     # actualizar elos de las categorias si existen
     lst_category = get_categories_of_tourney(tourney_id=db_tourney.id, db=db)
-    first_category, last_category = None, None
-    for item in lst_category:
-        if not first_category:
-            first_category = item 
-        last_category = item
-    if first_category and first_category.elo_max != elo_max:
-        first_category.elo_max = elo_max 
-        db.add(first_category)
-        
-    if last_category and last_category.elo_min != elo_min:
-        last_category.elo_min = elo_min 
-        db.add(last_category)
+    if lst_category:
+        first_category, last_category = None, None
+        for item in lst_category:
+            if not first_category:
+                first_category = item 
+            last_category = item
+        if first_category and first_category.elo_max != elo_max:
+            first_category.elo_max = elo_max 
+            db.add(first_category)
+            
+        if last_category and last_category.elo_min != elo_min:
+            last_category.elo_min = elo_min 
+            db.add(last_category)
+    else:
+        create_category_by_default(db_tourney.id, elo_max, elo_min, amount_players=0, db=db)
         
     # try:
     db.add(db_tourney)

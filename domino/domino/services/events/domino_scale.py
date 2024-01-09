@@ -697,7 +697,6 @@ def aperture_new_round(request:Request, round_id:str, round: DominoRoundsApertur
     change_status_player_at_init_round(request, db_round, db=db)
      
     db.add(db_round)
-    # db.add(db_round.tourney)
     
     db.commit()
     

@@ -73,11 +73,9 @@ def new(request: Request, invitation_id: str, db: Session):
         raise HTTPException(status_code=404, detail=_(locale, "status.not_found"))
     
     # verificar el estado de la ultima ronda del torneo.
-    # Despues de Iniciada, no hago nada. En cinfigurada o creada boor todo y pongo la ronda en estado creada.
+    # Despues de Iniciada, no hago nada. En configurada o creada borrar todo y pongo la ronda en estado creada.
     
-    lst_round = get_last_by_tourney(one_invitation.tourney_id, db=db)
-    if lst_round.status.name in ('CREATED', 'CONFIGURATED'):
-        remove_configurate_round(lst_round.tourney_id, lst_round.id, db=db)
+    restar_round(one_invitation.tourney_id, db=db)
     
     try:
         db.add(one_player)
@@ -141,6 +139,8 @@ def remove_player(request: Request, player_id: str, db: Session):
             db_player.updated_by = currentUser['username']
             db_player.updated_date = datetime.now()
             
+            restar_round(db_player.tourney_id, db=db)
+            
             db.commit()
         else:
             raise HTTPException(status_code=404, detail=_(locale, "player.not_found"))
@@ -196,8 +196,6 @@ def change_status_player(request: Request, player_id: str, status: str, db: Sess
     elif status_new.name == 'CANCELLED':
         if db_player.status.name != 'CONFIRMED':
             raise HTTPException(status_code=404, detail=_(locale, "player.status_incorrect"))
-        
-        
     
     db_player.status_id = status_new.id
     db_player.updated_by = currentUser['username']
@@ -209,6 +207,14 @@ def change_status_player(request: Request, player_id: str, status: str, db: Sess
         print(e)
         raise HTTPException(status_code=404, detail="No es posible eliminar")
     return result
+
+def restar_round(tourney_id:str, db:Session):
+    
+    lst_round = get_last_by_tourney(tourney_id, db=db)
+    if lst_round.status.name in ('CREATED', 'CONFIGURATED'):
+        remove_configurate_round(lst_round.tourney_id, lst_round.id, db=db)
+    
+    return True
 
 def get_number_players_by_elo(request:Request, tourney_id:str, min_elo:float, max_elo:float, db:Session):  
     locale = request.headers["accept-language"].split(",")[0].split("-")[0];
@@ -310,6 +316,23 @@ def get_lst_id_player_by_elo(tourney_id: str, modality:str, min_elo: float, max_
     
     return lst_players
 
+def get_lst_id_player_with_boletus(tourney_id: str, db: Session):  
+    
+    str_query = "SELECT player.id FROM events.players player join resources.entities_status sta ON sta.id = player.status_id "
+    
+    str_where = "WHERE player.tourney_id = '" + tourney_id + "' AND sta.name IN ('CONFIRMED', 'PLAYING', 'WAITING') " +\
+        "AND player.elo >= " + str(min_elo) + " AND player.elo <= " + str(max_elo)
+    
+    str_query += str_where
+
+    str_query += " ORDER BY player.elo DESC " 
+    lst_data = db.execute(str_query)
+    lst_players = []
+    for item in lst_data:
+        lst_players.append(item.id)
+    
+    return lst_players
+
 def get_all_players_by_category(request:Request, page: int, per_page: int, category_id: str, criteria_key: str, 
                                 criteria_value: str, db: Session):  
     locale = request.headers["accept-language"].split(",")[0].split("-")[0];
@@ -328,7 +351,8 @@ def get_all_players_by_category(request:Request, page: int, per_page: int, categ
         "left join resources.country ON country.id = city.country_id " +\
         "join resources.entities_status sta ON sta.id = player.status_id "
     
-    tourney_is_init = True if dict_result['status_name'] == 'INITIADED' or dict_result['status_name'] == 'FINALIZED' else False
+    # tourney_is_init = True if dict_result['status_name'] == 'INITIADED' or dict_result['status_name'] == 'FINALIZED' else False
+    tourney_is_init = True if dict_result['status_name'] != 'CREATED' else False
     if tourney_is_init:
         str_from += "LEFT JOIN events.domino_rounds_scale rscale ON rscale.player_id = player.id "   
     
@@ -340,7 +364,7 @@ def get_all_players_by_category(request:Request, page: int, per_page: int, categ
     if tourney_is_init:
         str_query += ", rscale.position_number " 
     else:
-        str_query += ", player.elo, position_number " 
+        str_query += ", player.elo " 
 
     str_query += str_from
     
@@ -445,10 +469,9 @@ def create_dict_row(item, page, db: Session, api_uri):
                'city_name': item['city_name'] if item['city_name'] else '',  
                'photo' : image, 'elo': item['elo'], 'ranking': item['ranking'], 'level': item['level'],
                'status_name': item['status_name'], 'status_description': item['status_description'],
-               'status_id': item['status_id'], 'position_number': item.position_number}
-    if page != 0:
-        new_row['selected'] = False
-    
+               'status_id': item['status_id'], 
+               'position_number': item.position_number if 'position_number' in item and item.position_number else ''}
+   
     return new_row
 
 def get_one_by_invitation_id(invitation_id: str, db: Session):  
@@ -519,19 +542,39 @@ def change_status_player_at_init_round(request:Request, db_round, db: Session):
     result = ResultObject() 
     currentUser = get_current_user(request)
     
-    status_end = get_one_by_name('FINALIZED', db=db)
-    if not status_end:
-        return True
+    str_query_pair = "Select sca_one.player_id as one_player_id, sca_two.player_id as  two_player_id " +\
+        "from events.domino_rounds_pairs pa " +\
+        "join events.domino_rounds_scale sca_one ON sca_one.id = pa.scale_id_one_player " +\
+        "join events.domino_rounds_scale sca_two ON sca_two.id = pa.scale_id_two_player " +\
+        "Where pa.round_id = '" + db_round.id + "' "
+        
+    lst_pair = []
+    lst_all_id = db.execute(str_query_pair).fetchall()
+    str_id_playing = "'"
+    for item in lst_all_id:
+        str_id_playing += item.one_player_id + "','" + item.two_player_id + "','"
+        lst_pair.append(item.one_player_id)
+        lst_pair.append(item.two_player_id)
+     
+    # obtener lista de jugadores del torneo en cualquier estado
+    lst_player = get_lst_id_player_by_elo(db_round.tourney_id, db_round.tourney.modality, db_round.tourney.elo_min, db_round.tourney.elo_max, db=db)
+    str_waiting = "'"
     
-    # db_tourney = get_torneuy_by_eid(tourney_id, db=db)
-    # if not db_tourney:
-    #     raise HTTPException(status_code=404, detail=_(locale, "tourney.not_found"))
+    for item in lst_player:
+        if item not in str_id_playing:
+            str_waiting += item + "','"
+ 
+    status_play = get_one_by_name('PLAYING', db=db)
+    status_wait = get_one_by_name('WAITING', db=db)
     
-    # if db_tourney.status_id == status_end.id:
-    #     raise HTTPException(status_code=404, detail=_(locale, "tourney.status_incorrect"))
+    if str_id_playing:
+        str_update_playing = "UPDATE events.players SET status_id = " + str(status_play.id) + " WHERE id IN (" + str_id_playing[:-2] + ");COMMIT;"  
+    if str_waiting:
+        str_update_waiting = "UPDATE events.players SET status_id = " + str(status_wait.id) + " WHERE id IN (" + str_waiting[:-2] + ");COMMIT;"  
     
-    # status_confirmed = get_one_by_name('CONFIRMED', db=db)
-    # if not status_confirmed:
-    #     return True   
+    db.execute(str_update_playing)
+    db.execute(str_update_waiting)
+    
+    db.commit()
     
     return result

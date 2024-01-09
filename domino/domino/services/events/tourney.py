@@ -319,9 +319,12 @@ def create_category_by_default(tourney_id:str, elo_max: float, elo_min: float, a
     str_delete = "DELETE FROM events.domino_categories WHERE tourney_id = '" + tourney_id + "'; COMMIT; "
     db.execute(str_delete)
     
+    if not amount_players:
+        amount_players = get_count_players_by_tourney(tourney_id, db=db)
+        
     db_one_category = DominoCategory(id=str(uuid.uuid4()), tourney_id=tourney_id, category_number=1,
                                      position_number=1, elo_min=elo_min, elo_max=elo_max, 
-                                     amount_players=amount_players) 
+                                     amount_players=amount_players, by_default=True) 
         
     db.add(db_one_category)
     db.commit()    
@@ -362,7 +365,7 @@ def calculate_amount_tables(tourney_id: str, modality: str, db: Session):
 
 def calculate_amount_categories(tourney_id: str, db: Session):
     
-    str_query = "Select count(*) From events.domino_categories Where tourney_id = '" + tourney_id + "' "
+    str_query = "Select count(*) From events.domino_categories Where by_default is False and tourney_id = '" + tourney_id + "' "
     amount_category = db.execute(str_query).fetchone()[0]
     return int(amount_category)
 
@@ -407,7 +410,7 @@ def get_lst_categories_of_tourney(tourney_id: str, db: Session):
     lst_categories = []
     
     str_query = "SELECT id, category_number, position_number, elo_min, elo_max, amount_players " +\
-        "FROM events.domino_categories WHERE tourney_id = '" + tourney_id + "' Order by position_number "
+        "FROM events.domino_categories WHERE by_default is False and tourney_id = '" + tourney_id + "' Order by position_number "
         
     lst_all_category = db.execute(str_query).fetchall()
     for item in lst_all_category:
@@ -516,17 +519,21 @@ def insert_categories_tourney(request, tourney_id: str, categories: DominoCatego
     if db_tourney.status.name == 'FINALIZED':
         raise HTTPException(status_code=404, detail=_(locale, "tourney.is_configurated"))
     
-    position_number = 0
-    str_query = "SELECT position_number, elo_min FROM events.domino_categories where tourney_id = '" + tourney_id + "' " +\
+    position_number, elo_min, by_default = 0, 0, False
+    str_query = "SELECT position_number, elo_min, by_default FROM events.domino_categories where tourney_id = '" + tourney_id + "' " +\
         "ORDER BY elo_min DESC limit 1 "
     lst_info = db.execute(str_query).fetchone()
-    print(lst_info)
     if lst_info:
         position_number = lst_info[0]
         elo_min = lst_info[1]
-    
-    if elo_min and categories.elo_max >= elo_min:
-            raise HTTPException(status_code=404, detail=_(locale, "tourney.elo_max_incorrect"))
+        by_default = lst_info[2]
+
+    if by_default:  
+        str_delete = "DELETE FROM events.domino_categories where tourney_id = '" + tourney_id + "'; COMMIT; "
+        lst_info = db.execute(str_delete)
+    else:
+        if elo_min and categories.elo_max >= elo_min:
+                raise HTTPException(status_code=404, detail=_(locale, "tourney.elo_max_incorrect"))
     
     status_canc = get_one_status_by_name('CANCELLED', db=db)    
     str_query = "SELECT count(player.id) FROM events.players player WHERE status_id != " + str(status_canc.id)
@@ -537,7 +544,7 @@ def insert_categories_tourney(request, tourney_id: str, categories: DominoCatego
     position_number += 1
     db_one_category = DominoCategory(id=str(uuid.uuid4()), tourney_id=tourney_id, category_number=categories.category_number,
                                      position_number=position_number, elo_min=categories.elo_min, elo_max=categories.elo_max,
-                                     amount_players=amount_players) 
+                                     amount_players=amount_players, by_default=False) 
     
     db.add(db_one_category)
     
