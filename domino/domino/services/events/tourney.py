@@ -378,6 +378,15 @@ def calculate_amount_players_playing(tourney_id: str, db: Session):
     amount_play = db.execute(str_query).fetchone()[0]
     return int(amount_play)
 
+def get_number_players_by_elo(tourney_id:str, min_elo:float, max_elo:float, db:Session):  
+    str_query = "Select count(*) From events.players player " + \
+        "JOIN resources.entities_status sta ON sta.id = player.status_id " +\
+        "Where tourney_id = '" + tourney_id + "' " +\
+        "AND sta.name IN ('CONFIRMED', 'PLAYING', 'WAITING') " +\
+        "AND player.elo >= " + str(min_elo) + " AND player.elo <= " + str(max_elo)
+    amount_play = db.execute(str_query).fetchone()[0]
+    return int(amount_play)
+    
 def calculate_amount_players_by_status(tourney_id: str, status_name: str, db: Session):
     
     one_sta = get_one_status_by_name(status_name)
@@ -551,6 +560,19 @@ def insert_categories_tourney(request, tourney_id: str, categories: DominoCatego
     # try:
     db.commit()
     return result
+    # except (Exception, SQLAlchemyError, IntegrityError) as e:
+    #     return result
+    
+def update_amount_player_by_categories(tourney_id: str, db: Session):
+    
+    lst_categories = get_categories_of_tourney(tourney_id, db=db)
+    for item in lst_categories:
+        item.amount_players = get_number_players_by_elo(tourney_id, item.elo_min, item.elo_max, db=db)
+        db.add(item)
+    
+    # try:
+    db.commit()
+    return True
     # except (Exception, SQLAlchemyError, IntegrityError) as e:
     #     return result
     

@@ -82,3 +82,15 @@ def get_players_by_categories(
     db: Session = Depends(get_db)):
     return get_all_players_by_category(request=request, page=page, per_page=per_page, category_id=id, 
                                        criteria_key=criteria_key, criteria_value=criteria_value, db=db)
+    
+@settingtourney_route.get("/tourney/setting/nocategories/player/{id}", response_model=Dict, summary="Get players by categories of Tourney..")
+def get_players_by_no_categories(
+    request:Request, 
+    id: str, 
+    page: int = 1, 
+    per_page: int = 6,
+    criteria_key: str = "",
+    criteria_value: str = "",
+    db: Session = Depends(get_db)):
+    return get_all_players_by_category(request=request, page=page, per_page=per_page, category_id='', 
+                                       criteria_key=criteria_key, criteria_value=criteria_value, db=db, tourney_id=id)

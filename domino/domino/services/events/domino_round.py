@@ -647,13 +647,14 @@ def remove_configurate_round(tourney_id: str, round_id: str, db: Session):
     domino_boletus += "DELETE FROM events.domino_boletus where round_id = '" + round_id + "'; " 
     domino_boletus += "DELETE FROM events.domino_boletus where round_id = '" + round_id + "'; " 
     
-    # cambiar el estado de los jugadores esperando a JUGANDO
+    # cambiar el estado de los jugadores estado confirmados
     status_play = get_one_status_by_name('CONFIRMED', db=db)
-    status_wait = get_one_status_by_name('WAITING', db=db)
+    status_canceled = get_one_status_by_name('CANCELLED', db=db)
+    status_expeled = get_one_status_by_name('EXPELLED', db=db)
     status_init = get_one_status_by_name('CREATED', db=db)
     
     str_update_player = "UPDATE events.players SET status_id=" + str(status_play.id) +\
-        " WHERE tourney_id = '" + tourney_id + "' and status_id = " + str(status_wait.id) + "; "
+        " WHERE tourney_id = '" + tourney_id + "' and status_id not in (" + str(status_canceled.id) + "," + str(status_expeled.id) + ") ; "
         
     str_update_round = "UPDATE events.domino_rounds SET status_id=" + str(status_init.id) +\
         " WHERE id = '" + round_id + "'; "

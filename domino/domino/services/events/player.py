@@ -321,8 +321,7 @@ def get_lst_id_player_with_boletus(tourney_id: str, db: Session):
     
     str_query = "SELECT player.id FROM events.players player join resources.entities_status sta ON sta.id = player.status_id "
     
-    str_where = "WHERE player.tourney_id = '" + tourney_id + "' AND sta.name IN ('CONFIRMED', 'PLAYING', 'WAITING') " +\
-        "AND player.elo >= " + str(min_elo) + " AND player.elo <= " + str(max_elo)
+    str_where = "WHERE player.tourney_id = '" + tourney_id + "' AND sta.name IN ('CONFIRMED', 'PLAYING', 'WAITING') " 
     
     str_query += str_where
 
@@ -335,16 +334,24 @@ def get_lst_id_player_with_boletus(tourney_id: str, db: Session):
     return lst_players
 
 def get_all_players_by_category(request:Request, page: int, per_page: int, category_id: str, criteria_key: str, 
-                                criteria_value: str, db: Session):  
+                                criteria_value: str, db: Session, tourney_id=None):  
     locale = request.headers["accept-language"].split(",")[0].split("-")[0];
     
     api_uri = str(settings.api_uri)
     
-    # si el torneo es automatico, ya lo saco de la scala directamente.
+    # Si no viene categorias debo devolver todos los jugadores
     
-    dict_result = get_info_categories_tourney(category_id=category_id, db=db)
-    if not dict_result:
-        raise HTTPException(status_code=404, detail=_(locale, "tourney.category_not_exist"))
+    # si el torneo es automatico, ya lo saco de la scala directamente.
+    dict_result = {}
+    if category_id:
+        dict_result = get_info_categories_tourney(category_id=category_id, db=db)
+        if not dict_result:
+            raise HTTPException(status_code=404, detail=_(locale, "tourney.category_not_exist"))
+        tourney_id = dict_result['tourney_id']
+    else:
+        db_tourney = get_torneuy_by_eid(tourney_id, db=db)
+        if not db_tourney:
+            raise HTTPException(status_code=404, detail=_(locale, "tourney.not_found"))
     
     str_from = "FROM events.players player " +\
         "inner join enterprise.profile_member pro ON pro.id = player.profile_id " +\
@@ -353,7 +360,9 @@ def get_all_players_by_category(request:Request, page: int, per_page: int, categ
         "join resources.entities_status sta ON sta.id = player.status_id "
     
     # tourney_is_init = True if dict_result['status_name'] == 'INITIADED' or dict_result['status_name'] == 'FINALIZED' else False
-    tourney_is_init = True if dict_result['status_name'] != 'CREATED' else False
+    status_name_find = dict_result['status_name'] if dict_result else db_tourney.status.name
+    
+    tourney_is_init = True if status_name_find != 'CREATED' else False
     if tourney_is_init:
         str_from += "LEFT JOIN events.domino_rounds_scale rscale ON rscale.player_id = player.id "   
     
@@ -369,13 +378,13 @@ def get_all_players_by_category(request:Request, page: int, per_page: int, categ
 
     str_query += str_from
     
-    str_where = "WHERE pro.is_ready is True AND sta.name != 'CANCELLED' " 
-    str_where += " AND player.tourney_id = '" + dict_result['tourney_id'] + "' " 
+    str_where = "WHERE pro.is_ready is True AND sta.name not in ('CANCELLED', 'EXPELLED') " 
+    str_where += " AND player.tourney_id = '" + tourney_id + "' " 
     
     if tourney_is_init:
-        str_where += " AND rscale.category_id = '" + category_id + "' "
+        str_where += " AND rscale.category_id = '" + category_id + "' " if category_id else ""
     else:
-        str_where += "AND player.elo >= " + str(dict_result['elo_min']) + " AND player.elo <= " + str(dict_result['elo_max'])
+        str_where += "AND player.elo >= " + str(dict_result['elo_min']) + " AND player.elo <= " + str(dict_result['elo_max']) if category_id else ""
         
     dict_query = {'username': " AND username = '" + criteria_value + "'"}
     if criteria_key and criteria_key not in dict_query:

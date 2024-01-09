@@ -52,3 +52,4 @@ class DominoRoundsAperture(BaseModel):
     amount_bonus_tables: Optional[int]
     amount_bonus_points: Optional[float]
     
+    lst_lotery: list

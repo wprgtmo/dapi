@@ -31,7 +31,7 @@ from domino.services.events.domino_scale import configure_automatic_lottery, upd
 
 from domino.services.events.tourney import get_one as get_one_tourney, calculate_amount_tables, \
     get_count_players_by_tourney, get_values_elo_by_tourney, get_lst_categories_of_tourney, get_categories_of_tourney,\
-    create_category_by_default
+    create_category_by_default, update_amount_player_by_categories
 from domino.services.enterprise.auth import get_url_advertising
 
 def get_one_configure_tourney(request:Request, tourney_id: str, db: Session):  
@@ -51,6 +51,9 @@ def get_one_configure_tourney(request:Request, tourney_id: str, db: Session):
         db_tourney.amount_tables = amount_tables
         db.add(db_tourney)
         db.commit()
+    
+    #actualizar la cantidad de jugadores por categorias
+    update_amount_player_by_categories(tourney_id, db=db)
     
     elo_max, elo_min = get_values_elo_by_tourney(tourney_id=tourney_id, db=db)
     
@@ -306,7 +309,9 @@ def update_initializes_tourney(db_tourney, amount_smart_tables, number_points_to
             db.add(last_category)
     else:
         create_category_by_default(db_tourney.id, elo_max, elo_min, amount_players=0, db=db)
-        
+    
+    #pasar todos los jugadores que estén en estado jugando o en espera a confirmados para que vuelva a empezar la distribución.
+    str_update_player = 'UPDATE '    
     # try:
     db.add(db_tourney)
     db.commit()
