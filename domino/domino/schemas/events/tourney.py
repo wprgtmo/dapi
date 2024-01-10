@@ -64,14 +64,14 @@ class SettingTourneyCreated(BaseModel):
     lottery: Optional[str] 
     constant_increase_ELO: Optional[float]
     
-    use_penalty: Optional[str]
+    use_penalty: Optional[bool]
     limitPenaltyPoints: Optional[int]
     points_penalty_yellow: Optional[int]
     points_penalty_red: Optional[int]
     
-    use_segmentation: Optional[str]
+    use_segmentation: Optional[bool]
     
-    use_bonus: Optional[str]
+    use_bonus: Optional[bool]
     amount_bonus_tables: Optional[int]
     amount_bonus_points: Optional[int]
      

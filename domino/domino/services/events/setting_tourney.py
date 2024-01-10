@@ -131,13 +131,15 @@ def configure_one_tourney(request, tourney_id: str, settingtourney: SettingTourn
             db_tourney.amount_smart_tables = settingtourney.amount_smart_tables
     
     if settingtourney.number_points_to_win and db_tourney.number_points_to_win != int(settingtourney.number_points_to_win):
-        if db_tourney.status.name != 'CREATED':
+        if db_tourney.status.name not in ('CREATED', 'CONFIGURATED'):
             raise HTTPException(status_code=404, detail=_(locale, "tourney.status_incorrect"))
         if int(settingtourney.number_points_to_win) <= 0:
             raise HTTPException(status_code=404, detail=_(locale, "tourney.numberpoints_towin_incorrect"))
         db_tourney.number_points_to_win = int(settingtourney.number_points_to_win)
         
     if settingtourney.time_to_win and db_tourney.time_to_win != int(settingtourney.time_to_win):
+        if db_tourney.status.name not in ('CREATED', 'CONFIGURATED'):
+            raise HTTPException(status_code=404, detail=_(locale, "tourney.status_incorrect"))
         db_tourney.time_to_win = int(settingtourney.time_to_win)
     
     db_tourney.time_to_win = 12 if not db_tourney.time_to_win else db_tourney.time_to_win
@@ -146,15 +148,17 @@ def configure_one_tourney(request, tourney_id: str, settingtourney: SettingTourn
     db_tourney.game_system = 'SUIZO'
     
     if settingtourney.lottery and db_tourney.lottery_type != str(settingtourney.lottery):
+        restart_setting_round = True
         db_tourney.lottery_type = str(settingtourney.lottery)
     db_tourney.lottery_type = 'MANUAL' if not db_tourney.lottery_type else db_tourney.lottery_type
     
-    use_penalty = True if settingtourney.use_penalty and settingtourney.use_penalty == 'YES' else False
+    use_penalty = True if settingtourney.use_penalty and settingtourney.use_penalty == True else False
     if db_tourney.use_penalty != use_penalty:
         db_tourney.use_penalty = use_penalty
         
-    use_segmentation = True if settingtourney.use_segmentation and settingtourney.use_segmentation == 'YES' else False
+    use_segmentation = True if settingtourney.use_segmentation and settingtourney.use_segmentation == True else False
     if db_tourney.use_segmentation != use_segmentation:
+        restart_setting_round = True
         db_tourney.use_segmentation = use_segmentation
           
     if settingtourney.limitPenaltyPoints and db_tourney.penalties_limit != int(settingtourney.limitPenaltyPoints):
@@ -169,7 +173,7 @@ def configure_one_tourney(request, tourney_id: str, settingtourney: SettingTourn
     if settingtourney.constant_increase_ELO and db_tourney.constant_increase_ELO != float(settingtourney.constant_increase_ELO):
         db_tourney.constant_increase_ELO = int(settingtourney.constant_increase_ELO)
     
-    use_bonus = True if settingtourney.use_bonus and settingtourney.use_bonus == 'YES' else False
+    use_bonus = True if settingtourney.use_bonus and settingtourney.use_bonus == True else False
     if db_tourney.use_bonus != use_bonus:
         db_tourney.use_bonus = use_bonus
         
@@ -213,7 +217,11 @@ def configure_one_tourney(request, tourney_id: str, settingtourney: SettingTourn
         
     db_tourney.updated_by=currentUser['username']
     
-    update_initializes_tourney(db_tourney, locale, db=db)
+    if restart_setting_round:
+        update_initializes_tourney(db_tourney, locale, db=db)
+    
+    db.add(db_tourney)
+    db.commit()
     
     return result
 
@@ -273,8 +281,7 @@ def update_initializes_tourney(db_tourney, locale, db:Session):
     
     #pasar todos los jugadores que estén en estado jugando o en espera a confirmados para que vuelva a empezar la distribución.
     # try:
-    db.add(db_tourney)
-    db.commit()
+    
     return True
        
     # except (Exception, SQLAlchemyError, IntegrityError) as e:
