@@ -89,6 +89,7 @@ es:
     number_player_incorrect: 'Numero de Jugadores incorrects, deben completar dos mesas'
     elo_max_incorrect: 'Elo maximo no puede ser superior al min de la categoria anterior'
     amount_bonus_tables_incorrect: 'Parametros de bonificaciones incorrectos'
+    sended_invitations: 'Invitaciones enviadas, no puede cambiar modalidad'
   invitation:
     not_exist: 'Invitación no existe.'
     not_found: 'Invitación no existe.'

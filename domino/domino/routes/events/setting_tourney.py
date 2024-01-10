@@ -49,7 +49,7 @@ def get_configure_tourney(request:Request, tourney_id: str, db: Session = Depend
 
 @settingtourney_route.post("/tourney/setting/{id}", response_model=ResultObject, summary="Configure Tourney..")
 def configure_tourney(request:Request, id: str, settingtourney: SettingTourneyCreated, db: Session = Depends(get_db)):
-    return configure_one_tourney(request=request, tourney_id=id, settingtourney=settingtourney.dict(), db=db)  
+    return configure_one_tourney(request=request, tourney_id=id, settingtourney=settingtourney, db=db)  
 
 @settingtourney_route.post("/tourney/setting/images/{id}", response_model=ResultObject, summary="Configure Image of Tourney..")
 def configure_setting_image(request:Request, id: str, image: UploadFile = None, db: Session = Depends(get_db)):

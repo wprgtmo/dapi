@@ -51,36 +51,38 @@ class TourneyCreated(BaseModel):
     
 class SettingTourneyCreated(BaseModel):
     
-    amount_tables: int 
-    amount_smart_tables: int 
-    number_points_to_win: int 
-    time_to_win: int 
-    lottery: str 
+    name: Optional[str]
+    modality: Optional[str]
+    summary: Optional[str]
+    start_date: Optional[date]
+    number_rounds: Optional[int]
+    
+    amount_tables: Optional[int] 
+    amount_smart_tables: Optional[int] 
+    number_points_to_win: Optional[int] 
+    time_to_win: Optional[int] 
+    lottery: Optional[str] 
     constant_increase_ELO: Optional[float]
     
-    limitPenaltyPoints: int
+    use_penalty: Optional[str]
+    limitPenaltyPoints: Optional[int]
     points_penalty_yellow: Optional[int]
     points_penalty_red: Optional[int]
+    
+    use_segmentation: Optional[str]
+    
+    use_bonus: Optional[str]
+    amount_bonus_tables: Optional[int]
+    amount_bonus_points: Optional[int]
      
     round_ordering_one: Optional[str] 
     round_ordering_two: Optional[str]
     round_ordering_three: Optional[str]
-    round_ordering_four: Optional[str]
-    round_ordering_five: Optional[str]
     
     event_ordering_one: Optional[str]
     event_ordering_two: Optional[str]
     event_ordering_three: Optional[str]
-    event_ordering_four: Optional[str]
-    event_ordering_five: Optional[str]
     
-    
-    
-    
-    class Config:
-        orm_mode = True
-
-
 class DominoCategoryCreated(BaseModel):
     category_number: str
     elo_min: float

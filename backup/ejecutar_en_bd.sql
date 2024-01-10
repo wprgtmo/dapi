@@ -1,4 +1,4 @@
-ALTER TABLE IF EXISTS events.domino_categories
-    ADD COLUMN by_default boolean;
+ALTER TABLE IF EXISTS events.tourney
+    ADD COLUMN use_penalty boolean;
 
 

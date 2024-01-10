@@ -33,16 +33,23 @@ class Tourney(Base):
     time_to_win = Column(Integer, nullable=False, default=0)
     game_system = Column(String(120), nullable=True)
     lottery_type = Column(String(120), nullable=True)
+    
+    use_penalty = Column(Boolean, nullable=True, default=False)
+    points_penalty_yellow = Column(Integer, nullable=True, default=0)
+    points_penalty_red = Column(Integer, nullable=True, default=0)
     penalties_limit = Column(Integer, nullable=True, default=0)
     
     image = Column(Text, nullable=True)
     
-    use_bonus = Column(Boolean, nullable=True, default=False)
     use_segmentation = Column(Boolean, nullable=True, default=False)
+    
+    use_bonus = Column(Boolean, nullable=True, default=False)
     amount_bonus_tables = Column(Integer, nullable=True, default=0)
     amount_bonus_points = Column(Integer, nullable=True, default=0)
+    
     number_rounds = Column(Integer, nullable=True, default=0)
     number_bonus_round = Column(Integer, nullable=True, default=0)
+    
     elo_min = Column(Float, nullable=True)
     elo_max = Column(Float, nullable=True)
     constant_increase_elo = Column(Float, nullable=True)
@@ -67,9 +74,6 @@ class Tourney(Base):
     event_ordering_three = Column(String(120), nullable=True)
     event_ordering_four = Column(String(120), nullable=True)
     event_ordering_five = Column(String(120), nullable=True)
-    
-    points_penalty_yellow = Column(Integer, nullable=True, default=0)
-    points_penalty_red = Column(Integer, nullable=True, default=0)
     
     event = relationship("Event", back_populates="tourneys")
     

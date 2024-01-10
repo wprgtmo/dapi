@@ -312,4 +312,8 @@ def update(request: Request, invitation_id: str, invitation: InvitationAccepted,
         if e.code == "gkpj":
             raise HTTPException(status_code=400, detail=_(locale, "invitation.already_exist"))
             
+def get_amount_invitations_by_tourney(tourney_id: str, db: Session):  
     
+    str_count = "Select count(*) FROM events.invitations WHERE invitations.tourney_id = '" + tourney_id + "' "
+    amount = db.execute(str_count).scalar()
+    return amount
