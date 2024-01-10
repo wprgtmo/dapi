@@ -60,6 +60,10 @@ def get_one_configure_tourney(request:Request, tourney_id: str, db: Session):
     
     result.data = {
         "tourney_id": tourney_id, "amount_tables": amount_tables, 'number_rounds': db_tourney.number_rounds,
+        "name": '' if not db_tourney.name else db_tourney.name,
+        "modality": '' if not db_tourney.modality else db_tourney.modality,
+        "summary": '' if not db_tourney.summary else db_tourney.summary,
+        "start_date": '' if not db_tourney.start_date else db_tourney.start_date,
         'amount_player': get_count_players_by_tourney(tourney_id, db=db),
         "amount_smart_tables": 0 if not db_tourney.amount_smart_tables else db_tourney.amount_smart_tables,
         "use_segmentation": 'NO' if not db_tourney.use_segmentation else 'YES',
@@ -76,7 +80,6 @@ def get_one_configure_tourney(request:Request, tourney_id: str, db: Session):
         'points_penalty_red': 0 if not db_tourney.points_penalty_red else db_tourney.points_penalty_red,
         'elo_min': elo_min, 'elo_max': elo_max,
         'constant_increase_ELO': 0 if not db_tourney.constant_increase_elo else db_tourney.constant_increase_elo,
-        'image': get_url_advertising(tourney_id=tourney_id, file_name=db_tourney.image, api_uri=api_uri),
         'round_ordering_one': '' if not db_tourney.round_ordering_one else db_tourney.round_ordering_one,
         'round_ordering_two': '' if not db_tourney.round_ordering_two else db_tourney.round_ordering_two,
         'round_ordering_three': '' if not db_tourney.round_ordering_three else db_tourney.round_ordering_three,
@@ -106,6 +109,7 @@ def configure_one_tourney(request, tourney_id: str, settingtourney: SettingTourn
     
     amount_tables = calculate_amount_tables(db_tourney.id, db_tourney.modality, db=db)
     
+    restart_setting_round = False
     if amount_tables < 2:
         raise HTTPException(status_code=404, detail=_(locale, "tourney.number_player_incorrect"))
 
@@ -115,15 +119,20 @@ def configure_one_tourney(request, tourney_id: str, settingtourney: SettingTourn
         if amount_invitations > 0:
             raise HTTPException(status_code=404, detail=_(locale, "tourney.sended_invitations"))
         
+        if db_tourney.status.name != 'CREATED':
+            raise HTTPException(status_code=404, detail=_(locale, "tourney.status_incorrect"))
         db_tourney.modality = str(settingtourney.modality)
         
     if settingtourney.amount_smart_tables and db_tourney.amount_smart_tables != settingtourney.amount_smart_tables:
+        restart_setting_round = True
         if int(settingtourney.amount_smart_tables) > amount_tables:
             raise HTTPException(status_code=404, detail=_(locale, "tourney.smarttable_incorrect"))
         else:
             db_tourney.amount_smart_tables = settingtourney.amount_smart_tables
     
     if settingtourney.number_points_to_win and db_tourney.number_points_to_win != int(settingtourney.number_points_to_win):
+        if db_tourney.status.name != 'CREATED':
+            raise HTTPException(status_code=404, detail=_(locale, "tourney.status_incorrect"))
         if int(settingtourney.number_points_to_win) <= 0:
             raise HTTPException(status_code=404, detail=_(locale, "tourney.numberpoints_towin_incorrect"))
         db_tourney.number_points_to_win = int(settingtourney.number_points_to_win)
