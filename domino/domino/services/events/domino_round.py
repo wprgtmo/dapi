@@ -423,15 +423,15 @@ def publicate_one_round(request: Request, round_id: str, db: Session):
     if not db_round:
         raise HTTPException(status_code=404, detail=_(locale, "round.not_found"))
     
-    status_init = get_one_status_by_name('INITIADED', db=db)
     status_publicated = get_one_status_by_name('PUBLICATED', db=db)
     
-    if db_round.status_id != status_init.id:
+    if db_round.status.name != 'CONFIGURATED':
         raise HTTPException(status_code=404, detail=_(locale, "round.status_incorrect"))
     
     change_status_round(db_round, status_publicated, currentUser['username'], db=db)
     
-    # cambiar aqui el estado deltorneo a iniciado
+    # cambiar aqui el estado del torneo a iniciado
+    status_init = get_one_status_by_name('INITIADED', db=db)
     db_round.tourney.status_id = status_init.id
     db_round.tourney.event.status_id = status_init.id
     

@@ -107,11 +107,11 @@ def new_data(request: Request, boletus_id:str, dominodata: DominoDataCreated, db
     if not one_boletus:
         raise HTTPException(status_code=400, detail=_(locale, "boletus.not_found"))
     
-    one_status_init = get_one_status_by_name('INITIADED', db=db)
-    if not one_status_init:
-        raise HTTPException(status_code=404, detail=_(locale, "status.not_found"))
+    # one_status_init = get_one_status_by_name('INITIADED', db=db)
+    # if not one_status_init:
+    #     raise HTTPException(status_code=404, detail=_(locale, "status.not_found"))
     
-    if one_boletus.status_id != one_status_init.id:
+    if one_boletus.status.name != 'INITIADED':
         raise HTTPException(status_code=404, detail=_(locale, "boletus.status_incorrect"))
 
     # cargar las boletas de las parejas para poder verificar si ya alguien gano y actualizar la info de la otra pareja
@@ -187,17 +187,15 @@ def close_data_by_time(request: Request, boletus_id:str, db: Session):
     currentUser = get_current_user(request)
     
     # buscar la boleta
-    print(boletus_id)
     one_boletus = get_one_boletus(boletus_id, db=db)
     if not one_boletus:
-        print('no esta')
         raise HTTPException(status_code=400, detail=_(locale, "boletus.not_found"))
     
-    one_status_init = get_one_status_by_name('INITIADED', db=db)
-    if not one_status_init:
-        raise HTTPException(status_code=404, detail=_(locale, "status.not_found"))
+    # one_status_init = get_one_status_by_name('INITIADED', db=db)
+    # if not one_status_init:
+    #     raise HTTPException(status_code=404, detail=_(locale, "status.not_found"))
     
-    if one_boletus.status_id != one_status_init.id:
+    if one_boletus.status.name != 'INITIADED':
         raise HTTPException(status_code=404, detail=_(locale, "boletus.status_incorrect"))
 
     # cargar las boletas de las parejas para poder verificar si ya alguien gano y actualizar la info de la otra pareja
