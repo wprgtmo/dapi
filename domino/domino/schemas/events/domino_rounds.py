@@ -38,10 +38,14 @@ class DominoRoundsCreated(BaseModel):
     modality: Optional[str]
     lottery_type: Optional[str]
     
+    use_segmentation: Optional[bool]
+    use_bonus: Optional[bool]
+    use_penalty: Optional[bool]
+    
 class DominoRoundsAperture(BaseModel):
     
-    use_segmentation: Optional[str]
-    use_bonus: Optional[str]
+    use_segmentation: Optional[bool]
+    use_bonus: Optional[bool]
     amount_bonus_tables: Optional[int]
     amount_bonus_points: Optional[float]
     

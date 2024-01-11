@@ -234,13 +234,8 @@ def get_obj_info_to_aperturate(db_round, db:Session):
         new_round.amount_players_waiting = 0
         new_round.amount_players_pause, new_round.amount_players_expelled = 0, 0
         
-        # incluir el sorteo automatico o manual
-        
     else:
-        number_previous = int(db_round.round_number) -1
-        db_round_previous = get_one_by_number(number_previous, db=db)
         one_status_canceled = get_one_status_by_name('CANCELLED', db=db)
-        
         str_count = "SELECT count(id) FROM events.domino_rounds where tourney_id = '" + str(db_round.tourney.id) + "' " +\
             "and status_id != " + str(one_status_canceled.id)
         
@@ -257,6 +252,10 @@ def get_obj_info_to_aperturate(db_round, db:Session):
     new_round.status_description = db_round.status.description
     
     new_round.lottery_type = db_round.tourney.lottery_type
+    
+    new_round.use_segmentation = db_round.tourney.use_segmentation
+    new_round.use_penalty = db_round.tourney.use_penalty
+    new_round.use_bonus = db_round.tourney.use_bonus
     
     return new_round
 
