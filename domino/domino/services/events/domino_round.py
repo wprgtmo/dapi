@@ -20,7 +20,7 @@ from os import getcwd
 from domino.models.events.domino_round import DominoRounds, DominoRoundsPairs
 
 from domino.schemas.resources.result_object import ResultObject
-from domino.schemas.events.domino_rounds import DominoRoundsCreated, DominoRoundsAperture
+from domino.schemas.events.domino_rounds import DominoRoundsCreated
 
 from domino.services.resources.status import get_one_by_name as get_one_status_by_name, get_one as get_one_status
 from domino.services.resources.utils import get_result_count, upfile, create_dir, del_image, get_ext_at_file, remove_dir
@@ -220,26 +220,21 @@ def get_obj_info_to_aperturate(db_round, db:Session):
     
     new_round = DominoRoundsCreated(id=db_round.id)
     
+    new_round.round_number = db_round.round_number
+    
     new_round.amount_players_playing = calculate_amount_players_playing(db_round.tourney.id, db=db)
     new_round.amount_tables = calculate_amount_tables(db_round.tourney.id, db_round.tourney.modality, db=db)
     new_round.amount_tables_playing = calculate_amount_tables_playing(db_round.tourney.id, db=db)
     new_round.amount_categories = calculate_amount_categories(db_round.tourney.id, db=db)
     new_round.modality = db_round.tourney.modality
     
-    new_round.use_segmentation = "YES" if db_round.use_segmentation else 'NO'
-    new_round.use_bonus = "YES" if db_round.use_bonus else "NO"
-    
-    # Si el torneo no tiene categoria aunque srea la primera ronda, no puede usar segmentacion
-    
     if db_round.is_first:
-        new_round.round_number = db_round.round_number
-        new_round.is_first, new_round.is_last = db_round.is_first, False
-        new_round.can_segment, new_round.can_bonus = True if new_round.amount_categories > 0 else False, False
-
-        new_round.amount_bonus_tables, new_round.amount_bonus_points = 0, 0
         
+        new_round.is_first, new_round.is_last = db_round.is_first, False
         new_round.amount_players_waiting = 0
         new_round.amount_players_pause, new_round.amount_players_expelled = 0, 0
+        
+        # incluir el sorteo automatico o manual
         
     else:
         number_previous = int(db_round.round_number) -1
@@ -252,15 +247,7 @@ def get_obj_info_to_aperturate(db_round, db:Session):
         count_round = db.execute(str_count).fetchone()
         is_last = True if int(count_round) == int(db_round.tourney.number_rounds) else False
         
-        new_round.round_number = int(db_round.round_number)
         new_round.is_first, new_round.is_last = False, is_last
-        new_round.can_segment = True if db_round_previous.use_segmentation else False 
-        new_round.use_segmentation = 'NO'
-        
-        new_round.can_bonus = True if db_round_previous.use_bonus else False 
-        new_round.use_bonus = 'YES'
-        new_round.amount_bonus_tables = db_round_previous.use_bonus.amount_bonus_tables if new_round.can_bonus else 0
-        new_round.amount_bonus_points = db_round_previous.use_bonus.amount_bonus_points if new_round.can_bonus else 0
         
         new_round.amount_players_waiting = calculate_amount_players_by_status(db_round.tourney.id, "WAITING", db=db)
         new_round.amount_players_pause = calculate_amount_players_by_status(db_round.tourney.id, "PAUSE", db=db)

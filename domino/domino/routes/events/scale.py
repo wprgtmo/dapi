@@ -8,7 +8,7 @@ from domino.auth_bearer import JWTBearer
 from domino.schemas.events.domino_rounds import DominoManualScaleCreated, DominoAutomaticScaleCreated
 from domino.schemas.resources.result_object import ResultObject
 
-from domino.services.events.domino_scale import new_initial_manual_round
+from domino.services.events.domino_scale import new_initial_manual_round, restart_one_initial_scale
 
 dominoscale_route = APIRouter(
     tags=["Rounds"],
@@ -35,6 +35,10 @@ dominoscale_route = APIRouter(
 @dominoscale_route.post("/domino/scale/initial/manual/", response_model=ResultObject, summary="Create Initial Scale..")
 def create_initial_manual_scale(request:Request, tourney_id: str, loterry: List, db: Session = Depends(get_db)):
     return new_initial_manual_round(request=request, tourney_id=tourney_id, dominoscale=loterry, db=db)
+
+@dominoscale_route.post("/domino/scale/initial/restart/{id}", response_model=ResultObject, summary="Restart Initial Scale..")
+def restart_initial_scale(request:Request, id: str, db: Session = Depends(get_db)):
+    return restart_one_initial_scale(request=request, round_id=id, db=db)
 
 
 # @dominoscale_route.post("/domino/scale/initial/automatic/", response_model=ResultObject, summary="Create Initial Scale..")

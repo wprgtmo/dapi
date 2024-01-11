@@ -9,6 +9,7 @@ from fastapi import HTTPException
 from sqlalchemy.orm import Session
 from sqlalchemy.exc import SQLAlchemyError, IntegrityError
 from passlib.context import CryptContext
+from typing import List, Dict
 import json
 from domino.auth_bearer import decodeJWT
 from domino.functions_jwt import get_current_user
@@ -57,6 +58,28 @@ def new_initial_manual_round(request: Request, tourney_id:str, dominoscale: list
         "(Select tourney.event_id FROM events.tourney where id = '" + tourney_id + "');COMMIT;"
     db.execute(str_update)
     
+    return result
+
+def restart_one_initial_scale(request: Request, round_id:str, db: Session):
+    locale = request.headers["accept-language"].split(",")[0].split("-")[0];
+    result = ResultObject() 
+    
+    db_round = get_one_round(round_id, db=db)
+    if not db_round:
+        raise HTTPException(status_code=404, detail=_(locale, "round.not_found"))
+    
+    if db_round.status.name == 'CONFIGURATED':
+        # borrar todo lo que se configuro
+        remove_configurate_round(db_round.tourney_id, db_round.id, db=db)
+    
+        db.commit()
+    
+    # db_round_ini = get_one_round(round_id=round_id, db=db)
+    # result.data = get_obj_info_to_aperturate(db_round_ini, db) 
+    
+    return result
+
+
     return result
 
 def configure_tables_by_round(tourney_id:str, round_id: str, modality:str, created_by:str, db: Session, round_number:int=1):
@@ -716,14 +739,11 @@ def aperture_new_round(request:Request, round_id:str, round: DominoRoundsApertur
         remove_configurate_round(db_round.tourney_id, db_round.id, db=db)
     
     #guardar los valores configurados a la ronda
-    db_round.use_segmentation = True if round.use_segmentation and round.use_segmentation == 'YES' else False 
-    db_round.use_bonus = True if round.use_bonus and round.use_bonus == 'YES' else False
+    db_round.use_segmentation = True if db_round.tourney.use_segmentation and db_round.tourney.use_segmentation else False 
+    db_round.use_bonus = True if db_round.tourney.use_bonus and db_round.tourney.use_bonus else False
     if db_round.use_bonus:
-        if int(round.amount_bonus_tables) < 0 or int(round.amount_bonus_points) < 0:
-            raise HTTPException(status_code=404, detail=_(locale, "tourney.amount_bonus_tables_incorrect"))
-        
-        db_round.amount_bonus_tables = int(round.amount_bonus_tables)
-        db_round.amount_bonus_points = int(round.amount_bonus_points)
+        db_round.amount_bonus_tables = int(db_round.tourney.amount_bonus_tables)
+        db_round.amount_bonus_points = int(db_round.tourney.amount_bonus_points)
     
     # str_query = "SELECT count(tourney_id) FROM events.domino_categories where tourney_id = '" + db_round.tourney.id + "' "
     # amount = db.execute(str_query).fetchone()[0]
@@ -732,7 +752,7 @@ def aperture_new_round(request:Request, round_id:str, round: DominoRoundsApertur
     
     if db_round.is_first:
         # sino usas las categorias en la primera, borro si tiene configuradas y creo una por defecto.
-        if round.use_bonus and round.use_bonus == 'YES':
+        if db_round.tourney.use_segmentation:
             # validar todas las categorias estén contempladas entre los elo de los jugadores.
             lst_category = get_lst_categories_of_tourney(tourney_id=db_round.tourney.id, db=db)
             if not verify_category_is_valid(float(db_round.tourney.elo_max), float(db_round.tourney.elo_min), lst_category=lst_category):
@@ -762,19 +782,6 @@ def aperture_new_round(request:Request, round_id:str, round: DominoRoundsApertur
     
     db.commit()
     
-    # try:
-    #     configure_new_rounds(
-    #         tourney_id=tourney_id, summary='', db=db, created_by=currentUser['username'], round_number=info_round.round_number,
-    #         is_first=info_round.is_first, is_last=info_round.is_last, use_segmentation=round.use_segmentation, 
-    #         use_bonus=round.use_bonus, amount_bonus_tables=round.amount_bonus_tables, amount_bonus_points=round.amount_bonus_points,
-    #         amount_tables=info_round.amount_tables, amount_categories=info_round.amount_categories, 
-    #         amount_players_playing=info_round.amount_players_playing, amount_players_waiting=info_round.amount_players_waiting,
-    #         amount_players_pause=info_round.amount_players_pause, amount_players_expelled=info_round.amount_players_expelled)
-    #     return result
-    
-    # except (Exception, SQLAlchemyError, IntegrityError) as e:
-    #     raise HTTPException(status_code=404, detail=_(locale, "round.error_started_round"))
-
     db_round_ini = get_one_round(round_id=round_id, db=db)
     result.data = get_obj_info_to_aperturate(db_round_ini, db) 
     

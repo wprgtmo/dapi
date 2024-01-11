@@ -17,18 +17,11 @@ class DominoAutomaticScaleCreated(BaseModel):
     max: float
     
 class DominoRoundsCreated(BaseModel):
+    
     id: Optional[str]
     round_number: Optional[int]
     is_first: Optional[bool]
     is_last: Optional[bool]
-    
-    can_segment: Optional[bool]
-    use_segmentation: Optional[str]
-    
-    can_bonus: Optional[bool]
-    use_bonus: Optional[str]
-    amount_bonus_tables: Optional[int]
-    amount_bonus_points: Optional[float]
     
     amount_tables: Optional[int]
     amount_tables_playing: Optional[int]
@@ -52,4 +45,4 @@ class DominoRoundsAperture(BaseModel):
     amount_bonus_tables: Optional[int]
     amount_bonus_points: Optional[float]
     
-    lottery: list
+    lottery: Optional[list]

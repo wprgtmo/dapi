@@ -415,7 +415,7 @@ def get_all_players_by_category(request:Request, page: int, per_page: int, categ
     result.data = [create_dict_row(item, page, db=db, api_uri=api_uri) for item in lst_data]
     
     return result
-  
+
 def get_all_players_by_tourney(request:Request, page: int, per_page: int, tourney_id: str, 
                                criteria_key: str, criteria_value: str, player_name: str, db: Session):  
     locale = request.headers["accept-language"].split(",")[0].split("-")[0];

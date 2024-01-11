@@ -170,8 +170,8 @@ def configure_one_tourney(request, tourney_id: str, settingtourney: SettingTourn
     if settingtourney.points_penalty_red and db_tourney.points_penalty_red != int(settingtourney.points_penalty_red):
         db_tourney.points_penalty_red = int(settingtourney.points_penalty_red)
         
-    if settingtourney.constant_increase_ELO and db_tourney.constant_increase_ELO != float(settingtourney.constant_increase_ELO):
-        db_tourney.constant_increase_ELO = int(settingtourney.constant_increase_ELO)
+    if settingtourney.constant_increase_ELO and db_tourney.constant_increase_elo != float(settingtourney.constant_increase_ELO):
+        db_tourney.constant_increase_elo = int(settingtourney.constant_increase_ELO)
     
     use_bonus = True if settingtourney.use_bonus and settingtourney.use_bonus == True else False
     if db_tourney.use_bonus != use_bonus:
@@ -179,8 +179,12 @@ def configure_one_tourney(request, tourney_id: str, settingtourney: SettingTourn
         
     if use_bonus:
         if settingtourney.amount_bonus_tables and db_tourney.amount_bonus_tables != int(settingtourney.amount_bonus_tables):
+            if int(settingtourney.amount_bonus_tables) < 0 < 0:
+                raise HTTPException(status_code=404, detail=_(locale, "tourney.amount_bonus_tables_incorrect"))
             db_tourney.amount_bonus_tables = int(settingtourney.amount_bonus_tables)
         if settingtourney.amount_bonus_points and db_tourney.amount_bonus_points != int(settingtourney.amount_bonus_points):
+            if int(settingtourney.amount_bonus_points) < 0:
+                raise HTTPException(status_code=404, detail=_(locale, "tourney.amount_bonus_tables_incorrect"))
             db_tourney.amount_bonus_points = int(settingtourney.amount_bonus_points)
             
     if settingtourney.round_ordering_one and db_tourney.round_ordering_one != str(settingtourney.round_ordering_one):
@@ -203,16 +207,16 @@ def configure_one_tourney(request, tourney_id: str, settingtourney: SettingTourn
     if not db_tourney.event_ordering_one or not db_tourney.event_ordering_two or not db_tourney.event_ordering_three:
         raise HTTPException(status_code=404, detail=_(locale, "tourney.event_ordering_incorrect"))
     
-    if db_tourney.name != str(settingtourney.amount_smart_tables):
-        db_tourney.name = str(settingtourney.amount_smart_tables)
+    if settingtourney.name and db_tourney.name != str(settingtourney.name):
+        db_tourney.name = str(settingtourney.name)
         
-    if db_tourney.summary != str(settingtourney.summary):
+    if settingtourney.summary and db_tourney.summary != str(settingtourney.summary):
         db_tourney.summary = str(settingtourney.summary)
         
-    if db_tourney.start_date != settingtourney.start_date:
+    if settingtourney.start_date and db_tourney.start_date != settingtourney.start_date:
         db_tourney.start_date = settingtourney.start_date
         
-    if db_tourney.number_rounds != int(settingtourney.number_rounds):
+    if settingtourney.number_rounds and db_tourney.number_rounds != int(settingtourney.number_rounds):
         db_tourney.number_rounds = int(settingtourney.number_rounds)
         
     db_tourney.updated_by=currentUser['username']
