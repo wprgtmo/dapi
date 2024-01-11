@@ -796,13 +796,14 @@ def verify_category_is_valid(elo_max: float, elo_min: float, lst_category: list)
     current_elo_min = float(elo_min)
     
     for item in lst_category:
-        if current_elo_max !=  float(item['elo_max']):
+        if str(float(current_elo_max)) !=  str(float(item['elo_max'])):
             return False
         else:
-            current_elo_max = float(item['elo_min']) - 1 
+            current_elo_max = float(float(item['elo_min']) - 1) 
             current_elo_min = float(item['elo_min'])
     
-    if current_elo_min != float(elo_min) and current_elo_min < elo_min:
+    # if str(float(current_elo_min)) != str(float(elo_min)) and current_elo_min < elo_min:
+    if current_elo_min < elo_min:
         return False
     
     return True

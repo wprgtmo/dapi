@@ -419,7 +419,7 @@ def get_lst_categories_of_tourney(tourney_id: str, db: Session):
     lst_categories = []
     
     str_query = "SELECT id, category_number, position_number, elo_min, elo_max, amount_players " +\
-        "FROM events.domino_categories WHERE by_default is False and tourney_id = '" + tourney_id + "' Order by position_number "
+        "FROM events.domino_categories WHERE by_default is False and tourney_id = '" + tourney_id + "' Order by elo_max DESC "
         
     lst_all_category = db.execute(str_query).fetchall()
     for item in lst_all_category:
@@ -542,13 +542,16 @@ def insert_categories_tourney(request, tourney_id: str, categories: DominoCatego
         lst_info = db.execute(str_delete)
     else:
         if elo_min and categories.elo_max >= elo_min:
-                raise HTTPException(status_code=404, detail=_(locale, "tourney.elo_max_incorrect"))
+            raise HTTPException(status_code=404, detail=_(locale, "tourney.elo_max_incorrect"))
     
     status_canc = get_one_status_by_name('CANCELLED', db=db)    
     str_query = "SELECT count(player.id) FROM events.players player WHERE status_id != " + str(status_canc.id)
     str_query += " AND player.tourney_id = '" + tourney_id + "' "  +\
         "AND player.elo >= " + str(categories.elo_min) + " AND player.elo <= " + str(categories.elo_max)
     amount_players = db.execute(str_query).fetchone()[0]
+    
+    if amount_players <= 1:
+        raise HTTPException(status_code=404, detail=_(locale, "tourney.category_not_player"))
     
     position_number += 1
     db_one_category = DominoCategory(id=str(uuid.uuid4()), tourney_id=tourney_id, category_number=categories.category_number,

@@ -353,6 +353,11 @@ def get_all_players_by_category(request:Request, page: int, per_page: int, categ
         if not db_tourney:
             raise HTTPException(status_code=404, detail=_(locale, "tourney.not_found"))
     
+    # buscar la ultima ronda del torneo y en dependecia de su estado saco de una tabla o de la otra...
+    lst_round = get_last_by_tourney(tourney_id, db=db)
+    
+    round_config = False if lst_round.status.name == "CREATED" else True
+     
     str_from = "FROM events.players player " +\
         "inner join enterprise.profile_member pro ON pro.id = player.profile_id " +\
         "left join resources.city ON city.id = pro.city_id " + \
@@ -360,10 +365,10 @@ def get_all_players_by_category(request:Request, page: int, per_page: int, categ
         "join resources.entities_status sta ON sta.id = player.status_id "
     
     # tourney_is_init = True if dict_result['status_name'] == 'INITIADED' or dict_result['status_name'] == 'FINALIZED' else False
-    status_name_find = dict_result['status_name'] if dict_result else db_tourney.status.name
+    # status_name_find = dict_result['status_name'] if dict_result else db_tourney.status.name
     
-    tourney_is_init = True if status_name_find != 'CREATED' else False
-    if tourney_is_init:
+    # tourney_is_init = True if status_name_find != 'CREATED' else False
+    if round_config:
         str_from += "LEFT JOIN events.domino_rounds_scale rscale ON rscale.player_id = player.id "   
     
     str_count = "Select count(*) " + str_from
@@ -371,17 +376,17 @@ def get_all_players_by_category(request:Request, page: int, per_page: int, categ
         "city.name as city_name, country.name as country_name, player.level, player.elo, player.ranking, " +\
         "sta.id as status_id, sta.name as status_name, sta.description as status_description "  
         
-    if tourney_is_init:
+    if round_config:
         str_query += ", rscale.position_number " 
     else:
-        str_query += ", player.elo " 
+        str_query += ", player.elo, '' as position_number " 
 
     str_query += str_from
     
     str_where = "WHERE pro.is_ready is True AND sta.name not in ('CANCELLED', 'EXPELLED') " 
     str_where += " AND player.tourney_id = '" + tourney_id + "' " 
     
-    if tourney_is_init:
+    if round_config:
         str_where += " AND rscale.category_id = '" + category_id + "' " if category_id else ""
     else:
         str_where += "AND player.elo >= " + str(dict_result['elo_min']) + " AND player.elo <= " + str(dict_result['elo_max']) if category_id else ""
@@ -391,7 +396,6 @@ def get_all_players_by_category(request:Request, page: int, per_page: int, categ
         raise HTTPException(status_code=404, detail=_(locale, "commun.invalid_param"))
     else:
         if criteria_key == 'username' and criteria_value:
-            # str_where += "AND pro.id IN (Select profile_id from enterprise.profile_users WHERE username ilike '%" + str(criteria_value) + "%')"
             str_where += "AND pro.name ilike '%" + str(criteria_value) + "%'"
     
     str_count += str_where
@@ -402,7 +406,7 @@ def get_all_players_by_category(request:Request, page: int, per_page: int, categ
     
     result = get_result_count(page=page, per_page=per_page, str_count=str_count, db=db)
     
-    if tourney_is_init:
+    if round_config:
         str_query += " ORDER BY rscale.position_number ASC "
     else:
         str_query += " ORDER BY player.elo DESC "  
@@ -411,7 +415,6 @@ def get_all_players_by_category(request:Request, page: int, per_page: int, categ
         str_query += "LIMIT " + str(per_page) + " OFFSET " + str(page*per_page-per_page)
     
     lst_data = db.execute(str_query)
-    print(str_query)
     result.data = [create_dict_row(item, page, db=db, api_uri=api_uri) for item in lst_data]
     
     return result
@@ -482,7 +485,7 @@ def create_dict_row(item, page, db: Session, api_uri):
                'photo' : image, 'elo': item['elo'], 'ranking': item['ranking'], 'level': item['level'],
                'status_name': item['status_name'], 'status_description': item['status_description'],
                'status_id': item['status_id'], 
-               'position_number': item.position_number if 'position_number' in item and item.position_number else ''}
+               'position_number': item.position_number}
    
     return new_row
 
