@@ -597,6 +597,9 @@ def update_info_pairs(pair_win_id: str, pair_lost_id: str,  total_point: int, db
 
 def update_wind_pair(win_pair, scale_player_win_one, scale_player_win_two, elo_win_pair, elo_lost_pair, positive_point:int, db: Session):
     
+    # elo_Ra: Elo de la pareja
+    # elo_R: Elo de la pareja contrataria.
+      
     if scale_player_win_one:
         scale_player_win_one.games_played = scale_player_win_one.games_played + 1 if scale_player_win_one.games_played else 1
         scale_player_win_one.games_won = scale_player_win_one.games_won + 1 if scale_player_win_one.games_won else 1
