@@ -25,6 +25,7 @@ from domino.services.events.domino_boletus import get_one as get_one_boletus
 from domino.services.events.domino_scale import update_info_pairs, close_round_with_verify
 from domino.services.resources.status import get_one_by_name as get_one_status_by_name
 from domino.services.resources.utils import get_result_count
+from domino.services.events.domino_round import calculate_amount_rounds_played
 
 def get_all_data_by_boletus(request:Request, page: int, per_page: int, boletus_id: str, db: Session):  
     
@@ -107,10 +108,6 @@ def new_data(request: Request, boletus_id:str, dominodata: DominoDataCreated, db
     if not one_boletus:
         raise HTTPException(status_code=400, detail=_(locale, "boletus.not_found"))
     
-    # one_status_init = get_one_status_by_name('INITIADED', db=db)
-    # if not one_status_init:
-    #     raise HTTPException(status_code=404, detail=_(locale, "status.not_found"))
-    
     if one_boletus.status.name != 'INITIADED':
         raise HTTPException(status_code=404, detail=_(locale, "boletus.status_incorrect"))
 
@@ -144,8 +141,10 @@ def new_data(request: Request, boletus_id:str, dominodata: DominoDataCreated, db
         pair_win.negative_points = lost_pair.positive_points
         lost_pair.negative_points = pair_win.positive_points
         pair_win.is_winner = True
+        
+        acumulated_games_played = calculate_amount_rounds_played(one_boletus.tourney_id, db=db)
             
-        update_info_pairs(pair_win.pairs_id, lost_pair.pairs_id, dominodata.point, db=db)
+        update_info_pairs(pair_win, lost_pair, acumulated_games_played, one_boletus.tourney.constant_increase_elo, db=db)
         
         one_status_review = get_one_status_by_name('REVIEW', db=db)
         one_status_end = get_one_status_by_name('FINALIZED', db=db)

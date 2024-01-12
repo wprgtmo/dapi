@@ -31,6 +31,7 @@ class DominoBoletus(Base):
     
     rounds = relationship('DominoRounds')
     tables = relationship('DominoTables')
+    status = relationship("StatusElement")
     
     def dict(self):
         return {

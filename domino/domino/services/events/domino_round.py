@@ -216,6 +216,16 @@ def get_info_to_aperture(request:Request, round_id:str, db:Session):
      
     return result
 
+def calculate_amount_rounds_played(tourney_id, db: Session):
+    
+    one_status_canceled = get_one_status_by_name('CANCELLED', db=db)
+    str_count = "SELECT count(id) FROM events.domino_rounds where tourney_id = '" + str(tourney_id) + "' " +\
+        "and status_id != " + str(one_status_canceled.id)
+        
+    count_round = db.execute(str_count).fetchone()[0]
+    
+    return count_round
+
 def get_obj_info_to_aperturate(db_round, db:Session):
     
     new_round = DominoRoundsCreated(id=db_round.id)
@@ -235,11 +245,7 @@ def get_obj_info_to_aperturate(db_round, db:Session):
         new_round.amount_players_pause, new_round.amount_players_expelled = 0, 0
         
     else:
-        one_status_canceled = get_one_status_by_name('CANCELLED', db=db)
-        str_count = "SELECT count(id) FROM events.domino_rounds where tourney_id = '" + str(db_round.tourney.id) + "' " +\
-            "and status_id != " + str(one_status_canceled.id)
-        
-        count_round = db.execute(str_count).fetchone()
+        count_round = calculate_amount_rounds_played(db_round.tourney.id, db=db)
         is_last = True if int(count_round) == int(db_round.tourney.number_rounds) else False
         
         new_round.is_first, new_round.is_last = False, is_last

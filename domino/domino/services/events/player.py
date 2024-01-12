@@ -276,10 +276,7 @@ def get_all_players_by_elo(request:Request, page: int, per_page: int, tourney_id
     str_count = "Select count(*) " + str_from
     str_query = "SELECT players.id, pro.name as name, pro.photo, pro.id as profile_id, " +\
         "city.name as city_name, country.name as country_name, player.level, player.elo, " +\
-        "player.ranking, player.ranking position_number, sta.id as status_id, " +\
-        "sta.name as status_name, sta.description as status_description  " + str_from
-        
-    str_where = "WHERE pro.is_ready is True AND status_id != " + str(status_canc.id) 
+        "player.ranking,get_one_by_namero.is_ready is True AND status_id != " + str(status_canc.id) 
     str_where += " AND player.tourney_id = '" + tourney_id + "' "  +\
         "AND player.elo >= " + str(min_elo) + " AND player.elo <= " + str(max_elo)
     
@@ -492,6 +489,8 @@ def create_dict_row(item, page, db: Session, api_uri):
 def get_one_by_invitation_id(invitation_id: str, db: Session):  
     return db.query(Players).filter(Players.invitation_id == invitation_id).first()
 
+def get_one(id: str, db: Session):  
+    return db.query(Players).filter(Players.id == id).first()
 
 def created_all_players(request:Request, tourney_id:str, db: Session):
     locale = request.headers["accept-language"].split(",")[0].split("-")[0];

@@ -29,15 +29,16 @@ from domino.services.resources.utils import get_result_count, upfile, create_dir
 from domino.services.enterprise.userprofile import get_one as get_one_profile
 from domino.services.enterprise.auth import get_url_avatar
 
-from domino.services.events.player import get_lst_id_player_by_elo, change_status_player_at_init_round
+from domino.services.events.player import get_lst_id_player_by_elo, change_status_player_at_init_round, get_one as get_one_player
 from domino.services.events.domino_round import get_one as get_one_round, get_first_by_tourney, configure_rounds, configure_new_rounds, \
-    get_obj_info_to_aperturate, remove_configurate_round
+    get_obj_info_to_aperturate, remove_configurate_round, calculate_amount_rounds_played
     
 from domino.services.events.domino_boletus import created_boletus_for_round
 from domino.services.enterprise.auth import get_url_advertising
 from domino.services.events.tourney import get_lst_categories_of_tourney, create_category_by_default
 
-from domino.services.events.calculation_serv import calculate_new_elo
+from domino.services.events.calculation_serv import calculate_new_elo, calculate_score_expected, calculate_score_obtained, \
+    calculate_increasing_constant
     
 def new_initial_manual_round(request: Request, tourney_id:str, dominoscale: list[DominoManualScaleCreated], db: Session):
     locale = request.headers["accept-language"].split(",")[0].split("-")[0];
@@ -542,7 +543,7 @@ def get_info_of_boletus_pair(boletus_id: str, api_uri: str, db: Session):
         "dbpair.is_winner, sca_one.elo elo_one, sca_two.elo elo_two, pmone.name name_one, pmtwo.name name_two, " +\
         "pmone.photo photo_one, pmtwo.photo photo_two, pmone.id profile_id_one, pmtwo.id profile_id_two " +\
         "from events.domino_boletus_pairs dbpair " +\
-        "join events.domino_boletus dbol ON dbol.id = dbpair.boletus_id " +\
+        "joincalculate_amount_rounds_played(db_round.tourney.id, db=db) events.domino_boletus dbol ON dbol.id = dbpair.boletus_id " +\
         "join events.domino_rounds_pairs dpair ON dpair.id = dbpair.pairs_id " +\
         "join events.domino_rounds_scale sca_one ON sca_one.id = dpair.scale_id_one_player " +\
         "join events.domino_rounds_scale sca_two ON sca_two.id = dpair.scale_id_two_player " +\
@@ -575,73 +576,70 @@ def get_one_round_pair(id: str, db: Session):
 def get_one_round_scale(id: str, db: Session):  
     return db.query(DominoRoundsScale).filter(DominoRoundsScale.id == id).first()
 
-def update_info_pairs(pair_win_id: str, pair_lost_id: str,  total_point: int, db: Session):
+def update_info_pairs(boletus_pair_win, boletus_pair_lost,  acumulated_games_played: int, constant_increase_elo:float, db: Session):
     
-    win_pair = get_one_round_pair(pair_win_id, db=db)
-    lost_pair = get_one_round_pair(pair_lost_id, db=db)
+    # actualizar los datos de la pareja ganadora en Round_pair
+    round_win_pair = get_one_round_pair(boletus_pair_win.pairs_id, db=db)
+    round_lost_pair = get_one_round_pair(boletus_pair_lost.pairs_id, db=db)
 
-    scale_player_win_one = get_one_round_scale(win_pair.scale_id_one_player, db=db) if win_pair.scale_id_one_player else None
-    scale_player_win_two = get_one_round_scale(win_pair.scale_id_two_player, db=db) if win_pair.scale_id_two_player else None
+    scale_player_win_one = get_one_round_scale(round_win_pair.scale_id_one_player, db=db) 
+    scale_player_win_two = get_one_round_scale(round_win_pair.scale_id_two_player, db=db)
     
-    scale_player_lost_one = get_one_round_scale(win_pair.scale_id_one_player, db=db) if win_pair.scale_id_one_player else None
-    scale_player_lost_two = get_one_round_scale(win_pair.scale_id_two_player, db=db) if win_pair.scale_id_two_player else None
+    scale_player_lost_one = get_one_round_scale(round_lost_pair.scale_id_one_player, db=db)
+    scale_player_lost_two = get_one_round_scale(round_lost_pair.scale_id_two_player, db=db)
     
-    elo_win_pair = scale_player_lost_one.elo if scale_player_lost_one else 0 + scale_player_lost_two.elo if scale_player_lost_two else 0
-    elo_lost_pair = scale_player_lost_one.elo if scale_player_lost_one else 0 + scale_player_lost_two.elo if scale_player_lost_two else 0
+    player_win_one = get_one_player(scale_player_win_one.player_id, db=db) 
+    player_win_two = get_one_player(scale_player_win_two.player_id, db=db)
     
-    update_wind_pair(win_pair, scale_player_win_one, scale_player_win_two, elo_win_pair, elo_lost_pair, positive_point=total_point, db=db)
+    player_lost_one = get_one_player(scale_player_lost_one.player_id, db=db)
+    player_lost_two = get_one_player(scale_player_lost_two.player_id, db=db)
     
-    update_lost_pair(lost_pair, scale_player_lost_one, scale_player_lost_two, elo_win_pair, elo_lost_pair, negative_point=total_point, db=db)
+    round_win_pair.elo_pair = round((player_win_one.elo + player_win_two.elo) / 2, 4)
+    round_lost_pair.elo_pair = round((player_lost_one.elo + player_lost_two.elo) / 2, 4)
+    
+    round_win_pair.elo_pair_opposing = round_lost_pair.elo_pair
+    round_lost_pair.elo_pair_opposing = round_win_pair.elo_pair
+    
+    round_win_pair.bonus_points = 0
+    round_lost_pair.bonus_points = 0
+    
+    #Este dato tengo que preguntarlo como sacarlpo
+    # acumulated_games_played este dato por ahora voy a coger la cantidad de juegos, osea, coincide con las cant. de rondas
+    
+    round_win_pair.acumulated_games_played = acumulated_games_played
+    round_lost_pair.acumulated_games_played = acumulated_games_played
+    
+    update_data_round_pair(boletus_pair_win, round_win_pair, round_lost_pair.elo_pair, constant_increase_elo, db=db)
+    update_data_round_pair(boletus_pair_lost, round_lost_pair, round_win_pair.elo_pair, constant_increase_elo, db=db)
+    
+    # actualizar los datos de la escala de la pareja
+    
+    # actualizar los datos de los jugadores de cada pareja
+    
+    db.commit()
     
     return True
 
-def update_wind_pair(win_pair, scale_player_win_one, scale_player_win_two, elo_win_pair, elo_lost_pair, positive_point:int, db: Session):
+def update_data_round_pair(boletus_pair, round_pair, elo_pair_opposing, constant_increase_elo: float, db: Session):
     
-    # elo_Ra: Elo de la pareja
-    # elo_R: Elo de la pareja contrataria.
-      
-    if scale_player_win_one:
-        scale_player_win_one.games_played = scale_player_win_one.games_played + 1 if scale_player_win_one.games_played else 1
-        scale_player_win_one.games_won = scale_player_win_one.games_won + 1 if scale_player_win_one.games_won else 1
-        scale_player_win_one.games_lost = scale_player_win_one.games_lost if scale_player_win_one.games_lost else 0
-        scale_player_win_one.points_positive = scale_player_win_one.points_positive + positive_point if scale_player_win_one.points_positive \
-            else positive_point
-        scale_player_win_one.points_negative = scale_player_win_one.points_negative + 0 if scale_player_win_one.points_negative \
-            else 0
-        scale_player_win_one.points_difference = scale_player_win_one.points_positive - scale_player_win_one.points_negative
+    round_pair.games_won = 1 if boletus_pair.is_winner else 0
+    round_pair.games_lost = 1 if not boletus_pair.is_winner else 0
+    
+    round_pair.points_positive = boletus_pair.positive_points if boletus_pair.positive_points else 0
+    round_pair.points_negative = boletus_pair.negative_points if boletus_pair.negative_points else 0
+    round_pair.points_difference = boletus_pair.positive_points - boletus_pair.negative_points
+    
+    round_pair.score_expected = calculate_score_expected(round_pair.elo_pair, elo_pair_opposing)
+    round_pair.score_obtained = calculate_score_obtained(round_pair.acumulated_games_played, round_pair.points_difference)
+    
+    round_pair.k_value = calculate_increasing_constant(constant_increase_elo, round_pair.acumulated_games_played)
+    
+    round_pair.elo_current = calculate_new_elo(
+        round_pair.k_value, round_pair.acumulated_games_played, round_pair.score_expected, round_pair.score_obtained)  
+    round_pair.elo_at_end = round_pair.elo_pair + round_pair.elo_current
         
-        scale_player_win_one.elo_variable = calculate_new_elo(
-            scale_player_win_one.elo, scale_player_win_one.games_played, scale_player_win_one.points_positive, 
-            scale_player_win_one.points_negative, True, elo_win_pair, elo_lost_pair)
-        
-        db.add(scale_player_win_one)
-            
-    if win_pair.scale_id_two_player:
-        scale_player_win_two = get_one_round_scale(win_pair.scale_id_two_player, db=db)
-        if scale_player_win_two:
-            scale_player_win_two.games_played = scale_player_win_two.games_played + 1 if scale_player_win_two.games_played else 1
-            scale_player_win_two.games_won = scale_player_win_two.games_won + 1 if scale_player_win_two.games_won else 1
-            scale_player_win_one.games_lost = scale_player_win_two.games_lost if scale_player_win_two.games_lost else 0
-            scale_player_win_two.points_positive = scale_player_win_two.points_positive + positive_point if scale_player_win_two.points_positive \
-                else positive_point
-            scale_player_win_two.points_negative = scale_player_win_two.points_negative + 0 if scale_player_win_two.points_negative \
-                else 0
-            scale_player_win_two.points_difference = scale_player_win_two.points_positive - scale_player_win_two.points_negative
-            scale_player_win_two.elo_variable = calculate_elo(positive_point, scale_player_win_two.elo)
-            
-            scale_player_win_two.elo_variable = calculate_new_elo(
-            scale_player_win_two.elo, scale_player_win_two.games_played, scale_player_win_two.points_positive, 
-            scale_player_win_two.points_negative, True, elo_win_pair, elo_lost_pair)
-            
-            db.add(scale_player_win_two)
-    
-    try:
-        db.commit()
-        return TraceLotteryManual
-       
-    except (Exception, SQLAlchemyError, IntegrityError) as e:
-        return False
-    
+    return True
+
 def update_lost_pair(lost_pair, scale_player_lost_one, scale_player_lost_two, elo_win_pair, elo_lost_pair, negative_point:int, db: Session):
     
     if lost_pair.scale_id_one_player:

@@ -121,6 +121,22 @@ class DominoRoundsPairs(Base):
     scale_id_one_player = Column(String) 
     scale_id_two_player = Column(String) 
     
+    games_won = Column(Integer)
+    games_lost = Column(Integer)
+    points_positive = Column(Integer)
+    points_negative = Column(Integer)
+    points_difference = Column(Integer)
+    
+    score_expected = Column(Float)
+    score_obtained = Column(Float)
+    elo_pair = Column(Float)
+    elo_pair_opposing = Column(Float)
+    acumulated_games_played = Column(Integer)
+    k_value = Column(Float)
+    elo_current = Column(Float)
+    elo_at_end = Column(Float)
+    bonus_points = Column(Float)
+    
     def dict(self):
         return {
             "tourney_id": self.tourney_id,
