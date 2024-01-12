@@ -207,10 +207,14 @@ def close_data_by_time(request: Request, boletus_id:str, db: Session):
         else:
             pair_two = item
     
-    if pair_one.postive_points == pair_two.positive_points: # estan empatados, no se puede cerrar
+    if not pair_one.positive_points and not pair_two.positive_points:
         raise HTTPException(status_code=404, detail=_(locale, "boletus.equal_positive_points"))
+        
+    if pair_one.positive_points and pair_two.positive_points:
+        if pair_one.postive_points == pair_two.positive_points: # estan empatados, no se puede cerrar
+            raise HTTPException(status_code=404, detail=_(locale, "boletus.equal_positive_points"))
     
-    if pair_one.postive_points > pair_two.positive_points:
+    if pair_one.positive_points > pair_two.positive_points:
         pair_win = pair_one 
         pair_lost = pair_two
     else:
