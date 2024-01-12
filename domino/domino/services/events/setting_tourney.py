@@ -27,7 +27,7 @@ from domino.services.events.domino_boletus import created_boletus_for_round
 
 from domino.services.events.domino_table import created_tables_default
 from domino.services.events.domino_round import created_round_default, remove_configurate_round, get_last_by_tourney
-from domino.services.events.domino_scale import configure_automatic_lottery, update_elo_initial_scale
+from domino.services.events.domino_scale import configure_automatic_lottery, update_elo_initial_scale, aperture_new_round
 from domino.services.events.invitations import get_amount_invitations_by_tourney
 
 from domino.services.events.tourney import get_one as get_one_tourney, calculate_amount_tables, \
@@ -283,7 +283,10 @@ def update_initializes_tourney(db_tourney, locale, db:Session):
     else:
         create_category_by_default(db_tourney.id, elo_max, elo_min, amount_players=0, db=db)
     
-    #pasar todos los jugadores que estén en estado jugando o en espera a confirmados para que vuelva a empezar la distribución.
+    # si el sorteo es automático, ya debo crear la primera distribución.
+    if db_tourney.lottery_type == "AUTOMATIC":
+        aperture_new_round(round_id=db_round_ini.id)
+    
     # try:
     
     return True
