@@ -228,7 +228,6 @@ def close_data_by_time(request: Request, boletus_id:str, db: Session):
     pair_lost.negative_points = pair_win.positive_points
     pair_win.is_winner = True
         
-    # update_info_pairs(pair_win.pairs_id, pair_lost.pairs_id, 0, db=db)
     acumulated_games_played = calculate_amount_rounds_played(one_boletus.tourney_id, db=db)
     update_info_pairs(pair_win, pair_lost, acumulated_games_played, one_boletus.tourney.constant_increase_elo, db=db)
     

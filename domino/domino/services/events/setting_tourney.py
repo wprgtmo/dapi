@@ -129,11 +129,12 @@ def configure_one_tourney(request, tourney_id: str, settingtourney: SettingTourn
         else:
             db_tourney.amount_smart_tables = settingtourney.amount_smart_tables
     
+    if int(settingtourney.number_points_to_win) <= 0:
+        raise HTTPException(status_code=404, detail=_(locale, "tourney.numberpoints_towin_incorrect"))
+        
     if settingtourney.number_points_to_win and db_tourney.number_points_to_win != int(settingtourney.number_points_to_win):
         if db_tourney.status.name not in ('CREATED', 'CONFIGURATED'):
             raise HTTPException(status_code=404, detail=_(locale, "tourney.status_incorrect"))
-        if int(settingtourney.number_points_to_win) <= 0:
-            raise HTTPException(status_code=404, detail=_(locale, "tourney.numberpoints_towin_incorrect"))
         db_tourney.number_points_to_win = int(settingtourney.number_points_to_win)
         
     if settingtourney.time_to_win and db_tourney.time_to_win != int(settingtourney.time_to_win):
