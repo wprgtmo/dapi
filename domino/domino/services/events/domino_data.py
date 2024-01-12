@@ -211,7 +211,7 @@ def close_data_by_time(request: Request, boletus_id:str, db: Session):
         raise HTTPException(status_code=404, detail=_(locale, "boletus.equal_positive_points"))
         
     if pair_one.positive_points and pair_two.positive_points:
-        if pair_one.postive_points == pair_two.positive_points: # estan empatados, no se puede cerrar
+        if pair_one.positive_points == pair_two.positive_points: # estan empatados, no se puede cerrar
             raise HTTPException(status_code=404, detail=_(locale, "boletus.equal_positive_points"))
     
     if pair_one.positive_points > pair_two.positive_points:
@@ -228,7 +228,9 @@ def close_data_by_time(request: Request, boletus_id:str, db: Session):
     pair_lost.negative_points = pair_win.positive_points
     pair_win.is_winner = True
         
-    update_info_pairs(pair_win.pairs_id, pair_lost.pairs_id, 0, db=db)
+    # update_info_pairs(pair_win.pairs_id, pair_lost.pairs_id, 0, db=db)
+    acumulated_games_played = calculate_amount_rounds_played(one_boletus.tourney_id, db=db)
+    update_info_pairs(pair_win, pair_lost, acumulated_games_played, one_boletus.tourney.constant_increase_elo, db=db)
     
     one_status_review = get_one_status_by_name('REVIEW', db=db)
     one_status_end = get_one_status_by_name('FINALIZED', db=db)
