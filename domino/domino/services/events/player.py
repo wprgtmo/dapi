@@ -410,13 +410,15 @@ def get_all_players_by_category(request:Request, page: int, per_page: int, categ
     if round_config:
         str_query += " ORDER BY rscale.position_number ASC "
     else:
-        str_query += " ORDER BY player.elo DESC "  
+        str_query += " ORDER BY player.elo DESC, pro.name ASC "  
     
     if page != 0:
         str_query += "LIMIT " + str(per_page) + " OFFSET " + str(page*per_page-per_page)
     
     lst_data = db.execute(str_query)
     result.data = [create_dict_row(item, page, db=db, api_uri=api_uri) for item in lst_data]
+    print(str_query)
+    print('****************')
     
     return result
 
