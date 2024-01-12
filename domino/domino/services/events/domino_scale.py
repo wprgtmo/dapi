@@ -543,7 +543,7 @@ def get_info_of_boletus_pair(boletus_id: str, api_uri: str, db: Session):
         "dbpair.is_winner, sca_one.elo elo_one, sca_two.elo elo_two, pmone.name name_one, pmtwo.name name_two, " +\
         "pmone.photo photo_one, pmtwo.photo photo_two, pmone.id profile_id_one, pmtwo.id profile_id_two " +\
         "from events.domino_boletus_pairs dbpair " +\
-        "joincalculate_amount_rounds_played(db_round.tourney.id, db=db) events.domino_boletus dbol ON dbol.id = dbpair.boletus_id " +\
+        "join events.domino_boletus dbol ON dbol.id = dbpair.boletus_id " +\
         "join events.domino_rounds_pairs dpair ON dpair.id = dbpair.pairs_id " +\
         "join events.domino_rounds_scale sca_one ON sca_one.id = dpair.scale_id_one_player " +\
         "join events.domino_rounds_scale sca_two ON sca_two.id = dpair.scale_id_two_player " +\
