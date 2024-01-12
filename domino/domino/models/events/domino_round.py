@@ -85,6 +85,13 @@ class DominoRoundsScale(Base):
     is_active = Column(Boolean, nullable=False, default=True)
     category_id = Column(String)
     
+    score_expected = Column(Float)
+    score_obtained = Column(Float)
+    acumulated_games_played = Column(Integer)
+    k_value = Column(Float)
+    elo_at_end = Column(Float)
+    bonus_points = Column(Float)
+    
     def dict(self):
         return {
             "id": self.id,

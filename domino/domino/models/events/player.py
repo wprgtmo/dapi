@@ -33,6 +33,20 @@ class Players(Base):
     
     status_id  = Column(Integer, ForeignKey("resources.entities_status.id"), nullable=False)
     
+    games_played = Column(Integer)
+    games_won = Column(Integer)
+    games_lost = Column(Integer)
+    points_positive = Column(Integer)
+    points_negative = Column(Integer)
+    points_difference = Column(Integer)
+    
+    score_expected = Column(Float)
+    score_obtained = Column(Float)
+    k_value = Column(Float)
+    elo_current = Column(Float)
+    elo_at_end = Column(Float)
+    bonus_points = Column(Float)
+    
     tourney = relationship('Tourney')
     status = relationship("StatusElement")
     

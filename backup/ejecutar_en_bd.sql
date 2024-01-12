@@ -29,4 +29,41 @@ ALTER TABLE IF EXISTS events.domino_rounds_pairs
 
     
 
+--desde aqui
+ALTER TABLE IF EXISTS events.domino_rounds_scale
+    ADD COLUMN score_expected double precision;
+	ALTER TABLE IF EXISTS events.domino_rounds_scale
+    ADD COLUMN score_obtained double precision;
+	ALTER TABLE IF EXISTS events.domino_rounds_scale
+    ADD COLUMN acumulated_games_played integer;
+	ALTER TABLE IF EXISTS events.domino_rounds_scale
+    ADD COLUMN k_value double precision;
+	ALTER TABLE IF EXISTS events.domino_rounds_scale
+	ADD COLUMN elo_at_end double precision;
+	ALTER TABLE IF EXISTS events.domino_rounds_scale
+	ADD COLUMN bonus_points double precision;
 
+ALTER TABLE IF EXISTS events.players
+    ADD COLUMN games_played integer;
+	ALTER TABLE IF EXISTS events.players
+    ADD COLUMN games_won integer;
+    ALTER TABLE IF EXISTS events.players
+    ADD COLUMN games_lost integer;
+	ALTER TABLE IF EXISTS events.players
+    ADD COLUMN points_positive integer;
+	ALTER TABLE IF EXISTS events.players
+    ADD COLUMN points_negative integer;
+	ALTER TABLE IF EXISTS events.players
+    ADD COLUMN points_difference integer;
+	ALTER TABLE IF EXISTS events.players
+    ADD COLUMN score_expected double precision;
+	ALTER TABLE IF EXISTS events.players
+    ADD COLUMN score_obtained double precision;
+	ALTER TABLE IF EXISTS events.players
+    ADD COLUMN k_value double precision;
+	ALTER TABLE IF EXISTS events.players
+	ADD COLUMN elo_current double precision;
+	ALTER TABLE IF EXISTS events.players
+	ADD COLUMN elo_at_end double precision;
+	ALTER TABLE IF EXISTS events.players
+	ADD COLUMN bonus_points double precision;
