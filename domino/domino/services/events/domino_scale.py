@@ -564,10 +564,18 @@ def get_info_of_boletus_pair(boletus_id: str, api_uri: str, db: Session):
         dict_result[name_key]['elo_two'] = item.elo_two
         dict_result[name_key]['positive_point'] = int(item.positive_points) if item.positive_points else 0
         dict_result[name_key]['negative_point'] = int(item.negative_points) if item.negative_points else 0
-        dict_result[name_key]['difference_point'] = dict_result['pair_one']['positive_point'] - dict_result['pair_one']['negative_point']
+        dict_result[name_key]['difference_point'] = dict_result[name_key]['positive_point'] - dict_result[name_key]['negative_point']
         dict_result[name_key]['is_winner'] = item.is_winner
         pair_number += 1
+    
+    if not dict_result['pair_one']['negative_point']:
+        dict_result['pair_one']['negative_point'] = dict_result['pair_two']['positive_point']
+        dict_result['pair_one']['difference_point'] = dict_result['pair_one']['positive_point'] - dict_result['pair_one']['negative_point']
         
+    if not dict_result['pair_two']['negative_point']:
+        dict_result['pair_two']['negative_point'] = dict_result['pair_one']['positive_point']
+        dict_result['pair_two']['difference_point'] = dict_result['pair_two']['positive_point'] - dict_result['pair_two']['negative_point']
+       
     return dict_result
 
 def get_one_round_pair(id: str, db: Session):  
