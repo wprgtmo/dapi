@@ -131,7 +131,7 @@ def get_all_invitations_by_tourney(request, tourney_id: str, page: int, per_page
     
     result = get_result_count(page=page, per_page=per_page, str_count=str_count, db=db)
     
-    str_query += " ORDER BY player.elo DESC " 
+    str_query += " ORDER BY player.elo DESC, profile_member.name ASC " 
     
     if page != 0:
         str_query += "LIMIT " + str(per_page) + " OFFSET " + str(page*per_page-per_page)

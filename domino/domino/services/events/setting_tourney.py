@@ -108,7 +108,6 @@ def configure_one_tourney(request, tourney_id: str, settingtourney: SettingTourn
         raise HTTPException(status_code=404, detail=_(locale, "tourney.tourney_closed"))
     
     amount_tables = calculate_amount_tables(db_tourney.id, db_tourney.modality, db=db)
-    
     restart_setting_round = False
     if amount_tables < 2:
         raise HTTPException(status_code=404, detail=_(locale, "tourney.number_player_incorrect"))

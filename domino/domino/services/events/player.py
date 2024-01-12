@@ -288,7 +288,7 @@ def get_all_players_by_elo(request:Request, page: int, per_page: int, tourney_id
     
     result = get_result_count(page=page, per_page=per_page, str_count=str_count, db=db)
     
-    str_query += " ORDER BY player.elo DESC " 
+    str_query += " ORDER BY player.elo DESC, pro.name ASC " 
     if page != 0:
         str_query += "LIMIT " + str(per_page) + " OFFSET " + str(page*per_page-per_page)
     
@@ -306,7 +306,7 @@ def get_lst_id_player_by_elo(tourney_id: str, modality:str, min_elo: float, max_
     
     str_query += str_where
 
-    str_query += " ORDER BY player.elo DESC " 
+    str_query += " ORDER BY player.elo DESC, pro.name ASC " 
     lst_data = db.execute(str_query)
     lst_players = []
     for item in lst_data:
@@ -322,7 +322,7 @@ def get_lst_id_player_with_boletus(tourney_id: str, db: Session):
     
     str_query += str_where
 
-    str_query += " ORDER BY player.elo DESC " 
+    str_query += " ORDER BY player.elo DESC, pro.name ASC " 
     lst_data = db.execute(str_query)
     lst_players = []
     for item in lst_data:
@@ -417,8 +417,6 @@ def get_all_players_by_category(request:Request, page: int, per_page: int, categ
     
     lst_data = db.execute(str_query)
     result.data = [create_dict_row(item, page, db=db, api_uri=api_uri) for item in lst_data]
-    print(str_query)
-    print('****************')
     
     return result
 
@@ -469,7 +467,7 @@ def get_all_players_by_tourney(request:Request, page: int, per_page: int, tourne
     
     result = get_result_count(page=page, per_page=per_page, str_count=str_count, db=db)
     
-    str_query += " ORDER BY player.elo DESC " 
+    str_query += " ORDER BY player.elo DESC, pro.name ASC " 
     if page != 0:
         str_query += "LIMIT " + str(per_page) + " OFFSET " + str(page*per_page-per_page)
     
