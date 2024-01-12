@@ -339,21 +339,25 @@ def get_all_players_by_category(request:Request, page: int, per_page: int, categ
     # Si no viene categorias debo devolver todos los jugadores
     
     # si el torneo es automatico, ya lo saco de la scala directamente.
-    dict_result = {}
+    dict_result, lottery_type = {}, ""
     if category_id:
         dict_result = get_info_categories_tourney(category_id=category_id, db=db)
         if not dict_result:
             raise HTTPException(status_code=404, detail=_(locale, "tourney.category_not_exist"))
         tourney_id = dict_result['tourney_id']
+        lottery_type = dict_result['lottery_type']
     else:
         db_tourney = get_torneuy_by_eid(tourney_id, db=db)
         if not db_tourney:
             raise HTTPException(status_code=404, detail=_(locale, "tourney.not_found"))
+        lottery_type = db_tourney.lottery_type
     
-    # buscar la ultima ronda del torneo y en dependecia de su estado saco de una tabla o de la otra...
-    lst_round = get_last_by_tourney(tourney_id, db=db)
-    
-    round_config = False if lst_round.status.name == "CREATED" else True
+    if lottery_type == 'AUTOMATIC':
+        round_config = True
+    else:
+        # buscar la ultima ronda del torneo y en dependecia de su estado saco de una tabla o de la otra...
+        lst_round = get_last_by_tourney(tourney_id, db=db)
+        round_config = False if lst_round.status.name == "CREATED" else True
      
     str_from = "FROM events.players player " +\
         "inner join enterprise.profile_member pro ON pro.id = player.profile_id " +\
@@ -553,8 +557,11 @@ def created_all_players(request:Request, tourney_id:str, db: Session):
 def change_status_player_at_init_round(request:Request, db_round, db: Session):
     locale = request.headers["accept-language"].split(",")[0].split("-")[0];
     
+    return change_all_status_player_at_init_round(db_round, db=db)
+    
+def change_all_status_player_at_init_round(db_round, db: Session):
+    
     result = ResultObject() 
-    currentUser = get_current_user(request)
     
     str_query_pair = "Select sca_one.player_id as one_player_id, sca_two.player_id as  two_player_id " +\
         "from events.domino_rounds_pairs pa " +\
@@ -581,13 +588,12 @@ def change_status_player_at_init_round(request:Request, db_round, db: Session):
     status_play = get_one_by_name('PLAYING', db=db)
     status_wait = get_one_by_name('WAITING', db=db)
     
-    if str_id_playing:
+    if str_id_playing != "'":
         str_update_playing = "UPDATE events.players SET status_id = " + str(status_play.id) + " WHERE id IN (" + str_id_playing[:-2] + ");COMMIT;"  
-    if str_waiting:
+        db.execute(str_update_playing)
+    if str_waiting != "'":
         str_update_waiting = "UPDATE events.players SET status_id = " + str(status_wait.id) + " WHERE id IN (" + str_waiting[:-2] + ");COMMIT;"  
-    
-    db.execute(str_update_playing)
-    db.execute(str_update_waiting)
+        db.execute(str_update_waiting)
     
     db.commit()
     

@@ -453,7 +453,7 @@ def get_lst_tourney_by_event_id(event_id: str, db: Session, only_iniciaded=False
         "JOIN resources.entities_status sta ON sta.id = tou.status_id "
     
     str_query = "Select tou.id, event_id, tou.modality, tou.name, tou.summary, tou.start_date, " +\
-        "tou.status_id, sta.name as status_name, tou.image, tou.number_rounds " + str_from
+        "tou.status_id, sta.name as status_name, sta.description as status_description, tou.image, tou.number_rounds " + str_from
     
     if only_iniciaded:
         str_query += " WHERE (sta.name = 'INITIADED' or sta.name = 'FINALIZED') and event_id = '" + str(event_id) + "' ORDER BY start_date "  
@@ -490,7 +490,8 @@ def create_dict_row_tourney(item, api_uri=""):
     new_row = {'id': item['id'], 'event_id': item['event_id'], 'name': item['name'], 
                'modality': item['modality'], 'summary' : item['summary'], 'startDate': item['start_date'],
                'image': get_url_advertising(tourney_id=item['id'], file_name=item['image'] if item['image'] else None, api_uri=api_uri),
-               'status_id': item['status_id'], 'status_name': item['status_name'], 'number_rounds': item['number_rounds'] 
+               'status_id': item['status_id'], 'status_name': item['status_name'], 
+               'status_description': item['status_description'], 'number_rounds': item['number_rounds'] 
                }
        
     return new_row

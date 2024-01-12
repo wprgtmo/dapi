@@ -29,7 +29,7 @@ from domino.services.resources.utils import get_result_count, upfile, create_dir
 from domino.services.enterprise.userprofile import get_one as get_one_profile
 from domino.services.enterprise.auth import get_url_avatar
 
-from domino.services.events.player import get_lst_id_player_by_elo, change_status_player_at_init_round, get_one as get_one_player
+from domino.services.events.player import get_lst_id_player_by_elo, change_all_status_player_at_init_round, get_one as get_one_player
 from domino.services.events.domino_round import get_one as get_one_round, get_first_by_tourney, configure_rounds, configure_new_rounds, \
     get_obj_info_to_aperturate, remove_configurate_round, calculate_amount_rounds_played
     
@@ -712,10 +712,12 @@ def get_values_elo_by_scale(round_id: str, db: Session):
 def aperture_new_round(request:Request, round_id:str, round: DominoRoundsAperture, db:Session):
     locale = request.headers["accept-language"].split(",")[0].split("-")[0];
     
+    return aperture_one_new_round(round_id, round, locale, db=db)
+    
+def aperture_one_new_round(round_id:str, round: DominoRoundsAperture, locale, db:Session):
     # si la ronda no se ha publicado, puede eliminarse y volver a configurar..
     
     result = ResultObject() 
-    currentUser = get_current_user(request)
     
     db_round = get_one_round(round_id=round_id, db=db)
     if not db_round:
@@ -778,7 +780,7 @@ def aperture_new_round(request:Request, round_id:str, round: DominoRoundsApertur
     db_round.status_id = one_status_conf.id
     db_round.tourney.status_id = one_status_conf.id
     
-    change_status_player_at_init_round(request, db_round, db=db)
+    change_all_status_player_at_init_round(db_round, db=db)
      
     db.add(db_round)
     db.add(db_round.tourney)
