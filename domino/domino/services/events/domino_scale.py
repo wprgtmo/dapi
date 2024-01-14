@@ -372,7 +372,8 @@ def get_all_scale_by_round(request:Request, page: int, per_page: int, round_id: 
     str_query = "SELECT players.id player_id, mmb.id profile_id, mmb.name profile_name, mmb.photo, rsca.position_number, " +\
         "city.name as city_name, country.name as country_name, rsca.elo, rsca.elo_variable, rsca.games_played, " +\
         "rsca.games_won, rsca.games_lost, rsca.points_positive, rsca.points_negative, rsca.points_difference, " +\
-        "score_expected, score_obtained, k_value, elo_at_end, bonus_points " + str_from
+        "score_expected, score_obtained, k_value, elo_at_end, bonus_points, " +\
+        "sta.id as status_id, sta.name as status_name, sta.description as status_description " + str_from
         
     str_where = "WHERE rsca.is_active is True AND rsca.round_id = '" + round_id + "' "
         
