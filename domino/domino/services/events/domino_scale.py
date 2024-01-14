@@ -363,6 +363,7 @@ def get_all_scale_by_round(request:Request, page: int, per_page: int, round_id: 
     
     str_from = "FROM events.domino_rounds_scale rsca " +\
         "JOIN events.players players ON players.id = rsca.player_id " +\
+        "jOIN resources.entities_status sta ON sta.id = players.status_id " +\
         "JOIN enterprise.profile_member mmb ON players.profile_id = mmb.id " +\
         "left join resources.city ON city.id = mmb.city_id " +\
         "left join resources.country ON country.id = city.country_id " 
@@ -504,7 +505,9 @@ def create_dict_row_scale(item, db: Session, api_uri):
                'score_obtained': item['score_obtained'] if item['score_obtained'] else 0,
                'k_value': item['k_value'] if item['k_value'] else 0,
                'elo_at_end': item['elo_at_end'] if item['elo_at_end'] else 0,
-               'bonus_points': 0, 'penalty_yellow': 0, 'penalty_red': 0, 'penalty_total': 0}
+               'bonus_points': 0, 'penalty_yellow': 0, 'penalty_red': 0, 'penalty_total': 0,
+               'status_id': item['status_id'], 'status_name': item['status_name'], 
+               'status_description': item['status_description']}
     
     return new_row
 
