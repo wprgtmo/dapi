@@ -52,7 +52,6 @@ def upgrade() -> None:
     op.create_table('profile_single_player',
     sa.Column('profile_id', sa.String(), nullable=False),
     sa.Column('elo', sa.Integer(), nullable=True),
-    sa.Column('ranking', sa.String(length=2), nullable=True),
     sa.Column('updated_by', sa.String(), nullable=False),
     sa.Column('updated_date', sa.Date(), nullable=False),
     sa.ForeignKeyConstraint(['profile_id'], ['enterprise.profile_member.id'], ),

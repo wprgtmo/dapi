@@ -26,7 +26,6 @@ def upgrade() -> None:
     sa.Column('city_id', sa.Integer(), nullable=True, comment='City to which the player belongs'),
     sa.Column('photo', sa.String(length=255), nullable=True),
     sa.Column('elo', sa.Integer(), nullable=True),
-    sa.Column('ranking', sa.String(length=2), nullable=True),
     sa.Column('created_by', sa.String(), nullable=False),
     sa.Column('created_date', sa.Date(), nullable=False),
     sa.Column('updated_by', sa.String(), nullable=False),

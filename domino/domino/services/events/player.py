@@ -14,7 +14,7 @@ from domino.functions_jwt import get_current_user
 from domino.config.config import settings
 from domino.app import _
 
-from domino.models.events.player import Players
+from domino.models.events.player import Players, PlayersUser
 
 from domino.schemas.resources.result_object import ResultObject
 
@@ -50,28 +50,21 @@ def new(request: Request, invitation_id: str, db: Session):
     if one_player:
         raise HTTPException(status_code=404, detail=_(locale, "player.already_exist"))
     
-    # devolver el elo, nivel y rbking el jugador...
-    dict_player = get_info_of_player(one_invitation.profile_id, db=db)
+    status_confirmed = get_one_by_name('CONFIRMED', db=db)  
+    if not status_confirmed:
+        raise HTTPException(status_code=404, detail=_(locale, "status.not_found"))
     
-    status_confirmed = get_one_by_name('CONFIRMED', db=db)    
-    one_player = Players(id=str(uuid.uuid4()), tourney_id=one_invitation.tourney_id, 
-                         profile_id=one_invitation.profile_id, invitation_id=one_invitation.id,
-                         created_by=currentUser['username'], updated_by=currentUser['username'], status_id=status_confirmed.id)
+    one_player = new_player_with_user(one_invitation.tourney_id, one_invitation.profile_id, one_invitation.id,
+                                      currentUser['username'], status_confirmed.id, db=db) 
     
-    if dict_player:
-        # si torneo tiene categorias declaradas, ver si este elo está contemplado en ellas y actualizarlas
-        one_player.elo = dict_player['elo']
-        one_player.ranking = dict_player['ranking']
-        one_player.level = dict_player['level']
+    if not one_player:
+        raise HTTPException(status_code=404, detail=_(locale, "player.profile_not_found"))
     
     # cambiar estado a la invitacion para que no salga mas en el listado de propuesta de jugadores
-    status_confirmed = get_one_by_name('CONFIRMED', db=db)
-    if status_confirmed:
-        one_invitation.updated_by = currentUser['username']
-        one_invitation.updated_date = datetime.now()
-        one_invitation.status_name = status_confirmed.name
-    else:
-        raise HTTPException(status_code=404, detail=_(locale, "status.not_found"))
+    one_invitation.updated_by = currentUser['username']
+    one_invitation.updated_date = datetime.now()
+    one_invitation.status_name = status_confirmed.name
+        
     
     # verificar el estado de la ultima ronda del torneo.
     # Despues de Iniciada, no hago nada. En configurada o creada borrar todo y pongo la ronda en estado creada.
@@ -85,6 +78,38 @@ def new(request: Request, invitation_id: str, db: Session):
         return result
     except (Exception, SQLAlchemyError) as e:
         return False
+
+def new_player_with_user(tourney_id, profile_id, invitation_id, created_by, status_id, db:Session):
+    
+    one_player = Players(id=str(uuid.uuid4()), tourney_id=tourney_id, profile_id=profile_id, 
+                         invitation_id=invitation_id, created_by=created_by, updated_by=created_by, 
+                         status_id=status_id)
+    
+    # devolver el elo, nivel el jugador...
+    dict_player = get_info_of_player(profile_id, db=db)
+    
+    if dict_player:
+        if dict_player['profile_type'] == 'SINGLE_PLAYER':
+            one_player.elo = dict_player['elo']
+            one_player.level = dict_player['level']
+    
+            one_player_user =  PlayersUser(
+                player_id=one_player.id, profile_id=profile_id, level=one_player.level,
+                elo=one_player.elo, elo_current=0, elo_at_end=0, games_played=0, games_won=0, games_lost=0,
+                points_positive=0, points_negative=0, points_difference=0, score_expected=0, score_obtained=0,
+                k_value=0, penalty_yellow=0, penalty_red=0, penalty_total=0, bonus_points=0)
+            one_player.users.append(one_player_user)
+            
+        elif dict_player['profile_type'] == 'PAIR_PLAYER': 
+            pass
+        elif dict_player['profile_type'] == 'TEAM_PLAYER': 
+            pass
+        else:
+            return None
+    else:
+        return None
+    
+    return one_player
  
 def reject_one_invitation(request: Request, invitation_id: str, db: Session):
     locale = request.headers["accept-language"].split(",")[0].split("-")[0];
@@ -212,7 +237,7 @@ def change_status_player(request: Request, player_id: str, status: str, db: Sess
 def restar_round(tourney_id:str, db:Session):
     
     lst_round = get_last_by_tourney(tourney_id, db=db)
-    if lst_round.status.name in ('CREATED', 'CONFIGURATED'):
+    if lst_round and lst_round.status.name in ('CREATED', 'CONFIGURATED'):
         remove_configurate_round(lst_round.tourney_id, lst_round.id, db=db)
     
     return True
@@ -254,7 +279,7 @@ def get_info_of_player(profile_id: str, db: Session):
     else:
         one_info = None
         
-    return {'elo': one_info.elo, 'ranking': one_info.ranking, 'level': one_info.level} if one_info else {}
+    return {'elo': one_info.elo, 'level': one_info.level, 'profile_type': one_profile.profile_type} if one_info else {}
 
 def get_all_players_by_elo(request:Request, page: int, per_page: int, tourney_id: str, min_elo: float, max_elo: float, db: Session):  
     locale = request.headers["accept-language"].split(",")[0].split("-")[0];
@@ -275,8 +300,9 @@ def get_all_players_by_elo(request:Request, page: int, per_page: int, tourney_id
         
     str_count = "Select count(*) " + str_from
     str_query = "SELECT players.id, pro.name as name, pro.photo, pro.id as profile_id, " +\
-        "city.name as city_name, country.name as country_name, player.level, player.elo, " +\
-        "player.ranking,get_one_by_namero.is_ready is True AND status_id != " + str(status_canc.id) 
+        "city.name as city_name, country.name as country_name, player.level, player.elo "
+    
+    str_where = "WHERE ready is True AND status_id != " + str(status_canc.id) 
     str_where += " AND player.tourney_id = '" + tourney_id + "' "  +\
         "AND player.elo >= " + str(min_elo) + " AND player.elo <= " + str(max_elo)
     
@@ -306,7 +332,7 @@ def get_lst_id_player_by_elo(tourney_id: str, modality:str, min_elo: float, max_
     
     str_query += str_where
 
-    str_query += " ORDER BY player.elo DESC, pro.name ASC " 
+    str_query += " ORDER BY player.elo DESC, player.id ASC " 
     lst_data = db.execute(str_query)
     lst_players = []
     for item in lst_data:
@@ -374,7 +400,7 @@ def get_all_players_by_category(request:Request, page: int, per_page: int, categ
     
     str_count = "Select count(*) " + str_from
     str_query = "SELECT player.id, pro.name as name, pro.photo, pro.id as profile_id, " +\
-        "city.name as city_name, country.name as country_name, player.level, player.elo, player.ranking, " +\
+        "city.name as city_name, country.name as country_name, player.level, player.elo, " +\
         "sta.id as status_id, sta.name as status_name, sta.description as status_description "  
         
     if round_config:
@@ -449,7 +475,7 @@ def get_all_players_by_tourney(request:Request, page: int, per_page: int, tourne
     str_count = "Select count(*) " + str_from
     str_query = "SELECT player.id, pro.name as name, pro.photo, pro.id as profile_id, " +\
         "city.name as city_name, country.name as country_name, player.level, player.elo, " +\
-        "player.ranking, player.ranking position_number, sta.id as status_id, " +\
+        " '' as position_number, sta.id as status_id, " +\
         "sta.name as status_name, sta.description as status_description " + str_from
     
     str_where = "WHERE pro.is_ready is True AND player.tourney_id = '" + tourney_id + "' " 
@@ -483,7 +509,7 @@ def create_dict_row(item, page, db: Session, api_uri):
     new_row = {'id': item['id'], 'name': item['name'], 
                'country': item['country_name'] if item['country_name'] else '', 
                'city_name': item['city_name'] if item['city_name'] else '',  
-               'photo' : image, 'elo': item['elo'], 'ranking': item['ranking'], 'level': item['level'],
+               'photo' : image, 'elo': item['elo'], 'level': item['level'],
                'status_name': item['status_name'], 'status_description': item['status_description'],
                'status_id': item['status_id'], 
                'position_number': item.position_number}
@@ -495,6 +521,10 @@ def get_one_by_invitation_id(invitation_id: str, db: Session):
 
 def get_one(id: str, db: Session):  
     return db.query(Players).filter(Players.id == id).first()
+
+def get_one_user(player_id: str, profile_id: str, db: Session):  
+    return db.query(PlayersUser).filter(PlayersUser.player_id == player_id).\
+        filter(PlayersUser.profile_id == profile_id).first()
 
 def created_all_players(request:Request, tourney_id:str, db: Session):
     locale = request.headers["accept-language"].split(",")[0].split("-")[0];
@@ -531,16 +561,9 @@ def created_all_players(request:Request, tourney_id:str, db: Session):
         if not one_invitation:
             continue
         
-        dict_player = get_info_of_player(one_invitation.profile_id, db=db)
-        one_player = Players(id=str(uuid.uuid4()), tourney_id=one_invitation.tourney_id, 
-                         profile_id=one_invitation.profile_id, invitation_id=one_invitation.id,
-                         created_by=currentUser['username'], updated_by=currentUser['username'], status_id=status_confirmed.id)
-        
-        if dict_player:
-            one_player.elo = dict_player['elo']
-            one_player.ranking = dict_player['ranking']
-            one_player.level = dict_player['level']
-        
+        one_player = new_player_with_user(one_invitation.tourney_id, one_invitation.profile_id, one_invitation.id,
+                                        currentUser['username'], status_confirmed.id, db=db) 
+    
         one_invitation.updated_by = currentUser['username']
         one_invitation.updated_date = datetime.now()
         one_invitation.status_name = status_confirmed.name

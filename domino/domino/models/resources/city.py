@@ -17,6 +17,8 @@ class City(Base):
     name = Column(String(120), nullable=False)
     country_id = Column(Integer, ForeignKey("resources.country.id"))
     is_active = Column(Boolean, nullable=False, default=True)
+    
+    country = relationship('Country')
         
     def dict(self):
         return {

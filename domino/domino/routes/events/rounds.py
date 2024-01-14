@@ -10,10 +10,11 @@ from domino.schemas.events.domino_data import DominoDataCreated
 from domino.schemas.events.domino_rounds import DominoRoundsCreated, DominoRoundsAperture
 
 from domino.services.events.domino_round import get_all, get_one_by_id, start_one_round, get_info_to_aperture, \
-    close_one_round, publicate_one_round
+    publicate_one_round
     
 from domino.services.events.domino_scale import get_all_players_by_tables, get_all_players_by_tables_and_round, \
-    get_all_scale_by_round, get_all_tables_by_round, aperture_new_round, get_all_scale_by_round_by_pairs
+    get_all_scale_by_round, get_all_tables_by_round, aperture_new_round, get_all_scale_by_round_by_pairs, close_one_round, \
+    get_all_scale_acumulate
 from domino.services.events.domino_data import get_all_data_by_boletus, new_data, close_data_by_time
   
 rounds_route = APIRouter(
@@ -104,7 +105,7 @@ def get_accumulated_scale_by_rounds(
     per_page: int = 6, 
     db: Session = Depends(get_db)
 ):
-    return get_all_scale_by_round(request=request, page=page, per_page=per_page, round_id=id, db=db)
+    return get_all_scale_acumulate(request=request, page=page, per_page=per_page, tourney_id=id, db=db)
 
 @rounds_route.get("/rounds/scale/pairs/", response_model=Dict, summary="Obtain Player ranking list")
 def get_scale_by_rounds(

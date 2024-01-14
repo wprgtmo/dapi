@@ -209,7 +209,10 @@ def close_data_by_time(request: Request, boletus_id:str, db: Session):
     
     if not pair_one.positive_points and not pair_two.positive_points:
         raise HTTPException(status_code=404, detail=_(locale, "boletus.equal_positive_points"))
-        
+    
+    pair_one.positive_points = 0 if not pair_one.positive_points else pair_one.positive_points  
+    pair_two.positive_points = 0 if not pair_two.positive_points else pair_two.positive_points  
+      
     if pair_one.positive_points and pair_two.positive_points:
         if pair_one.positive_points == pair_two.positive_points: # estan empatados, no se puede cerrar
             raise HTTPException(status_code=404, detail=_(locale, "boletus.equal_positive_points"))
@@ -223,9 +226,12 @@ def close_data_by_time(request: Request, boletus_id:str, db: Session):
         
     result.data = {'closed_round': False}            
     
-    pair_win.positive_points = one_boletus.tourney.number_points_to_win
     pair_win.negative_points = pair_lost.positive_points
     pair_lost.negative_points = pair_win.positive_points
+    
+    pair_win.points_difference = round(pair_win.positive_points - pair_win.negative_points, 4)
+    pair_lost.points_difference = round(pair_lost.positive_points - pair_lost.negative_points, 4)
+    
     pair_win.is_winner = True
         
     acumulated_games_played = calculate_amount_rounds_played(one_boletus.tourney_id, db=db)

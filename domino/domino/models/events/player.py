@@ -28,27 +28,13 @@ class Players(Base):
     updated_date = Column(Date, nullable=False, default=date.today())
     
     elo = Column(Float, nullable=True)
-    ranking = Column(Integer, nullable=True)
     level = Column(String(60), nullable=True)  # nivel del jugador en ese torneo
     
     status_id  = Column(Integer, ForeignKey("resources.entities_status.id"), nullable=False)
     
-    games_played = Column(Integer)
-    games_won = Column(Integer)
-    games_lost = Column(Integer)
-    points_positive = Column(Integer)
-    points_negative = Column(Integer)
-    points_difference = Column(Integer)
-    
-    score_expected = Column(Float)
-    score_obtained = Column(Float)
-    k_value = Column(Float)
-    elo_current = Column(Float)
-    elo_at_end = Column(Float)
-    bonus_points = Column(Float)
-    
     tourney = relationship('Tourney')
     status = relationship("StatusElement")
+    users = relationship('PlayersUser')
     
     def dict(self):
         return {
@@ -56,4 +42,47 @@ class Players(Base):
             "profile_id": self.profile_id,
             "nivel": self.nivel,
             "invitation_id": self.invitation_id
+        }
+        
+class PlayersUser(Base):
+    """Players User Class contains standard information for a Players of Tourney."""
+
+    __tablename__ = "players_users"
+    __table_args__ = {'schema' : 'events'}
+    
+    player_id = Column(String, ForeignKey("events.players.id"), nullable=False, primary_key=True)
+    profile_id = Column(String, ForeignKey("enterprise.profile_member.id"), nullable=False, primary_key=True)
+    level = Column(String(60), nullable=True)  
+    category_id = Column(String(60), nullable=True)  
+    category_number = Column(Integer, nullable=True)  
+    
+    elo = Column(Float, nullable=True)
+    elo_current = Column(Float, nullable=True)
+    elo_at_end = Column(Float, nullable=True)
+    
+    games_played = Column(Integer)
+    games_won = Column(Integer)
+    games_lost = Column(Integer)
+    
+    points_positive = Column(Integer)
+    points_negative = Column(Integer)
+    points_difference = Column(Integer)
+    
+    score_expected = Column(Float)
+    score_obtained = Column(Float)
+    k_value = Column(Float)
+    
+    penalty_yellow = Column(Integer)
+    penalty_red = Column(Integer)
+    penalty_total = Column(Integer)
+    
+    bonus_points = Column(Float)
+    
+    player = relationship("Players", back_populates="users")
+    
+    def dict(self):
+        return {
+            "player_id": self.tourney_id,
+            "profile_id": self.profile_id,
+            "level": self.level
         }

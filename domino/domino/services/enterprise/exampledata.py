@@ -38,7 +38,7 @@ from domino.services.enterprise.comunprofile import new_profile
 from domino.services.events.event import get_one_by_name as get_event_by_name
 from domino.services.events.tourney import get_one_by_name as get_tourney_by_name, get_one as get_one_tourney
 from domino.services.events.invitations import generate_for_tourney, get_one_by_id as get_invitation_by_id
-from domino.services.events.player import get_one_by_invitation_id as get_one_player_by_invitation_id
+from domino.services.events.player import get_one_by_invitation_id as get_one_player_by_invitation_id, new_player_with_user
 
 from domino.services.events.domino_boletus import created_boletus_for_round
 from domino.services.events.domino_scale import initial_scale_by_manual_lottery
@@ -273,17 +273,16 @@ def update_single_elo(db: Session):
     lst_data = db.execute(str_query)
     
     elo, inc_elo = 2700.00, 0.0025
-    ranking = 0
+    num_level = 0
     for item in lst_data:
         db_single_profile = get_one_single_profile_by_id(item.profile_id, db=db) 
         if not db_single_profile:
             continue
    
         inc_elo-=0.005
-        ranking += 1
+        num_level += 1
         db_single_profile.elo = float(elo + (elo*inc_elo))
-        db_single_profile.level = dict_level[str(ranking)[-1:]]
-        db_single_profile.ranking = ranking
+        db_single_profile.level = dict_level[str(num_level)[-1:]]
         
         db.commit()
      
@@ -308,16 +307,15 @@ def update_pair_elo(db: Session):
         
     lst_data = db.execute(str_query)
     
-    ranking = 0
+    num_level = 0
     for item in lst_data:
         db_pair_profile = get_one_pair_profile(item.profile_id, db=db) 
         if not db_pair_profile:
             continue
    
-        ranking += 1
+        num_level += 1
         db_pair_profile.elo = float(item.elo)/2
-        db_pair_profile.level = dict_level[str(ranking)[-1:]]
-        db_pair_profile.ranking = ranking
+        db_pair_profile.level = dict_level[str(num_level)[-1:]]
         
         db.commit()
      
@@ -341,7 +339,7 @@ def create_single_player(request:Request, item, city_name:str, db: Session):
     one_profile = new_profile(profile_type, id, profile_id, item, item, None, city.id, True, True, True, "USERPROFILE", item, item, None, is_confirmed=True,
                               single_profile_id=id)
     
-    one_single_player = SingleProfile(profile_id=id, elo=0, ranking=None, level='NORMAL', updated_by=item)
+    one_single_player = SingleProfile(profile_id=id, elo=0, level='NORMAL', updated_by=item)
     one_profile.profile_single_player.append(one_single_player)
     
     try:   
@@ -365,7 +363,7 @@ def create_single_player_from_file(request:Request, username, name, city, elo, d
     one_profile = new_profile(profile_type, id, profile_id, username, name, None, city.id if city else None, True, True, True, 
                               "USERPROFILE", username, username, None, is_confirmed=True, single_profile_id=id)
     
-    one_single_player = SingleProfile(profile_id=id, elo=elo, ranking=None, level='NORMAL', updated_by=username)
+    one_single_player = SingleProfile(profile_id=id, elo=elo, level='NORMAL', updated_by=username)
     one_profile.profile_single_player.append(one_single_player)
     
     try:   
@@ -441,7 +439,7 @@ def create_pair_player(request:Request, item, city_name:str, db: Session):
     one_profile = new_profile(profile_type, id, me_profile_id, user_principal, name, None, city.id, True, True, True, 
                               "USERPROFILE", user_principal, user_principal, None, is_confirmed=True, single_profile_id=me_profile_id)
     
-    one_pair_player = PairProfile(profile_id=id, level='NORMAL', updated_by=user_principal, elo=0, ranking=None)
+    one_pair_player = PairProfile(profile_id=id, level='NORMAL', updated_by=user_principal, elo=0)
     one_profile.profile_pair_player.append(one_pair_player)
     
     other_user_member = ProfileUsers(profile_id=other_username_id, username=other_user, is_principal=False, created_by=user_principal, is_confirmed=True,
@@ -765,12 +763,10 @@ def created_players(request:Request, tourney_name:str, db: Session):
         for item in lst_data:
             one_invitation = get_invitation_by_id(invitation_id=item.invitation_id, db=db)
             if not one_invitation:
-                print(item.invitation_id)
                 continue
-            
-            one_player = Players(id=str(uuid.uuid4()), tourney_id=one_invitation.tourney_id, 
-                                profile_id=one_invitation.profile_id, nivel='NORMAL', invitation_id=one_invitation.id,
-                                created_by='miry', updated_by='miry', is_active=True)
+              
+            one_player = new_player_with_user(one_invitation.tourney_id, one_invitation.profile_id, one_invitation.id,
+                                              'miry', status_confirmed.id, db=db) 
             
             one_invitation.updated_by = 'miry'
             one_invitation.updated_date = datetime.now()
@@ -794,9 +790,8 @@ def created_players(request:Request, tourney_name:str, db: Session):
                 print(item.invitation_id)
                 continue
             
-            one_player = Players(id=str(uuid.uuid4()), tourney_id=one_invitation.tourney_id, 
-                                profile_id=one_invitation.profile_id, nivel='NORMAL', invitation_id=one_invitation.id,
-                                created_by='miry', updated_by='miry', is_active=True)
+            one_player = new_player_with_user(one_invitation.tourney_id, one_invitation.profile_id, one_invitation.id,
+                                              'miry', status_confirmed.id, db=db)
             
             one_invitation.updated_by = 'miry'
             one_invitation.updated_date = datetime.now()
@@ -810,9 +805,8 @@ def created_players(request:Request, tourney_name:str, db: Session):
             if not one_invitation:
                 continue
             
-            one_player = Players(id=str(uuid.uuid4()), tourney_id=one_invitation.tourney_id, 
-                                profile_id=one_invitation.profile_id, nivel='NORMAL', invitation_id=one_invitation.id,
-                                created_by='miry', updated_by='miry', is_active=True)
+            one_player = new_player_with_user(one_invitation.tourney_id, one_invitation.profile_id, one_invitation.id,
+                                              'miry', status_confirmed.id, db=db)
             
             one_invitation.updated_by = 'miry'
             one_invitation.updated_date = datetime.now()
@@ -842,7 +836,7 @@ def clear_all_bd(request:Request, db: Session):
         "DELETE FROM events.domino_boletus; DELETE FROM events.domino_rounds_pairs; " +\
         "DELETE FROM events.domino_boletus_data; DELETE FROM events.domino_rounds_scale; DELETE FROM events.domino_categories; " +\
         "DELETE FROM events.domino_rounds; DELETE FROM events.domino_tables_files; DELETE FROM events.domino_tables; " +\
-        "DELETE FROM events.players; DELETE FROM events.referees; " +\
+        "DELETE FROM events.players_users; DELETE FROM events.players; DELETE FROM events.referees; " +\
         "DELETE FROM events.invitations; DELETE FROM events.tourney; DELETE FROM events.events; " +\
         "COMMIT; " 
     

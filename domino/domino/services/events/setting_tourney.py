@@ -26,13 +26,13 @@ from domino.services.enterprise.userprofile import get_one as get_one_profile
 from domino.services.events.domino_boletus import created_boletus_for_round
 
 from domino.services.events.domino_table import created_tables_default
-from domino.services.events.domino_round import created_round_default, remove_configurate_round, get_last_by_tourney
+from domino.services.events.domino_round import created_round_default, remove_configurate_round, get_last_by_tourney, get_one_by_number
 from domino.services.events.domino_scale import configure_automatic_lottery, update_elo_initial_scale, aperture_new_round
 from domino.services.events.invitations import get_amount_invitations_by_tourney
 
 from domino.services.events.tourney import get_one as get_one_tourney, calculate_amount_tables, \
     get_count_players_by_tourney, get_values_elo_by_tourney, get_lst_categories_of_tourney, get_categories_of_tourney,\
-    create_category_by_default, update_amount_player_by_categories
+    create_category_by_default, update_amount_player_by_categories, calculate_amount_categories
 from domino.services.enterprise.auth import get_url_advertising
 
 def get_one_configure_tourney(request:Request, tourney_id: str, db: Session):  
@@ -104,8 +104,9 @@ def configure_one_tourney(request, tourney_id: str, settingtourney: SettingTourn
     if not db_tourney:
         raise HTTPException(status_code=404, detail=_(locale, "tourney.not_found"))
     
-    if db_tourney.status.name == 'FINALIZED':
-        raise HTTPException(status_code=404, detail=_(locale, "tourney.tourney_closed"))
+    validate_atributes_requiered(
+        db_tourney, locale, settingtourney.number_points_to_win, settingtourney.time_to_win, settingtourney.constant_increase_ELO,
+        name, settingtourney.number_rounds)
     
     amount_tables = calculate_amount_tables(db_tourney.id, db_tourney.modality, db=db)
     restart_setting_round = False
@@ -129,9 +130,6 @@ def configure_one_tourney(request, tourney_id: str, settingtourney: SettingTourn
         else:
             db_tourney.amount_smart_tables = settingtourney.amount_smart_tables
     
-    if int(settingtourney.number_points_to_win) <= 0:
-        raise HTTPException(status_code=404, detail=_(locale, "tourney.numberpoints_towin_incorrect"))
-        
     if settingtourney.number_points_to_win and db_tourney.number_points_to_win != int(settingtourney.number_points_to_win):
         if db_tourney.status.name not in ('CREATED', 'CONFIGURATED'):
             raise HTTPException(status_code=404, detail=_(locale, "tourney.status_incorrect"))
@@ -142,8 +140,6 @@ def configure_one_tourney(request, tourney_id: str, settingtourney: SettingTourn
             raise HTTPException(status_code=404, detail=_(locale, "tourney.status_incorrect"))
         db_tourney.time_to_win = int(settingtourney.time_to_win)
     
-    db_tourney.time_to_win = 12 if not db_tourney.time_to_win else db_tourney.time_to_win
-    
     # por ahora no se va a pedir
     db_tourney.game_system = 'SUIZO'
     
@@ -152,39 +148,72 @@ def configure_one_tourney(request, tourney_id: str, settingtourney: SettingTourn
         db_tourney.lottery_type = str(settingtourney.lottery)
     db_tourney.lottery_type = 'MANUAL' if not db_tourney.lottery_type else db_tourney.lottery_type
     
+    if settingtourney.constant_increase_ELO and db_tourney.constant_increase_elo != float(settingtourney.constant_increase_ELO):
+        db_tourney.constant_increase_elo = int(settingtourney.constant_increase_ELO)
+        
     use_penalty = True if settingtourney.use_penalty and settingtourney.use_penalty == True else False
     if db_tourney.use_penalty != use_penalty:
+        if not settingtourney.limitPenaltyPoints:
+            raise HTTPException(status_code=404, detail=_(locale, "tourney.limitpenalty_incorrect"))
+        if not settingtourney.points_penalty_yellow:
+            raise HTTPException(status_code=404, detail=_(locale, "tourney.penaltyyelloew_incorrect"))
+        if not settingtourney.points_penalty_red:
+            raise HTTPException(status_code=404, detail=_(locale, "tourney.penaltyred_incorrect"))
+        
         db_tourney.use_penalty = use_penalty
+        if db_tourney.penalties_limit != int(settingtourney.limitPenaltyPoints):
+            db_tourney.penalties_limit = int(settingtourney.limitPenaltyPoints)
+        
+        if db_tourney.points_penalty_yellow != int(settingtourney.points_penalty_yellow):
+            db_tourney.points_penalty_yellow = int(settingtourney.points_penalty_yellow)
+            
+        if db_tourney.points_penalty_red != int(settingtourney.points_penalty_red):
+            db_tourney.points_penalty_red = int(settingtourney.points_penalty_red)
         
     use_segmentation = True if settingtourney.use_segmentation and settingtourney.use_segmentation == True else False
     if db_tourney.use_segmentation != use_segmentation:
         restart_setting_round = True
         db_tourney.use_segmentation = use_segmentation
-          
-    if settingtourney.limitPenaltyPoints and db_tourney.penalties_limit != int(settingtourney.limitPenaltyPoints):
-        db_tourney.penalties_limit = int(settingtourney.limitPenaltyPoints)
+    
+    last_round, prevoius_round = None, None  
+    if use_segmentation:
+        # debo verificar si existe una ronda anterior y en esta no se uso categoria, no se puede modificar el dato ya.
+        last_round = get_last_by_tourney(db_tourney.id, db=db)
+        if last_round:
+            prevoius_round = get_one_by_number(last_round.number_round, db=db)
+            if prevoius_round and prevoius_round.use_segmentation is False:
+                raise HTTPException(status_code=404, detail=_(locale, "tourney.round_not_cant_categories"))
         
-    if settingtourney.points_penalty_yellow and db_tourney.points_penalty_yellow != int(settingtourney.points_penalty_yellow):
-        db_tourney.points_penalty_yellow = int(settingtourney.points_penalty_yellow)
-        
-    if settingtourney.points_penalty_red and db_tourney.points_penalty_red != int(settingtourney.points_penalty_red):
-        db_tourney.points_penalty_red = int(settingtourney.points_penalty_red)
-        
-    if settingtourney.constant_increase_ELO and db_tourney.constant_increase_elo != float(settingtourney.constant_increase_ELO):
-        db_tourney.constant_increase_elo = int(settingtourney.constant_increase_ELO)
+        amount_category = calculate_amount_categories(db_tourney.id, db=db)
+        if amount_category < 1:
+            raise HTTPException(status_code=404, detail=_(locale, "tourney.amount_categories_incorrect"))
     
     use_bonus = True if settingtourney.use_bonus and settingtourney.use_bonus == True else False
-    if db_tourney.use_bonus != use_bonus:
-        db_tourney.use_bonus = use_bonus
-        
     if use_bonus:
-        if settingtourney.amount_bonus_tables and db_tourney.amount_bonus_tables != int(settingtourney.amount_bonus_tables):
-            if int(settingtourney.amount_bonus_tables) < 0 < 0:
+        # debo verificar si existe una ronda anterior y en esta no se uso bonificacion, no se puede modificar el dato ya.
+        if not last_round:
+            last_round = get_last_by_tourney(db_tourney.id, db=db)
+            if last_round:
+                prevoius_round = get_one_by_number(last_round.number_round, db=db)
+                if prevoius_round and prevoius_round.use_bonus is True:
+                    raise HTTPException(status_code=404, detail=_(locale, "tourney.round_not_cant_bonus"))
+        
+        if not settingtourney.amount_bonus_tables:
+            raise HTTPException(status_code=404, detail=_(locale, "tourney.amount_bonus_tables_incorrect"))
+        if int(settingtourney.amount_bonus_tables) <= 0:
                 raise HTTPException(status_code=404, detail=_(locale, "tourney.amount_bonus_tables_incorrect"))
+        if not settingtourney.amount_bonus_points:
+            raise HTTPException(status_code=404, detail=_(locale, "tourney.amount_bonus_tables_incorrect"))
+        if int(settingtourney.amount_bonus_points) <= 0:
+                raise HTTPException(status_code=404, detail=_(locale, "tourney.amount_bonus_tables_incorrect"))
+        
+        if db_tourney.use_bonus != use_bonus:
+            db_tourney.use_bonus = use_bonus
+        
+        if db_tourney.amount_bonus_tables != int(settingtourney.amount_bonus_tables):
             db_tourney.amount_bonus_tables = int(settingtourney.amount_bonus_tables)
-        if settingtourney.amount_bonus_points and db_tourney.amount_bonus_points != int(settingtourney.amount_bonus_points):
-            if int(settingtourney.amount_bonus_points) < 0:
-                raise HTTPException(status_code=404, detail=_(locale, "tourney.amount_bonus_tables_incorrect"))
+            
+        if db_tourney.amount_bonus_points != int(settingtourney.amount_bonus_points):
             db_tourney.amount_bonus_points = int(settingtourney.amount_bonus_points)
             
     if settingtourney.round_ordering_one and db_tourney.round_ordering_one != str(settingtourney.round_ordering_one):
@@ -207,7 +236,7 @@ def configure_one_tourney(request, tourney_id: str, settingtourney: SettingTourn
     if not db_tourney.event_ordering_one or not db_tourney.event_ordering_two or not db_tourney.event_ordering_three:
         raise HTTPException(status_code=404, detail=_(locale, "tourney.event_ordering_incorrect"))
     
-    if settingtourney.name and db_tourney.name != str(settingtourney.name):
+    if db_tourney.name != str(settingtourney.name):
         db_tourney.name = str(settingtourney.name)
         
     if settingtourney.summary and db_tourney.summary != str(settingtourney.summary):
@@ -228,6 +257,28 @@ def configure_one_tourney(request, tourney_id: str, settingtourney: SettingTourn
     db.commit()
     
     return result
+
+def validate_atributes_requiered(db_tourney, locale, number_points_to_win, time_to_win,  constant_increase_ELO, name, number_rounds):
+    
+    if db_tourney.status.name == 'FINALIZED':
+        raise HTTPException(status_code=404, detail=_(locale, "tourney.tourney_closed"))
+    
+    if number_points_to_win <= 0:
+        raise HTTPException(status_code=404, detail=_(locale, "tourney.numberpoints_towin_incorrect"))
+    
+    if time_to_win <= 0:
+        raise HTTPException(status_code=404, detail=_(locale, "tourney.time_to_win_incorrect"))
+    
+    if constant_increase_ELO <= 0:
+        raise HTTPException(status_code=404, detail=_(locale, "tourney.constant_elo_incorrect"))
+    
+    if not name:
+        raise HTTPException(status_code=404, detail=_(locale, "tourney.name_incorrect"))
+    
+    if not number_rounds:
+        raise HTTPException(status_code=404, detail=_(locale, "tourney.number_rounds_incorrect"))
+    
+    return True
 
 def update_initializes_tourney(db_tourney, locale, db:Session):
     

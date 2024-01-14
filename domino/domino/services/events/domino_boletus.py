@@ -225,7 +225,6 @@ def calculate_amount_tables_playing(round_id: str, db: Session):
         "join resources.entities_status sta ON sta.id = bol.status_id " +\
         "where sta.name = 'INITIADED' and round_id = '" + round_id + "' " 
     amount_play = db.execute(str_query).fetchone()[0]
-    
     return int(amount_play)
 
 # def created_boletus_for_round_ubica_no_consecutivo_sino_saltanto(tourney_id, round_id, db:Session):

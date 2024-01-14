@@ -49,7 +49,6 @@ class ProfileUsersSchema(ProfileUsersBase):
 class ProfileSinglePlayerBase(BaseModel):
     profile_id: str
     elo: float
-    ranking: int
     level: str
     
 class ProfileSinglePlayerSchema(ProfileSinglePlayerBase):
@@ -85,12 +84,6 @@ class DefaultUserProfileBase(BaseModel):
     class Config:
         orm_mode = True
  
-# class UserRankin(BaseModel):
-#     username: str
-#     elo: int
-#     ranking: str
-
-
 class ProfilePairPlayerBase(BaseModel):
     profile_id: str
     level: Optional[str]

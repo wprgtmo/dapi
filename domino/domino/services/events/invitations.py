@@ -23,6 +23,7 @@ from domino.services.resources.utils import get_result_count
 from domino.services.events.tourney import get_one as get_tourney_by_id
 from domino.services.enterprise.users import get_one_by_username
 from domino.services.resources.status import get_one_by_name as get_status_by_name
+from domino.services.resources.country import get_one_by_name as get_country_by_name
 
 from domino.services.enterprise.auth import get_url_avatar
 
@@ -122,8 +123,7 @@ def get_all_invitations_by_tourney(request, tourney_id: str, page: int, per_page
         
     str_count = "Select count(*) " + str_from
     str_query = "SELECT invitations.id, invitations.profile_id, profile_member.name, profile_member.photo, " + \
-        "city.name as city_name, country.name country_name, " +\
-        "player.level, player.elo, player.ranking, " +\
+        "city.name as city_name, country.name country_name, player.level, player.elo, " +\
         "sta.id as status_id, sta.name as status_name, sta.description as status_description " + str_from
     
     if page and page > 0 and not per_page:
@@ -146,7 +146,7 @@ def create_dict_row_for_tourney(item, api_uri=""):
     new_row = {'id': item.id, 'profile_id': item.profile_id, 
                'country': item.country_name if item.country_name else '', 'city_name': item.city_name if item.city_name else '',
                'name': item['name'], 'status_id': item['status_id'], 
-               'elo': item['elo'], 'ranking': item['ranking'], 'level': item['level'],
+               'elo': item['elo'], 'level': item['level'],
                'status_name': item['status_name'], 'status_description': item['status_description'],
                'photo' : get_url_avatar(item.profile_id, item.photo, api_uri=api_uri)}
     
@@ -248,7 +248,9 @@ def generate_for_tourney(db_tourney:Tourney, db_status: StatusElement, username:
             str_filter += " AND enterprise.profile_member.name ilike '%" + filters_invitation.player + "%'"
         if filters_invitation.country:
             str_users += str_join_country
-            str_filter += " AND resources.country.id = " + str(filters_invitation.country) 
+            country = get_country_by_name(filters_invitation.country, db=db)
+            if country:
+                str_filter += " AND resources.country.id = " + str(country.id) 
         if filters_invitation.elo_min or filters_invitation.elo_max:
             str_users += str_join_elo
             if filters_invitation.elo_min:

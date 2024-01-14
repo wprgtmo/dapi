@@ -36,7 +36,6 @@ def upgrade() -> None:
     sa.Column('city_id', sa.Integer(), nullable=True, comment='City to which the player belongs'),
     sa.Column('photo', sa.String(length=255), nullable=True),
     sa.Column('elo', sa.Integer(), nullable=True),
-    sa.Column('ranking', sa.String(length=2), nullable=True),
     sa.ForeignKeyConstraint(['city_id'], ['resources.city.id'], ),
     sa.ForeignKeyConstraint(['country_id'], ['resources.country.id'], ),
     sa.PrimaryKeyConstraint('id'),

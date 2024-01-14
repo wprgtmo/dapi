@@ -29,13 +29,13 @@ from domino.services.resources.utils import get_result_count, upfile, create_dir
 from domino.services.enterprise.userprofile import get_one as get_one_profile
 from domino.services.enterprise.auth import get_url_avatar
 
-from domino.services.events.player import get_lst_id_player_by_elo, change_all_status_player_at_init_round, get_one as get_one_player
+from domino.services.events.player import get_lst_id_player_by_elo, change_all_status_player_at_init_round, get_one_user
 from domino.services.events.domino_round import get_one as get_one_round, get_first_by_tourney, configure_rounds, configure_new_rounds, \
-    get_obj_info_to_aperturate, remove_configurate_round, calculate_amount_rounds_played
+    get_obj_info_to_aperturate, remove_configurate_round, calculate_amount_rounds_played, configure_next_rounds
     
 from domino.services.events.domino_boletus import created_boletus_for_round
 from domino.services.enterprise.auth import get_url_advertising
-from domino.services.events.tourney import get_lst_categories_of_tourney, create_category_by_default
+from domino.services.events.tourney import get_lst_categories_of_tourney, create_category_by_default, get_one as get_one_tourney
 
 from domino.services.events.calculation_serv import calculate_new_elo, calculate_score_expected, calculate_score_obtained, \
     calculate_increasing_constant
@@ -370,12 +370,13 @@ def get_all_scale_by_round(request:Request, page: int, per_page: int, round_id: 
     str_count = "Select count(*) " + str_from
     str_query = "SELECT players.id player_id, mmb.id profile_id, mmb.name profile_name, mmb.photo, rsca.position_number, " +\
         "city.name as city_name, country.name as country_name, rsca.elo, rsca.elo_variable, rsca.games_played, " +\
-        "rsca.games_won, rsca.games_lost, rsca.points_positive, rsca.points_negative, rsca.points_difference " + str_from
+        "rsca.games_won, rsca.games_lost, rsca.points_positive, rsca.points_negative, rsca.points_difference, " +\
+        "score_expected, score_obtained, k_value, elo_at_end, bonus_points " + str_from
         
     str_where = "WHERE rsca.is_active is True AND rsca.round_id = '" + round_id + "' "
         
     str_count += str_where
-    str_query += str_where + " ORDER BY rsca.position_number "
+    str_query += str_where + " ORDER BY rsca.position_number ASC "
 
     if page and page > 0 and not per_page:
         raise HTTPException(status_code=404, detail=_(locale, "commun.invalid_param"))
@@ -386,7 +387,63 @@ def get_all_scale_by_round(request:Request, page: int, per_page: int, round_id: 
         str_query += "LIMIT " + str(per_page) + " OFFSET " + str(page*per_page-per_page)
     
     lst_data = db.execute(str_query)
+    
     result.data = [create_dict_row_scale(item, db=db, api_uri=api_uri) for item in lst_data]
+    
+    return result
+
+def get_all_scale_acumulate(request:Request, page: int, per_page: int, tourney_id: str, db: Session):  
+    
+    locale = request.headers["accept-language"].split(",")[0].split("-")[0];
+    
+    api_uri = str(settings.api_uri)
+    
+    str_from = "FROM events.players_users rsca " +\
+        "JOIN events.players players ON players.id = rsca.player_id " +\
+        "JOIN enterprise.profile_member mmb ON players.profile_id = mmb.id " +\
+        "left join resources.city ON city.id = mmb.city_id " +\
+        "left join resources.country ON country.id = city.country_id " 
+    
+    str_count = "Select count(*) " + str_from
+    str_query = "SELECT players.id player_id, mmb.id profile_id, mmb.name profile_name, mmb.photo, " +\
+        "city.name as city_name, country.name as country_name, rsca.elo, rsca.elo_current, rsca.games_played, " +\
+        "rsca.games_won, rsca.games_lost, rsca.points_positive, rsca.points_negative, rsca.points_difference, " +\
+        "score_expected, score_obtained, k_value, elo_at_end, bonus_points " + str_from
+        
+    str_where = "WHERE players.tourney_id = '" + tourney_id + "' "
+    
+    db_tourney = get_one_tourney(tourney_id, db=db)
+
+    # order by por los criterios
+    dict_order = {'JG': 'games_won DESC',
+                  'ERA': 'elo_current DESC',
+                  'DP': 'points_difference DESC'}
+    
+    str_order_by = " ORDER BY " + dict_order[db_tourney.round_ordering_one]
+    
+    if db_tourney.round_ordering_two:
+        str_order_by += ", " + dict_order[db_tourney.round_ordering_two]
+    if db_tourney.round_ordering_three:
+        str_order_by += ", " + dict_order[db_tourney.round_ordering_three]
+        
+    str_count += str_where
+    str_query += str_where + str_order_by
+
+    if page and page > 0 and not per_page:
+        raise HTTPException(status_code=404, detail=_(locale, "commun.invalid_param"))
+    
+    result = get_result_count(page=page, per_page=per_page, str_count=str_count, db=db)
+    
+    if page != 0:
+        str_query += " LIMIT " + str(per_page) + " OFFSET " + str(page*per_page-per_page)
+    
+    lst_data = db.execute(str_query)
+    position_number = 0
+    # result.data = [create_dict_row_scale_acum(item, position_number, db=db, api_uri=api_uri) for item in lst_data]
+    result.data = []
+    for item in lst_data:
+        position_number += 1
+        result.data.append(create_dict_row_scale_acum(item, position_number, db=db, api_uri=api_uri))
     
     return result
 
@@ -396,21 +453,22 @@ def get_all_scale_by_round_by_pairs(request:Request, page: int, per_page: int, r
     
     api_uri = str(settings.api_uri)
     
-    str_from = "FROM events.domino_rounds_scale rsca " +\
-        "JOIN events.players players ON players.id = rsca.player_id " +\
+    str_from = "FROM events.domino_rounds_pairs rspa " +\
+        "JOIN events.players players ON players.id = rspa.player_id " +\
         "JOIN enterprise.profile_member mmb ON players.profile_id = mmb.id " +\
         "left join resources.city ON city.id = mmb.city_id " +\
         "left join resources.country ON country.id = city.country_id " 
     
     str_count = "Select count(*) " + str_from
-    str_query = "SELECT players.id player_id, mmb.id profile_id, mmb.name profile_name, mmb.photo, rsca.position_number, " +\
-        "city.name as city_name, country.name as country_name, rsca.elo, rsca.elo_variable, rsca.games_played, " +\
-        "rsca.games_won, rsca.games_lost, rsca.points_positive, rsca.points_negative, rsca.points_difference " + str_from
-        
-    str_where = "WHERE rsca.is_active is True AND rsca.round_id = '" + round_id + "' "
+    str_query = "SELECT rspa.id, rspa.name as profile_name, rspa.position_number, " +\
+        "city.name as city_name, country.name as country_name, rspa.elo_pair, rspa.elo_pair_opposing, " +\
+        "rspa.games_won, rspa.games_lost, rspa.points_positive, rspa.points_negative, rspa.points_difference, " +\
+        "score_expected, score_obtained, k_value, elo_current, elo_at_end, bonus_points " + str_from
+    
+    str_where = "WHERE rspa.round_id = '" + round_id + "' "
         
     str_count += str_where
-    str_query += str_where + " ORDER BY rsca.position_number "
+    str_query += str_where + " ORDER BY rspa.position_number "
 
     if page and page > 0 and not per_page:
         raise HTTPException(status_code=404, detail=_(locale, "commun.invalid_param"))
@@ -421,18 +479,7 @@ def get_all_scale_by_round_by_pairs(request:Request, page: int, per_page: int, r
         str_query += "LIMIT " + str(per_page) + " OFFSET " + str(page*per_page-per_page)
     
     lst_data = db.execute(str_query)
-    # result.data = [create_dict_row_scale(item, db=db, api_uri=api_uri) for item in lst_data]
-    
-    result.data = [{'id': 'pair_id', 'name': 'profile_name', 
-               'position_number': 'position_number',
-               'elo': 'elo', 'elo_variable': 'elo_variable', 'elo_at_end': 0,   
-               'games_played': 0, 
-               'games_won': 0,
-               'games_lost': 0, 
-               'points_positive': 0,
-               'points_negative': 0, 
-               'points_difference': 0,
-               'bonus_points': 0, 'penalty_yellow': 0, 'penalty_red': 0, 'penalty_total': 0}]
+    result.data = [create_dict_row_scale_pair(item, db=db) for item in lst_data]
     
     return result
 
@@ -453,13 +500,65 @@ def create_dict_row_scale(item, db: Session, api_uri):
                'points_positive': item['points_positive'] if item['points_positive'] else 0,
                'points_negative': item['points_negative'] if item['points_negative'] else 0, 
                'points_difference': item['points_difference'] if item['points_difference'] else 0,
+               'score_expected': item['score_expected'] if item['score_expected'] else 0,
+               'score_obtained': item['score_obtained'] if item['score_obtained'] else 0,
+               'k_value': item['k_value'] if item['k_value'] else 0,
+               'elo_at_end': item['elo_at_end'] if item['elo_at_end'] else 0,
                'bonus_points': 0, 'penalty_yellow': 0, 'penalty_red': 0, 'penalty_total': 0}
+    
+    return new_row
+
+def create_dict_row_scale_acum(item, position_number, db: Session, api_uri):
+    
+    photo = get_url_avatar(item['profile_id'], item['photo'], api_uri=api_uri)
+    
+    new_row = {'id': item['player_id'], 'name': item['profile_name'], 
+               'position_number': position_number,
+               'country': item['country_name'] if item['country_name'] else '', 
+               'city_name': item['city_name'] if item['city_name'] else '',  
+               'photo' : photo, 'elo': item['elo'] if item['elo'] else 0, 
+               'elo_variable': item['elo_current'] if item['elo_current'] else 0,
+               'elo_at_end': item['elo'], #item['elo_at_end'] if item['elo_at_end'] else 0,  
+               'games_played': item['games_played'] if item['games_played'] else 0, 
+               'games_won': item['games_won'] if item['games_won'] else 0,
+               'games_lost': item['games_lost'] if item['games_lost'] else 0, 
+               'points_positive': item['points_positive'] if item['points_positive'] else 0,
+               'points_negative': item['points_negative'] if item['points_negative'] else 0, 
+               'points_difference': item['points_difference'] if item['points_difference'] else 0,
+               'score_expected': item['score_expected'] if item['score_expected'] else 0,
+               'score_obtained': item['score_obtained'] if item['score_obtained'] else 0,
+               'k_value': item['k_value'] if item['k_value'] else 0,
+               'elo_at_end': item['elo_at_end'] if item['elo_at_end'] else 0,
+               'bonus_points': 0, 'penalty_yellow': 0, 'penalty_red': 0, 'penalty_total': 0}
+    position_number += 1
+    
+    return new_row
+
+def create_dict_row_scale_pair(item, db: Session):
+       
+    new_row = {'id': item['id'], 'name': item['profile_name'], 
+               'position_number': item['position_number'],
+               'country': item['country_name'] if item['country_name'] else '', 
+               'city_name': item['city_name'] if item['city_name'] else '',  
+               'elo_pair': item['elo_pair'] if item['elo_pair'] else 0, 
+               'elo_pair_opposing': item['elo_pair_opposing'] if item['elo_pair_opposing'] else 0,
+               'games_won': item['games_won'] if item['games_won'] else 0,
+               'games_lost': item['games_lost'] if item['games_lost'] else 0, 
+               'points_positive': item['points_positive'] if item['points_positive'] else 0,
+               'points_negative': item['points_negative'] if item['points_negative'] else 0, 
+               'points_difference': item['points_difference'] if item['points_difference'] else 0,
+               'score_expected': item['score_expected'] if item['score_expected'] else 0,
+               'score_obtained': item['score_obtained'] if item['score_obtained'] else 0,
+               'k_value': item['k_value'] if item['k_value'] else 0,
+               'elo_current': item['elo_current'] if item['elo_current'] else 0,
+               'elo_at_end': item['elo_at_end'] if item['elo_at_end'] else 0,
+               'bonus_points': item['elo_at_end'] if item['elo_at_end'] else 0}
     
     return new_row
 
 def create_dict_position(dict_tables, boletus_id: str, api_uri:str, db: Session):
     
-    str_pos = "SELECT bpos.position_id, pro.name as profile_name, psin.elo, psin.ranking, psin.level, " +\
+    str_pos = "SELECT bpos.position_id, pro.name as profile_name, psin.elo, psin.level, " +\
         "bpos.single_profile_id, pro.photo, bpos.scale_number " +\
         "FROM events.domino_boletus_position bpos " +\
         "JOIN enterprise.profile_single_player psin ON psin.profile_id = bpos.single_profile_id " +\
@@ -596,11 +695,11 @@ def update_info_pairs(boletus_pair_win, boletus_pair_lost,  acumulated_games_pla
     scale_player_lost_one = get_one_round_scale(round_lost_pair.scale_id_one_player, db=db)
     scale_player_lost_two = get_one_round_scale(round_lost_pair.scale_id_two_player, db=db)
     
-    player_win_one = get_one_player(scale_player_win_one.player_id, db=db) 
-    player_win_two = get_one_player(scale_player_win_two.player_id, db=db)
+    player_win_one = get_one_user(scale_player_win_one.player_id, round_win_pair.one_player_id, db=db) 
+    player_win_two = get_one_user(scale_player_win_two.player_id, round_win_pair.two_player_id, db=db)
     
-    player_lost_one = get_one_player(scale_player_lost_one.player_id, db=db)
-    player_lost_two = get_one_player(scale_player_lost_two.player_id, db=db)
+    player_lost_one = get_one_user(scale_player_lost_one.player_id, round_lost_pair.one_player_id, db=db)
+    player_lost_two = get_one_user(scale_player_lost_two.player_id, round_lost_pair.two_player_id, db=db)
     
     round_win_pair.elo_pair = round((player_win_one.elo + player_win_two.elo) / 2, 4)
     round_lost_pair.elo_pair = round((player_lost_one.elo + player_lost_two.elo) / 2, 4)
@@ -797,6 +896,41 @@ def aperture_one_new_round(round_id:str, round: DominoRoundsAperture, locale, db
     
     db_round_ini = get_one_round(round_id=round_id, db=db)
     result.data = get_obj_info_to_aperturate(db_round_ini, db) 
+    
+    return result
+
+def close_one_round(request: Request, round_id: str, open_new: bool, db: Session):
+    locale = request.headers["accept-language"].split(",")[0].split("-")[0];
+    
+    result = ResultObject() 
+    currentUser = get_current_user(request) 
+    
+    db_round = get_one_round(round_id=round_id, db=db)
+    if not db_round:
+        raise HTTPException(status_code=404, detail=_(locale, "round.not_found"))
+    
+    status_init = get_one_status_by_name('FINALIZED', db=db)
+    
+    if db_round.status.name != 'REVIEW':
+        raise HTTPException(status_code=404, detail=_(locale, "round.status_incorrect"))
+    
+    db_round.status_id = status_init.id
+    db_round.updated_by = currentUser['username']
+    db_round.updated_date = datetime.now()
+    db_round.close_date = datetime.now()
+    
+    if open_new:
+        db_round_next = configure_next_rounds(db_round, db=db)
+        
+        configure_tables_by_round(db_round_next.tourney.id, db_round_next.id, db_round_next.tourney.modality, db_round_next.tourney.updated_by, db=db)
+    
+        change_all_status_player_at_init_round(db_round_next, db=db)
+        
+    try:
+        db.commit()
+        return result
+    except (Exception, SQLAlchemyError) as e:
+        return False
     
     return result
 

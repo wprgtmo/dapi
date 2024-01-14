@@ -17,7 +17,7 @@ from domino.app import _
 from fastapi.responses import FileResponse
 from os import getcwd
 
-from domino.models.events.domino_round import DominoRounds, DominoRoundsPairs
+from domino.models.events.domino_round import DominoRounds, DominoRoundsPairs, DominoRoundsScale
 
 from domino.schemas.resources.result_object import ResultObject
 from domino.schemas.events.domino_rounds import DominoRoundsCreated
@@ -28,8 +28,7 @@ from domino.services.enterprise.users import get_one_by_username
 from domino.services.enterprise.userprofile import get_one as get_one_profile
 from domino.services.events.domino_boletus import calculate_amount_tables_playing
 from domino.services.events.tourney import get_one as get_tourney_by_id, calculate_amount_tables, calculate_amount_categories, \
-    calculate_amount_players_playing, calculate_amount_players_by_status, get_lst_categories_of_tourney
-
+    calculate_amount_players_playing, calculate_amount_players_by_status, get_lst_categories_of_tourney, reconfig_amount_tables
                          
 def get_all(request:Request, tourney_id:str, page: int, per_page: int, criteria_key: str, criteria_value: str, db: Session,
             only_initiaded=False):  
@@ -161,15 +160,6 @@ def created_round_default(db_tourney, summary:str, db:Session, round_number:int 
         close_date=datetime.now(), created_by=db_tourney.updated_by, updated_by=db_tourney.updated_by, created_date=datetime.now(), 
         updated_date=datetime.now(), status_id=status_creat.id, is_first=is_first, is_last=is_last)
     
-    # db_round = DominoRounds(
-    #     id=id, tourney_id=tourney_id, round_number=real_round_number, summary=summary, start_date=datetime.now(), 
-    #     close_date=datetime.now(), created_by=created_by, updated_by=created_by, created_date=datetime.now(), 
-    #     updated_date=datetime.now(), status_id=status_creat.id, is_first=is_first, is_last=is_last, 
-    #     use_segmentation=use_segmentation, use_bonus=use_bonus, amount_bonus_tables=amount_bonus_tables, 
-    #     amount_bonus_points=amount_bonus_points, amount_tables=amount_tables, amount_categories=amount_categories,
-    #     amount_players_playing=amount_players_playing, amount_players_waiting=amount_players_waiting,
-    #     amount_players_pause=amount_players_pause, amount_players_expelled=amount_players_expelled)
-    
     try:
         db.add(db_round)
         db.commit()
@@ -177,6 +167,108 @@ def created_round_default(db_tourney, summary:str, db:Session, round_number:int 
     except (Exception, SQLAlchemyError, IntegrityError) as e:
         return None
 
+def configure_next_rounds(db_round, db:Session):
+ 
+    round_number = db_round.round_number + 1
+    summary = 'Ronda Nro. ' + str(round_number)
+    
+    dict_order = {'JG': 'games_won DESC',
+                  'ERA': 'elo_current DESC',
+                  'DP': 'points_difference DESC'}
+    
+    status_config = get_one_status_by_name('CONFIGURATED', db=db)
+    db_round_next = DominoRounds(
+        id=str(uuid.uuid4()), tourney_id=db_round.tourney_id, round_number=round_number, summary=summary, start_date=datetime.now(), 
+        close_date=datetime.now(), created_by=db_round.updated_by, updated_by=db_round.updated_by, created_date=datetime.now(), 
+        updated_date=datetime.now(), status_id=status_config.id, is_first=False, is_last=False)
+    
+    # calcular en base a los jugadores la cantidad de mesas que necesito y crearlas
+    amount_tables, amount_player_waiting = reconfig_amount_tables(db_round.tourney, db=db)
+    
+    # ordenar la escala actual por los criterior de ordenamiento del torneo.
+    str_list_player = "Select puse.*, sta.name as status_name, category_id from events.players_users puse " +\
+        "join events.players play ON play.id = puse.player_id join resources.entities_status sta ON sta.id = play.status_id " +\
+        "Where sta.name IN ('CONFIRMED', 'PLAYING', 'WAITING') and tourney_id = '" + db_round.tourney.id + "' " 
+    
+    # si usa segmentacion, incluir la categoria como primer criterio para ordenar y mantener
+    # ver despues como lo hago
+    if db_round.tourney.use_segmentation:
+        str_order_by = " ORDER BY category_number ASC, " + dict_order[db_round.tourney.round_ordering_one]
+    else:
+        str_order_by = " ORDER BY " + dict_order[db_round.tourney.round_ordering_one]
+    
+    if db_round.tourney.round_ordering_two:
+        str_order_by += ", " + dict_order[db_round.tourney.round_ordering_two]
+    if db_round.tourney.round_ordering_three:
+        str_order_by += ", " + dict_order[db_round.tourney.round_ordering_three]
+        
+    str_list_player += str_order_by
+    lst_all_player_to_order = db.execute(str_list_player).fetchall()
+    
+    lst_player_to_order, dict_play, position_number, lst_play_waiting =  [], {}, 0, []
+    
+    for item_pos in lst_all_player_to_order:
+        
+        new_record = create_new_record(item_pos, position_number)
+        lst_player_to_order.append(new_record)
+        dict_play[position_number] = new_record
+        
+        num_table = divmod(int(position_number + 1),4)
+        if num_table[0] > amount_tables:
+            if new_record['status_name'] == 'WAITING':
+                lst_play_waiting.append(new_record)
+        else:
+            if num_table[0] == amount_tables and num_table[1] != 0:
+                if new_record['status_name'] == 'WAITING':
+                    lst_play_waiting.append(new_record)
+                
+        position_number += 1
+    
+    if amount_player_waiting != 0:  # coinciden mesas y jugadores, es solo ordernar.
+        
+        last_position_play = position_number -1 
+        for item_waiting in lst_play_waiting:
+            for item_play in dict_play:
+                if dict_play[last_position_play]['status_name'] == 'PLAYING':
+                    lst_player_to_order[last_position_play], lst_player_to_order[item_waiting['position_number']] = lst_player_to_order[item_waiting['position_number']], lst_player_to_order[last_position_play]
+                    last_position_play -= 1
+                    break
+                else:
+                    last_position_play -= 1
+        
+    # recorrer la nueva lista y ponerla ya en la escala
+    position_number = 1
+    for item_scala in lst_player_to_order:
+        one_scale = DominoRoundsScale(
+            id=str(uuid.uuid4()), tourney_id=db_round.tourney.id, round_id=db_round_next.id, round_number=db_round_next.round_number, 
+            position_number=int(position_number), player_id=item_scala['player_id'], is_active=True, category_id=item_scala['category_id'],
+            elo=item_scala['elo'], elo_variable=item_scala['elo_current'], games_played=item_scala['games_played'], 
+            games_won=item_scala['games_won'], games_lost=item_scala['games_lost'], points_positive=item_scala['points_positive'], 
+            points_negative=item_scala['points_negative'], points_difference=item_scala['points_difference'], 
+            score_expected=item_scala['score_expected'], score_obtained=item_scala['score_obtained'],
+            acumulated_games_played=item_scala['games_played'], k_value=item_scala['k_value'], 
+            elo_at_end=item_scala['elo_at_end'], bonus_points=item_scala['bonus_points'])
+        
+        db.add(one_scale)
+        position_number += 1
+    
+    try:
+        db.add(db_round_next)
+        db.commit()
+        return db_round_next
+    except (Exception, SQLAlchemyError, IntegrityError) as e:
+        return None
+
+def create_new_record(item, position_number):
+    return {'position_number': position_number, 'player_id': item.player_id, 'profile_id': item.profile_id,
+            'level': item.level, 'elo': item.elo, 'elo_current': item.elo_current, 'elo_at_end': item.elo_at_end,
+            'games_played': item.games_played, 'games_won': item.games_won, 'games_lost': item.games_lost, 
+            'points_positive': item.points_positive, 'points_negative': item.points_negative, 
+            'points_difference': item.points_difference, 'score_expected': item.score_expected, 
+            'score_obtained': item.score_obtained, 'k_value': item.k_value, 'penalty_yellow': item.penalty_yellow,
+            'penalty_red': item.penalty_red, 'penalty_total': item.penalty_total, 'bonus_points': item.bonus_points,
+            'status_name': item.status_name, 'category_id': item.category_id}
+    
 def configure_new_rounds(tourney_id, summary:str, db:Session, created_by:str, round_number=''):
  
     if round_number:
@@ -232,27 +324,23 @@ def get_obj_info_to_aperturate(db_round, db:Session):
     
     new_round.round_number = db_round.round_number
     
-    new_round.amount_players_playing = calculate_amount_players_playing(db_round.tourney.id, db=db)
     new_round.amount_tables = calculate_amount_tables(db_round.tourney.id, db_round.tourney.modality, db=db)
-    new_round.amount_tables_playing = calculate_amount_tables_playing(db_round.tourney.id, db=db)
+    new_round.amount_tables_playing = calculate_amount_tables_playing(db_round.id, db=db)
     new_round.amount_categories = calculate_amount_categories(db_round.tourney.id, db=db)
     new_round.modality = db_round.tourney.modality
     
-    if db_round.is_first:
-        
-        new_round.is_first, new_round.is_last = db_round.is_first, False
-        new_round.amount_players_waiting = 0
-        new_round.amount_players_pause, new_round.amount_players_expelled = 0, 0
-        
-    else:
-        count_round = calculate_amount_rounds_played(db_round.tourney.id, db=db)
-        is_last = True if int(count_round) == int(db_round.tourney.number_rounds) else False
-        
-        new_round.is_first, new_round.is_last = False, is_last
-        
-        new_round.amount_players_waiting = calculate_amount_players_by_status(db_round.tourney.id, "WAITING", db=db)
-        new_round.amount_players_pause = calculate_amount_players_by_status(db_round.tourney.id, "PAUSE", db=db)
-        new_round.amount_players_expelled = calculate_amount_players_by_status(db_round.tourney.id, "EXPELLED", db=db)
+    count_round = calculate_amount_rounds_played(db_round.tourney.id, db=db)
+    is_last = True if int(count_round) == int(db_round.tourney.number_rounds) else False
+    
+    new_round.is_first, new_round.is_last = db_round.is_first, is_last
+    
+    new_round.amount_players_playing = calculate_amount_players_by_status(db_round.tourney.id, "PLAYING", db=db)
+    new_round.amount_players_waiting = calculate_amount_players_by_status(db_round.tourney.id, "WAITING", db=db)
+    new_round.amount_players_pause = calculate_amount_players_by_status(db_round.tourney.id, "PAUSE", db=db)
+    new_round.amount_players_expelled = calculate_amount_players_by_status(db_round.tourney.id, "EXPELLED", db=db)
+    
+    if new_round.amount_players_playing == 0:
+        new_round.amount_players_playing = calculate_amount_players_playing(db_round.tourney.id, db=db)
         
     new_round.status_id, new_round.status_name = db_round.status.id, db_round.status.name
     new_round.status_description = db_round.status.description
@@ -416,6 +504,14 @@ def start_one_round(request: Request, round_id: str, db: Session):
     
     change_status_round(db_round, status_init, currentUser['username'], db=db)
     
+    # cambiar aqui el estado del torneo a iniciado
+    status_init = get_one_status_by_name('INITIADED', db=db)
+    db_round.tourney.status_id = status_init.id
+    db_round.tourney.event.status_id = status_init.id
+    
+    db.add(db_round.tourney)
+    db.add(db_round.tourney.event)
+    
     return result
 
 def publicate_one_round(request: Request, round_id: str, db: Session):
@@ -445,28 +541,26 @@ def publicate_one_round(request: Request, round_id: str, db: Session):
     
     return result
 
-def close_one_round(request: Request, round_id: str, open_new: bool, db: Session):
-    locale = request.headers["accept-language"].split(",")[0].split("-")[0];
+# def close_one_round(request: Request, round_id: str, open_new: bool, db: Session):
+#     locale = request.headers["accept-language"].split(",")[0].split("-")[0];
     
-    result = ResultObject() 
-    currentUser = get_current_user(request) 
+#     result = ResultObject() 
+#     currentUser = get_current_user(request) 
     
-    db_round = get_one(round_id, db=db)
-    if not db_round:
-        raise HTTPException(status_code=404, detail=_(locale, "round.not_found"))
+#     db_round = get_one(round_id, db=db)
+#     if not db_round:
+#         raise HTTPException(status_code=404, detail=_(locale, "round.not_found"))
     
-    status_init = get_one_status_by_name('FINALIZED', db=db)
-    status_review = get_one_status_by_name('REVIEW', db=db)
+#     status_init = get_one_status_by_name('FINALIZED', db=db)
     
-    if db_round.status_id != status_review.id:
-        raise HTTPException(status_code=404, detail=_(locale, "round.status_incorrect"))
+#     if db_round.status.name != 'REVIEW':
+#         raise HTTPException(status_code=404, detail=_(locale, "round.status_incorrect"))
     
-    change_status_round(db_round, status_init, currentUser['username'], db=db)
-    if open_new:
-        next_number = int(db_round.round_number) + 1
-        created_round_default(db_round.tourney, 'Ronda Nro. ' + str(next_number), db=db, round_number=next_number, is_first=False, is_last=False)
+#     # change_status_round(db_round, status_init, currentUser['username'], db=db)
+#     if open_new:
+#         configure_next_rounds(db_round, db=db)
     
-    return result
+#     return result
 
 def change_status_round(db_round, status, username, db: Session):
     
@@ -481,6 +575,7 @@ def change_status_round(db_round, status, username, db: Session):
         return True
     except (Exception, SQLAlchemyError) as e:
         return False
+
 
 def create_pair_for_rounds(tourney_id: str, round_id: str, modality:str, db: Session):
     

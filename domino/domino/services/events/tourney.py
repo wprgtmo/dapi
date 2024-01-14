@@ -22,7 +22,7 @@ from domino.services.resources.status import get_one_by_name as get_one_status_b
 
 from domino.services.resources.utils import get_result_count
 from domino.services.events.event import get_one as get_one_event, get_all as get_all_event
-
+from domino.services.events.domino_table import created_one_domino_tables
 
 from domino.services.resources.utils import get_result_count, upfile, create_dir, del_image, get_ext_at_file, remove_dir, copy_image, del_image
 from domino.services.enterprise.userprofile import get_one as get_one_profile
@@ -363,6 +363,35 @@ def calculate_amount_tables(tourney_id: str, modality: str, db: Session):
     amount_table = int(mod_play[0]) if mod_play[1] > 0 else int(mod_play[0])
     return amount_table
 
+def reconfig_amount_tables(db_tourney, db: Session):
+
+    amount_players = calculate_amount_players_playing(db_tourney.id, db=db)
+    if amount_players == 0:
+        return int(0)
+    
+    if db_tourney.modality == 'Individual':
+        mod_play = divmod(int(amount_players),4) 
+    elif db_tourney.modality == 'Parejas':
+        mod_play = divmod(int(amount_players),2) 
+    elif db_tourney.modality == 'Equipo':
+        mod_play = divmod(int(amount_players),2) 
+    
+    amount_table = int(mod_play[0]) if mod_play[1] > 0 else int(mod_play[0])
+    amount_player_waiting = int(mod_play[1]) if mod_play[1] > 0 else 0
+    
+    if amount_table != db_tourney.amount_tables:
+        if amount_table > db_tourney.amount_tables: # crear mas mesas
+            amount_trad_tables = db_tourney.amount_tables - amount_table
+            table_number = db_tourney.amount_tables
+            for i in range(amount_trad_tables):
+                table_number += 1
+                created_one_domino_tables(db_tourney, table_number, False, 0, db=db, created_by=db_tourney.updated_by, file=None)
+        else:
+            amount_trad_tables = db_tourney.amount_tables - amount_table
+            # quitralas
+            
+    return amount_table, amount_player_waiting
+
 def calculate_amount_categories(tourney_id: str, db: Session):
     
     str_query = "Select count(*) From events.domino_categories Where by_default is False and tourney_id = '" + tourney_id + "' "
@@ -389,9 +418,9 @@ def get_number_players_by_elo(tourney_id:str, min_elo:float, max_elo:float, db:S
     
 def calculate_amount_players_by_status(tourney_id: str, status_name: str, db: Session):
     
-    one_sta = get_one_status_by_name(status_name)
-    str_query = "Select count(*) From events.players Where tourney_id = '" + tourney_id + "' " +\
-        "AND status_id = " + str(one_sta.id)
+    str_query = "Select count(*) From events.players play JOIN resources.entities_status sta ON " +\
+        "sta.id = play.status_id Where tourney_id = '" + tourney_id + "' " +\
+        "AND sta.name = '" + str(status_name) + "' "
     amount_play = db.execute(str_query).fetchone()[0]
     return int(amount_play)
 

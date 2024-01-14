@@ -142,7 +142,6 @@ def upgrade() -> None:
     sa.Column('updated_by', sa.String(), nullable=False),
     sa.Column('updated_date', sa.Date(), nullable=False),
     sa.Column('elo', sa.Float(), nullable=True),
-    sa.Column('ranking', sa.Integer(), nullable=True),
     sa.Column('level', sa.String(length=60), nullable=True),
     sa.Column('status_id', sa.Integer(), nullable=False),
     sa.ForeignKeyConstraint(['created_by'], ['enterprise.users.username'], ),
