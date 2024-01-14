@@ -157,9 +157,14 @@ def start_round(request: Request, id: str, db: Session = Depends(get_db)):
 # def start_round(request:Request, tourney_id: str, db: Session = Depends(get_db)):
 #     return start_one_round(request=request, tourney_id=tourney_id, db=db)
 
+# @rounds_route.post("/rounds/actions/close/{id}", response_model=ResultObject, summary="Close Round.")
+# def close_round(request: Request, id: str, open_new: bool, db: Session = Depends(get_db)):
+#     return close_one_round(request=request, round_id=id, open_new=open_new, db=db)
+
+
 @rounds_route.post("/rounds/actions/close/{id}", response_model=ResultObject, summary="Close Round.")
-def close_round(request: Request, id: str, open_new: bool, db: Session = Depends(get_db)):
-    return close_one_round(request=request, round_id=id, open_new=open_new, db=db)
+def close_round(request: Request, id: str, db: Session = Depends(get_db)):
+    return close_one_round(request=request, round_id=id, open_new=True, db=db)
 
 
 
