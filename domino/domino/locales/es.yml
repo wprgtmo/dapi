@@ -78,6 +78,7 @@ es:
     amount_player_incorrect: 'Cantidad de jugadores incorrecta'
     category_not_configurated: 'Cantegorías no Configuradas'
     category_not_exist: 'Categoria no existe'
+    categories_not_exist: 'Categorias no existe'
     tourney_closed: 'Torneo ya fnalizado'
     setting_incorrect: 'Configuracion del Torneo incorrecta'
     smarttable_incorrect: 'Cantidad de mesas inteligentes incorrecta'
