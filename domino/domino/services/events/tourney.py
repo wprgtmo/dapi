@@ -633,8 +633,8 @@ def get_all_categories_tourney(request:Request, tourney_id: str, db: Session):
     result = ResultObject() 
     
     result.data = get_list_categories_tourney(tourney_id=tourney_id, db=db)
-    if not result.data:
-        raise HTTPException(status_code=404, detail=_(locale, "tourney.categories_not_exist"))
+    # if not result.data:
+    #     raise HTTPException(status_code=404, detail=_(locale, "tourney.categories_not_exist"))
         
     return result
 
