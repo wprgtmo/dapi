@@ -107,15 +107,15 @@ def get_accumulated_scale_by_rounds(
 ):
     return get_all_scale_acumulate(request=request, page=page, per_page=per_page, tourney_id=id, db=db)
 
-@rounds_route.get("/rounds/scale/pairs/", response_model=Dict, summary="Obtain Player ranking list")
+@rounds_route.get("/rounds/scale/player/pairs/{id}", response_model=Dict, summary="Obtain Player ranking list")
 def get_scale_by_rounds(
     request: Request,
-    round_id: str,
+    id: str,
     page: int = 1, 
     per_page: int = 6, 
     db: Session = Depends(get_db)
 ):
-    return get_all_scale_by_round_by_pairs(request=request, page=page, per_page=per_page, round_id=round_id, db=db)
+    return get_all_scale_by_round_by_pairs(request=request, page=page, per_page=per_page, round_id=id, db=db)
 
 @rounds_route.get("/rounds/boletus/all/{id}", response_model=Dict, summary="Obtain a list of Tables at Rounds.")
 def get_tables(request: Request, id: str, page: int = 1, per_page: int = 6, db: Session = Depends(get_db)):
