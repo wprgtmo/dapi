@@ -472,8 +472,8 @@ def get_all_scale_by_round_by_pairs(request:Request, page: int, per_page: int, r
     api_uri = str(settings.api_uri)
     
     str_from = "FROM events.domino_rounds_pairs rspa " +\
-        "JOIN events.players players ON players.id = rspa.player_id " +\
-        "JOIN enterprise.profile_member mmb ON players.profile_id = mmb.id " +\
+        "left JOIN events.players players ON players.id = rspa.player_id " +\
+        "left JOIN enterprise.profile_member mmb ON players.profile_id = mmb.id " +\
         "left join resources.city ON city.id = mmb.city_id " +\
         "left join resources.country ON country.id = city.country_id " 
     
@@ -498,7 +498,7 @@ def get_all_scale_by_round_by_pairs(request:Request, page: int, per_page: int, r
     
     lst_data = db.execute(str_query)
     result.data = [create_dict_row_scale_pair(item, db=db) for item in lst_data]
-    
+    print(str_query)
     return result
 
 def create_dict_row_scale(item, db: Session, api_uri):
