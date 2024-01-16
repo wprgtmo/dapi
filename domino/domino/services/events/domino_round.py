@@ -512,8 +512,11 @@ def start_one_round(request: Request, round_id: str, db: Session):
     db.add(db_round.tourney)
     db.add(db_round.tourney.event)
     
+    db_round_ini = get_one(round_id=round_id, db=db)
+    result.data = get_obj_info_to_aperturate(db_round_ini, db) 
+    
     return result
-
+ 
 def publicate_one_round(request: Request, round_id: str, db: Session):
     locale = request.headers["accept-language"].split(",")[0].split("-")[0];
     
@@ -538,6 +541,9 @@ def publicate_one_round(request: Request, round_id: str, db: Session):
     
     db.add(db_round.tourney)
     db.add(db_round.tourney.event)
+    
+    db_round_ini = get_one(round_id=round_id, db=db)
+    result.data = get_obj_info_to_aperturate(db_round_ini, db) 
     
     return result
 

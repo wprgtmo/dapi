@@ -467,7 +467,6 @@ def get_all_scale_acumulate(request:Request, page: int, per_page: int, tourney_i
 
 def get_all_scale_by_round_by_pairs(request:Request, page: int, per_page: int, round_id: str, db: Session):  
     
-    round_id= 'f6167871-67ea-41fc-8620-73eccc340b5a'
     locale = request.headers["accept-language"].split(",")[0].split("-")[0];
     
     api_uri = str(settings.api_uri)
@@ -946,18 +945,21 @@ def close_one_round(request: Request, round_id: str, open_new: bool, db: Session
         configure_tables_by_round(db_round_next.tourney.id, db_round_next.id, db_round_next.tourney.modality, db_round_next.tourney.updated_by, db=db)
     
         change_all_status_player_at_init_round(db_round_next, db=db)
+        
+        db_round_ini = get_one_round(round_id=db_round_next.id, db=db)
+        result.data = get_obj_info_to_aperturate(db_round_ini, db) 
     
     else:
         db_round.is_last = True
+        
+        result.data = get_obj_info_to_aperturate(db_round, db) 
             
     try:
         db.commit()
         return result
     except (Exception, SQLAlchemyError) as e:
         return False
-    
-    return result
-
+  
 def verify_category_is_valid(elo_max: float, elo_min: float, lst_category: list):
     
     current_elo_max = float(elo_max)
