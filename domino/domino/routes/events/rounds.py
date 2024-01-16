@@ -135,7 +135,7 @@ def close_data(request: Request, id: str, db: Session = Depends(get_db)):
 
 @rounds_route.put("/rounds/boletus/data/{id}", response_model=ResultObject, summary="Update Info of data")
 def update_data(request: Request, id: str, dominodata: DominoDataCreated, db: Session = Depends(get_db)):
-    return updated_data(request=request, boletus_id=id, dominodata=dominodata, db=db)
+    return updated_data(request=request, data_id=id, dominodata=dominodata, db=db)
 
 # @rounds_route.post("/rounds/actions/create/{id}", response_model=ResultObject, summary="Create new Round.")
 # def created_round(request: Request, id: str, db: Session = Depends(get_db)):
