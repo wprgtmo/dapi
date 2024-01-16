@@ -25,7 +25,7 @@ from domino.services.events.domino_boletus import get_one as get_one_boletus
 from domino.services.events.domino_scale import update_info_pairs, close_round_with_verify
 from domino.services.resources.status import get_one_by_name as get_one_status_by_name
 from domino.services.resources.utils import get_result_count
-from domino.services.events.domino_round import calculate_amount_rounds_played, get_one as get_one_round, get_info_to_aperture
+from domino.services.events.domino_round import calculate_amount_rounds_played, get_one as get_one_round, get_obj_info_to_aperturate
 
 def get_all_data_by_boletus(request:Request, page: int, per_page: int, boletus_id: str, db: Session):  
     
