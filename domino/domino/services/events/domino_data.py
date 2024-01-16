@@ -229,8 +229,8 @@ def close_data_by_time(request: Request, boletus_id:str, db: Session):
     pair_win.negative_points = pair_lost.positive_points
     pair_lost.negative_points = pair_win.positive_points
     
-    pair_win.points_difference = round(pair_win.positive_points - pair_win.negative_points, 4)
-    pair_lost.points_difference = round(pair_lost.positive_points - pair_lost.negative_points, 4)
+    pair_win.points_difference = round(pair_win.positive_points - pair_win.negative_points, 2)
+    pair_lost.points_difference = round(pair_lost.positive_points - pair_lost.negative_points, 2)
     
     pair_win.is_winner = True
         

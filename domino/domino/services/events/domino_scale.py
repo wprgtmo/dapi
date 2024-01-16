@@ -467,6 +467,7 @@ def get_all_scale_acumulate(request:Request, page: int, per_page: int, tourney_i
 
 def get_all_scale_by_round_by_pairs(request:Request, page: int, per_page: int, round_id: str, db: Session):  
     
+    round_id= 'f6167871-67ea-41fc-8620-73eccc340b5a'
     locale = request.headers["accept-language"].split(",")[0].split("-")[0];
     
     api_uri = str(settings.api_uri)
@@ -509,7 +510,8 @@ def create_dict_row_scale(item, db: Session, api_uri):
                'position_number': item['position_number'],
                'country': item['country_name'] if item['country_name'] else '', 
                'city_name': item['city_name'] if item['city_name'] else '',  
-               'photo' : photo, 'elo': item['elo'] if item['elo'] else 0, 
+               'photo' : photo, 'elo_pair': item['elo_pair'] if item['elo_pair'] else 0, 
+               'elo_pair_opposing': item['elo_pair_opposing'] if item['elo_pair_opposing'] else 0, 
                'elo_variable': item['elo_variable'] if item['elo_variable'] else 0,
                'elo_at_end': item['elo'], #item['elo_at_end'] if item['elo_at_end'] else 0,  
                'games_played': item['games_played'] if item['games_played'] else 0, 
@@ -521,7 +523,6 @@ def create_dict_row_scale(item, db: Session, api_uri):
                'score_expected': item['score_expected'] if item['score_expected'] else 0,
                'score_obtained': item['score_obtained'] if item['score_obtained'] else 0,
                'k_value': item['k_value'] if item['k_value'] else 0,
-               'elo_at_end': item['elo_at_end'] if item['elo_at_end'] else 0,
                'bonus_points': 0, 'penalty_yellow': 0, 'penalty_red': 0, 'penalty_total': 0,
                'status_id': item['status_id'], 'status_name': item['status_name'], 
                'status_description': item['status_description']}
@@ -721,8 +722,8 @@ def update_info_pairs(boletus_pair_win, boletus_pair_lost,  acumulated_games_pla
     player_lost_one = get_one_user(scale_player_lost_one.player_id, round_lost_pair.one_player_id, db=db)
     player_lost_two = get_one_user(scale_player_lost_two.player_id, round_lost_pair.two_player_id, db=db)
     
-    round_win_pair.elo_pair = round((player_win_one.elo + player_win_two.elo) / 2, 4)
-    round_lost_pair.elo_pair = round((player_lost_one.elo + player_lost_two.elo) / 2, 4)
+    round_win_pair.elo_pair = round((player_win_one.elo + player_win_two.elo) / 2, 2)
+    round_lost_pair.elo_pair = round((player_lost_one.elo + player_lost_two.elo) / 2, 2)
     
     round_win_pair.elo_pair_opposing = round_lost_pair.elo_pair
     round_lost_pair.elo_pair_opposing = round_win_pair.elo_pair
@@ -764,7 +765,7 @@ def update_data_round_pair(boletus_pair, round_pair, elo_pair_opposing, constant
     round_pair.points_difference = round_pair.points_positive - round_pair.points_negative
     
     round_pair.score_expected = calculate_score_expected(round_pair.elo_pair, elo_pair_opposing)
-    round_pair.score_obtained = calculate_score_obtained(round_pair.acumulated_games_played, round_pair.points_difference)
+    round_pair.score_obtained = calculate_score_obtained(round_pair.games_won, round_pair.points_difference)
     
     round_pair.k_value = calculate_increasing_constant(constant_increase_elo, round_pair.acumulated_games_played)
     
@@ -815,9 +816,9 @@ def update_data_player(scale_player, player):
     player.score_obtained = scale_player.score_obtained if not player.score_obtained else round(player.score_obtained + scale_player.score_obtained, 2)
     
     player.k_value = scale_player.k_value if not player.k_value else round(player.k_value + scale_player.k_value, 2)
-    player.elo_current = scale_player.elo_variable if not player.elo_current else round(player.elo_current + scale_player.elo_variable, 4)
+    player.elo_current = scale_player.elo_variable if not player.elo_current else round(player.elo_current + scale_player.elo_variable, 2)
     
-    player.elo_at_end = round(player.elo + player.elo_current, 4)
+    player.elo_at_end = round(player.elo + player.elo_current, 2)
     
     player.bonus_points = scale_player.bonus_points if not player.bonus_points else round(player.bonus_points + scale_player.bonus_points, 2)
      
