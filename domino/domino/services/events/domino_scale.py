@@ -740,8 +740,8 @@ def update_info_pairs(boletus_pair_win, boletus_pair_lost,  acumulated_games_pla
     update_data_round_pair(boletus_pair_lost, round_lost_pair, round_win_pair.elo_pair, constant_increase_elo)
     
     # actualizar los datos de la escala de la pareja
-    update_data_round_scale(round_win_pair, scale_player_win_one, scale_player_win_two, True)
-    update_data_round_scale(round_lost_pair, scale_player_lost_one, scale_player_lost_two, False)
+    update_data_round_scale(round_win_pair, scale_player_win_one, scale_player_win_two, True, constant_increase_elo)
+    update_data_round_scale(round_lost_pair, scale_player_lost_one, scale_player_lost_two, False, constant_increase_elo)
     
     # actualizar los datos de los jugadores de cada pareja
     update_data_player(scale_player_win_one, player_win_one)
@@ -774,7 +774,7 @@ def update_data_round_pair(boletus_pair, round_pair, elo_pair_opposing, constant
         
     return True
 
-def update_data_round_scale(round_pair, scale_player_one, scale_player_two, is_winner: bool):
+def update_data_round_scale(round_pair, scale_player_one, scale_player_two, is_winner: bool, constant_increase_elo:float):
     
     scale_player_one.games_played, scale_player_two.games_played = 1, 1
     scale_player_one.games_won, scale_player_two.games_won = 1 if is_winner else 0, 1 if is_winner else 0
@@ -788,12 +788,18 @@ def update_data_round_scale(round_pair, scale_player_one, scale_player_two, is_w
     scale_player_one.score_obtained, scale_player_two.score_obtained = round_pair.score_obtained, round_pair.score_obtained
     scale_player_one.acumulated_games_played = round_pair.acumulated_games_played
     scale_player_two.acumulated_games_played = round_pair.acumulated_games_played
-    scale_player_one.k_value, scale_player_two.k_value = round_pair.k_value, round_pair.k_value
     
-    scale_player_one.elo_variable = round_pair.elo_at_end
+    # De la pareja solo tomo los valores de los score, lo demas lo calculo
+    
+    scale_player_one.k_value = calculate_increasing_constant(constant_increase_elo, round_pair.acumulated_games_played)
+    scale_player_two.k_value = calculate_increasing_constant(constant_increase_elo, round_pair.acumulated_games_played)
+    
+    scale_player_one.elo_variable = calculate_new_elo(
+        scale_player_one.k_value, scale_player_one.acumulated_games_played, round_pair.score_expected, round_pair.score_obtained)
+    scale_player_two.elo_variable = calculate_new_elo(
+        scale_player_two.k_value, scale_player_two.acumulated_games_played, round_pair.score_expected, round_pair.score_obtained)  
+    
     scale_player_one.elo_at_end = scale_player_one.elo + scale_player_one.elo_variable
-    
-    scale_player_two.elo_variable = round_pair.elo_at_end
     scale_player_two.elo_at_end = scale_player_two.elo + scale_player_two.elo_variable
     
     scale_player_one.bonus_points, scale_player_two.bonus_points = round_pair.bonus_points, round_pair.bonus_points
