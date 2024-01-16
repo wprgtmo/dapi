@@ -513,7 +513,7 @@ def create_dict_row_scale(item, db: Session, api_uri):
                'photo' : photo, 'elo_pair': item['elo_pair'] if item['elo_pair'] else 0, 
                'elo_pair_opposing': item['elo_pair_opposing'] if item['elo_pair_opposing'] else 0, 
                'elo_variable': item['elo_variable'] if item['elo_variable'] else 0,
-               'elo_at_end': item['elo'], #item['elo_at_end'] if item['elo_at_end'] else 0,  
+               'elo_at_end': item['elo_at_end'], #item['elo_at_end'] if item['elo_at_end'] else 0,  
                'games_played': item['games_played'] if item['games_played'] else 0, 
                'games_won': item['games_won'] if item['games_won'] else 0,
                'games_lost': item['games_lost'] if item['games_lost'] else 0, 
