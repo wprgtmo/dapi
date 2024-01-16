@@ -1,10 +1,9 @@
-
-
 import uuid
 from datetime import date, datetime
 from sqlalchemy import Column, ForeignKey, Index, UniqueConstraint
 from sqlalchemy.sql.sqltypes import String, Integer, Date, Boolean, Text, DateTime, Float
 from ...config.db import Base
+from sqlalchemy.orm import relationship
 
 def generate_uuid():
     return str(uuid.uuid4())
@@ -24,6 +23,8 @@ class DominoBoletusData(Base):
     start_date =  Column(DateTime, nullable=False, default=datetime.now())
     end_date =  Column(DateTime, nullable=False, default=datetime.now())
     duration = Column(Float)  # tiempo en minutos,, despues tengo que ver el tipo  de datos
+    
+    boletus = relationship("DominoBoletus")
     
     def dict(self):
         return {

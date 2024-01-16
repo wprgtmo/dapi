@@ -140,3 +140,5 @@ es:
     not_found: 'Boleta no existe.'
     status_incorrect: 'Estado de la Boleta no permite realizar esta acción'
     equal_positive_points: 'Parejas empatadas, no puede cerrarse por tiempo'
+  data:
+    not_found: 'Registro de Data no existe'

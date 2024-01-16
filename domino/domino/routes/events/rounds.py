@@ -15,7 +15,7 @@ from domino.services.events.domino_round import get_all, get_one_by_id, start_on
 from domino.services.events.domino_scale import get_all_players_by_tables, get_all_players_by_tables_and_round, \
     get_all_scale_by_round, get_all_tables_by_round, aperture_new_round, get_all_scale_by_round_by_pairs, close_one_round, \
     get_all_scale_acumulate
-from domino.services.events.domino_data import get_all_data_by_boletus, new_data, close_data_by_time
+from domino.services.events.domino_data import get_all_data_by_boletus, new_data, close_data_by_time, updated_data
   
 rounds_route = APIRouter(
     tags=["Rounds"],
@@ -132,6 +132,10 @@ def insert_data(request: Request, id: str, dominodata: DominoDataCreated, db: Se
 @rounds_route.post("/rounds/boletus/closedata/{id}", response_model=ResultObject, summary="Close data by time")
 def close_data(request: Request, id: str, db: Session = Depends(get_db)):
     return close_data_by_time(request=request, boletus_id=id, db=db)
+
+@rounds_route.put("/rounds/boletus/data/{id}", response_model=ResultObject, summary="Update Info of data")
+def update_data(request: Request, id: str, dominodata: DominoDataCreated, db: Session = Depends(get_db)):
+    return updated_data(request=request, boletus_id=id, dominodata=dominodata, db=db)
 
 # @rounds_route.post("/rounds/actions/create/{id}", response_model=ResultObject, summary="Create new Round.")
 # def created_round(request: Request, id: str, db: Session = Depends(get_db)):
