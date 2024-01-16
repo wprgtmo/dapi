@@ -16,7 +16,7 @@ from domino.app import _
 
 from domino.models.events.player import Players, PlayersUser
 
-from domino.schemas.resources.result_object import ResultObject
+from domino.schemas.resources.result_object import ResultObject, ResultData
 
 from domino.services.resources.status import get_one_by_name, get_one as get_one_status
 from domino.services.events.invitations import get_one_by_id as get_invitation_by_id
@@ -463,8 +463,12 @@ def get_all_players_by_tourney(request:Request, page: int, per_page: int, tourne
             " AND sta.name = 'EXPELLED' " if criteria_value == '4' else " AND sta.name = 'PAUSE' " \
             if criteria_value == '5' else " AND sta.name = 'CANCELLED' " if criteria_value == '6' else ""
     
-    if not str_status:  # no me paso estado, devolver todos menos los cancelados 
-        str_status = "AND sta.name != '" + str(status_canc.name) + "' "     
+    if not str_status:  # no devolver nada
+        result = ResultData(page=page, per_page=per_page)  
+        result.total 
+        result.data = []
+        return result
+        # str_status = "AND sta.name != '" + str(status_canc.name) + "' "     
            
     str_from = "FROM events.players player " +\
         "inner join enterprise.profile_member pro ON pro.id = player.profile_id " +\

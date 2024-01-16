@@ -25,7 +25,7 @@ from domino.services.events.domino_boletus import get_one as get_one_boletus
 from domino.services.events.domino_scale import update_info_pairs, close_round_with_verify
 from domino.services.resources.status import get_one_by_name as get_one_status_by_name
 from domino.services.resources.utils import get_result_count
-from domino.services.events.domino_round import calculate_amount_rounds_played
+from domino.services.events.domino_round import calculate_amount_rounds_played, get_one as get_one_round, get_info_to_aperture
 
 def get_all_data_by_boletus(request:Request, page: int, per_page: int, boletus_id: str, db: Session):  
     
@@ -134,8 +134,7 @@ def new_data(request: Request, boletus_id:str, dominodata: DominoDataCreated, db
                                  number_points=dominodata.point, duration=0)
         
     close_data = True if pair_win.positive_points >= one_boletus.tourney.number_points_to_win else False
-    
-    result.data = {'closed_round': False}
+    round_id = one_boletus.round_id
     if close_data: 
         pair_win.positive_points = one_boletus.tourney.number_points_to_win
         pair_win.negative_points = lost_pair.positive_points
@@ -167,11 +166,12 @@ def new_data(request: Request, boletus_id:str, dominodata: DominoDataCreated, db
             
             db.add(one_boletus.rounds)
             
-            result.data = {'closed_round': True}
-    
     try:
         one_boletus.boletus_data.append(one_data)
-        db.commit()            
+        db.commit() 
+        db_round_ini = get_one_round(round_id=round_id, db=db)
+        result.data = get_obj_info_to_aperturate(db_round_ini, db) 
+               
         return result
     except (Exception, SQLAlchemyError, IntegrityError) as e:
         print(e)
