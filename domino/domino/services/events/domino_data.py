@@ -223,9 +223,9 @@ def close_data_by_time(request: Request, boletus_id:str, db: Session):
     else:
         pair_win = pair_two
         pair_lost = pair_one
-        
-    result.data = {'closed_round': False}            
     
+    round_id = one_boletus.round_id
+        
     pair_win.negative_points = pair_lost.positive_points
     pair_lost.negative_points = pair_win.positive_points
     
@@ -258,10 +258,12 @@ def close_data_by_time(request: Request, boletus_id:str, db: Session):
         
         db.add(one_boletus.rounds)
         
-        result.data = {'closed_round': True}
-
     try:
-        db.commit()            
+        db.commit()   
+        
+        db_round_ini = get_one_round(round_id=round_id, db=db)
+        result.data = get_obj_info_to_aperturate(db_round_ini, db)
+                 
         return result
     except (Exception, SQLAlchemyError, IntegrityError) as e:
         print(e)
