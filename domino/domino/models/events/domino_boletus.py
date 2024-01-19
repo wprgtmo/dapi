@@ -25,7 +25,7 @@ class DominoBoletus(Base):
     
     boletus_position = relationship("DominoBoletusPosition")
     boletus_pairs = relationship("DominoBoletusPairs")
-    boletus_data = relationship('DominoBoletusData')
+    boletus_data = relationship('DominoBoletusData', back_populates="boletus")
     
     tourney = relationship('Tourney')
     

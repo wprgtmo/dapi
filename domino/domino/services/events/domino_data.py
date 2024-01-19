@@ -21,7 +21,7 @@ from domino.models.events.domino_data import DominoBoletusData
 from domino.schemas.resources.result_object import ResultObject
 from domino.schemas.events.domino_data import DominoDataCreated
 
-from domino.services.events.domino_boletus import get_one as get_one_boletus
+from domino.services.events.domino_boletus import get_one as get_one_boletus, get_one_boletus_pair
 from domino.services.events.domino_scale import update_info_pairs, close_round_with_verify
 from domino.services.resources.status import get_one_by_name as get_one_status_by_name
 from domino.services.resources.utils import get_result_count
@@ -286,95 +286,84 @@ def updated_data(request: Request, data_id:str, dominodata: DominoDataCreated, d
     if not one_data:
         raise HTTPException(status_code=400, detail=_(locale, "data.not_found"))
     
-    #Puede modificarlo siempre que la ronda este en estado de revision.
+    #Puede modificarlo siempre que la ronda este en estado de revision o iniciada
     
-    if one_data.boletus.rounds.status.name != 'REVIEW':
+    if one_data.boletus.rounds.status.name not in ('REVIEW', 'INITIADED'):
         raise HTTPException(status_code=404, detail=_(locale, "round.status_incorrect"))
 
     if one_data.win_pair_id != dominodata.pair:  #cambio la pareja que gana esa data
         one_data.win_pair_id = dominodata.pair
-        
-    if int(one_data.number_points) != int(dominodata.point):
-        one_data.number_points = int(dominodata.point)
     
-    round_id = one_data.boletus.round_id   
+    boletus_pairs = get_one_boletus_pair(one_data.boletus.id, one_data.win_pair_id, db=db)    
+    if int(one_data.number_points) != int(dominodata.point):
+        diference = int(one_data.number_points) - int(dominodata.point)
+        one_data.number_points = int(dominodata.point)
+        boletus_pairs.positive_points -= diference
+        
+    round_id = one_data.boletus.round_id
+    boletus_id = one_data.boletus.id
+    number_points_to_win = one_data.boletus.tourney.number_points_to_win
+    
+    db.add(boletus_pairs)
     db.add(one_data)
     db.commit()  
         
     db_round_ini = get_one_round(round_id=round_id, db=db)
+     # total de puntos para ganar del torneo
+     
+    one_pair_id = one_data.win_pair_id
+    two_pair_id = None
+    
+    # reconstruir los datos de las parejas
+    str_all_datas = "SELECT * FROM events.domino_boletus_data Where boletus_id = '" + boletus_id + "' " +\
+        "ORDER BY data_number ASC "
+    lst_data = db.execute(str_all_datas).fetchall()
+    point_one_pair, poins_two_pair = 0, 0
+    str_datas_ok, pair_win_id = "", ""
+    for item_data in lst_data:
+        str_datas_ok += " " + item_data.id
+        
+        if item_data.win_pair_id != one_pair_id:
+            if not two_pair_id:
+                two_pair_id = item_data.win_pair_id
+            poins_two_pair += item_data.number_points
+        else:
+            point_one_pair += item_data.number_points
+        if point_one_pair >= number_points_to_win or poins_two_pair >= number_points_to_win:  # ya alguien gano
+            pair_win_id = one_pair_id if point_one_pair >= number_points_to_win else two_pair_id
+            break
+    
+    # borrar si sobran datas
+    str_delete = ""
+    for item_data in lst_data:
+        if item_data.id not in str_datas_ok:
+            str_delete += "'" + item_data.id + "',"
+        
+    if str_delete:    
+        str_query_delete = "DELETE FROM events.domino_boletus_data where id IN (" + str_delete[:-1] + ");"
+        str_query_delete += "UPDATE events.domino_boletus_pairs SET is_winner = True where boletus_id = '" + boletus_id +\
+            "' AND pairs_id = '" + pair_win_id + "'; " +\
+            ";COMMIT;"
+        
+        db.execute(str_query_delete)
+            
+    # acumulated_games_played = calculate_amount_rounds_played(one_boletus.tourney_id, db=db)
+    # update_info_pairs(pair_win, lost_pair, acumulated_games_played, one_boletus.tourney.constant_increase_elo, db=db)
+       
     result.data = get_obj_info_to_aperturate(db_round_ini, db) 
     
+    #verificar si ya llego fin del partido cerrar la ronda
+        # amount_boletus_active = count_boletus_active(one_boletus.rounds.id, one_status_end, db=db)
+        # if amount_boletus_active == 0:  # ya todas están cerrados
+        #     one_boletus.rounds.close_date = datetime.now()
+        #     one_boletus.rounds.status_id = one_status_review.id
+            
+        #     one_boletus.rounds.updated_by = currentUser['username']
+        #     one_boletus.rounds.updated_date = datetime.now()
+            
+        #     db.add(one_boletus.rounds)
+    
     return result
-        
-    # cargar las boletas de las parejas para poder verificar si ya alguien gano y actualizar la info de la otra pareja
-    lst_boletus_pair = one_data.boletus.boletus_pairs
-    
-    close_data = False
-    pair_win, lost_pair = None, None
-    # solo actualizo los puntos de la pareja ganadora
-    
-    
-    
-    for item in lst_boletus_pair:
-        if item.pairs_id == dominodata.pair:
-            pair_win = item
-            item.positive_points = dominodata.point if not pair_win.positive_points else pair_win.positive_points + dominodata.point
-        else:
-            lost_pair = item
-    
-    str_number = "SELECT data_number FROM events.domino_boletus_data where boletus_id = '" + boletus_id + "' " +\
-        "ORDER BY data_number DESC LIMIT 1; "
-    last_number = db.execute(str_number).fetchone()
-    data_number = last_number[0] + 1 if last_number else 1
-    
-    one_data = DominoBoletusData(id=str(uuid.uuid4()), boletus_id=boletus_id, data_number=data_number, 
-                                 win_pair_id=dominodata.pair, win_by_time=False, win_by_points=True,
-                                 number_points=dominodata.point, duration=0)
-        
-    close_data = True if pair_win.positive_points >= one_boletus.tourney.number_points_to_win else False
-    round_id = one_boletus.round_id
-    if close_data: 
-        pair_win.positive_points = one_boletus.tourney.number_points_to_win
-        pair_win.negative_points = lost_pair.positive_points
-        lost_pair.negative_points = pair_win.positive_points
-        pair_win.is_winner = True
-        
-        acumulated_games_played = calculate_amount_rounds_played(one_boletus.tourney_id, db=db)
-            
-        update_info_pairs(pair_win, lost_pair, acumulated_games_played, one_boletus.tourney.constant_increase_elo, db=db)
-        
-        one_status_review = get_one_status_by_name('REVIEW', db=db)
-        one_status_end = get_one_status_by_name('FINALIZED', db=db)
-        if not one_status_review or not one_status_end:
-            raise HTTPException(status_code=404, detail=_(locale, "status.not_found"))
-        
-        one_boletus.status_id = one_status_end.id
-        one_boletus.updated_by = currentUser['username']
-        one_boletus.updated_date = datetime.now()
-        db.add(one_boletus)
-        
-        #verificar si ya llego fin del partido cerrar la ronda
-        amount_boletus_active = count_boletus_active(one_boletus.rounds.id, one_status_end, db=db)
-        if amount_boletus_active == 0:  # ya todas están cerrados
-            one_boletus.rounds.close_date = datetime.now()
-            one_boletus.rounds.status_id = one_status_review.id
-            
-            one_boletus.rounds.updated_by = currentUser['username']
-            one_boletus.rounds.updated_date = datetime.now()
-            
-            db.add(one_boletus.rounds)
-            
-    try:
-        one_boletus.boletus_data.append(one_data)
-        db.commit() 
-        db_round_ini = get_one_round(round_id=round_id, db=db)
-        result.data = get_obj_info_to_aperturate(db_round_ini, db) 
-               
-        return result
-    except (Exception, SQLAlchemyError, IntegrityError) as e:
-        print(e)
-        msg = _(locale, "event.error_new_event")               
-        raise HTTPException(status_code=403, detail=msg)
        
 def count_boletus_active(round_id: str, status_end, db: Session):
     

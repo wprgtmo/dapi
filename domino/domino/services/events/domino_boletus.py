@@ -26,6 +26,10 @@ from domino.services.events.domino_table import get_lst_tables
 def get_one(boletus_id: str, db: Session):  
     return db.query(DominoBoletus).filter(DominoBoletus.id == boletus_id).first()
 
+def get_one_boletus_pair(boletus_id: str, pair_id: str, db: Session):  
+    return db.query(DominoBoletusPairs).filter(DominoBoletusPairs.boletus_id == boletus_id).\
+        filter(DominoBoletusPairs.pairs_id == pair_id).first()
+
 def get_one_by_id(round_id: str, db: Session): 
     result = ResultObject()  
     
