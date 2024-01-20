@@ -484,6 +484,8 @@ def delete(request: Request, round_id: str, db: Session):
         
     change_status_round(db_round, status_canc, currentUser['username'], db=db)
     
+    db.commit()
+    
     return result
 
 def start_one_round(request: Request, round_id: str, db: Session):
@@ -511,6 +513,8 @@ def start_one_round(request: Request, round_id: str, db: Session):
     
     db.add(db_round.tourney)
     db.add(db_round.tourney.event)
+    
+    db.commit()
     
     db_round_ini = get_one(round_id=round_id, db=db)
     result.data = get_obj_info_to_aperturate(db_round_ini, db) 
@@ -541,6 +545,11 @@ def publicate_one_round(request: Request, round_id: str, db: Session):
     
     db.add(db_round.tourney)
     db.add(db_round.tourney.event)
+    
+    print('cambie estado del evento')
+    print('****************')
+    
+    db.commit()
     
     db_round_ini = get_one(round_id=round_id, db=db)
     result.data = get_obj_info_to_aperturate(db_round_ini, db) 
