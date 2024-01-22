@@ -6,10 +6,10 @@ from domino.app import get_db
 from typing import List, Dict
 
 from domino.schemas.resources.result_object import ResultObject
-from domino.schemas.events.player import PlayerRegister
+from domino.schemas.events.player import PlayerRegister, PlayerEloBase
 
 from domino.services.events.player import new, remove_player, get_all_players_by_tourney, reject_one_invitation, \
-    get_all_players_by_elo, get_number_players_by_elo, change_status_player, register_new_player
+    get_all_players_by_elo, get_number_players_by_elo, change_status_player, register_new_player, update_elo_one_player
   
 player_route = APIRouter(
     tags=["Players"],
@@ -73,3 +73,7 @@ def change_status(request:Request, id: str, status: str, db: Session = Depends(g
 def register_player(request:Request, tourney_id: str, player_register: PlayerRegister = Depends(), 
                     photo: UploadFile = None, db: Session = Depends(get_db)):
     return register_new_player(request=request, tourney_id=tourney_id, player_register=player_register.dict(), file=photo, db=db)
+
+@player_route.put("/player/elo/{tourney_id}", response_model=ResultObject, summary="Update elo for single player")
+def update_elo_player(request:Request, tourney_id:str, player_elo: PlayerEloBase, db: Session = Depends(get_db)):
+    return update_elo_one_player(request=request, tourney_id=tourney_id, player_elo=player_elo, elo=elo, db=db)

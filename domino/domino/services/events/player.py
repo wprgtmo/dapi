@@ -19,7 +19,7 @@ from domino.models.events.player import Players, PlayersUser
 from domino.models.events.invitations import Invitations
 
 from domino.schemas.resources.result_object import ResultObject, ResultData
-from domino.schemas.events.player import PlayerRegister
+from domino.schemas.events.player import PlayerRegister, PlayerEloBase
 
 from domino.services.enterprise.profiletype import get_one_by_name as get_profile_type_by_name
 from domino.services.resources.status import get_one_by_name, get_one as get_one_status
@@ -145,19 +145,16 @@ def register_new_player(request: Request, tourney_id: str, player_register: Play
                       player_register['last_name'], player_register['alias'], player_register['phone'], 
                       one_city, country, currentUser['username'], file, db=db, locale=locale)
    
-    print('cree usuario')
     name = player_register['first_name'] + ' ' + player_register['last_name'] if player_register['last_name'] \
         else player_register['first_name'] if player_register['first_name'] else '' 
     create_new_single_player(db_tourney, player_register['username'], name, player_register['email'], one_city, 
                              player_register['elo'], player_register['level'], currentUser['username'], file, db=db)
     
-    print('cree jugador con invitacion')
-    # try:
-    db.commit()
-    print('hice commit')
-    return result
-    # except (Exception, SQLAlchemyError) as e:
-    #     return False
+    try:
+        db.commit()
+        return result
+    except (Exception, SQLAlchemyError) as e:
+        return False
 
 def create_new_single_player(db_tourney, username, name, email, city, elo, level, created_by, file, db: Session):
     
@@ -197,7 +194,38 @@ def create_new_single_player(db_tourney, username, name, email, city, elo, level
         return True
     except (Exception, SQLAlchemyError) as e:
         return True
-        
+
+def update_elo_one_player(request: Request, tourney_id:str, player_elo: PlayerEloBase, db: Session):
+    locale = request.headers["accept-language"].split(",")[0].split("-")[0];
+    
+    result = ResultObject() 
+    currentUser = get_current_user(request)
+    
+    db_tourney = get_torneuy_by_eid(tourney_id, db=db)
+    if not db_tourney:
+        raise HTTPException(status_code=404, detail=_(locale, "tourney.not_found"))
+    
+    db_profile = get_one_profile(id=player_elo.profile_id, db=db)
+    if not db_profile:
+        raise HTTPException(status_code=400, detail=_(locale, "userprofile.not_found"))
+    
+    if db_profile.profile_type != 'SINGLE_PLAYER':
+        raise HTTPException(status_code=400, detail=_(locale, "userprofile.sigle_profile_not_exist"))
+    
+    if db_tourney.status.name == 'FINALIZED':
+        raise HTTPException(status_code=404, detail=_(locale, "tourney.status_incorrect"))
+    
+    # actualizar el elo del profile
+    # actualizar el elo de la tabbla de jugador si ya es jugador
+    # actualizar el elo de la pareja si ya es pareja de alguien.
+    
+    
+    try:
+        db.commit()
+        return result
+    except (Exception, SQLAlchemyError) as e:
+        return False
+            
 def reject_one_invitation(request: Request, invitation_id: str, db: Session):
     locale = request.headers["accept-language"].split(",")[0].split("-")[0];
     

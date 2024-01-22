@@ -227,7 +227,6 @@ def new_from_register(email: str, username: str, first_name:str, last_name:str, 
     str_user = "SELECT count(username) FROM enterprise.users where email = '" + email + "' "
     amount_user = db.execute(str_user).fetchone()[0]
     if amount_user > 0:
-        # es para modificar los datos o crearlo como jugador
         raise HTTPException(status_code=404, detail=_(locale, "users.email_exist"))  
     
     id = str(uuid.uuid4())

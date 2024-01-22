@@ -94,10 +94,8 @@ def get_one_configure_tourney(request:Request, tourney_id: str, db: Session):
         'lst_categories': get_lst_categories_of_tourney(tourney_id=tourney_id, db=db),
         'status_name': db_tourney.status.name,
         'status_description': db_tourney.status.description,
-        'scope_tourney_id': db_tourney.scope.id if db_tourney.scope else '',
-        'scope_tourney': db_tourney.scope.scope if db_tourney.scope else "",
-        'level_tourney_id': db_tourney.level.id if db_tourney.level else '',
-        'level_tourney': db_tourney.level.level if db_tourney.level else "",
+        'scope': db_tourney.scope.id if db_tourney.scope else '',
+        'level': db_tourney.level.id if db_tourney.level else ''
         }
         
     return result
