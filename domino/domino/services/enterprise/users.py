@@ -19,12 +19,13 @@ from domino.config.config import settings
 
 from domino.models.enterprise.user import Users, UserFollowers
 from domino.models.enterprise.userprofile import ProfileMember
+from domino.models.resources.city import City
+from domino.models.resources.country import Country
 
 from domino.schemas.enterprise.user import UserCreate, UserShema, ChagePasswordSchema, UserBase, UserFollowerBase
 from domino.schemas.resources.result_object import ResultObject, ResultData
 
 from domino.services.resources.country import get_one as country_get_one
-from domino.services.resources.city import get_one as city_get_one
 from domino.services.enterprise.profiletype import get_one as get_profile_type_by_id, get_one_by_name as get_profile_type_by_name
 
 from domino.services.resources.utils import get_result_count
@@ -214,8 +215,8 @@ def new(request: Request, db: Session, user: UserCreate):
         
         raise HTTPException(status_code=403, detail=msg) 
     
-def new_from_register(email: str, username: str, first_name:str, last_name:str, alias:str, phone:str, city_id: int, 
-                      created_by:str, file:File, db: Session, locale):  
+def new_from_register(email: str, username: str, first_name:str, last_name:str, alias:str, phone:str, city: City, 
+                      country: Country, created_by:str, file:File, db: Session, locale):  
     
     #verificar que el nombre de usuario no existe en Base de Datos, ni el email
     str_user = "SELECT count(username) FROM enterprise.users where username = '" + username + "' "
@@ -228,13 +229,9 @@ def new_from_register(email: str, username: str, first_name:str, last_name:str, 
     if amount_user > 0:
         raise HTTPException(status_code=404, detail=_(locale, "users.email_exist"))  
     
-    one_city = city_get_one(city_id=city_id, db=db)
-    if not one_city:
-        raise HTTPException(status_code=404, detail=_(locale, "city.not_found"))
-    
     id = str(uuid.uuid4())
     user_password = pwd_context.hash('Dom.1234*')  
-    db_user = Users(id=id, username=username,  first_name=first_name, last_name=last_name, country_id=one_city.country.id, 
+    db_user = Users(id=id, username=username,  first_name=first_name, last_name=last_name, country_id=country.id if country else None, 
                     email=email, phone=phone, password=user_password, is_active=True)
     
     db_user.security_code = random.randint(10000, 99999)  # codigo de 5 caracteres
@@ -245,7 +242,7 @@ def new_from_register(email: str, username: str, first_name:str, last_name:str, 
     
     full_name = first_name + ' ' + last_name if last_name else first_name if first_name else ''
     profile_id = id  # voy a hacer coincidir el id de usuario con el del perfil de usuario, tema fotos  
-    one_profile_user = new_profile_default_user(profile_type, profile_id, id, username, full_name, email, city_id,
+    one_profile_user = new_profile_default_user(profile_type, profile_id, id, username, full_name, email, city.id if city else None,
                                                 True, created_by, created_by, None, None, alias, None, file=file)
                                
     try:

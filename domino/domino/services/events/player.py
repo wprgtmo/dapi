@@ -28,6 +28,8 @@ from domino.services.events.tourney import get_one as get_torneuy_by_eid, get_in
 from domino.services.events.domino_round import get_last_by_tourney, remove_configurate_round
 from domino.services.enterprise.users import new_from_register
 from domino.services.enterprise.comunprofile import new_profile
+from domino.services.resources.city import get_one as city_get_one
+from domino.services.resources.country import get_one as country_get_one
 
 from domino.services.enterprise.userprofile import get_one as get_one_profile
 
@@ -131,20 +133,31 @@ def register_new_player(request: Request, tourney_id: str, player_register: Play
     if db_tourney.status.name == 'FINALIZED':
         raise HTTPException(status_code=404, detail=_(locale, "tourney.status_incorrect"))
     
+    country = None
+    one_city = city_get_one(city_id=player_register['city_id'], db=db)
+    if one_city:
+        country = one_city.country
+    else:
+        if player_register['country_id']:
+            country = country_get_one(player_register['country_id'], db=db)
+        
     new_from_register(player_register['email'], player_register['username'], player_register['first_name'],
                       player_register['last_name'], player_register['alias'], player_register['phone'], 
-                      player_register['city_id'], currentUser['username'], file, db=db, locale=locale)
+                      one_city, country, currentUser['username'], file, db=db, locale=locale)
    
+    print('cree usuario')
     name = player_register['first_name'] + ' ' + player_register['last_name'] if player_register['last_name'] \
         else player_register['first_name'] if player_register['first_name'] else '' 
-    create_new_single_player(player_register['username'], name, player_register['email'], player_register['city_id'], 
-                             player_register['elo'], currentUser['username'], file, db=db)
+    create_new_single_player(db_tourney, player_register['username'], name, player_register['email'], one_city, 
+                             player_register['elo'], player_register['level'], currentUser['username'], file, db=db)
     
-    try:
-        db.commit()
-        return result
-    except (Exception, SQLAlchemyError) as e:
-        return False
+    print('cree jugador con invitacion')
+    # try:
+    db.commit()
+    print('hice commit')
+    return result
+    # except (Exception, SQLAlchemyError) as e:
+    #     return False
 
 def create_new_single_player(db_tourney, username, name, email, city, elo, level, created_by, file, db: Session):
     
@@ -161,7 +174,7 @@ def create_new_single_player(db_tourney, username, name, email, city, elo, level
     
     status_acc = get_one_by_name('ACCEPTED', db=db)
     
-    one_invitation = Invitations(tourney_id=db_tourney.id, profile_id=id, modality=db_tourney.modality,
+    one_invitation = Invitations(id=str(uuid.uuid4()), tourney_id=db_tourney.id, profile_id=id, modality=db_tourney.modality,
                                  status_name=status_acc.name, created_by=created_by, updated_by=created_by)
             
     status_confirmed = get_one_by_name('CONFIRMED', db=db) 
