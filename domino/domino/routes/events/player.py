@@ -70,10 +70,14 @@ def change_status(request:Request, id: str, status: str, db: Session = Depends(g
     return change_status_player(request=request, player_id=str(id), status=str(status), db=db)
 
 @player_route.post("/player/register/{tourney_id}", response_model=ResultObject, summary="Register new player")
-def register_player(request:Request, tourney_id: str, player_register: PlayerRegister = Depends(), 
-                    photo: UploadFile = None, db: Session = Depends(get_db)):
-    return register_new_player(request=request, tourney_id=tourney_id, player_register=player_register.dict(), file=photo, db=db)
+def register_player(request:Request, tourney_id: str, player_register: PlayerRegister, db: Session = Depends(get_db)):
+    return register_new_player(request=request, tourney_id=tourney_id, player_register=player_register, db=db)
 
-@player_route.put("/player/elo/{tourney_id}", response_model=ResultObject, summary="Update elo for single player")
-def update_elo_player(request:Request, tourney_id:str, player_elo: PlayerEloBase, db: Session = Depends(get_db)):
-    return update_elo_one_player(request=request, tourney_id=tourney_id, player_elo=player_elo, elo=elo, db=db)
+# @player_route.post("/player/register/{tourney_id}", response_model=ResultObject, summary="Register new player")
+# def update_image_player(request:Request, tourney_id: str, player_register: PlayerRegister = Depends(), 
+#                     photo: UploadFile = None, db: Session = Depends(get_db)):
+#     return register_new_player(request=request, tourney_id=tourney_id, player_register=player_register.dict(), file=photo, db=db)
+
+# @player_route.put("/player/elo/{tourney_id}", response_model=ResultObject, summary="Update elo for single player")
+# def update_info_player(request:Request, tourney_id:str, player_elo: PlayerEloBase, db: Session = Depends(get_db)):
+#     return update_elo_one_player(request=request, tourney_id=tourney_id, player_elo=player_elo, elo=elo, db=db)

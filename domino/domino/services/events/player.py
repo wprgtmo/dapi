@@ -120,7 +120,7 @@ def new_player_with_user(tourney_id, profile_id, invitation_id, created_by, stat
     return one_player
 
 #metodo para registrar un nuevo jugador, creandolo desde el usuario
-def register_new_player(request: Request, tourney_id: str, player_register: PlayerRegister, file: File, db: Session):
+def register_new_player(request: Request, tourney_id: str, player_register: PlayerRegister, db: Session):
     locale = request.headers["accept-language"].split(",")[0].split("-")[0];
     
     result = ResultObject() 
@@ -134,21 +134,21 @@ def register_new_player(request: Request, tourney_id: str, player_register: Play
         raise HTTPException(status_code=404, detail=_(locale, "tourney.status_incorrect"))
     
     country = None
-    one_city = city_get_one(city_id=player_register['city_id'], db=db)
+    one_city = city_get_one(city_id=player_register.city_id, db=db)
     if one_city:
         country = one_city.country
     else:
-        if player_register['country_id']:
-            country = country_get_one(player_register['country_id'], db=db)
+        if player_register.country_id:
+            country = country_get_one(player_register.country_id, db=db)
         
-    new_from_register(player_register['email'], player_register['username'], player_register['first_name'],
-                      player_register['last_name'], player_register['alias'], player_register['phone'], 
-                      one_city, country, currentUser['username'], file, db=db, locale=locale)
+    new_from_register(player_register.email, player_register.username, player_register.first_name,
+                      player_register.last_name, player_register.alias, player_register.phone, 
+                      one_city, country, currentUser['username'], None, db=db, locale=locale)
    
-    name = player_register['first_name'] + ' ' + player_register['last_name'] if player_register['last_name'] \
-        else player_register['first_name'] if player_register['first_name'] else '' 
-    create_new_single_player(db_tourney, player_register['username'], name, player_register['email'], one_city, 
-                             player_register['elo'], player_register['level'], currentUser['username'], file, db=db)
+    name = player_register.first_name + ' ' + player_register.last_name if player_register.last_name \
+        else player_register.first_name if player_register.first_name else '' 
+    create_new_single_player(db_tourney, player_register.username, name, player_register.email, one_city, 
+                             player_register.elo, player_register.level, currentUser['username'], None, db=db)
     
     try:
         db.commit()
