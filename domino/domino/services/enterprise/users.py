@@ -213,6 +213,54 @@ def new(request: Request, db: Session, user: UserCreate):
                 msg = msg + _(locale, "users.already_exist")
         
         raise HTTPException(status_code=403, detail=msg) 
+    
+def new_from_register(email: str, username: str, first_name:str, last_name:str, alias:str, phone:str, city_id: int, 
+                      created_by:str, file:File, db: Session, locale):  
+    
+    #verificar que el nombre de usuario no existe en Base de Datos, ni el email
+    str_user = "SELECT count(username) FROM enterprise.users where username = '" + username + "' "
+    amount_user = db.execute(str_user).fetchone()[0]
+    if amount_user > 0:
+        raise HTTPException(status_code=404, detail=_(locale, "users.username_exist")) 
+    
+    str_user = "SELECT count(username) FROM enterprise.users where email = '" + email + "' "
+    amount_user = db.execute(str_user).fetchone()[0]
+    if amount_user > 0:
+        raise HTTPException(status_code=404, detail=_(locale, "users.email_exist"))  
+    
+    one_city = city_get_one(city_id=city_id, db=db)
+    if not one_city:
+        raise HTTPException(status_code=404, detail=_(locale, "city.not_found"))
+    
+    id = str(uuid.uuid4())
+    user_password = pwd_context.hash('Dom.1234*')  
+    db_user = Users(id=id, username=username,  first_name=first_name, last_name=last_name, country_id=one_city.country.id, 
+                    email=email, phone=phone, password=user_password, is_active=True)
+    
+    db_user.security_code = random.randint(10000, 99999)  # codigo de 5 caracteres
+    
+    profile_type = get_profile_type_by_name("USER", db=db)
+    if not profile_type:
+        raise HTTPException(status_code=400, detail=_(locale, "profiletype.not_found"))
+    
+    full_name = first_name + ' ' + last_name if last_name else first_name if first_name else ''
+    profile_id = id  # voy a hacer coincidir el id de usuario con el del perfil de usuario, tema fotos  
+    one_profile_user = new_profile_default_user(profile_type, profile_id, id, username, full_name, email, city_id,
+                                                True, created_by, created_by, None, None, alias, None, file=file)
+                               
+    try:
+        db.add(db_user)
+        db.add(one_profile_user)
+        db.commit()
+        return True
+    except (Exception, SQLAlchemyError, IntegrityError) as e:
+        msg = _(locale, "users.new_user_error")
+        if e.code == 'gkpj':
+            field_name = str(e.__dict__['orig']).split('"')[1].split('_')[1]
+            if field_name == 'username':
+                msg = msg + _(locale, "users.already_exist")
+        
+        raise HTTPException(status_code=403, detail=msg) 
         
 def get_one(user_id: str, db: Session):  
     return db.query(Users).filter(Users.id == user_id).first()

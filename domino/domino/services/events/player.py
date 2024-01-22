@@ -14,14 +14,20 @@ from domino.functions_jwt import get_current_user
 from domino.config.config import settings
 from domino.app import _
 
+from domino.models.enterprise.userprofile import SingleProfile
 from domino.models.events.player import Players, PlayersUser
+from domino.models.events.invitations import Invitations
 
 from domino.schemas.resources.result_object import ResultObject, ResultData
+from domino.schemas.events.player import PlayerRegister
 
+from domino.services.enterprise.profiletype import get_one_by_name as get_profile_type_by_name
 from domino.services.resources.status import get_one_by_name, get_one as get_one_status
 from domino.services.events.invitations import get_one_by_id as get_invitation_by_id
 from domino.services.events.tourney import get_one as get_torneuy_by_eid, get_info_categories_tourney
 from domino.services.events.domino_round import get_last_by_tourney, remove_configurate_round
+from domino.services.enterprise.users import new_from_register
+from domino.services.enterprise.comunprofile import new_profile
 
 from domino.services.enterprise.userprofile import get_one as get_one_profile
 
@@ -110,7 +116,75 @@ def new_player_with_user(tourney_id, profile_id, invitation_id, created_by, stat
         return None
     
     return one_player
- 
+
+#metodo para registrar un nuevo jugador, creandolo desde el usuario
+def register_new_player(request: Request, tourney_id: str, player_register: PlayerRegister, file: File, db: Session):
+    locale = request.headers["accept-language"].split(",")[0].split("-")[0];
+    
+    result = ResultObject() 
+    currentUser = get_current_user(request)
+    
+    db_tourney = get_torneuy_by_eid(tourney_id, db=db)
+    if not db_tourney:
+        raise HTTPException(status_code=404, detail=_(locale, "tourney.not_found"))
+    
+    if db_tourney.status.name == 'FINALIZED':
+        raise HTTPException(status_code=404, detail=_(locale, "tourney.status_incorrect"))
+    
+    new_from_register(player_register['email'], player_register['username'], player_register['first_name'],
+                      player_register['last_name'], player_register['alias'], player_register['phone'], 
+                      player_register['city_id'], currentUser['username'], file, db=db, locale=locale)
+   
+    name = player_register['first_name'] + ' ' + player_register['last_name'] if player_register['last_name'] \
+        else player_register['first_name'] if player_register['first_name'] else '' 
+    create_new_single_player(player_register['username'], name, player_register['email'], player_register['city_id'], 
+                             player_register['elo'], currentUser['username'], file, db=db)
+    
+    try:
+        db.commit()
+        return result
+    except (Exception, SQLAlchemyError) as e:
+        return False
+
+def create_new_single_player(db_tourney, username, name, email, city, elo, level, created_by, file, db: Session):
+    
+    profile_type = get_profile_type_by_name("SINGLE_PLAYER", db=db)
+    if not profile_type:
+        return True
+    
+    id = str(uuid.uuid4())
+    one_profile = new_profile(profile_type, id, id, username, name, email, city.id if city else None, True, True, True, 
+                              "USERPROFILE", created_by, created_by, file, is_confirmed=True, single_profile_id=id)
+    
+    one_single_player = SingleProfile(profile_id=id, elo=elo, level='NORMAL', updated_by=created_by)
+    one_profile.profile_single_player.append(one_single_player)
+    
+    status_acc = get_one_by_name('ACCEPTED', db=db)
+    
+    one_invitation = Invitations(tourney_id=db_tourney.id, profile_id=id, modality=db_tourney.modality,
+                                 status_name=status_acc.name, created_by=created_by, updated_by=created_by)
+            
+    status_confirmed = get_one_by_name('CONFIRMED', db=db) 
+    one_player = Players(id=str(uuid.uuid4()), tourney_id=db_tourney.id, profile_id=id, 
+                         invitation_id=one_invitation.id, created_by=created_by, updated_by=created_by, 
+                         status_id=status_confirmed.id, elo=elo, level=level)
+    
+    one_player_user =  PlayersUser(
+        player_id=one_player.id, profile_id=id, level=one_player.level,
+        elo=one_player.elo, elo_current=0, elo_at_end=0, games_played=0, games_won=0, games_lost=0,
+        points_positive=0, points_negative=0, points_difference=0, score_expected=0, score_obtained=0,
+        k_value=0, penalty_yellow=0, penalty_red=0, penalty_total=0, bonus_points=0)
+    one_player.users.append(one_player_user)
+        
+    try:   
+        db.add(one_profile)
+        db.add(one_invitation)
+        db.add(one_player)
+        db.commit()
+        return True
+    except (Exception, SQLAlchemyError) as e:
+        return True
+        
 def reject_one_invitation(request: Request, invitation_id: str, db: Session):
     locale = request.headers["accept-language"].split(",")[0].split("-")[0];
     

@@ -34,3 +34,34 @@ class PlayerSchema(PlayerBase):
     
     class Config:
         orm_mode = True
+
+class PlayerRegister(BaseModel):
+    
+    username: str
+    first_name: str
+    last_name: Optional[str]
+    alias: Optional[str]
+    email: str
+    phone: Optional[str]
+    city_id: Optional[int]
+    country_id: Optional[int]
+    elo: Optional[float]
+    level: Optional[str]
+    
+    @validator('username')
+    def username_not_empty(cls, username):
+        if not username:
+            raise ValueError('Nombre de usuario es requerido')
+        return username
+    
+    @validator('first_name')
+    def first_name_not_empty(cls, first_name):
+        if not first_name:
+            raise ValueError('Nombre del Usuario es Requerido')
+        return first_name
+    
+    @validator('email')
+    def email_not_empty(cls, email):
+        if not email:
+            raise ValueError('Dirección de Correo es Requerida')
+        return email

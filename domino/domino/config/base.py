@@ -17,3 +17,4 @@ from ..models.events.domino_data import *
 from ..models.notifications.notifications import *
 from ..models.events.player import *
 from ..models.events.referees import *
+from ..models.resources.eventscategories import *

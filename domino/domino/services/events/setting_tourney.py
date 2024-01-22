@@ -22,13 +22,11 @@ from domino.schemas.events.domino_rounds import DominoRoundsAperture
 
 from domino.services.resources.status import get_one_by_name as get_one_status_by_name, get_one as get_one_status
 from domino.services.resources.utils import get_result_count, upfile, create_dir, del_image, get_ext_at_file, remove_dir
-from domino.services.enterprise.users import get_one_by_username
-from domino.services.enterprise.userprofile import get_one as get_one_profile
-from domino.services.events.domino_boletus import created_boletus_for_round
+from domino.services.resources.playercategories import get_one_event_scope_by_name, get_one_event_level_by_name
 
 from domino.services.events.domino_table import created_tables_default
 from domino.services.events.domino_round import created_round_default, remove_configurate_round, get_last_by_tourney, get_one_by_number
-from domino.services.events.domino_scale import configure_automatic_lottery, aperture_one_new_round
+from domino.services.events.domino_scale import aperture_one_new_round
 from domino.services.events.invitations import get_amount_invitations_by_tourney
 
 from domino.services.events.tourney import get_one as get_one_tourney, calculate_amount_tables, \
@@ -40,8 +38,6 @@ def get_one_configure_tourney(request:Request, tourney_id: str, db: Session):
     locale = request.headers["accept-language"].split(",")[0].split("-")[0];
     
     result = ResultObject()  
-    
-    api_uri = str(settings.api_uri)
     
     db_tourney = get_one_tourney(tourney_id=tourney_id, db=db)
     if not db_tourney:
@@ -72,6 +68,7 @@ def get_one_configure_tourney(request:Request, tourney_id: str, db: Session):
         "use_bonus": True if db_tourney.use_bonus else False,
         "amount_bonus_tables": 0 if not db_tourney.amount_bonus_tables else db_tourney.amount_bonus_tables,
         "amount_bonus_points": 0 if not db_tourney.amount_bonus_points else db_tourney.amount_bonus_points,
+        "amount_bonus_points_rounds": 0 if not db_tourney.amount_bonus_points_rounds else db_tourney.amount_bonus_points_rounds,
         "number_points_to_win": 0 if not db_tourney.number_points_to_win else db_tourney.number_points_to_win,
         "time_to_win": 0 if not db_tourney.time_to_win else db_tourney.time_to_win,
         "game_system": 'SUIZO' if not db_tourney.game_system else db_tourney.game_system,
@@ -82,15 +79,25 @@ def get_one_configure_tourney(request:Request, tourney_id: str, db: Session):
         'elo_min': elo_min, 'elo_max': elo_max,
         'constant_increase_ELO': 0 if not db_tourney.constant_increase_elo else db_tourney.constant_increase_elo,
         'round_ordering_one': '' if not db_tourney.round_ordering_one else db_tourney.round_ordering_one,
+        'round_ordering_dir_one': 'ASC' if not db_tourney.round_ordering_dir_one else db_tourney.round_ordering_dir_one,
         'round_ordering_two': '' if not db_tourney.round_ordering_two else db_tourney.round_ordering_two,
+        'round_ordering_dir_two': 'ASC' if not db_tourney.round_ordering_dir_two else db_tourney.round_ordering_dir_two,
         'round_ordering_three': '' if not db_tourney.round_ordering_three else db_tourney.round_ordering_three,
+        'round_ordering_dir_three': 'ASC' if not db_tourney.round_ordering_dir_three else db_tourney.round_ordering_dir_three,
         'event_ordering_one': '' if not db_tourney.event_ordering_one else db_tourney.event_ordering_one,
+        'event_ordering_dir_one': 'ASC' if not db_tourney.event_ordering_dir_one else db_tourney.event_ordering_dir_one,
         'event_ordering_two': '' if not db_tourney.event_ordering_two else db_tourney.event_ordering_two,
+        'event_ordering_dir_two': 'ASC' if not db_tourney.event_ordering_dir_two else db_tourney.event_ordering_dir_two,
         'event_ordering_three': '' if not db_tourney.event_ordering_three else db_tourney.event_ordering_three,
+        'event_ordering_dir_three': 'ASC' if not db_tourney.event_ordering_dir_three else db_tourney.event_ordering_dir_three,
         'status_id': db_tourney.status_id,
         'lst_categories': get_lst_categories_of_tourney(tourney_id=tourney_id, db=db),
         'status_name': db_tourney.status.name,
-        'status_description': db_tourney.status.description
+        'status_description': db_tourney.status.description,
+        'scope_tourney_id': db_tourney.scope.id if db_tourney.scope else '',
+        'scope_tourney': db_tourney.scope.scope if db_tourney.scope else "",
+        'level_tourney_id': db_tourney.level.id if db_tourney.level else '',
+        'level_tourney': db_tourney.level.level if db_tourney.level else "",
         }
         
     return result
@@ -202,11 +209,13 @@ def configure_one_tourney(request, tourney_id: str, settingtourney: SettingTourn
         if not settingtourney.amount_bonus_tables:
             raise HTTPException(status_code=404, detail=_(locale, "tourney.amount_bonus_tables_incorrect"))
         if int(settingtourney.amount_bonus_tables) <= 0:
-                raise HTTPException(status_code=404, detail=_(locale, "tourney.amount_bonus_tables_incorrect"))
+            raise HTTPException(status_code=404, detail=_(locale, "tourney.amount_bonus_tables_incorrect"))
         if not settingtourney.amount_bonus_points:
             raise HTTPException(status_code=404, detail=_(locale, "tourney.amount_bonus_tables_incorrect"))
         if int(settingtourney.amount_bonus_points) <= 0:
-                raise HTTPException(status_code=404, detail=_(locale, "tourney.amount_bonus_tables_incorrect"))
+            raise HTTPException(status_code=404, detail=_(locale, "tourney.amount_bonus_tables_incorrect"))
+        if int(settingtourney.amount_bonus_points_rounds) <= 0:
+            raise HTTPException(status_code=404, detail=_(locale, "tourney.amount_bonus_tables_incorrect"))
         
         if db_tourney.use_bonus != use_bonus:
             db_tourney.use_bonus = use_bonus
@@ -217,22 +226,53 @@ def configure_one_tourney(request, tourney_id: str, settingtourney: SettingTourn
         if db_tourney.amount_bonus_points != int(settingtourney.amount_bonus_points):
             db_tourney.amount_bonus_points = int(settingtourney.amount_bonus_points)
             
+        if db_tourney.amount_bonus_points_rounds != int(settingtourney.amount_bonus_points_rounds):
+            db_tourney.amount_bonus_points_rounds = int(settingtourney.amount_bonus_points_rounds)
+            
     if settingtourney.round_ordering_one and db_tourney.round_ordering_one != str(settingtourney.round_ordering_one):
         db_tourney.round_ordering_one = str(settingtourney.round_ordering_one)
+    if settingtourney.round_ordering_dir_one and db_tourney.round_ordering_dir_one != str(settingtourney.round_ordering_dir_one):
+        db_tourney.round_ordering_dir_one = str(settingtourney.round_ordering_dir_one)
+    if not db_tourney.round_ordering_dir_one:
+        db_tourney.round_ordering_dir_one = "ASC" 
+        
     if settingtourney.round_ordering_two and db_tourney.round_ordering_two != str(settingtourney.round_ordering_two):
         db_tourney.round_ordering_two = str(settingtourney.round_ordering_two)
+    if settingtourney.round_ordering_dir_two and db_tourney.round_ordering_dir_two != str(settingtourney.round_ordering_dir_two):
+        db_tourney.round_ordering_dir_two = str(settingtourney.round_ordering_dir_two)
+    if not db_tourney.round_ordering_dir_two:
+        db_tourney.round_ordering_dir_two = "ASC" 
+        
     if settingtourney.round_ordering_three and db_tourney.round_ordering_three != str(settingtourney.round_ordering_three):
         db_tourney.round_ordering_three = str(settingtourney.round_ordering_three)
+    if settingtourney.round_ordering_dir_three and db_tourney.round_ordering_dir_three != str(settingtourney.round_ordering_dir_three):
+        db_tourney.round_ordering_dir_three = str(settingtourney.round_ordering_dir_three)
+    if not db_tourney.round_ordering_dir_three:
+        db_tourney.round_ordering_dir_three = "ASC" 
             
     if not db_tourney.round_ordering_one or not db_tourney.round_ordering_two or not db_tourney.round_ordering_three:
         raise HTTPException(status_code=404, detail=_(locale, "tourney.round_ordering_incorrect"))
             
     if settingtourney.event_ordering_one and db_tourney.event_ordering_one != str(settingtourney.event_ordering_one):
         db_tourney.event_ordering_one = str(settingtourney.event_ordering_one)
+    if settingtourney.event_ordering_dir_one and db_tourney.event_ordering_dir_one != str(settingtourney.event_ordering_dir_one):
+        db_tourney.event_ordering_dir_one = str(settingtourney.event_ordering_dir_one)
+    if not db_tourney.event_ordering_dir_one:
+        db_tourney.event_ordering_dir_one = "ASC" 
+        
     if settingtourney.event_ordering_two and db_tourney.event_ordering_two != str(settingtourney.event_ordering_two):
         db_tourney.event_ordering_two = str(settingtourney.event_ordering_two)
+    if settingtourney.event_ordering_dir_two and db_tourney.event_ordering_dir_two != str(settingtourney.event_ordering_dir_two):
+        db_tourney.event_ordering_dir_two = str(settingtourney.event_ordering_dir_two)
+    if not db_tourney.event_ordering_dir_two:
+        db_tourney.event_ordering_dir_two = "ASC" 
+        
     if settingtourney.event_ordering_three and db_tourney.event_ordering_three != str(settingtourney.event_ordering_three):
         db_tourney.event_ordering_three = str(settingtourney.event_ordering_three)
+    if settingtourney.event_ordering_dir_three and db_tourney.event_ordering_dir_three != str(settingtourney.event_ordering_dir_three):
+        db_tourney.event_ordering_dir_three = str(settingtourney.event_ordering_dir_three)
+    if not db_tourney.event_ordering_dir_three:
+        db_tourney.event_ordering_dir_three = "ASC" 
         
     if not db_tourney.event_ordering_one or not db_tourney.event_ordering_two or not db_tourney.event_ordering_three:
         raise HTTPException(status_code=404, detail=_(locale, "tourney.event_ordering_incorrect"))
@@ -248,6 +288,22 @@ def configure_one_tourney(request, tourney_id: str, settingtourney: SettingTourn
         
     if settingtourney.number_rounds and db_tourney.number_rounds != int(settingtourney.number_rounds):
         db_tourney.number_rounds = int(settingtourney.number_rounds)
+    
+    if settingtourney.scope_tourney:
+        db_scope = get_one_event_scope_by_name(settingtourney.scope_tourney, db=db)
+        if db_scope and db_tourney.scope_tourney != db_scope.id:
+            db_tourney.scope_tourney = db_scope.id
+    if not db_tourney.scope_tourney:
+        db_scope = get_one_event_scope_by_name('Local', db=db)
+        db_tourney.scope_tourney = db_scope.id
+        
+    if settingtourney.level_tourney:
+        db_level = get_one_event_level_by_name(settingtourney.level_tourney, db=db)
+        if db_level and db_tourney.level_tourney != db_level.id:
+            db_tourney.level_tourney = db_level.id
+    if not db_tourney.level_tourney:
+        db_level = get_one_event_level_by_name('1', db=db)
+        db_tourney.level_tourney = db_level.id
         
     db_tourney.updated_by=currentUser['username']
     

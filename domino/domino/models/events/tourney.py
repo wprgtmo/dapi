@@ -46,6 +46,7 @@ class Tourney(Base):
     use_bonus = Column(Boolean, nullable=True, default=False)
     amount_bonus_tables = Column(Integer, nullable=True, default=0)
     amount_bonus_points = Column(Integer, nullable=True, default=0)
+    amount_bonus_points_rounds = Column(Integer, nullable=True, default=0)
     
     number_rounds = Column(Integer, nullable=True, default=0)
     number_bonus_round = Column(Integer, nullable=True, default=0)
@@ -75,9 +76,26 @@ class Tourney(Base):
     event_ordering_four = Column(String(120), nullable=True)
     event_ordering_five = Column(String(120), nullable=True)
     
+    scope_tourney = Column(Integer, ForeignKey("resources.events_scopes.id"), nullable=False)
+    level_tourney = Column(Integer, ForeignKey("resources.events_levels.id"), nullable=False)
+    
+    round_ordering_dir_one = Column(String(5), nullable=True)
+    round_ordering_dir_two = Column(String(5), nullable=True)
+    round_ordering_dir_three = Column(String(5), nullable=True)
+    round_ordering_dir_four = Column(String(5), nullable=True)
+    round_ordering_dir_five = Column(String(5), nullable=True)
+    
+    event_ordering_dir_one = Column(String(5), nullable=True)
+    event_ordering_dir_two = Column(String(5), nullable=True)
+    event_ordering_dir_three = Column(String(5), nullable=True)
+    event_ordering_dir_four = Column(String(5), nullable=True)
+    event_ordering_dir_five = Column(String(5), nullable=True)
+    
     event = relationship("Event", back_populates="tourneys")
     
     status = relationship("StatusElement")
+    scope = relationship("EventScopes")
+    level = relationship("EventLevels")
     
     def dict(self):
         return {
