@@ -105,6 +105,7 @@ def new_category_by_elo(request, db: Session, playercategory: PlayerCategoriesBa
     db_category = PlayerCategories(name=playercategory.name, value_k=playercategory.value_k, begin_elo=playercategory.begin_elo,
                                    end_elo=playercategory.end_elo, width=playercategory.width, scope=playercategory.scope)
     
+    
     try:
         db.add(db_category)
         db.commit()
