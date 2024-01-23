@@ -117,7 +117,8 @@ def get_one_by_id(tourney_id: str, db: Session):
 def get_count_players_by_tourney(tourney_id: str, db: Session):  
     
     str_query = "Select count(*) FROM events.players " +\
-        "WHERE players.tourney_id = '" + tourney_id + "' " 
+        "JOIN resources.entities_status sta ON sta.id = events.players.status_id " +\
+        "WHERE players.tourney_id = '" + tourney_id + "' AND sta.name != 'CANCELLED'" 
     
     amount_player = db.execute(str_query).scalar()
     
