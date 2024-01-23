@@ -90,7 +90,10 @@ class DominoRoundsScale(Base):
     acumulated_games_played = Column(Integer)
     k_value = Column(Float)
     elo_at_end = Column(Float)
+    elo_ra = Column(Float)
+    
     bonus_points = Column(Float)
+    penalty_points = Column(Float)
     
     def dict(self):
         return {
@@ -142,7 +145,11 @@ class DominoRoundsPairs(Base):
     k_value = Column(Float)
     elo_current = Column(Float)
     elo_at_end = Column(Float)
+    
+    elo_ra = Column(Float)
+    
     bonus_points = Column(Float)
+    penalty_points = Column(Float)
     
     def dict(self):
         return {

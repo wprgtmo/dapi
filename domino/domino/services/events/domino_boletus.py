@@ -30,6 +30,9 @@ def get_one_boletus_pair(boletus_id: str, pair_id: str, db: Session):
     return db.query(DominoBoletusPairs).filter(DominoBoletusPairs.boletus_id == boletus_id).\
         filter(DominoBoletusPairs.pairs_id == pair_id).first()
 
+def get_all_by_round(round_id: str, db: Session):  
+    return db.query(DominoBoletus).filter(DominoBoletus.round_id == round_id).all()
+
 def get_one_by_id(round_id: str, db: Session): 
     result = ResultObject()  
     

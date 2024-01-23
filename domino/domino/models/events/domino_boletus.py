@@ -59,6 +59,8 @@ class DominoBoletusPairs(Base):
     end_date =  Column(DateTime, nullable=False, default=datetime.now())
     duration = Column(Float)  # tiempo en minutos,, despues tengo que ver el tipo  de datos
     
+    pair = relationship('DominoRoundsPairs')
+    
     def dict(self):
         return {
             "boletus_id": self.boletus_id,

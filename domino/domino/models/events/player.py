@@ -60,6 +60,7 @@ class PlayersUser(Base):
     elo = Column(Float, nullable=True)
     elo_current = Column(Float, nullable=True)
     elo_at_end = Column(Float, nullable=True)
+    elo_ra = Column(Float, nullable=True)
     
     games_played = Column(Integer)
     games_won = Column(Integer)

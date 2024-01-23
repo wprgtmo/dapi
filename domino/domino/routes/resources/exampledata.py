@@ -11,6 +11,7 @@ from domino.services.enterprise.exampledata import insert_user_examples, insert_
     clear_all_bd
 
 from domino.services.events.domino_boletus import created_boletus_for_round
+from domino.services.events.domino_scale import calculate_score_expeted_of_pairs
 
 exampledata_route = APIRouter(
     tags=["ExampleData"],
@@ -54,5 +55,5 @@ def insert_players_data(request:Request, tourney_name: str, db: Session = Depend
     return created_players(request, tourney_name=tourney_name, db=db)
 
 @exampledata_route.post("/exampledata/step_11_players", summary="Crear Boletas y redsitribuir parejas por mesas")
-def configure_boletus(request:Request, tourney_id:str, round_id:str, db: Session = Depends(get_db)):
-    return created_boletus_for_round(tourney_id=tourney_id, round_id=round_id, db=db)
+def configure_boletus(request:Request, round_id:str, db: Session = Depends(get_db)):
+    return calculate_score_expeted_of_pairs(round_id=round_id, db=db)

@@ -33,7 +33,7 @@ from domino.services.events.player import get_lst_id_player_by_elo, change_all_s
 from domino.services.events.domino_round import get_one as get_one_round, get_first_by_tourney, configure_rounds, configure_new_rounds, \
     get_obj_info_to_aperturate, remove_configurate_round, calculate_amount_rounds_played, configure_next_rounds
 
-from domino.services.events.domino_boletus import created_boletus_for_round
+from domino.services.events.domino_boletus import created_boletus_for_round, get_all_by_round
 from domino.services.enterprise.auth import get_url_advertising
 from domino.services.events.tourney import get_lst_categories_of_tourney, create_category_by_default, get_one as get_one_tourney
 
@@ -98,6 +98,52 @@ def configure_tables_by_round(tourney_id:str, round_id: str, modality:str, creat
     #ubicar por mesas las parejas
     created_boletus_for_round(tourney_id=tourney_id, round_id=round_id, db=db)
     
+    #calcular el SE de cada pareja y ponerselo a cada jugador...
+    acumulated_games_played = calculate_amount_rounds_played(tourney_id=tourney_id, db=db)
+    calculate_score_expeted_of_pairs(round_id=round_id, acumulated_games_played=acumulated_games_played, db=db)
+    
+    return True
+
+def calculate_score_expeted_of_pairs(round_id:str, acumulated_games_played:int, db:Session):
+    
+    # obtener listado de todas las mesas con sus parejas, o sea cada boleta por mesa. 
+    lst_boletus =  get_all_by_round(round_id, db=db)
+    for item in lst_boletus:
+        one_pair, two_pair = 0, 0
+        for item_pair in item.boletus_pairs:
+            if not one_pair:
+                one_pair = item_pair
+            else:
+                two_pair = item_pair
+        
+        str_query = "Select elo from events.players_users where profile_id =  '" + one_pair.pair.one_player_id + "'"
+        elo_one_player_one_pair = db.execute(str_query).fetchone()[0]
+        str_query = "Select elo from events.players_users where profile_id =  '" + one_pair.pair.two_player_id + "'"
+        elo_two_player_one_pair = db.execute(str_query).fetchone()[0]
+        str_query = "Select elo from events.players_users where profile_id =  '" + two_pair.pair.one_player_id + "'"
+        elo_one_player_two_pair = db.execute(str_query).fetchone()[0]
+        str_query = "Select elo from events.players_users where profile_id =  '" + two_pair.pair.two_player_id + "'"
+        elo_two_player_two_pair = db.execute(str_query).fetchone()[0]
+        
+        elo_one_pair = round((elo_one_player_one_pair + elo_two_player_one_pair)/2)
+        elo_two_pair = round((elo_one_player_two_pair + elo_two_player_two_pair)/2)
+        
+        se_one_pair = calculate_score_expected(elo_one_pair, elo_two_pair)
+        se_two_pair = calculate_score_expected(elo_two_pair, elo_one_pair)
+        
+        str_update = "UPDATE events.domino_rounds_pairs SET "
+        
+        se_one_pair = calculate_score_expected(elo_one_pair, elo_two_pair)
+        str_one_pair = str_update + "score_expected = " + str(se_one_pair) + ", elo_pair = " + str(elo_one_pair) + ", " +\
+            "elo_pair_opposing = " + str(elo_two_pair) + ", acumulated_games_played = " + str(acumulated_games_played) +\
+            ", elo_ra = 0 WHERE id = '" + one_pair.pairs_id + "'; " 
+        str_two_pair = str_update + "score_expected = " + str(se_two_pair) + ", elo_pair = " + str(elo_two_pair) + ", " +\
+            "elo_pair_opposing = " + str(elo_one_pair) + ", acumulated_games_played = " + str(acumulated_games_played)+\
+            ", elo_ra = 0 WHERE id = '" + two_pair.pairs_id + "'; " 
+        
+        str_execute =  str_one_pair + str_two_pair + " COMMIT;"
+        db.execute(str_execute)
+        
     return True
 
 def get_round_to_configure(locale, tourney_id:str, db: Session):
@@ -181,7 +227,6 @@ def configure_manual_lottery(db_round, dominoscale:list, db: Session, uses_segme
     
 def configure_automatic_lottery(db_round, db: Session, uses_segmentation=False):
     
-    print('entre a configurar')
     if uses_segmentation:
         # buscar las categorias definidas. 
         str_query = "SELECT * FROM events.domino_categories where tourney_id = '" + db_round.tourney.id + "' ORDER BY position_number "
@@ -192,18 +237,13 @@ def configure_automatic_lottery(db_round, db: Session, uses_segmentation=False):
         lst_categories = db.execute(str_query).fetchall()
         
     if not lst_categories:  # crear la de por defecto
-        print('entre a crear categoria')
         create_category_by_default(db_round.tourney.id, db_round.tourney.elo_max, db_round.tourney.elo_min, None, db=db)
         str_query = "SELECT * FROM events.domino_categories where by_default is True and tourney_id = '" +\
             db_round.tourney.id + "' ORDER BY position_number "
         lst_categories = db.execute(str_query).fetchall()
     
-    print('cantidad de categorias')
-    print(lst_categories) 
-           
     position_number=0
     for item_cat in lst_categories:   
-        print('dentro del for de crear')
         position_number=created_automatic_lottery(
             db_round.tourney.id, db_round.tourney.modality, db_round.id, item_cat.elo_min, item_cat.elo_max, position_number, item_cat.id, db=db)
         
@@ -472,16 +512,22 @@ def get_all_scale_by_round_by_pairs(request:Request, page: int, per_page: int, r
     api_uri = str(settings.api_uri)
     
     str_from = "FROM events.domino_rounds_pairs rspa " +\
+        "JOIN events.domino_boletus_pairs ON domino_boletus_pairs.pairs_id = rspa.id " +\
+        "JOIN events.domino_boletus ON domino_boletus.id = domino_boletus_pairs.boletus_id " +\
+        "JOIN events.domino_tables ON domino_tables.id = domino_boletus.table_id " +\
         "left JOIN events.players players ON players.id = rspa.player_id " +\
-        "left JOIN enterprise.profile_member mmb ON players.profile_id = mmb.id " +\
-        "left join resources.city ON city.id = mmb.city_id " +\
-        "left join resources.country ON country.id = city.country_id " 
-    
+        "left JOIN enterprise.profile_member mmb ON players.profile_id = mmb.id " 
+        
     str_count = "Select count(*) " + str_from
-    str_query = "SELECT rspa.id, rspa.name as profile_name, rspa.position_number, " +\
-        "city.name as city_name, country.name as country_name, rspa.elo_pair, rspa.elo_pair_opposing, " +\
+    # str_query = "SELECT rspa.id, rspa.name as profile_name, rspa.position_number, " +\
+    #     "city.name as city_name, country.name as country_name, rspa.elo_pair, rspa.elo_pair_opposing, " +\
+    #     "rspa.games_won, rspa.games_lost, rspa.points_positive, rspa.points_negative, rspa.points_difference, " +\
+    #     "score_expected, score_obtained, k_value, elo_current, elo_at_end, bonus_points, elo_ra, penalty_points " + str_from
+        
+    str_query = "SELECT rspa.id, rspa.name as profile_name, rspa.position_number, domino_tables.table_number, " +\
+        "rspa.elo_pair, rspa.elo_pair_opposing, " +\
         "rspa.games_won, rspa.games_lost, rspa.points_positive, rspa.points_negative, rspa.points_difference, " +\
-        "score_expected, score_obtained, k_value, elo_current, elo_at_end, bonus_points " + str_from
+        "score_expected, score_obtained, k_value, elo_current, elo_at_end, bonus_points, elo_ra, penalty_points " + str_from
     
     str_where = "WHERE rspa.round_id = '" + round_id + "' "
         
@@ -558,8 +604,9 @@ def create_dict_row_scale_pair(item, db: Session):
        
     new_row = {'id': item['id'], 'name': item['profile_name'], 
                'position_number': item['position_number'],
-               'country': item['country_name'] if item['country_name'] else '', 
-               'city_name': item['city_name'] if item['city_name'] else '',  
+               'table_number': item['table_number'],
+            #    'country': item['country_name'] if item['country_name'] else '', 
+            #    'city_name': item['city_name'] if item['city_name'] else '',  
                'elo_pair': item['elo_pair'] if item['elo_pair'] else 0, 
                'elo_pair_opposing': item['elo_pair_opposing'] if item['elo_pair_opposing'] else 0,
                'games_won': item['games_won'] if item['games_won'] else 0,
@@ -572,7 +619,9 @@ def create_dict_row_scale_pair(item, db: Session):
                'k_value': item['k_value'] if item['k_value'] else 0,
                'elo_current': item['elo_current'] if item['elo_current'] else 0,
                'elo_at_end': item['elo_at_end'] if item['elo_at_end'] else 0,
-               'bonus_points': item['bonus_points'] if item['bonus_points'] else 0}
+               'elo_ra': item['elo_ra'] if item['elo_ra'] else 0,
+               'bonus_points': item['bonus_points'] if item['bonus_points'] else 0,
+               'penalty_points': item['penalty_points'] if item['penalty_points'] else 0}
     
     return new_row
 

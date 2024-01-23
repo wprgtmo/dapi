@@ -29,6 +29,7 @@ from domino.services.enterprise.userprofile import get_one as get_one_profile
 from domino.services.events.domino_boletus import calculate_amount_tables_playing
 from domino.services.events.tourney import get_one as get_tourney_by_id, calculate_amount_tables, calculate_amount_categories, \
     calculate_amount_players_playing, calculate_amount_players_by_status, get_lst_categories_of_tourney, reconfig_amount_tables
+from domino.services.events.calculation_serv import calculate_score_expected
                          
 def get_all(request:Request, tourney_id:str, page: int, per_page: int, criteria_key: str, criteria_value: str, db: Session,
             only_initiaded=False):  
@@ -98,10 +99,11 @@ def get_one(round_id: str, db: Session):
     return db.query(DominoRounds).filter(DominoRounds.id == round_id).first()
 
 def get_one_by_number(round_number: int, db: Session): 
-    status_canceled = get_one_status_by_name('CANCELLED', db=db) 
-    return db.query(DominoRounds).filter(and_(DominoRounds.round_number==round_number).\
-        filter(DominoRounds.status_id != status_canceled.id)).first()
-    # return db.query(DominoRounds).filter_by(round_number=round_number, status_id = db_status.id).first()
+    # status_canceled = get_one_status_by_name('CANCELLED', db=db) 
+    # return db.query(DominoRounds).filter(and_(DominoRounds.round_number==round_number).\
+    #     filter(DominoRounds.status_id != status_canceled.id)).first()
+    
+    return db.query(DominoRounds).filter_by(round_number=round_number).first()
 
 def get_one_by_id(round_id: str, db: Session): 
     result = ResultObject()  
