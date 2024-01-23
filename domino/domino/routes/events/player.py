@@ -9,7 +9,8 @@ from domino.schemas.resources.result_object import ResultObject
 from domino.schemas.events.player import PlayerRegister, PlayerEloBase
 
 from domino.services.events.player import new, remove_player, get_all_players_by_tourney, reject_one_invitation, \
-    get_all_players_by_elo, get_number_players_by_elo, change_status_player, register_new_player, update_elo_one_player
+    get_all_players_by_elo, get_number_players_by_elo, change_status_player, register_new_player, update_image_one_player, \
+    get_info_one_player, update_register_one_player
   
 player_route = APIRouter(
     tags=["Players"],
@@ -73,11 +74,14 @@ def change_status(request:Request, id: str, status: str, db: Session = Depends(g
 def register_player(request:Request, tourney_id: str, player_register: PlayerRegister, db: Session = Depends(get_db)):
     return register_new_player(request=request, tourney_id=tourney_id, player_register=player_register, db=db)
 
-# @player_route.post("/player/register/{tourney_id}", response_model=ResultObject, summary="Register new player")
-# def update_image_player(request:Request, tourney_id: str, player_register: PlayerRegister = Depends(), 
-#                     photo: UploadFile = None, db: Session = Depends(get_db)):
-#     return register_new_player(request=request, tourney_id=tourney_id, player_register=player_register.dict(), file=photo, db=db)
+@player_route.put("/player/register/image/{player_id}", response_model=ResultObject, summary="Update Image of Single Player.")
+def update_image_player(request:Request, player_id: str, image: UploadFile = "", db: Session = Depends(get_db)):
+    return update_image_one_player(request=request, player_id=str(player_id), db=db, file=image)
 
-# @player_route.put("/player/elo/{tourney_id}", response_model=ResultObject, summary="Update elo for single player")
-# def update_info_player(request:Request, tourney_id:str, player_elo: PlayerEloBase, db: Session = Depends(get_db)):
-#     return update_elo_one_player(request=request, tourney_id=tourney_id, player_elo=player_elo, elo=elo, db=db)
+@player_route.put("/player/register/{player_id}", response_model=ResultObject, summary="Update Register of player")
+def update_register_player(request:Request, player_id: str, player_register: PlayerRegister, db: Session = Depends(get_db)):
+    return update_register_one_player(request=request, player_id=player_id, player_register=player_register, db=db)
+
+@player_route.get("/player/register/{player_id}", response_model=ResultObject, summary="Get register of Single Player.")
+def get_info_player(request:Request, player_id: str, db: Session = Depends(get_db)):
+    return get_info_one_player(request=request, player_id=str(player_id), db=db)

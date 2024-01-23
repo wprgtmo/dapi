@@ -33,7 +33,7 @@ from domino.services.resources.country import get_one as country_get_one
 
 from domino.services.enterprise.userprofile import get_one as get_one_profile
 
-from domino.services.resources.utils import get_result_count
+from domino.services.resources.utils import get_result_count, create_dir, del_image, get_ext_at_file, upfile
 from domino.services.enterprise.auth import get_url_avatar
 
 def new(request: Request, invitation_id: str, db: Session):
@@ -156,6 +156,55 @@ def register_new_player(request: Request, tourney_id: str, player_register: Play
     except (Exception, SQLAlchemyError) as e:
         return False
 
+def update_register_one_player(request: Request, player_id: str, player_register: PlayerRegister, db: Session):
+    locale = request.headers["accept-language"].split(",")[0].split("-")[0];
+    
+    result = ResultObject() 
+    currentUser = get_current_user(request)
+    
+    db_player = get_one(player_id, db=db)
+    if not db_player:
+        raise HTTPException(status_code=404, detail=_(locale, "player.not_found"))
+    
+    db_player.elo = player_register.elo
+    
+    try:
+        db.add(db_player)
+        db.commit()
+        return result
+    except (Exception, SQLAlchemyError) as e:
+        return False
+
+def get_info_one_player(request: Request, player_id: str, db: Session):
+    locale = request.headers["accept-language"].split(",")[0].split("-")[0];
+    
+    result = ResultObject() 
+    
+    db_player = get_one(player_id, db=db)
+    if not db_player:
+        raise HTTPException(status_code=404, detail=_(locale, "player.not_found"))
+    
+    str_query = "SELECT users.username, users.first_name, users.last_name, enterprise.users.alias, " +\
+        "enterprise.users.email, enterprise.users.phone, profile_single_player.elo, enterprise.profile_member.city_id, " +\
+        "enterprise.users.country_id, profile_single_player.level " +\
+        "FROM enterprise.profile_member " +\
+        "join enterprise.profile_users ON profile_users.profile_id = profile_member.id " +\
+        "join enterprise.users ON users.username = profile_users.username " + \
+        "join enterprise.profile_single_player ON profile_single_player.profile_id = profile_member.id " +\
+        "WHERE profile_member.id='" + db_player.profile_id + "' "
+    dat_result = db.execute(str_query).fetchone()
+    
+    if dat_result:
+        db_register = PlayerRegister(username=dat_result.username, first_name=dat_result.first_name, last_name=dat_result.last_name,
+                                     alias=dat_result.alias if dat_result.alias else '', email=dat_result.email, phone=dat_result.phone,
+                                     city_id=dat_result.city_id, country_id=dat_result.country_id, elo=dat_result.elo, level=dat_result.level)
+        result.data = db_register
+        
+    try:
+        return result
+    except (Exception, SQLAlchemyError) as e:
+        return False
+
 def create_new_single_player(db_tourney, username, name, email, city, elo, level, created_by, file, db: Session):
     
     profile_type = get_profile_type_by_name("SINGLE_PLAYER", db=db)
@@ -195,36 +244,43 @@ def create_new_single_player(db_tourney, username, name, email, city, elo, level
     except (Exception, SQLAlchemyError) as e:
         return True
 
-def update_elo_one_player(request: Request, tourney_id:str, player_elo: PlayerEloBase, db: Session):
+def update_image_one_player(request: Request, player_id: str, file: File, db: Session):
     locale = request.headers["accept-language"].split(",")[0].split("-")[0];
     
     result = ResultObject() 
-    currentUser = get_current_user(request)
+    currentUser = get_current_user(request) 
     
-    db_tourney = get_torneuy_by_eid(tourney_id, db=db)
-    if not db_tourney:
-        raise HTTPException(status_code=404, detail=_(locale, "tourney.not_found"))
+    db_player = get_one(player_id, db=db)
+    if not db_player:
+        raise HTTPException(status_code=404, detail=_(locale, "player.not_found"))
     
-    db_profile = get_one_profile(id=player_elo.profile_id, db=db)
-    if not db_profile:
-        raise HTTPException(status_code=400, detail=_(locale, "userprofile.not_found"))
+    path_player = create_dir(entity_type="USERPROFILE", user_id=None, entity_id=str(db_player.profile_id))
     
-    if db_profile.profile_type != 'SINGLE_PLAYER':
-        raise HTTPException(status_code=400, detail=_(locale, "userprofile.sigle_profile_not_exist"))
+    #puede venir la foto o no venir y eso es para borrarla.
+    if db_player.profile_member.photo:  # ya tiene una imagen asociada
+        current_image = db_player.profile_member.photo
+        try:
+            del_image(path=path_player, name=str(current_image))
+        except:
+            pass
     
-    if db_tourney.status.name == 'FINALIZED':
-        raise HTTPException(status_code=404, detail=_(locale, "tourney.status_incorrect"))
-    
-    # actualizar el elo del profile
-    # actualizar el elo de la tabbla de jugador si ya es jugador
-    # actualizar el elo de la pareja si ya es pareja de alguien.
-    
+    if not file:
+        db_player.profile_member.photo = None
+    else:   
+        ext = get_ext_at_file(file.filename)
+        file.filename = str(uuid.uuid4()) + "." + ext
+        
+        upfile(file=file, path=path_player)
+        db_player.profile_member.photo = file.filename
     
     try:
+        db.add(db_player.profile_member)
         db.commit()
         return result
     except (Exception, SQLAlchemyError) as e:
-        return False
+        print(e.code)
+        if e.code == "gkpj":
+            raise HTTPException(status_code=400, detail=_(locale, "tourney.already_exist"))
             
 def reject_one_invitation(request: Request, invitation_id: str, db: Session):
     locale = request.headers["accept-language"].split(",")[0].split("-")[0];

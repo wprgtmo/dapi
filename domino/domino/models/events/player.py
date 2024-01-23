@@ -35,6 +35,7 @@ class Players(Base):
     tourney = relationship('Tourney')
     status = relationship("StatusElement")
     users = relationship('PlayersUser')
+    profile_member = relationship('ProfileMember')
     
     def dict(self):
         return {
