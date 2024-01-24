@@ -195,14 +195,14 @@ def get_info_one_player(request: Request, player_id: str, db: Session):
     dat_result = db.execute(str_query).fetchone()
     
     if dat_result:
-        db_register = PlayerRegister(username=dat_result.username, first_name=dat_result.first_name if dat_result.first_name else '', 
+        db_register = PlayerRegister(username=dat_result.username, first_name=dat_result.first_name if dat_result.first_name else dat_result.username, 
                                      last_name=dat_result.last_name if dat_result.last_name else '',
                                      alias=dat_result.alias if dat_result.alias else '', 
                                      email=dat_result.email if dat_result.email else  dat_result.username + '@gmail.com', 
                                      phone=dat_result.phone if dat_result.phone else '',
-                                     city_id=dat_result.city_id if dat_result.city_id else '', 
-                                     country_id=dat_result.country_id if dat_result.country_id else '', 
-                                     elo=dat_result.elo if dat_result.elo else '', level=dat_result.level if dat_result.level else '')
+                                     city_id=dat_result.city_id if dat_result.city_id else '1', 
+                                     country_id=dat_result.country_id if dat_result.country_id else '1', 
+                                     elo=dat_result.elo if dat_result.elo else 0, level=dat_result.level if dat_result.level else 'NORMAL')
         result.data = db_register
         
     try:
