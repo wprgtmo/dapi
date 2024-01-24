@@ -853,9 +853,10 @@ def get_all_profile_by_user_profile_id(request: Request, profile_id: str, db: Se
             "INNER JOIN enterprise.profile_type prot ON prot.name = pme.profile_type " +\
             "left join resources.city city ON city.id = pme.city_id " +\
             "left join resources.country pa ON pa.id = city.country_id " +\
-            "where pme.is_active = True and (pme.created_by = '" + currentUser['username'] + "' " +\
-            "or pus.username = '" + currentUser['username'] + "' and pus.is_confirmed = True) " +\
+            "where pme.is_active = True and (pus.username = '" + currentUser['username'] + "' and pus.is_confirmed = True) " +\
             "AND pme.id != '" + profile_id + "' "
+            
+            # antes where pme.is_active = True and (pme.created_by = '" + currentUser['username'] + "' " +\
         
         lst_data =  db.execute(str_profile)
         
