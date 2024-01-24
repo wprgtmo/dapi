@@ -132,6 +132,7 @@ def calculate_score_expeted_of_pairs(round_id:str, acumulated_games_played:int, 
         se_two_pair = calculate_score_expected(elo_two_pair, elo_one_pair)
         
         str_update = "UPDATE events.domino_rounds_pairs SET "
+        str_update_scale = "UPDATE events.domino_rounds_scale SET "
         
         se_one_pair = calculate_score_expected(elo_one_pair, elo_two_pair)
         str_one_pair = str_update + "score_expected = " + str(se_one_pair) + ", elo_pair = " + str(elo_one_pair) + ", " +\
@@ -142,6 +143,11 @@ def calculate_score_expeted_of_pairs(round_id:str, acumulated_games_played:int, 
             ", elo_ra = 0 WHERE id = '" + two_pair.pairs_id + "'; " 
         
         str_execute =  str_one_pair + str_two_pair + " COMMIT;"
+        
+        str_one_pair = str_update_scale + "score_expected = " + str(se_one_pair) + ", elo_pair = " + str(elo_one_pair) + ", " +\
+            "elo_pair_opposing = " + str(elo_two_pair) + ", acumulated_games_played = " + str(acumulated_games_played) +\
+            ", elo_ra = 0 WHERE id = '" + one_pair.pairs_id + "'; " 
+            
         db.execute(str_execute)
         
     return True
