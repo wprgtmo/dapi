@@ -139,7 +139,7 @@ def update_data(request: Request, id: str, dominodata: DominoDataCreated, db: Se
 
 @rounds_route.post("/rounds/actions/create/{tourney_id}", response_model=ResultObject, summary="Aperturate new Round not setting.")
 def created_round(request: Request, tourney_id: str, db: Session = Depends(get_db)):
-    return create_new_round(request=request, tourney_id=id, db=db)
+    return create_new_round(request=request, tourney_id=tourney_id, db=db)
 
 @rounds_route.post("/rounds/actions/aperture/{id}", response_model=ResultObject, summary="Aperturate Round.")
 def aperture_round(request: Request, id: str, round: DominoRoundsAperture, db: Session = Depends(get_db)):
