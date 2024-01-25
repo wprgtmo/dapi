@@ -31,7 +31,8 @@ from domino.services.enterprise.auth import get_url_avatar
 
 from domino.services.events.player import get_lst_id_player_by_elo, change_all_status_player_at_init_round, get_one_user
 from domino.services.events.domino_round import get_one as get_one_round, get_first_by_tourney, configure_rounds, configure_new_rounds, \
-    get_obj_info_to_aperturate, remove_configurate_round, calculate_amount_rounds_played, configure_next_rounds
+    get_obj_info_to_aperturate, remove_configurate_round, calculate_amount_rounds_played, configure_next_rounds, \
+    get_last_by_tourney
 
 from domino.services.events.domino_boletus import created_boletus_for_round, get_all_by_round
 from domino.services.enterprise.auth import get_url_advertising
@@ -485,7 +486,9 @@ def get_all_scale_acumulate(request:Request, page: int, per_page: int, tourney_i
     str_from = "FROM events.players_users rsca " +\
         "JOIN events.players players ON players.id = rsca.player_id " +\
         "JOIN enterprise.profile_member mmb ON players.profile_id = mmb.id " 
-        
+        # "left join resources.city ON city.id = mmb.city_id " +\
+        # "left join resources.country ON country.id = city.country_id " 
+    
     str_count = "Select count(*) " + str_from
     str_query = "SELECT players.id player_id, mmb.id profile_id, mmb.name profile_name, mmb.photo, " +\
         "rsca.elo, rsca.elo_current, rsca.games_played, " +\
@@ -903,6 +906,23 @@ def get_values_elo_by_scale(round_id: str, db: Session):
     
     return elo_max, elo_min
 
+def create_new_round(request:Request, tourney_id:str, db:Session):
+    locale = request.headers["accept-language"].split(",")[0].split("-")[0];
+    
+    result = ResultObject() 
+    
+    db_round_last = get_last_by_tourney(tourney_id, db=db)
+    db_round_next = configure_next_rounds(db_round_last, db=db)
+    
+    configure_tables_by_round(db_round_next.tourney.id, db_round_next.id, db_round_next.tourney.modality, db_round_next.tourney.updated_by, db=db)
+    
+    change_all_status_player_at_init_round(db_round_next, db=db)
+    
+    db_round_ini = get_one_round(round_id=db_round_next.id, db=db)
+    result.data = get_obj_info_to_aperturate(db_round_ini, db) 
+            
+    return result
+
 def aperture_new_round(request:Request, round_id:str, round: DominoRoundsAperture, db:Session):
     locale = request.headers["accept-language"].split(",")[0].split("-")[0];
     
@@ -986,7 +1006,7 @@ def aperture_one_new_round(round_id:str, round_aperture: DominoRoundsAperture, l
     
     return result
 
-def close_one_round(request: Request, round_id: str, open_new: bool, db: Session):
+def close_one_round(request: Request, round_id: str, db: Session):
     locale = request.headers["accept-language"].split(",")[0].split("-")[0];
     
     result = ResultObject() 
@@ -1006,7 +1026,10 @@ def close_one_round(request: Request, round_id: str, open_new: bool, db: Session
     db_round.updated_date = datetime.now()
     db_round.close_date = datetime.now()
     
-    if open_new:
+    count_round = calculate_amount_rounds_played(db_round.tourney.id, db=db)
+    open = True if int(count_round) <= int(db_round.tourney.number_rounds) else False
+    
+    if open:
         db_round_next = configure_next_rounds(db_round, db=db)
         
         configure_tables_by_round(db_round_next.tourney.id, db_round_next.id, db_round_next.tourney.modality, db_round_next.tourney.updated_by, db=db)
@@ -1018,15 +1041,13 @@ def close_one_round(request: Request, round_id: str, open_new: bool, db: Session
     
     else:
         db_round.is_last = True
+        db.add(db_round)
+        db.commit()
         
         result.data = get_obj_info_to_aperturate(db_round, db) 
             
-    try:
-        db.commit()
-        return result
-    except (Exception, SQLAlchemyError) as e:
-        return False
-  
+    return result
+      
 def verify_category_is_valid(elo_max: float, elo_min: float, lst_category: list):
     
     current_elo_max = float(elo_max)

@@ -329,7 +329,7 @@ def get_obj_info_to_aperturate(db_round, db:Session):
     new_round.modality = db_round.tourney.modality
     
     count_round = calculate_amount_rounds_played(db_round.tourney.id, db=db)
-    is_last = True if int(count_round) == int(db_round.tourney.number_rounds) else False
+    is_last = True if int(count_round) >= int(db_round.tourney.number_rounds) else False
     
     new_round.is_first, new_round.is_last = db_round.is_first, is_last
     
