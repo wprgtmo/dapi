@@ -12,17 +12,22 @@ from datetime import datetime
          
 #     return score_obtained
 
-def calculate_score_obtained(games_won: int, points_difference: int): 
-    return round(games_won + (points_difference / 200), 2)
+def calculate_score_obtained(games_won: int, points_difference: int, number_points_to_win: int): 
+    return games_won + (points_difference / number_points_to_win)
     
-def calculate_score_expected(elo_win_pair: float, elo_lost_pair: float):  
-    return round(1 / (1 + 10 ** ((elo_lost_pair - elo_win_pair) / 800)), 2)
+def calculate_score_expected(elo_pair_ra: float, elo_pair_rb: float):  
+    return 1 / (1 + 10 ** ((elo_pair_ra - elo_pair_rb) / 400))
+    # return round(1 / (1 + 10 ** ((elo_lost_pair - elo_win_pair) / 800)), 2)
  
 def calculate_increasing_constant(constant_increase_elo: float, number_games_played: int): 
     # number_games_played = 9 
     return round(constant_increase_elo + (300 / (300 + number_games_played)), 2)
     
-def calculate_new_elo(increasing_constant: float, number_games_played: int, score_expected: float, score_obtained: float, uses_increasing_constant=True):  
-    value_increasing_constant = increasing_constant if uses_increasing_constant else 1
-    return 0 if number_games_played == 0 else round(value_increasing_constant * (score_obtained - score_expected), 2)
+# def calculate_new_elo(increasing_constant: float, number_games_played: int, score_expected: float, score_obtained: float, uses_increasing_constant=True):  
+#     value_increasing_constant = increasing_constant if uses_increasing_constant else 1
+#     return 0 if number_games_played == 0 else round(value_increasing_constant * (score_obtained - score_expected), 2)
+#     # return 0 if number_games_played == 0 else round(score_obtained - score_expected, 2)
+    
+def calculate_new_elo(number_games_played:int, score_expected: float, score_obtained: float):  
+    return 0 if number_games_played == 0 else score_obtained - score_expected
     # return 0 if number_games_played == 0 else round(score_obtained - score_expected, 2)

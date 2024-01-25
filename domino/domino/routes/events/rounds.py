@@ -137,10 +137,6 @@ def close_data(request: Request, id: str, db: Session = Depends(get_db)):
 def update_data(request: Request, id: str, dominodata: DominoDataCreated, db: Session = Depends(get_db)):
     return updated_data(request=request, data_id=id, dominodata=dominodata, db=db)
 
-# @rounds_route.post("/rounds/actions/create/{id}", response_model=ResultObject, summary="Create new Round.")
-# def created_round(request: Request, id: str, db: Session = Depends(get_db)):
-#     return aperture_new_round(request=request, round_id=id, db=db)
-
 @rounds_route.post("/rounds/actions/aperture/{id}", response_model=ResultObject, summary="Aperturate Round.")
 def aperture_round(request: Request, id: str, round: DominoRoundsAperture, db: Session = Depends(get_db)):
     return aperture_new_round(request=request, round_id=id, round=round, db=db)
@@ -157,9 +153,6 @@ def publicate_round(request: Request, id: str, db: Session = Depends(get_db)):
 def start_round(request: Request, id: str, db: Session = Depends(get_db)):
     return start_one_round(request=request, round_id=id, db=db)
 
-# @rounds_route.post("/rounds/{tourney_id}", response_model=ResultObject, summary="Start game round")
-# def start_round(request:Request, tourney_id: str, db: Session = Depends(get_db)):
-#     return start_one_round(request=request, tourney_id=tourney_id, db=db)
 
 # @rounds_route.post("/rounds/actions/close/{id}", response_model=ResultObject, summary="Close Round.")
 # def close_round(request: Request, id: str, open_new: bool, db: Session = Depends(get_db)):

@@ -145,9 +145,9 @@ def new_data(request: Request, boletus_id:str, dominodata: DominoDataCreated, db
         lost_pair.negative_points = pair_win.positive_points
         pair_win.is_winner = True
         
-        acumulated_games_played = calculate_amount_rounds_played(one_boletus.tourney_id, db=db)
-            
-        update_info_pairs(pair_win, lost_pair, acumulated_games_played, one_boletus.tourney.constant_increase_elo, db=db)
+        # acumulated_games_played = calculate_amount_rounds_played(one_boletus.tourney_id, db=db)
+        
+        update_info_pairs(pair_win, lost_pair, one_boletus.tourney.number_points_to_win, db=db)
         
         one_status_review = get_one_status_by_name('REVIEW', db=db)
         one_status_end = get_one_status_by_name('FINALIZED', db=db)

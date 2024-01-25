@@ -22,14 +22,11 @@ from domino.models.events.domino_round import DominoRounds, DominoRoundsPairs, D
 from domino.schemas.resources.result_object import ResultObject
 from domino.schemas.events.domino_rounds import DominoRoundsCreated
 
-from domino.services.resources.status import get_one_by_name as get_one_status_by_name, get_one as get_one_status
-from domino.services.resources.utils import get_result_count, upfile, create_dir, del_image, get_ext_at_file, remove_dir
-from domino.services.enterprise.users import get_one_by_username
-from domino.services.enterprise.userprofile import get_one as get_one_profile
+from domino.services.resources.status import get_one_by_name as get_one_status_by_name
+from domino.services.resources.utils import get_result_count
 from domino.services.events.domino_boletus import calculate_amount_tables_playing
 from domino.services.events.tourney import get_one as get_tourney_by_id, calculate_amount_tables, calculate_amount_categories, \
     calculate_amount_players_playing, calculate_amount_players_by_status, get_lst_categories_of_tourney, reconfig_amount_tables
-from domino.services.events.calculation_serv import calculate_score_expected
                          
 def get_all(request:Request, tourney_id:str, page: int, per_page: int, criteria_key: str, criteria_value: str, db: Session,
             only_initiaded=False):  
