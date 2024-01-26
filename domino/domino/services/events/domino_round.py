@@ -192,7 +192,7 @@ def configure_next_rounds(db_round, db:Session):
     # si usa segmentacion, incluir la categoria como primer criterio para ordenar y mantener
     # ver despues como lo hago
     if db_round.tourney.use_segmentation:
-        str_order_by = " ORDER BY category_number ASC, " + dict_order[db_round.tourney.round_ordering_one] +  
+        str_order_by = " ORDER BY category_number ASC, " + dict_order[db_round.tourney.round_ordering_one] 
     else:
         str_order_by = " ORDER BY " + dict_order[db_round.tourney.round_ordering_one]
     

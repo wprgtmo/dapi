@@ -10,7 +10,7 @@ from domino.schemas.resources.result_object import ResultObject
 
 from domino.services.events.domino_table import get_all as get_all_tables_for_tourney
 from domino.services.events.tourney import get_all, new, get_one_by_id, delete, update, get_all_by_event_id, \
-    get_amount_tables, update_image_tourney
+    get_amount_tables, update_image_tourney, close_one_tourney
     
 from domino.services.events.player import created_all_players
   
@@ -65,6 +65,10 @@ def delete_tourney(request:Request, id: str, db: Session = Depends(get_db)):
 @tourney_route.put("/tourney/{id}", response_model=ResultObject, summary="Update a Tourney by its ID")
 def update_tourney(request:Request, id: str, tourney: TourneyCreated, db: Session = Depends(get_db)):
     return update(request=request, db=db, tourney_id=id, tourney=tourney)
+
+@tourney_route.post("/tourney/close/{id}", response_model=ResultObject, summary="Close a Tourney by its ID")
+def close_tourney(request:Request, id: str, db: Session = Depends(get_db)):
+    return close_one_tourney(request=request, db=db, tourney_id=id)
 
 @tourney_route.post("/tourney/setting/tables/{id}", response_model=ResultObject, summary="Get amount tables")
 def amount_tables(request:Request, id: str, db: Session = Depends(get_db)):

@@ -268,6 +268,37 @@ def update(request: Request, tourney_id: str, tourney: TourneyCreated, db: Sessi
         if e.code == "gkpj":
             raise HTTPException(status_code=400, detail=_(locale, "tourney.already_exist"))
 
+def close_one_tourney(request: Request, tourney_id: str, db: Session):
+    locale = request.headers["accept-language"].split(",")[0].split("-")[0];
+    
+    result = ResultObject() 
+    currentUser = get_current_user(request) 
+    
+    one_status_end = get_one_status_by_name('FINALIZED', db=db)
+    
+    db_tourney = get_one(tourney_id, db=db)
+    if not db_tourney:
+        raise HTTPException(status_code=404, detail=_(locale, "tourney.not_found"))
+    
+    if db_tourney.status_id == one_status_end.id:
+        raise HTTPException(status_code=404, detail=_(locale, "tourney.tourney_closed"))
+    
+    # en dependencia de la modalidad organizar la tabla de resultados.
+    
+    db_tourney.updated_by = currentUser['username']
+    db_tourney.updated_date = datetime.now()
+    
+    db_tourney.status_id = one_status_end.id
+    
+    try:
+        db.add(db_tourney)
+        db.commit()
+        return result
+    except (Exception, SQLAlchemyError) as e:
+        print(e.code)
+        if e.code == "gkpj":
+            raise HTTPException(status_code=400, detail=_(locale, "tourney.already_exist"))
+        
 def update_image_tourney(request: Request, tourney_id: str, file: File, db: Session):
     locale = request.headers["accept-language"].split(",")[0].split("-")[0];
     
