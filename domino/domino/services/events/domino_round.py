@@ -171,9 +171,9 @@ def configure_next_rounds(db_round, db:Session):
     round_number = db_round.round_number + 1
     summary = 'Ronda Nro. ' + str(round_number)
     
-    dict_order = {'JG': 'games_won DESC',
-                  'ERA': 'elo_current DESC',
-                  'DP': 'points_difference DESC'}
+    dict_order = {'JG': 'games_won ',
+                  'ERA': 'elo_ra ',
+                  'DP': 'points_difference '}
     
     status_config = get_one_status_by_name('CONFIGURATED', db=db)
     db_round_next = DominoRounds(
@@ -192,7 +192,7 @@ def configure_next_rounds(db_round, db:Session):
     # si usa segmentacion, incluir la categoria como primer criterio para ordenar y mantener
     # ver despues como lo hago
     if db_round.tourney.use_segmentation:
-        str_order_by = " ORDER BY category_number ASC, " + dict_order[db_round.tourney.round_ordering_one]
+        str_order_by = " ORDER BY category_number ASC, " + dict_order[db_round.tourney.round_ordering_one] +  
     else:
         str_order_by = " ORDER BY " + dict_order[db_round.tourney.round_ordering_one]
     
