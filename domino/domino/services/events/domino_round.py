@@ -242,11 +242,9 @@ def configure_next_rounds(db_round, db:Session):
             id=str(uuid.uuid4()), tourney_id=db_round.tourney.id, round_id=db_round_next.id, round_number=db_round_next.round_number, 
             position_number=int(position_number), player_id=item_scala['player_id'], is_active=True, category_id=item_scala['category_id'],
             elo=item_scala['elo'], elo_variable=item_scala['elo_current'], games_played=item_scala['games_played'], 
-            games_won=item_scala['games_won'], games_lost=item_scala['games_lost'], points_positive=item_scala['points_positive'], 
-            points_negative=item_scala['points_negative'], points_difference=item_scala['points_difference'], 
-            score_expected=item_scala['score_expected'], score_obtained=item_scala['score_obtained'],
+            games_won=0, games_lost=0, points_positive=0, points_negative=0, points_difference=0, score_expected=0, score_obtained=0,
             acumulated_games_played=item_scala['games_played'], k_value=item_scala['k_value'], 
-            elo_at_end=item_scala['elo_at_end'], bonus_points=item_scala['bonus_points'])
+            elo_at_end=0, bonus_points=item_scala['bonus_points'])
         
         db.add(one_scale)
         position_number += 1

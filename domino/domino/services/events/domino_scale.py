@@ -546,10 +546,6 @@ def get_all_scale_by_round_by_pairs(request:Request, page: int, per_page: int, r
         "left JOIN enterprise.profile_member mmb ON players.profile_id = mmb.id " 
         
     str_count = "Select count(*) " + str_from
-    # str_query = "SELECT rspa.id, rspa.name as profile_name, rspa.position_number, " +\
-    #     "city.name as city_name, country.name as country_name, rspa.elo_pair, rspa.elo_pair_opposing, " +\
-    #     "rspa.games_won, rspa.games_lost, rspa.points_positive, rspa.points_negative, rspa.points_difference, " +\
-    #     "score_expected, score_obtained, k_value, elo_current, elo_at_end, bonus_points, elo_ra, penalty_points " + str_from
         
     str_query = "SELECT rspa.id, rspa.name as profile_name, rspa.position_number, domino_tables.table_number, " +\
         "rspa.elo_pair, rspa.elo_pair_opposing, " +\
@@ -631,10 +627,9 @@ def create_dict_row_scale_pair(item, db: Session):
     new_row = {'id': item['id'], 'name': item['profile_name'], 
                'position_number': item['position_number'],
                'table_number': item['table_number'],
-            #    'country': item['country_name'] if item['country_name'] else '', 
-            #    'city_name': item['city_name'] if item['city_name'] else '',  
                'elo_pair': round(item['elo_pair'],2) if item['elo_pair'] else 0, 
                'elo_pair_opposing': round(item['elo_pair_opposing'],2) if item['elo_pair_opposing'] else 0,
+               'games_played': 1,
                'games_won': item['games_won'] if item['games_won'] else 0,
                'games_lost': item['games_lost'] if item['games_lost'] else 0, 
                'points_positive': item['points_positive'] if item['points_positive'] else 0,
@@ -1049,22 +1044,22 @@ def close_one_round(request: Request, round_id: str, db: Session):
     
     calculate_stadist_of_players(db_round, db=db)
     
-    # if open:
-    #     db_round_next = configure_next_rounds(db_round, db=db)
+    if open:
+        db_round_next = configure_next_rounds(db_round, db=db)
         
-    #     configure_tables_by_round(db_round_next.tourney.id, db_round_next.id, db_round_next.tourney.modality, db_round_next.tourney.updated_by, db=db)
+        configure_tables_by_round(db_round_next.tourney.id, db_round_next.id, db_round_next.tourney.modality, db_round_next.tourney.updated_by, db=db)
     
-    #     change_all_status_player_at_init_round(db_round_next, db=db)
+        change_all_status_player_at_init_round(db_round_next, db=db)
         
-    #     db_round_ini = get_one_round(round_id=db_round_next.id, db=db)
-    #     result.data = get_obj_info_to_aperturate(db_round_ini, db) 
+        db_round_ini = get_one_round(round_id=db_round_next.id, db=db)
+        result.data = get_obj_info_to_aperturate(db_round_ini, db) 
     
-    # else:
-    #     db_round.is_last = True
-    #     db.add(db_round)
-    #     db.commit()
+    else:
+        db_round.is_last = True
+        db.add(db_round)
+        db.commit()
         
-    #     result.data = get_obj_info_to_aperturate(db_round, db) 
+        result.data = get_obj_info_to_aperturate(db_round, db) 
             
     return result
 
@@ -1095,7 +1090,10 @@ def calculate_stadist_of_players(db_round, db:Session):
             else:
                 two_pair = item_pair
                 two_points_pair = sum_points if sum_points else 0
-                
+        
+        one_points_pair = one_points_pair if one_points_pair <= db_round.tourney.number_points_to_win else db_round.tourney.number_points_to_win 
+        two_points_pair = two_points_pair if two_points_pair <= db_round.tourney.number_points_to_win else db_round.tourney.number_points_to_win   
+             
         one_pair.positive_points = one_points_pair
         one_pair.negative_points = two_points_pair
         one_pair.points_difference = one_points_pair - two_points_pair
