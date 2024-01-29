@@ -427,7 +427,7 @@ def get_all_players_by_tables_and_rounds(request:Request, page: int, per_page: i
         
         dict_tables = {'id': id, 'number': int(item['table_number']), 'table_id': item.table_id,
                        'type': "Inteligente" if item['is_smart'] else "Tradicional",
-                       'image': table_image}
+                       'image': table_image, 'boletus_id': item.boletus_id}
         
         dict_tables=create_dict_position(dict_tables, item.boletus_id, api_uri, db=db)
         lst_tables.append(dict_tables)
@@ -733,8 +733,8 @@ def get_info_of_boletus_pair(boletus_id: str, api_uri: str, db: Session):
                                  'positive_point': 0, 'negative_point': 0, 'difference_point': 0,
                                  'is_winner': False}}
     
-    str_query = "Select dpair.name, pairs_id, dbpair.positive_points, dbpair.negative_points, " +\
-        "dbpair.is_winner, sca_one.elo elo_one, sca_two.elo elo_two, pmone.name name_one, pmtwo.name name_two, " +\
+    str_query = "Select dpair.name, pairs_id, dbpair.is_winner, sca_one.elo elo_one, sca_two.elo elo_two, " +\
+        "pmone.name name_one, pmtwo.name name_two, " +\
         "pmone.photo photo_one, pmtwo.photo photo_two, pmone.id profile_id_one, pmtwo.id profile_id_two " +\
         "from events.domino_boletus_pairs dbpair " +\
         "join events.domino_boletus dbol ON dbol.id = dbpair.boletus_id " +\
@@ -746,9 +746,16 @@ def get_info_of_boletus_pair(boletus_id: str, api_uri: str, db: Session):
         "where dbpair.boletus_id = '" + boletus_id + "' "
         
     lst_data_exec = db.execute(str_query)
-    pair_number = 1
+    
+    pair_number, pair_one_id, pair_two_id = 1, "", ""
     for item in lst_data_exec:
-        name_key = 'pair_one' if pair_number == 1 else 'pair_two'
+        if pair_number == 1:
+            name_key = 'pair_one'
+            pair_one_id = item.pairs_id
+        else:
+            name_key = 'pair_two' 
+            pair_two_id = item.pairs_id
+        
         dict_result[name_key]['name'] = item.name
         dict_result[name_key]['player_one'] = item.name_one
         dict_result[name_key]['player_two'] = item.name_two
@@ -756,12 +763,21 @@ def get_info_of_boletus_pair(boletus_id: str, api_uri: str, db: Session):
         dict_result[name_key]['avatar_two'] = get_url_avatar(item.profile_id_two, item.photo_two, api_uri=api_uri)
         dict_result[name_key]['elo_one'] = item.elo_one
         dict_result[name_key]['elo_two'] = item.elo_two
-        dict_result[name_key]['positive_point'] = int(item.positive_points) if item.positive_points else 0
-        dict_result[name_key]['negative_point'] = int(item.negative_points) if item.negative_points else 0
-        dict_result[name_key]['difference_point'] = dict_result[name_key]['positive_point'] - dict_result[name_key]['negative_point']
+        dict_result[name_key]['positive_point'] = 0 #int(item.positive_points) if item.positive_points else 0
+        dict_result[name_key]['negative_point'] = 0 #int(item.negative_points) if item.negative_points else 0
+        dict_result[name_key]['difference_point'] = 0 #dict_result[name_key]['positive_point'] - dict_result[name_key]['negative_point']
         dict_result[name_key]['is_winner'] = item.is_winner
         pair_number += 1
     
+    str_points = "Select win_pair_id, SUM(bdata.number_points) as positive_points From events.domino_boletus_data bdata " +\
+            "join events.domino_boletus dbol ON dbol.id = bdata.boletus_id where dbol.id = '" + boletus_id + "' group by win_pair_id "
+    lst_points = db.execute(str_points)
+    for item in lst_points:
+        if item.win_pair_id == pair_one_id:
+            dict_result['pair_one']['positive_point'] = item.positive_points
+        else:
+            dict_result['pair_two']['positive_point'] = item.positive_points
+        
     if not dict_result['pair_one']['negative_point']:
         dict_result['pair_one']['negative_point'] = dict_result['pair_two']['positive_point']
         dict_result['pair_one']['difference_point'] = dict_result['pair_one']['positive_point'] - dict_result['pair_one']['negative_point']
@@ -1016,10 +1032,10 @@ def close_one_round(request: Request, round_id: str, db: Session):
     if not db_round:
         raise HTTPException(status_code=404, detail=_(locale, "round.not_found"))
     
-    status_init = get_one_status_by_name('FINALIZED', db=db)
+    # if db_round.status.name != 'REVIEW':
+    #     raise HTTPException(status_code=404, detail=_(locale, "round.status_incorrect"))
     
-    if db_round.status.name != 'REVIEW':
-        raise HTTPException(status_code=404, detail=_(locale, "round.status_incorrect"))
+    status_init = get_one_status_by_name('FINALIZED', db=db)
     
     db_round.status_id = status_init.id
     db_round.updated_by = currentUser['username']
@@ -1029,24 +1045,95 @@ def close_one_round(request: Request, round_id: str, db: Session):
     count_round = calculate_amount_rounds_played(db_round.tourney.id, db=db)
     open = True if int(count_round) <= int(db_round.tourney.number_rounds) else False
     
-    if open:
-        db_round_next = configure_next_rounds(db_round, db=db)
-        
-        configure_tables_by_round(db_round_next.tourney.id, db_round_next.id, db_round_next.tourney.modality, db_round_next.tourney.updated_by, db=db)
+    # realizar los calculos al final de la ronda.
     
-        change_all_status_player_at_init_round(db_round_next, db=db)
-        
-        db_round_ini = get_one_round(round_id=db_round_next.id, db=db)
-        result.data = get_obj_info_to_aperturate(db_round_ini, db) 
+    calculate_stadist_of_players(db_round, db=db)
     
-    else:
-        db_round.is_last = True
-        db.add(db_round)
-        db.commit()
+    # if open:
+    #     db_round_next = configure_next_rounds(db_round, db=db)
         
-        result.data = get_obj_info_to_aperturate(db_round, db) 
+    #     configure_tables_by_round(db_round_next.tourney.id, db_round_next.id, db_round_next.tourney.modality, db_round_next.tourney.updated_by, db=db)
+    
+    #     change_all_status_player_at_init_round(db_round_next, db=db)
+        
+    #     db_round_ini = get_one_round(round_id=db_round_next.id, db=db)
+    #     result.data = get_obj_info_to_aperturate(db_round_ini, db) 
+    
+    # else:
+    #     db_round.is_last = True
+    #     db.add(db_round)
+    #     db.commit()
+        
+    #     result.data = get_obj_info_to_aperturate(db_round, db) 
             
     return result
+
+def calculate_stadist_of_players(db_round, db:Session):
+    
+    print('voy a calcular')
+    
+    print( '*************************')
+    
+    dict_pair = {}
+    lst_boletus = get_all_by_round(db_round.id, db=db)
+    for item_bol in lst_boletus:
+        
+        one_pair, two_pair = None, None
+        one_points_pair, two_points_pair = None, None
+        position_number = 1
+        for item_pair in item_bol.boletus_pairs:
+            
+            # sumar todos los puntos de cada pareja por datas
+            str_query = "Select SUM(number_points) number_points from events.domino_boletus_data " +\
+                "Where win_pair_id = '" + item_pair.pairs_id + "' "
+            sum_points = db.execute(str_query).fetchone()[0]
+            
+            if position_number == 1:
+                one_pair = item_pair
+                one_points_pair = sum_points if sum_points else 0
+                position_number += 1
+            else:
+                two_pair = item_pair
+                two_points_pair = sum_points if sum_points else 0
+                
+        one_pair.positive_points = one_points_pair
+        one_pair.negative_points = two_points_pair
+        one_pair.points_difference = one_points_pair - two_points_pair
+        
+        two_pair.positive_points = two_points_pair
+        two_pair.negative_points = one_points_pair
+        two_pair.points_difference = two_points_pair - one_points_pair
+        
+        boletus_pair_win, boletus_pair_lost = None, None
+        if one_pair.positive_points > two_pair.positive_points:
+            one_pair.is_winner = True
+            boletus_pair_win = one_pair
+            boletus_pair_lost = two_pair
+        else:
+            two_pair.is_winner = True
+            boletus_pair_win = two_pair
+            boletus_pair_lost = one_pair
+        
+        
+        print('ronda pareja')
+        print(one_pair.pair.name)
+        
+        update_info_pairs(boletus_pair_win, boletus_pair_lost, db_round.tourney.number_points_to_win, db=db)
+            
+        dict_pair[one_pair.pairs_id] = {'positive_points': one_pair.positive_points, 'negative_points': one_pair.negative_points, 
+                                  'points_difference': one_pair.points_difference}
+        dict_pair[two_pair.pairs_id] = {'positive_points': two_pair.positive_points, 'negative_points': two_pair.negative_points, 
+                                  'points_difference': two_pair.points_difference}
+        
+        # pair_win.negative_points = lost_pair.positive_points
+        # lost_pair.negative_points = pair_win.positive_points    
+        print('dic_pais')
+        print(dict_pair)
+    
+        db.commit()
+         
+    return True
+
       
 def verify_category_is_valid(elo_max: float, elo_min: float, lst_category: list):
     

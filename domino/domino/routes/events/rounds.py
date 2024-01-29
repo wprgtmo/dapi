@@ -122,8 +122,8 @@ def get_tables(request: Request, id: str, page: int = 1, per_page: int = 6, db: 
     return get_all_tables_by_round(request=request, round_id=id, page=page, per_page=per_page, db=db)
 
 @rounds_route.get("/rounds/boletus/data/{id}", response_model=Dict, summary="Obtain a all datas of one boletus")
-def get_tables(request: Request, id: str, page: int = 1, per_page: int = 6, db: Session = Depends(get_db)):
-    return get_all_data_by_boletus(request=request, boletus_id=id, page=page, per_page=per_page, db=db)
+def get_tables(request: Request, id: str, db: Session = Depends(get_db)):
+    return get_all_data_by_boletus(request=request, boletus_id=id, db=db)
 
 @rounds_route.post("/rounds/boletus/data/{id}", response_model=ResultObject, summary="Insert Info of data")
 def insert_data(request: Request, id: str, dominodata: DominoDataCreated, db: Session = Depends(get_db)):

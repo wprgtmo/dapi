@@ -77,7 +77,7 @@ def get_one_configure_tourney(request:Request, tourney_id: str, db: Session):
         'points_penalty_yellow': 0 if not db_tourney.points_penalty_yellow else db_tourney.points_penalty_yellow,
         'points_penalty_red': 0 if not db_tourney.points_penalty_red else db_tourney.points_penalty_red,
         'elo_min': elo_min, 'elo_max': elo_max,
-        'constant_increase_ELO': 0 if not db_tourney.constant_increase_elo else db_tourney.constant_increase_elo,
+        'constant_increase_ELO': 4 if not db_tourney.constant_increase_elo else db_tourney.constant_increase_elo,
         'round_ordering_one': '' if not db_tourney.round_ordering_one else db_tourney.round_ordering_one,
         'round_ordering_dir_one': 'ASC' if not db_tourney.round_ordering_dir_one else db_tourney.round_ordering_dir_one,
         'round_ordering_two': '' if not db_tourney.round_ordering_two else db_tourney.round_ordering_two,

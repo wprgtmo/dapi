@@ -167,11 +167,14 @@ def new(request, event_id: str, tourney: TourneyCreated, db: Session):
     if tourney.startDate > one_event.close_date: 
         raise HTTPException(status_code=404, detail=_(locale, "tourney.incorrect_startDate"))
     
+    K1= get_factor_scale()
+    
     db_tourney = Tourney(id=id, event_id=event_id, modality=tourney.modality, name=tourney.name, 
                          summary=tourney.summary, start_date=tourney.startDate, 
                          status_id=one_status.id, created_by=currentUser['username'], 
                          game_system='SUIZO', number_rounds=tourney.number_rounds,
-                         updated_by=currentUser['username'], profile_id=one_event.profile_id)
+                         updated_by=currentUser['username'], profile_id=one_event.profile_id,
+                         constant_increase_elo=K1)
     db.add(db_tourney)
     
     #crear la carpeta con la imagen de la publicidad....
@@ -765,3 +768,9 @@ def get_values_elo_by_tourney(tourney_id: str, db: Session):
         elo_min = item.elo_min
     
     return elo_max, elo_min
+
+def get_factor_scale():
+    
+    K1 = 4 # por ahora será fijo en 4 hasta que me digan bien la formula
+    
+    return K1
