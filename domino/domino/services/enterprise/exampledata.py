@@ -837,7 +837,7 @@ def clear_all_bd(request:Request, db: Session):
         "DELETE FROM events.trace_lottery_manual; " +\
         "DELETE FROM events.domino_boletus_position; DELETE FROM events.domino_boletus_pairs; " +\
         "DELETE FROM events.domino_boletus; DELETE FROM events.domino_rounds_pairs; " +\
-        "DELETE FROM events.domino_boletus_data; DELETE FROM events.domino_rounds_scale; DELETE FROM events.domino_categories; " +\
+        "DELETE FROM events.domino_rounds_scale; DELETE FROM events.domino_categories; " +\
         "DELETE FROM events.domino_rounds; DELETE FROM events.domino_tables_files; DELETE FROM events.domino_tables; " +\
         "DELETE FROM events.players_users; DELETE FROM events.players; DELETE FROM events.referees; " +\
         "DELETE FROM events.invitations; DELETE FROM events.tourney; DELETE FROM events.events; " +\

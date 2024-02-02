@@ -1048,6 +1048,61 @@ def close_one_round(request: Request, round_id: str, db: Session):
             
     return result
 
+def restart_one_round(request: Request, round_id: str, db: Session):
+    locale = request.headers["accept-language"].split(",")[0].split("-")[0];
+    
+    result = ResultObject() 
+    currentUser = get_current_user(request) 
+    
+    db_round = get_one_round(round_id=round_id, db=db)
+    if not db_round:
+        raise HTTPException(status_code=404, detail=_(locale, "round.not_found"))
+    
+    
+    # borrar todos los datos
+    # sumar el acumulado de los jugadores hasta la ronda anterior
+    # la ronda anterior ponerla en estado de revision
+    
+    str_where = "WHERE round_id = '" + db_round.id + "'; "
+    str_delete = "DELETE FROM events.domino_boletus_data; DELETE FROM events.domino_boletus_position; "+\
+        "DELETE FROM events.domino_boletus_pairs; DELETE FROM events.domino_boletus " + str_where  +\
+        "DELETE FROM events.domino_rounds_pairs " + str_where + " DELETE FROM events.domino_rounds_scale " + str_where  +\
+        "DELETE FROM events.domino_rounds WHERE round_id = '" + db_round.id + "'; COMMIT;"
+        
+    # if db_round.status.name != 'REVIEW':
+    #     raise HTTPException(status_code=404, detail=_(locale, "round.status_incorrect"))
+    
+    status_init = get_one_status_by_name('FINALIZED', db=db)
+    
+    db_round.status_id = status_init.id
+    db_round.updated_by = currentUser['username']
+    db_round.updated_date = datetime.now()
+    db_round.close_date = datetime.now()
+    
+    count_round = calculate_amount_rounds_played(db_round.tourney.id, db=db)
+    open = True if int(count_round) <= int(db_round.tourney.number_rounds) else False
+    
+    calculate_stadist_of_players(db_round, db=db)
+    
+    if open:
+        db_round_next = configure_next_rounds(db_round, db=db)
+        
+        configure_tables_by_round(db_round_next.tourney.id, db_round_next.id, db_round_next.tourney.modality, db_round_next.tourney.updated_by, db=db)
+    
+        change_all_status_player_at_init_round(db_round_next, db=db)
+        
+        db_round_ini = get_one_round(round_id=db_round_next.id, db=db)
+        result.data = get_obj_info_to_aperturate(db_round_ini, db) 
+    
+    else:
+        db_round.is_last = True
+        db.add(db_round)
+        db.commit()
+        
+        result.data = get_obj_info_to_aperturate(db_round, db) 
+            
+    return result
+
 def calculate_stadist_of_players(db_round, db:Session):
     
     dict_pair = {}

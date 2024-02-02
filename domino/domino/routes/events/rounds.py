@@ -14,7 +14,7 @@ from domino.services.events.domino_round import get_all, get_one_by_id, start_on
     
 from domino.services.events.domino_scale import get_all_players_by_tables, get_all_players_by_tables_and_round, \
     get_all_scale_by_round, get_all_tables_by_round, aperture_new_round, get_all_scale_by_round_by_pairs, close_one_round, \
-    get_all_scale_acumulate, create_new_round
+    get_all_scale_acumulate, create_new_round, restart_one_round
 from domino.services.events.domino_data import get_all_data_by_boletus, new_data, close_data_by_time, updated_data
   
 rounds_route = APIRouter(
@@ -160,6 +160,10 @@ def start_round(request: Request, id: str, db: Session = Depends(get_db)):
 @rounds_route.post("/rounds/actions/close/{id}", response_model=ResultObject, summary="Close Round.")
 def close_round(request: Request, id: str, db: Session = Depends(get_db)):
     return close_one_round(request=request, round_id=id, db=db)
+
+@rounds_route.post("/rounds/actions/close/{id}", response_model=ResultObject, summary="Close Round.")
+def restart_round(request: Request, id: str, db: Session = Depends(get_db)):
+    return restart_one_round(request=request, round_id=id, db=db)
 
 
 
