@@ -47,9 +47,12 @@ pwd_context = CryptContext(schemes=["bcrypt"], deprecated="auto")
 
 #region poblar BD de profiles user
 
-def insert_user_examples(request:Request, from_file: bool, db: Session):
+def insert_user_examples(request:Request, from_file: bool, from_eeuu: bool, db: Session):
     if from_file:
-        return insert_user_examples_by_csv(request=request, db=db)
+        if from_eeuu:
+            return insert_user_eeuu_examples_by_csv(request=request, db=db)
+        else:
+            return insert_user_examples_by_csv(request=request, db=db)
     else:
         return insert_user_examples_from_aleatory(request=request, db=db)
     
@@ -864,6 +867,43 @@ def clear_all_bd(request:Request, db: Session):
 #endregion
     
 #llenado de las tablas a partir del fichero cvs
+
+def insert_user_eeuu_examples_by_csv(request:Request, db: Session):
+    
+    #ususrio domino
+    # lst_user = ['domino']
+    
+    #usuarios genericos
+    lst_user = []
+    lst_user.append(UserCreate(username='miry', first_name='Miraidys', last_name='Garcia Tornes', email='miry@gmail.cu', country_id=1, password='Pi=3.1416'))
+    [create_generic_user(request, item, 'Cienfuegos', db=db) for item in lst_user]
+    
+    lst_user = []
+    lst_user.append(UserCreate(username='migue', first_name='Miguel', last_name='Lau Díaz', email='migue@gmail.cu', country_id=1, password='Pi=3.1416'))
+    [create_generic_user(request, item, 'Cienfuegos', db=db) for item in lst_user]
+    
+    # admion de eventos
+    create_event_admon_from_file('miry', 'Cienfuegos', 'Miry', db=db)
+    
+    lst_admon = ['migue']
+    create_event_admon_from_file('migue', 'Matanzas', 'Migue', db=db)
+    
+    country = get_country_by_name('EUA', db=db) 
+    
+    #usuarios del fichero en BD.
+    str_query = "SELECT nombre, apellidos, pais, elo_inicial FROM resources.jugadores_eeuu"
+    
+    lst_data = db.execute(str_query)
+    for item in lst_data:
+        user_name = item.nombre + '.' + item.apellidos
+        one_user = UserCreate(username=user_name, first_name=item.nombre, last_name=item.apellidos if item.apellidos else '',
+                              country_id=country.id, password='Dom.1234*')
+        
+        create_generic_user(request, one_user, None, db=db)
+        player_name = item.nombre + ' ' + item.apellidos if item.apellidos else ''
+        create_single_player_from_file(request, user_name, player_name, None, item.elo_inicial, db=db)
+
+    return True
 
 def insert_user_examples_by_csv(request:Request, db: Session):
     

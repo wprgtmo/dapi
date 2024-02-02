@@ -414,14 +414,13 @@ def updated_data(request: Request, data_id:str, dominodata: DominoDataCreated, d
         
         # marcar como ganador la pareja que mas puntos tiene y cerrar la boleta
         if points_one_pair > points_two_pair:
-            str_update = "UPDATE events.domino_boletus_pairs SET is_winner=True WHERE pairs_id '" + id_one_pair + "'; COMMIT;"
+            str_update = "UPDATE events.domino_boletus_pairs SET is_winner=True WHERE pairs_id ='" + id_one_pair + "'; COMMIT;"
         else:
-            str_update = "UPDATE events.domino_boletus_pairs SET is_winner=True WHERE pairs_id '" + id_two_pair + "'; COMMIT;"
+            str_update = "UPDATE events.domino_boletus_pairs SET is_winner=True WHERE pairs_id ='" + id_two_pair + "'; COMMIT;"
             
             db.execute(str_update)
             
         one_status_end = get_one_status_by_name('FINALIZED', db=db)
-        one_data.boletus.status_id = one_status_end.id
         one_data.boletus.status_id = one_status_end.id
         one_data.boletus.updated_by = currentUser['username']
         one_data.boletus.updated_date = datetime.now()
@@ -438,6 +437,17 @@ def updated_data(request: Request, data_id:str, dominodata: DominoDataCreated, d
             db.add(one_data.boletus.rounds)
             db.commit() 
     
+    else:
+        str_update = "UPDATE events.domino_boletus_pairs SET is_winner=False WHERE pairs_id IN ('" + id_two_pair + "', '" + id_one_pair + "'); COMMIT;"
+        db.execute(str_update)
+        
+        one_status_end = get_one_status_by_name('INITIADED', db=db)
+        one_data.boletus.status_id = one_status_end.id
+        one_data.boletus.updated_by = currentUser['username']
+        one_data.boletus.updated_date = datetime.now()
+        db.add(one_data.boletus)
+        db.commit() 
+        
     try:
         
         db_round_ini = get_one_round(round_id=one_data.boletus.round_id, db=db)
