@@ -71,6 +71,8 @@ def get_all_data_by_boletus(request:Request, boletus_id: str, db: Session):
         
     dict_result['lst_data'] = lst_data
     
+    dict_result['lst_players'] = get_info_player_of_boletus(boletus_id, db=db)
+    
     result.data = dict_result
     
     return result
@@ -97,6 +99,20 @@ def get_info_of_boletus(boletus_id: str, dict_result, db: Session):
             dict_result['pair_two']['total_point'] = int(item.positive_points) if item.positive_points else 0
     
     return dict_result
+
+def get_info_player_of_boletus(boletus_id: str, db: Session):
+    
+    lst_data = []
+    
+    str_query = "SELECT single_profile_id, pmem.name, position_id FROM events.domino_boletus_position bpo " +\
+        "join enterprise.profile_member pmem ON pmem.id = bpo.single_profile_id " +\
+        "where boletus_id = '" + boletus_id + "' order by position_id "
+        
+    lst_data_exec = db.execute(str_query)
+    for item in lst_data_exec:
+        lst_data.append({'profile_id':  item.single_profile_id, 'profile_name': item.name, 'position_id': item.position_id})
+    
+    return lst_data
 
 def get_one(data_id: str, db: Session):  
     return db.query(DominoBoletusData).filter(DominoBoletusData.id == data_id).first()

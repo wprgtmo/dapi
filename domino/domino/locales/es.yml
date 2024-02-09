@@ -45,6 +45,7 @@ es:
     exist_name: 'Existe estado con ese nombre.'
     error_new_status: 'Error creando nuevo paquete.'
     not_found: 'Estado no existe'
+    incorrect: 'Estado del Torneo No Permite reslizar esta accion'
   post:
     error_new_post: 'Error creando nuevo post'
     not_found: 'Post no existe.'

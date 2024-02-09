@@ -1058,49 +1058,33 @@ def restart_one_round(request: Request, round_id: str, db: Session):
     if not db_round:
         raise HTTPException(status_code=404, detail=_(locale, "round.not_found"))
     
+    tourney_id = db_round.tourney_id
     
-    # borrar todos los datos
     # sumar el acumulado de los jugadores hasta la ronda anterior
-    # la ronda anterior ponerla en estado de revision
     
     str_where = "WHERE round_id = '" + db_round.id + "'; "
-    str_delete = "DELETE FROM events.domino_boletus_data; DELETE FROM events.domino_boletus_position; "+\
-        "DELETE FROM events.domino_boletus_pairs; DELETE FROM events.domino_boletus " + str_where  +\
-        "DELETE FROM events.domino_rounds_pairs " + str_where + " DELETE FROM events.domino_rounds_scale " + str_where  +\
-        "DELETE FROM events.domino_rounds WHERE round_id = '" + db_round.id + "'; COMMIT;"
-        
-    # if db_round.status.name != 'REVIEW':
-    #     raise HTTPException(status_code=404, detail=_(locale, "round.status_incorrect"))
+    str_join = " WHERE ba.boletus_id IN (SELECT id FROM events.domino_boletus " + str_where[:-2] + "); " 
+
+    str_delete = "DELETE FROM events.domino_boletus_data ba " + str_join +\
+        "DELETE FROM events.domino_boletus_position ba " + str_join +\
+        "DELETE FROM events.domino_boletus_pairs ba " + str_join +\
+        "DELETE FROM events.domino_boletus " + str_where  +\
+        "DELETE FROM events.domino_rounds_pairs " + str_where +\
+        " DELETE FROM events.domino_rounds_scale " + str_where  +\
+        "DELETE FROM events.domino_rounds WHERE id = '" + db_round.id + "'; COMMIT;"
+    db.execute(str_delete)
     
-    status_init = get_one_status_by_name('FINALIZED', db=db)
+    db_current_round = get_last_by_tourney(tourney_id, db=db)
     
-    db_round.status_id = status_init.id
-    db_round.updated_by = currentUser['username']
-    db_round.updated_date = datetime.now()
-    db_round.close_date = datetime.now()
+    status_review = get_one_status_by_name('REVIEW', db=db)
     
-    count_round = calculate_amount_rounds_played(db_round.tourney.id, db=db)
-    open = True if int(count_round) <= int(db_round.tourney.number_rounds) else False
+    db_current_round.status_id = status_review.id
+    db_current_round.updated_by = currentUser['username']
+    db_current_round.updated_date = datetime.now()
+    db_current_round.close_date = datetime.now()
     
-    calculate_stadist_of_players(db_round, db=db)
+    db.commit()
     
-    if open:
-        db_round_next = configure_next_rounds(db_round, db=db)
-        
-        configure_tables_by_round(db_round_next.tourney.id, db_round_next.id, db_round_next.tourney.modality, db_round_next.tourney.updated_by, db=db)
-    
-        change_all_status_player_at_init_round(db_round_next, db=db)
-        
-        db_round_ini = get_one_round(round_id=db_round_next.id, db=db)
-        result.data = get_obj_info_to_aperturate(db_round_ini, db) 
-    
-    else:
-        db_round.is_last = True
-        db.add(db_round)
-        db.commit()
-        
-        result.data = get_obj_info_to_aperturate(db_round, db) 
-            
     return result
 
 def calculate_stadist_of_players(db_round, db:Session):

@@ -161,7 +161,7 @@ def start_round(request: Request, id: str, db: Session = Depends(get_db)):
 def close_round(request: Request, id: str, db: Session = Depends(get_db)):
     return close_one_round(request=request, round_id=id, db=db)
 
-@rounds_route.post("/rounds/actions/close/{id}", response_model=ResultObject, summary="Close Round.")
+@rounds_route.post("/rounds/actions/restart/{id}", response_model=ResultObject, summary="Restart Round.")
 def restart_round(request: Request, id: str, db: Session = Depends(get_db)):
     return restart_one_round(request=request, round_id=id, db=db)
 
