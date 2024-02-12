@@ -7,6 +7,7 @@ from domino.auth_bearer import JWTBearer
 
 from domino.schemas.resources.result_object import ResultObject
 from domino.schemas.events.domino_data import DominoDataCreated
+from domino.schemas.events.domino_penalties import DominoPenaltiesCreated
 from domino.schemas.events.domino_rounds import DominoRoundsCreated, DominoRoundsAperture
 
 from domino.services.events.domino_round import get_all, get_one_by_id, start_one_round, get_info_to_aperture, \
@@ -16,6 +17,7 @@ from domino.services.events.domino_scale import get_all_players_by_tables, get_a
     get_all_scale_by_round, get_all_tables_by_round, aperture_new_round, get_all_scale_by_round_by_pairs, close_one_round, \
     get_all_scale_acumulate, create_new_round, restart_one_round
 from domino.services.events.domino_data import get_all_data_by_boletus, new_data, close_data_by_time, updated_data
+from domino.services.events.domino_penalty import new as new_penalty
   
 rounds_route = APIRouter(
     tags=["Rounds"],
@@ -128,6 +130,10 @@ def get_tables(request: Request, id: str, db: Session = Depends(get_db)):
 @rounds_route.post("/rounds/boletus/data/{id}", response_model=ResultObject, summary="Insert Info of data")
 def insert_data(request: Request, id: str, dominodata: DominoDataCreated, db: Session = Depends(get_db)):
     return new_data(request=request, boletus_id=id, dominodata=dominodata, db=db)
+
+@rounds_route.post("/rounds/boletus/penalty/{player_id}", response_model=ResultObject, summary="Insert New Penalty of player")
+def insert_penalty(request: Request, player_id: str, dominopenalty: DominoPenaltiesCreated, db: Session = Depends(get_db)):
+    return new_penalty(request=request, player_id=player_id, domino_penalty=dominopenalty, db=db)
 
 @rounds_route.post("/rounds/boletus/closedata/{id}", response_model=ResultObject, summary="Close data by time")
 def close_data(request: Request, id: str, db: Session = Depends(get_db)):

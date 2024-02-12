@@ -15,7 +15,7 @@ class PenaltyTypes(Base):
     __table_args__ = {'schema' : 'events'}
      
     id = Column(Integer, primary_key=True)
-    card_colour = Column(String(120), nullable=False)
+    name = Column(String(120), nullable=False)
     description = Column(String(250), nullable=False)
     is_active = Column(Boolean, nullable=False, default=True)
     
@@ -38,9 +38,10 @@ class DominoBoletusPenalties(Base):
     pair_id = Column(String, ForeignKey("events.domino_rounds_pairs.id"))
     player_id = Column(String, ForeignKey("events.players.id"))
     single_profile_id = Column(String)
-    penalty_id = Column(String, ForeignKey("events.penalty_types.id"))
-    card_colour = Column(String(120), nullable=False)
+    penalty_type = Column(String) 
+    penalty_amount = Column(Integer)
     penalty_value = Column(Integer)
+    apply_points = Column(Boolean)
        
     boletus = relationship("DominoBoletus")
     
@@ -51,7 +52,7 @@ class DominoBoletusPenalties(Base):
             "pair_id": self.pair_id,
             "player_id": self.player_id,
             "single_profile_id": self.single_profile_id,
-            "penalty_id": self.penalty_id,
+            "penalty_type": self.penalty_type,
             "card_colour": self.card_colour,
             "penalty_value": self.penalty_value
             }

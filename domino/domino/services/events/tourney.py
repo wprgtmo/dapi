@@ -395,7 +395,12 @@ def calculate_amount_tables(tourney_id: str, modality: str, db: Session):
     if not mod_play:
         return int(0)
     
-    amount_table = int(mod_play[0]) if mod_play[1] > 0 else int(mod_play[0])
+    #esta forma es si no voy a dejar mesas incompleta y si jugadores esperando
+    # amount_table = int(mod_play[0]) if mod_play[1] > 0 else int(mod_play[0])
+     #esta otra sienta a todos los jugadores en las mesas
+    amount_table = int(mod_play[0]) if mod_play[1] == 0 else int(mod_play[0] + 1)
+    print(amount_table)
+    print(amount_players)
     return amount_table
 
 def reconfig_amount_tables(db_tourney, db: Session):

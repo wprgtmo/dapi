@@ -113,6 +113,9 @@ def calculate_score_expeted_of_pairs(round_id:str, acumulated_games_played:int, 
     lst_boletus =  get_all_by_round(round_id, db=db)
     for item in lst_boletus:
         one_pair, two_pair = 0, 0
+        elo_two_player_one_pair = 0
+        elo_one_player_two_pair = 0
+        elo_two_player_two_pair = 0
         for item_pair in item.boletus_pairs:
             if not one_pair:
                 one_pair = item_pair
@@ -121,15 +124,20 @@ def calculate_score_expeted_of_pairs(round_id:str, acumulated_games_played:int, 
         
         str_query = "Select elo from events.players_users where profile_id =  '" + one_pair.pair.one_player_id + "'"
         elo_one_player_one_pair = db.execute(str_query).fetchone()[0]
-        str_query = "Select elo from events.players_users where profile_id =  '" + one_pair.pair.two_player_id + "'"
-        elo_two_player_one_pair = db.execute(str_query).fetchone()[0]
-        str_query = "Select elo from events.players_users where profile_id =  '" + two_pair.pair.one_player_id + "'"
-        elo_one_player_two_pair = db.execute(str_query).fetchone()[0]
-        str_query = "Select elo from events.players_users where profile_id =  '" + two_pair.pair.two_player_id + "'"
-        elo_two_player_two_pair = db.execute(str_query).fetchone()[0]
+        if one_pair.pair.two_player_id:
+            str_query = "Select elo from events.players_users where profile_id =  '" + one_pair.pair.two_player_id + "'"
+            elo_two_player_one_pair = db.execute(str_query).fetchone()[0]
         
-        elo_one_pair = round((elo_one_player_one_pair + elo_two_player_one_pair)/2)
-        elo_two_pair = round((elo_one_player_two_pair + elo_two_player_two_pair)/2)
+        if two_pair:    
+            str_query = "Select elo from events.players_users where profile_id =  '" + two_pair.pair.one_player_id + "'"
+            elo_one_player_two_pair = db.execute(str_query).fetchone()[0]
+            
+            if two_pair.pair.two_player_id:
+                str_query = "Select elo from events.players_users where profile_id =  '" + two_pair.pair.two_player_id + "'"
+                elo_two_player_two_pair = db.execute(str_query).fetchone()[0]
+        
+        elo_one_pair = round((elo_one_player_one_pair + elo_two_player_one_pair)/2, 4)
+        elo_two_pair = round((elo_one_player_two_pair + elo_two_player_two_pair)/2, 4)
         
         se_one_pair = calculate_score_expected(elo_one_pair, elo_two_pair)
         se_two_pair = calculate_score_expected(elo_two_pair, elo_one_pair)
@@ -139,21 +147,30 @@ def calculate_score_expeted_of_pairs(round_id:str, acumulated_games_played:int, 
         
         str_one_pair = str_update + "score_expected = " + str(se_one_pair) + ", elo_pair = " + str(elo_one_pair) + ", " +\
             "elo_pair_opposing = " + str(elo_two_pair) + ", acumulated_games_played = " + str(acumulated_games_played) +\
-            ", elo_ra = 0 WHERE id = '" + one_pair.pairs_id + "'; " 
-        str_two_pair = str_update + "score_expected = " + str(se_two_pair) + ", elo_pair = " + str(elo_two_pair) + ", " +\
-            "elo_pair_opposing = " + str(elo_one_pair) + ", acumulated_games_played = " + str(acumulated_games_played)+\
-            ", elo_ra = 0 WHERE id = '" + two_pair.pairs_id + "'; " 
+            ", elo_ra = 0 WHERE id = '" + one_pair.pairs_id + "'; "
+        str_two_pair = ''
+        if two_pair:    
+            str_two_pair = str_update + "score_expected = " + str(se_two_pair) + ", elo_pair = " + str(elo_two_pair) + ", " +\
+                "elo_pair_opposing = " + str(elo_one_pair) + ", acumulated_games_played = " + str(acumulated_games_played)+\
+                ", elo_ra = 0 WHERE id = '" + two_pair.pairs_id + "'; " 
         
         str_execute =  str_one_pair + str_two_pair + " COMMIT;"
         db.execute(str_execute)
         
+        str_where_one_pair = str(one_pair.pair.scale_id_one_player) + "','" +  str(one_pair.pair.scale_id_two_player) if \
+            one_pair.pair.scale_id_two_player else str(one_pair.pair.scale_id_one_player)
+        
         str_one_player = str_update_scale + "score_expected = " + str(se_one_pair) + ", games_played = " + str(acumulated_games_played) + ", " +\
-            "acumulated_games_played = " + str(acumulated_games_played) +\
-            " WHERE id IN ('" + str(one_pair.pair.scale_id_one_player) + "','" +  str(one_pair.pair.scale_id_two_player) + "'); "
-        str_two_player = str_update_scale + "score_expected = " + str(se_two_pair) + ", games_played = " + str(acumulated_games_played) + ", " +\
-            "acumulated_games_played = " + str(acumulated_games_played) +\
-            " WHERE id IN ('" + two_pair.pair.scale_id_one_player + "','" + two_pair.pair.scale_id_two_player + "'); "
-            
+            "acumulated_games_played = " + str(acumulated_games_played) + " WHERE id IN ('" + str_where_one_pair + "'); "
+        
+        str_two_player = ''
+        if two_pair:  
+            str_where_two_pair = str(two_pair.pair.scale_id_one_player) + "','" +  str(two_pair.pair.scale_id_two_player) if \
+            two_pair.pair.scale_id_two_player else str(two_pair.pair.scale_id_one_player)
+              
+            str_two_player = str_update_scale + "score_expected = " + str(se_two_pair) + ", games_played = " + str(acumulated_games_played) + ", " +\
+                "acumulated_games_played = " + str(acumulated_games_played) + " WHERE id IN ('" + str_where_two_pair + "'); "
+                
         str_execute =  str_one_player + str_two_player + " COMMIT;"
         db.execute(str_execute)
                 
@@ -785,6 +802,46 @@ def get_one_round_pair(id: str, db: Session):
 def get_one_round_scale(id: str, db: Session):  
     return db.query(DominoRoundsScale).filter(DominoRoundsScale.id == id).first()
 
+def update_info_pairs_original(boletus_pair_win, boletus_pair_lost, number_points_to_win:int, db: Session):
+    
+    # actualizar los datos de la pareja ganadora en Round_pair
+    round_win_pair = get_one_round_pair(boletus_pair_win.pairs_id, db=db)
+    round_lost_pair = get_one_round_pair(boletus_pair_lost.pairs_id, db=db)
+
+    scale_player_win_one = get_one_round_scale(round_win_pair.scale_id_one_player, db=db) 
+    scale_player_win_two = get_one_round_scale(round_win_pair.scale_id_two_player, db=db)
+    
+    scale_player_lost_one = get_one_round_scale(round_lost_pair.scale_id_one_player, db=db)
+    scale_player_lost_two = get_one_round_scale(round_lost_pair.scale_id_two_player, db=db)
+    
+    player_win_one = get_one_user(scale_player_win_one.player_id, round_win_pair.one_player_id, db=db) 
+    player_win_two = get_one_user(scale_player_win_two.player_id, round_win_pair.two_player_id, db=db)
+    
+    player_lost_one = get_one_user(scale_player_lost_one.player_id, round_lost_pair.one_player_id, db=db)
+    player_lost_two = get_one_user(scale_player_lost_two.player_id, round_lost_pair.two_player_id, db=db)
+    
+    round_win_pair.bonus_points = 0
+    round_lost_pair.bonus_points = 0
+    
+    update_data_round_pair(boletus_pair_win, round_win_pair, number_points_to_win)
+    update_data_round_pair(boletus_pair_lost, round_lost_pair, number_points_to_win)
+    
+    # actualizar los datos de la escala de la pareja
+    update_data_round_scale(round_win_pair, scale_player_win_one, scale_player_win_two, True)
+    update_data_round_scale(round_lost_pair, scale_player_lost_one, scale_player_lost_two, False)
+    
+    # actualizar los datos de los jugadores de cada pareja
+    
+    update_data_player(scale_player_win_one, player_win_one)
+    update_data_player(scale_player_win_two, player_win_two)
+    
+    update_data_player(scale_player_lost_one, player_lost_one)
+    update_data_player(scale_player_lost_two, player_lost_two)
+    
+    db.commit()
+    
+    return True
+
 def update_info_pairs(boletus_pair_win, boletus_pair_lost, number_points_to_win:int, db: Session):
     
     # actualizar los datos de la pareja ganadora en Round_pair
@@ -1075,26 +1132,27 @@ def restart_one_round(request: Request, round_id: str, db: Session):
     db.execute(str_delete)
     
     db_current_round = get_last_by_tourney(tourney_id, db=db)
+    if db_current_round:
     
-    status_review = get_one_status_by_name('REVIEW', db=db)
-    
-    db_current_round.status_id = status_review.id
-    db_current_round.updated_by = currentUser['username']
-    db_current_round.updated_date = datetime.now()
-    db_current_round.close_date = datetime.now()
-    
+        status_review = get_one_status_by_name('REVIEW', db=db)
+        db_current_round.status_id = status_review.id
+        db_current_round.updated_by = currentUser['username']
+        db_current_round.updated_date = datetime.now()
+        db_current_round.close_date = datetime.now()
+        
     db.commit()
     
     return result
 
 def calculate_stadist_of_players(db_round, db:Session):
     
-    dict_pair = {}
+    # falta tema penalizaciones
+    
     lst_boletus = get_all_by_round(db_round.id, db=db)
     for item_bol in lst_boletus:
         
         one_pair, two_pair = None, None
-        one_points_pair, two_points_pair = None, None
+        one_points_pair, two_points_pair = 0, 0
         position_number = 1
         for item_pair in item_bol.boletus_pairs:
             
@@ -1111,35 +1169,35 @@ def calculate_stadist_of_players(db_round, db:Session):
                 two_pair = item_pair
                 two_points_pair = sum_points if sum_points else 0
         
-        one_points_pair = one_points_pair if one_points_pair <= db_round.tourney.number_points_to_win else db_round.tourney.number_points_to_win 
-        two_points_pair = two_points_pair if two_points_pair <= db_round.tourney.number_points_to_win else db_round.tourney.number_points_to_win   
+        # No truncar la cantidad de puntos sino ponerlos todos los que cogieron
+        ## one_points_pair = one_points_pair if one_points_pair <= db_round.tourney.number_points_to_win else db_round.tourney.number_points_to_win 
+        # two_points_pair = two_points_pair if two_points_pair <= db_round.tourney.number_points_to_win else db_round.tourney.number_points_to_win   
              
         one_pair.positive_points = one_points_pair
         one_pair.negative_points = two_points_pair
         one_pair.points_difference = one_points_pair - two_points_pair
         
-        two_pair.positive_points = two_points_pair
-        two_pair.negative_points = one_points_pair
-        two_pair.points_difference = two_points_pair - one_points_pair
-        
         boletus_pair_win, boletus_pair_lost = None, None
-        if one_pair.positive_points > two_pair.positive_points:
+        if two_pair:
+            two_pair.positive_points = two_points_pair
+            two_pair.negative_points = one_points_pair
+            two_pair.points_difference = two_points_pair - one_points_pair
+        
+            if one_pair.positive_points > two_pair.positive_points:
+                one_pair.is_winner = True
+                boletus_pair_win = one_pair
+                boletus_pair_lost = two_pair
+            else:
+                two_pair.is_winner = True
+                boletus_pair_win = two_pair
+                boletus_pair_lost = one_pair
+        else:
             one_pair.is_winner = True
             boletus_pair_win = one_pair
-            boletus_pair_lost = two_pair
-        else:
-            two_pair.is_winner = True
-            boletus_pair_win = two_pair
-            boletus_pair_lost = one_pair
-        
+            boletus_pair_lost = None
         
         update_info_pairs(boletus_pair_win, boletus_pair_lost, db_round.tourney.number_points_to_win, db=db)
             
-        dict_pair[one_pair.pairs_id] = {'positive_points': one_pair.positive_points, 'negative_points': one_pair.negative_points, 
-                                  'points_difference': one_pair.points_difference}
-        dict_pair[two_pair.pairs_id] = {'positive_points': two_pair.positive_points, 'negative_points': two_pair.negative_points, 
-                                  'points_difference': two_pair.points_difference}
-        
         db.commit()
          
     return True
@@ -1169,7 +1227,6 @@ def order_round_to_init(db_round, db:Session, round_aperture: DominoRoundsApertu
         # salvar la escala manual en trazas
         result_init = configure_manual_lottery(db_round, round_aperture.lottery, db=db)
     else:
-        print('voy a configurar automatil')
         result_init = configure_automatic_lottery(db_round, db=db, uses_segmentation=uses_segmentation)
             
     if not result_init:

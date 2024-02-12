@@ -62,7 +62,7 @@ class SettingTourneyCreated(BaseModel):
     number_points_to_win: Optional[int] 
     time_to_win: Optional[int] 
     lottery: Optional[str] 
-    # constant_increase_ELO: Optional[float]
+    constant_increase_ELO: Optional[float]
     
     use_penalty: Optional[bool]
     limitPenaltyPoints: Optional[int]
