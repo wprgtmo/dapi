@@ -130,24 +130,28 @@ def created_boletus_position(one_boletus, lst_player:list, db:Session, can_updat
     one_bol_position=DominoBoletusPosition(
             boletus_id=one_boletus.id, position_id=1, single_profile_id=lst_player[0]['one_player_id'] if lst_player[0]['one_player_id'] else None,
             scale_number=lst_player[0]['scale_number_one_player'] if lst_player[0]['scale_number_one_player'] else None,
-            positive_points=positive_points, negative_points=negative_points, is_winner=is_winner, penalty_points=0)
+            positive_points=positive_points, negative_points=negative_points, is_winner=is_winner, penalty_points=0,
+            pairs_id=lst_player[0]['id'])
     one_boletus.boletus_position.append((one_bol_position))
     one_bol_position=DominoBoletusPosition(
             boletus_id=one_boletus.id, position_id=3, single_profile_id=lst_player[0]['two_player_id'] if lst_player[0]['two_player_id'] else None,
             scale_number=lst_player[0]['scale_number_two_player'] if lst_player[0]['scale_number_two_player'] else None,
-            positive_points=positive_points, negative_points=negative_points, is_winner=is_winner, penalty_points=0)
+            positive_points=positive_points, negative_points=negative_points, is_winner=is_winner, penalty_points=0,
+            pairs_id=lst_player[0]['id'])
     one_boletus.boletus_position.append((one_bol_position))
         
     if len(lst_player) == 2:  #tengo las dos parejas por mesa
         one_bol_position=DominoBoletusPosition(
             boletus_id=one_boletus.id, position_id=2, single_profile_id=lst_player[1]['one_player_id'] if lst_player[1]['one_player_id'] else None,
             scale_number=lst_player[1]['scale_number_one_player'] if lst_player[1]['scale_number_one_player'] else None,
-            positive_points=positive_points, negative_points=negative_points, is_winner=is_winner, penalty_points=0)
+            positive_points=positive_points, negative_points=negative_points, is_winner=is_winner, penalty_points=0,
+            pairs_id=lst_player[1]['id'])
         one_boletus.boletus_position.append((one_bol_position))
         one_bol_position=DominoBoletusPosition(
             boletus_id=one_boletus.id, position_id=4, single_profile_id=lst_player[1]['two_player_id'] if lst_player[0]['two_player_id'] else None,
             scale_number=lst_player[1]['scale_number_two_player'] if lst_player[1]['scale_number_two_player'] else None,
-            positive_points=positive_points, negative_points=negative_points, is_winner=is_winner, penalty_points=0)
+            positive_points=positive_points, negative_points=negative_points, is_winner=is_winner, penalty_points=0,
+            pairs_id=lst_player[1]['id'])
         one_boletus.boletus_position.append((one_bol_position))
             
     return True

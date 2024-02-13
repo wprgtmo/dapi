@@ -26,6 +26,7 @@ from domino.services.events.domino_scale import update_info_pairs, close_round_w
 from domino.services.resources.status import get_one_by_name as get_one_status_by_name
 from domino.services.resources.utils import get_result_count
 from domino.services.events.domino_round import calculate_amount_rounds_played, get_one as get_one_round, get_obj_info_to_aperturate
+from domino.services.events.calculation_serv import get_motive_closed
 
 def get_all_data_by_boletus(request:Request, boletus_id: str, db: Session):  
     
@@ -205,30 +206,67 @@ def close_data_by_time(request: Request, boletus_id:str, db: Session):
         raise HTTPException(status_code=404, detail=_(locale, "boletus.equal_positive_points"))
     
     # marcar como ganador la pareja que mas puntos tiene y cerrar la boleta
-    if points_one_pair > points_two_pair:
-        str_update = "UPDATE events.domino_boletus_pairs SET is_winner=True WHERE pairs_id = '" + id_one_pair + "'; COMMIT;"
-    else:
-        str_update = "UPDATE events.domino_boletus_pairs SET is_winner=True WHERE pairs_id = '" + id_two_pair + "'; COMMIT;"
-    db.execute(str_update)
     
-    # actualizar los puntos en la tabla de posiciones de jugadores.
+    if points_one_pair > points_two_pair:
+        positive_points, negative_points = points_one_pair, points_two_pair
+        win_pair_id, lost_pair_id = id_one_pair, id_two_pair
+    else:
+        positive_points, negative_points = points_two_pair, points_one_pair
+        win_pair_id, lost_pair_id = id_two_pair, id_one_pair
+    
+    str_fields_win = "is_winner=True, positive_points = " + str(positive_points) + ", negative_points=" + str(negative_points)
+    str_fields_win += " WHERE pairs_id = '" + win_pair_id + "'; "
+    str_update_win = "UPDATE events.domino_boletus_pairs SET " + str_fields_win 
+    
+    str_fields_lost = "is_winner=False, positive_points = " + str(negative_points) + ", negative_points=" + str(positive_points)
+    str_fields_lost += " WHERE pairs_id = '" + lost_pair_id + "'; "
+    str_update_lost = "UPDATE events.domino_boletus_pairs SET " + str_fields_lost + "COMMIT"
+     
+    # else:
+    #     positive_points, negative_points = points_two_pair, points_two_pair
         
+        # str_update = "UPDATE events.domino_boletus_pairs SET is_winner=True WHERE pairs_id = '" + id_two_pair + "'; COMMIT;"
+        # str_fields = "is_winner=True, positive_points = " + str(points_two_pair) + ", negative_points=" + str(points_one_pair)
+        # str_update = "UPDATE events.domino_boletus_pairs SET " + str_fields + "WHERE pairs_id = '" + id_two_pair + "'; "
+        # str_update += "UPDATE events.domino_boletus_position SET " + str_fields + "WHERE pairs_id = '" + id_two_pair + "'; COMMIT; "
+        
+    # if points_one_pair > points_two_pair:
+    #     str_fields = "is_winner=True, positive_points = " + str(points_one_pair) + ", negative_points=" + str(points_two_pair)
+    #     str_update = "UPDATE events.domino_boletus_pairs SET " + str_fields + "WHERE pairs_id = '" + id_one_pair + "'; "
+    #     str_update += "UPDATE events.domino_boletus_position SET " + str_fields + "WHERE pairs_id = '" + id_one_pair + "'; COMMIT; "
+        
+    # else:
+    #     # str_update = "UPDATE events.domino_boletus_pairs SET is_winner=True WHERE pairs_id = '" + id_two_pair + "'; COMMIT;"
+    #     str_fields = "is_winner=True, positive_points = " + str(points_two_pair) + ", negative_points=" + str(points_one_pair)
+    #     str_update = "UPDATE events.domino_boletus_pairs SET " + str_fields + "WHERE pairs_id = '" + id_two_pair + "'; "
+    #     str_update += "UPDATE events.domino_boletus_position SET " + str_fields + "WHERE pairs_id = '" + id_two_pair + "'; COMMIT; "
+    
+    str_update = str_update_win + str_update_lost
+    
+    print(str_update)
+    print('************')  
     try:
+        db.execute(str_update)
+        db.commit() 
+    
         result.data = close_boletus(one_boletus, currentUser['username'], db=db, verify_points=False) 
         return result
     except (Exception, SQLAlchemyError, IntegrityError) as e:
         msg = _(locale, "event.error_new_event")               
         raise HTTPException(status_code=403, detail=msg)
     
-def close_boletus(one_boletus, username, db: Session, verify_points=True):
+def close_boletus(one_boletus, username, db: Session, verify_points=True, motive_closed='points'):
     
     # cuando cierra por tiempo siempre será True sta variable
     max_number_points = verify_if_close_boletus(one_boletus.id, one_boletus.tourney.number_points_to_win, db=db) if verify_points else True
     if max_number_points:
+        motive_closed_description = get_motive_closed(motive_closed)
         one_status_end = get_one_status_by_name('FINALIZED', db=db)
         one_boletus.status_id = one_status_end.id
         one_boletus.updated_by = username
         one_boletus.updated_date = datetime.now()
+        one_boletus.motive_closed=motive_closed
+        one_boletus.motive_closed_description=motive_closed_description
         db.add(one_boletus)
         db.commit() 
         

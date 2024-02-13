@@ -25,7 +25,6 @@ class DominoBoletus(Base):
     can_update  = Column(Boolean)
     motive_closed  = Column(String)
     motive_closed_description  = Column(String)
-    pairs_id = Column(String)
     
     boletus_position = relationship("DominoBoletusPosition")
     boletus_pairs = relationship("DominoBoletusPairs")
@@ -86,6 +85,7 @@ class DominoBoletusPosition(Base):
     position_id = Column(Integer, primary_key=True)
     single_profile_id = Column(String)
     scale_number = Column(Integer) 
+    pairs_id = Column(String)
     
     positive_points = Column(Integer) 
     negative_points = Column(Integer) 
