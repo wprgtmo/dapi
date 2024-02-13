@@ -18,6 +18,7 @@ ALTER TABLE IF EXISTS events.domino_boletus_position
     ADD COLUMN penalty_points integer;
 ALTER TABLE IF EXISTS events.domino_boletus_position
     ADD COLUMN expelled boolean;
-
+ALTER TABLE IF EXISTS events.domino_boletus_position
+    ADD COLUMN pairs_id character varying;
 
     
