@@ -91,6 +91,8 @@ class Tourney(Base):
     event_ordering_dir_four = Column(String(5), nullable=True)
     event_ordering_dir_five = Column(String(5), nullable=True)
     
+    points_for_absences = Column(Integer, nullable=True, default=0)
+    
     event = relationship("Event", back_populates="tourneys")
     
     status = relationship("StatusElement")

@@ -34,3 +34,15 @@ def calculate_new_elo(number_games_played:int, score_expected: float, score_obta
 
 def calculate_end_elo(initial_elo:float, summary_elo_obtained: float, k2: float, k3: float):  
     return initial_elo + summary_elo_obtained
+
+def get_motive_closed(motive:str):
+    
+    dict_motive = {'points': 'Cerrado por puntos',
+                   'time': 'Cerrado por tiempo',
+                   'penalty': 'Cerrado por penalización',
+                   'non_completion': 'Cerrado por no completamiento de mesa',
+                   'absences': 'Cerrado por ausencia de jugadores',
+                   'abandon': 'Cerrado por abandono de jugadores',
+                   'annulled': 'Cerrado por Boleta anulada'}
+    
+    return dict_motive[motive] if motive in dict_motive else ''

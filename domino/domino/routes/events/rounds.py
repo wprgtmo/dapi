@@ -17,7 +17,7 @@ from domino.services.events.domino_scale import get_all_players_by_tables, get_a
     get_all_scale_by_round, get_all_tables_by_round, aperture_new_round, get_all_scale_by_round_by_pairs, close_one_round, \
     get_all_scale_acumulate, create_new_round, restart_one_round
 from domino.services.events.domino_data import get_all_data_by_boletus, new_data, close_data_by_time, updated_data
-from domino.services.events.domino_penalty import new as new_penalty
+from domino.services.events.domino_penalty import new as new_penalty, new_absences, new_abandon
   
 rounds_route = APIRouter(
     tags=["Rounds"],
@@ -134,6 +134,14 @@ def insert_data(request: Request, id: str, dominodata: DominoDataCreated, db: Se
 @rounds_route.post("/rounds/boletus/penalty/{player_id}", response_model=ResultObject, summary="Insert New Penalty of player")
 def insert_penalty(request: Request, player_id: str, dominopenalty: DominoPenaltiesCreated, db: Session = Depends(get_db)):
     return new_penalty(request=request, player_id=player_id, domino_penalty=dominopenalty, db=db)
+
+@rounds_route.post("/rounds/boletus/absences/{id}", response_model=ResultObject, summary="Close Boletus por absences")
+def insert_absences(request: Request, id: str, lst_players: List, db: Session = Depends(get_db)):
+    return new_absences(request=request, boletus_id=id, lst_players=lst_players, db=db)
+
+@rounds_route.post("/rounds/boletus/abandon/{id}", response_model=ResultObject, summary="Close Boletus por abandon")
+def insert_abandon(request: Request, id: str, lst_players: List, db: Session = Depends(get_db)):
+    return new_abandon(request=request, boletus_id=id, lst_players=lst_players, db=db)
 
 @rounds_route.post("/rounds/boletus/closedata/{id}", response_model=ResultObject, summary="Close data by time")
 def close_data(request: Request, id: str, db: Session = Depends(get_db)):

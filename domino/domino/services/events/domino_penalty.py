@@ -8,6 +8,7 @@ from fastapi import HTTPException
 from sqlalchemy.orm import Session
 from sqlalchemy.exc import SQLAlchemyError, IntegrityError
 from passlib.context import CryptContext
+from typing import List, Dict
 import json
 from domino.auth_bearer import decodeJWT
 from domino.functions_jwt import get_current_user
@@ -23,6 +24,8 @@ from domino.services.resources.status import get_one_by_name, get_one as get_one
 from domino.services.events.invitations import get_one_by_id as get_invitation_by_id
 from domino.services.events.tourney import get_one as get_torneuy_by_eid, get_info_categories_tourney
 from domino.services.events.domino_round import get_last_by_tourney, remove_configurate_round
+from domino.services.events.domino_boletus import get_one as get_one_boletus
+from domino.services.events.calculation_serv import get_motive_closed
 
 from domino.services.enterprise.userprofile import get_one as get_one_profile
 
@@ -55,5 +58,77 @@ def new(request: Request, player_id: str, domino_penalty: DominoPenaltiesCreated
         db.add(one_penalty)
         db.commit()
         return result
+    except (Exception, SQLAlchemyError) as e:
+        return False
+    
+def new_absences(request: Request, boletus_id: str, lst_players: List, db: Session):
+    locale = request.headers["accept-language"].split(",")[0].split("-")[0];
+    
+    result = ResultObject() 
+    
+    one_boletus = get_one_boletus(boletus_id, db=db)
+    if not one_boletus:
+        raise HTTPException(status_code=404, detail=_(locale, "boletus.not_found"))
+
+    motive_closed_description=get_motive_closed('absences')
+    result_close = force_closing_boletus(one_boletus, lst_players, motive_closed='absences', 
+                                         motive_closed_description=motive_closed_description, db=db)
+    if not result_close:
+        raise HTTPException(status_code=404, detail=_(locale, "boletus.error_force_closing"))
+    
+    try:
+        return result
+    except (Exception, SQLAlchemyError) as e:
+        return False
+    
+def new_abandon(request: Request, boletus_id: str, lst_players: List, db: Session):
+    locale = request.headers["accept-language"].split(",")[0].split("-")[0];
+    
+    result = ResultObject() 
+    
+    one_boletus = get_one_boletus(boletus_id, db=db)
+    if not one_boletus:
+        raise HTTPException(status_code=404, detail=_(locale, "boletus.not_found"))
+
+    motive_closed_description=get_motive_closed('abandon')
+    result_close = force_closing_boletus(one_boletus, lst_players, motive_closed='abandon', 
+                                         motive_closed_description=motive_closed_description, db=db)
+    if not result_close:
+        raise HTTPException(status_code=404, detail=_(locale, "boletus.error_force_closing"))
+    
+    try:
+        return result
+    except (Exception, SQLAlchemyError) as e:
+        return False
+    
+def force_closing_boletus(one_boletus, lst_players: List, motive_closed:str, motive_closed_description:str, db: Session):
+    
+    point_to_win = one_boletus.tourney.number_points_to_win if one_boletus.tourney.number_points_to_win else 200
+    
+    str_update = "UPDATE events.domino_boletus_position SET is_winner=True, positive_points=" + str(point_to_win/2) + "," +\
+        "negative_points=0, penalty_points=0, expelled=False WHERE boletus_id ='" + one_boletus.id + "'"
+    db.execute(str_update)
+    
+    str_update = "UPDATE events.domino_boletus_position SET is_winner=False, negative_points=" + str(point_to_win/2) + "," +\
+        "positive_points=0, penalty_points=0, expelled=False WHERE boletus_id ='" + one_boletus.id + "' AND single_profile_id IN (" 
+    str_players = ''
+    for item in lst_players:
+        str_players += "'" + item + "',"
+    
+    str_players = str_players[:-1] + ") " if str_players else ""
+    if str_players:   
+        str_update += str_players   
+        db.execute(str_update)
+    
+    # marcar el boleto como que no puede ser modificado
+    one_boletus.status_id = get_one_by_name('FINALIZED', db=db).id
+    one_boletus.can_update = False
+    one_boletus.motive_closed = motive_closed
+    one_boletus.motive_closed_description = motive_closed_description
+    
+    try:
+        db.add(one_boletus)
+        db.commit()
+        return True
     except (Exception, SQLAlchemyError) as e:
         return False

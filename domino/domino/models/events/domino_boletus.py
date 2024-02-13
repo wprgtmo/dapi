@@ -22,6 +22,9 @@ class DominoBoletus(Base):
     table_id = Column(String, ForeignKey("events.domino_tables.id"), nullable=False)
     is_valid = Column(Boolean, nullable=False, default=True)
     status_id  = Column(Integer, ForeignKey("resources.entities_status.id"), nullable=False)
+    can_update  = Column(Boolean)
+    motive_closed  = Column(String)
+    motive_closed_description  = Column(String)
     
     boletus_position = relationship("DominoBoletusPosition")
     boletus_pairs = relationship("DominoBoletusPairs")
@@ -83,10 +86,23 @@ class DominoBoletusPosition(Base):
     single_profile_id = Column(String)
     scale_number = Column(Integer) 
     
+    positive_points = Column(Integer) 
+    negative_points = Column(Integer) 
+    penalty_points = Column(Integer) 
+    
+    is_winner = Column(Boolean) 
+    expelled = Column(Boolean) 
+    
     def dict(self):
         return {
             "boletus_id": self.boletus_id,
             "position_id": self.position_id,
             "single_profile_id": self.single_profile_id,
-            "scale_number": self.scale_number
+            "scale_number": self.scale_number,
+            "is_winner": self.is_winner,
+            "expelled": self.expelled,
+            "positive_points": self.positive_points,
+            "negative_points": self.negative_points,
+            "penalty_points": self.penalty_points,
             }
+

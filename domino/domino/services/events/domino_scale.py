@@ -88,7 +88,7 @@ def restart_one_initial_scale(request: Request, round_id:str, db: Session):
     return result
 
 
-def configure_tables_by_round(tourney_id:str, round_id: str, modality:str, created_by:str, db: Session, round_number:int=1):
+def configure_tables_by_round(tourney_id:str, round_id: str, modality:str, created_by:str, db: Session, round_number:int=1, points_to_win=200):
     
     if round_number == 1:
         update_elo_initial_scale(tourney_id, round_id, modality, db=db)
@@ -97,7 +97,7 @@ def configure_tables_by_round(tourney_id:str, round_id: str, modality:str, creat
     configure_rounds(tourney_id=tourney_id, round_id=round_id, modality=modality, created_by=created_by, db=db)
     
     #ubicar por mesas las parejas
-    created_boletus_for_round(tourney_id=tourney_id, round_id=round_id, db=db)
+    created_boletus_for_round(tourney_id=tourney_id, round_id=round_id, db=db, points_to_win=points_to_win)
     
     #calcular el SE de cada pareja y ponerselo a cada jugador...
     acumulated_games_played = calculate_amount_rounds_played(tourney_id=tourney_id, db=db)

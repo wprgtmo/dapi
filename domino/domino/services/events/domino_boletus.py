@@ -121,30 +121,38 @@ def create_dict_row(item, tourney_id, page, db: Session, api_uri=""):
     
 #     return True       
 
-def created_boletus_position(one_boletus, lst_player:list, db:Session):
+def created_boletus_position(one_boletus, lst_player:list, db:Session, can_update=True, points_to_win=200):
+    
+    positive_points = points_to_win/2 if not can_update else 0
+    negative_points = 0
+    is_winner = True if not can_update else False
     
     one_bol_position=DominoBoletusPosition(
             boletus_id=one_boletus.id, position_id=1, single_profile_id=lst_player[0]['one_player_id'] if lst_player[0]['one_player_id'] else None,
-            scale_number=lst_player[0]['scale_number_one_player'] if lst_player[0]['scale_number_one_player'] else None)
+            scale_number=lst_player[0]['scale_number_one_player'] if lst_player[0]['scale_number_one_player'] else None,
+            positive_points=positive_points, negative_points=negative_points, is_winner=is_winner, penalty_points=0)
     one_boletus.boletus_position.append((one_bol_position))
     one_bol_position=DominoBoletusPosition(
             boletus_id=one_boletus.id, position_id=3, single_profile_id=lst_player[0]['two_player_id'] if lst_player[0]['two_player_id'] else None,
-            scale_number=lst_player[0]['scale_number_two_player'] if lst_player[0]['scale_number_two_player'] else None)
+            scale_number=lst_player[0]['scale_number_two_player'] if lst_player[0]['scale_number_two_player'] else None,
+            positive_points=positive_points, negative_points=negative_points, is_winner=is_winner, penalty_points=0)
     one_boletus.boletus_position.append((one_bol_position))
         
     if len(lst_player) == 2:  #tengo las dos parejas por mesa
         one_bol_position=DominoBoletusPosition(
             boletus_id=one_boletus.id, position_id=2, single_profile_id=lst_player[1]['one_player_id'] if lst_player[1]['one_player_id'] else None,
-            scale_number=lst_player[1]['scale_number_one_player'] if lst_player[1]['scale_number_one_player'] else None)
+            scale_number=lst_player[1]['scale_number_one_player'] if lst_player[1]['scale_number_one_player'] else None,
+            positive_points=positive_points, negative_points=negative_points, is_winner=is_winner, penalty_points=0)
         one_boletus.boletus_position.append((one_bol_position))
         one_bol_position=DominoBoletusPosition(
             boletus_id=one_boletus.id, position_id=4, single_profile_id=lst_player[1]['two_player_id'] if lst_player[0]['two_player_id'] else None,
-            scale_number=lst_player[1]['scale_number_two_player'] if lst_player[1]['scale_number_two_player'] else None)
+            scale_number=lst_player[1]['scale_number_two_player'] if lst_player[1]['scale_number_two_player'] else None,
+            positive_points=positive_points, negative_points=negative_points, is_winner=is_winner, penalty_points=0)
         one_boletus.boletus_position.append((one_bol_position))
             
     return True
 
-def created_boletus_for_round(tourney_id, round_id, db:Session):
+def created_boletus_for_round(tourney_id, round_id, db:Session, points_to_win=200):
 
     # obtener listado de mesas del torneo
     lst_tables = get_lst_tables(tourney_id, db=db)
@@ -171,40 +179,50 @@ def created_boletus_for_round(tourney_id, round_id, db:Session):
         lst_dist_tables.append(dict_tables)
 
     one_status_init = get_one_status_by_name('INITIADED', db=db)
+    one_status_end = get_one_status_by_name('FINALIZED', db=db)
     
     # Por cada mesa, ubicar los jugadores
     for item_tab in lst_dist_tables:
         boletus_id = str(uuid.uuid4())
         one_boletus = DominoBoletus(id=boletus_id, tourney_id=tourney_id, round_id=round_id, table_id=item_tab['table_id'],
-                                    is_valid=True)
+                                    is_valid=True, can_update=True)
         one_boletus.status_id = one_status_init.id
         
         if item_tab['lst_player']:
             boletus_pair_one = DominoBoletusPairs(boletus_id=boletus_id, pairs_id=item_tab['lst_player'][0]['id'], is_initiator=True)
             one_boletus.boletus_pairs.append(boletus_pair_one)
+            can_update = True
             if len(item_tab['lst_player']) == 2:  #tengo las dos parejas por mesa
                 boletus_pair_two = DominoBoletusPairs(boletus_id=boletus_id, pairs_id=item_tab['lst_player'][1]['id'],
                                                       is_initiator=False)
                 one_boletus.boletus_pairs.append(boletus_pair_two)
+            else:
+                can_update = False
                 
-            created_boletus_position(one_boletus, lst_player=item_tab['lst_player'], db=db)
-                    
-        db.add(one_boletus) 
+            created_boletus_position(one_boletus, lst_player=item_tab['lst_player'], db=db, can_update=can_update, points_to_win=points_to_win)
         
+        if not can_update:   
+            one_boletus.status_id = one_status_end.id
+            one_boletus.can_update = False
+            one_boletus.motive_closed = 'non_completion'
+            one_boletus.motive_closed_description = 'Cerrado por no completamiento de mesa'        
+        db.add(one_boletus) 
+    
+    # ESTO YA NO SE CUMPLE- TODOS SE SIENTAN    
     # los jugadores que no posiciono, ponerlso en estado de espera
-    one_status_wait = get_one_status_by_name('INITIADED', db=db)
+    # one_status_wait = get_one_status_by_name('INITIADED', db=db)
     
-    str_update_play = "UPDATE events.players SET status_id = " + str(one_status_wait.id) +\
-        " WHERE id IN ("
-    str_update_id = ""    
-    for item in lst_pairs:
-        if item['id'] not in str_player:
-            str_update_id += "'" + item['id'] + "',"
+    # str_update_play = "UPDATE events.players SET status_id = " + str(one_status_wait.id) +\
+    #     " WHERE id IN ("
+    # str_update_id = ""    
+    # for item in lst_pairs:
+    #     if item['id'] not in str_player:
+    #         str_update_id += "'" + item['id'] + "',"
 
-    if str_update_id:
-        str_update_id = str_update_id[:-1] + ");COMMIT;"
+    # if str_update_id:
+    #     str_update_id = str_update_id[:-1] + ");COMMIT;"
     
-        str_update_play += str_update_id       
+    #     str_update_play += str_update_id       
     
     db.commit()    
     
