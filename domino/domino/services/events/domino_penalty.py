@@ -32,7 +32,55 @@ from domino.services.enterprise.userprofile import get_one as get_one_profile
 from domino.services.resources.utils import get_result_count, create_dir, del_image, get_ext_at_file, upfile
 from domino.services.enterprise.auth import get_url_avatar
 
+def get_penalty_by_boletus(request:Request, boletus_id: str, db: Session):  
+    
+    locale = request.headers["accept-language"].split(",")[0].split("-")[0];
+    result = ResultObject() 
+    result.data = []
+    
+    str_query = "SELECT bop.id, single_profile_id, pmem.name as player_name, penalty_type, penalty_value, apply_points " +\
+        "FROM events.domino_boletus_penalties bop JOIN enterprise.profile_member pmem ON pmem.id = bop.single_profile_id " +\
+        "WHERE boletus_id = '" + boletus_id + "' "
+    
+    str_query += " ORDER BY bop.single_profile_id ASC " 
+    
+    lst_data_exec = db.execute(str_query)
+    for item in lst_data_exec:
+        result.data.append({'id': item.id, 'player_id': item.single_profile_id, 'player_name': item.player_name, 
+                            'penalty_type': item.penalty_type, 'penalty_value': item.penalty_value})
+    
+    return result
+
 def new(request: Request, player_id: str, domino_penalty: DominoPenaltiesCreated, db: Session):
+    locale = request.headers["accept-language"].split(",")[0].split("-")[0];
+    
+    result = ResultObject() 
+    
+    one_player = get_one_profile(player_id, db=db)
+    if not one_player:
+        raise HTTPException(status_code=404, detail=_(locale, "player.profile_not_found"))
+    
+    # verificar si ya tiene penalidades de ese tipo pasadas, error
+    str_query = " SELECT count(id) FROM events.domino_boletus_penalties "+\
+        "Where boletus_id='" + domino_penalty.boletus_id + "' and single_profile_id='" + player_id +\
+        "' and penalty_type='" + domino_penalty.penalty_type + "'"
+    amount_pen = db.execute(str_query).fetchone()[0]
+    if amount_pen > 0:
+        raise HTTPException(status_code=404, detail=_(locale, "penalty.already_exist"))
+    
+    one_penalty = DominoBoletusPenalties(id=str(uuid.uuid4()), boletus_id=domino_penalty.boletus_id, pair_id=None,
+                                         player_id=None, single_profile_id=one_player.id, penalty_type=domino_penalty.penalty_type,
+                                         penalty_amount=1, penalty_value=domino_penalty.penalty_value,
+                                         apply_points=True) 
+    
+    try:
+        db.add(one_penalty)
+        db.commit()
+        return result
+    except (Exception, SQLAlchemyError) as e:
+        return False
+    
+def update_one_penalty(request: Request, player_id: str, domino_penalty: DominoPenaltiesCreated, db: Session):
     locale = request.headers["accept-language"].split(",")[0].split("-")[0];
     
     result = ResultObject() 

@@ -189,23 +189,25 @@ def close_data_by_time(request: Request, boletus_id:str, db: Session):
         "Where boletus_id = '" + boletus_id + "' Group by win_pair_id " 
     lst_pairs = db.execute(str_query)
     
-    points_one_pair, points_two_pair = 0, 0
     id_one_pair, id_two_pair = "", ""
+    for item_pa in one_boletus.boletus_pairs:
+        if not id_one_pair:
+            id_one_pair = item_pa.pairs_id
+        else:
+            id_two_pair = item_pa.pairs_id
+            
+    points_one_pair, points_two_pair = 0, 0
     for item in lst_pairs:
-        if not points_one_pair:
+        if item.win_pair_id == id_one_pair:
             points_one_pair += item.number_points
-            id_one_pair = item.win_pair_id
         else:
             points_two_pair += item.number_points
-            id_two_pair = item.win_pair_id
     
     if not points_one_pair and not points_two_pair:
         raise HTTPException(status_code=404, detail=_(locale, "boletus.equal_positive_points"))
     
     if points_one_pair == points_two_pair: # estan empatados, no se puede cerrar
         raise HTTPException(status_code=404, detail=_(locale, "boletus.equal_positive_points"))
-    
-    # marcar como ganador la pareja que mas puntos tiene y cerrar la boleta
     
     if points_one_pair > points_two_pair:
         positive_points, negative_points = points_one_pair, points_two_pair
@@ -216,46 +218,27 @@ def close_data_by_time(request: Request, boletus_id:str, db: Session):
     
     str_fields_win = "is_winner=True, positive_points = " + str(positive_points) + ", negative_points=" + str(negative_points)
     str_fields_win += " WHERE pairs_id = '" + win_pair_id + "'; "
-    str_update_win = "UPDATE events.domino_boletus_pairs SET " + str_fields_win 
+    str_update_bol_win = "UPDATE events.domino_boletus_position SET " + str_fields_win 
+    str_update_win = "UPDATE events.domino_boletus_pairs SET " + str_fields_win + str_update_bol_win
     
     str_fields_lost = "is_winner=False, positive_points = " + str(negative_points) + ", negative_points=" + str(positive_points)
     str_fields_lost += " WHERE pairs_id = '" + lost_pair_id + "'; "
-    str_update_lost = "UPDATE events.domino_boletus_pairs SET " + str_fields_lost + "COMMIT"
-     
-    # else:
-    #     positive_points, negative_points = points_two_pair, points_two_pair
-        
-        # str_update = "UPDATE events.domino_boletus_pairs SET is_winner=True WHERE pairs_id = '" + id_two_pair + "'; COMMIT;"
-        # str_fields = "is_winner=True, positive_points = " + str(points_two_pair) + ", negative_points=" + str(points_one_pair)
-        # str_update = "UPDATE events.domino_boletus_pairs SET " + str_fields + "WHERE pairs_id = '" + id_two_pair + "'; "
-        # str_update += "UPDATE events.domino_boletus_position SET " + str_fields + "WHERE pairs_id = '" + id_two_pair + "'; COMMIT; "
-        
-    # if points_one_pair > points_two_pair:
-    #     str_fields = "is_winner=True, positive_points = " + str(points_one_pair) + ", negative_points=" + str(points_two_pair)
-    #     str_update = "UPDATE events.domino_boletus_pairs SET " + str_fields + "WHERE pairs_id = '" + id_one_pair + "'; "
-    #     str_update += "UPDATE events.domino_boletus_position SET " + str_fields + "WHERE pairs_id = '" + id_one_pair + "'; COMMIT; "
-        
-    # else:
-    #     # str_update = "UPDATE events.domino_boletus_pairs SET is_winner=True WHERE pairs_id = '" + id_two_pair + "'; COMMIT;"
-    #     str_fields = "is_winner=True, positive_points = " + str(points_two_pair) + ", negative_points=" + str(points_one_pair)
-    #     str_update = "UPDATE events.domino_boletus_pairs SET " + str_fields + "WHERE pairs_id = '" + id_two_pair + "'; "
-    #     str_update += "UPDATE events.domino_boletus_position SET " + str_fields + "WHERE pairs_id = '" + id_two_pair + "'; COMMIT; "
+    str_update_bol_lost = "UPDATE events.domino_boletus_position SET " + str_fields_lost 
+    str_update_lost = "UPDATE events.domino_boletus_pairs SET " + str_fields_lost + str_update_bol_lost + "COMMIT;"
     
     str_update = str_update_win + str_update_lost
     
-    print(str_update)
-    print('************')  
     try:
         db.execute(str_update)
         db.commit() 
     
-        result.data = close_boletus(one_boletus, currentUser['username'], db=db, verify_points=False) 
+        result.data = close_boletus(one_boletus, currentUser['username'], db=db, verify_points=False, motive_closed='time', can_update=False) 
         return result
     except (Exception, SQLAlchemyError, IntegrityError) as e:
         msg = _(locale, "event.error_new_event")               
         raise HTTPException(status_code=403, detail=msg)
     
-def close_boletus(one_boletus, username, db: Session, verify_points=True, motive_closed='points'):
+def close_boletus(one_boletus, username, db: Session, verify_points=True, motive_closed='points', can_update=True):
     
     # cuando cierra por tiempo siempre será True sta variable
     max_number_points = verify_if_close_boletus(one_boletus.id, one_boletus.tourney.number_points_to_win, db=db) if verify_points else True
@@ -265,6 +248,7 @@ def close_boletus(one_boletus, username, db: Session, verify_points=True, motive
         one_boletus.status_id = one_status_end.id
         one_boletus.updated_by = username
         one_boletus.updated_date = datetime.now()
+        one_boletus.can_update = can_update
         one_boletus.motive_closed=motive_closed
         one_boletus.motive_closed_description=motive_closed_description
         db.add(one_boletus)
