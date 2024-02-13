@@ -210,6 +210,8 @@ def close_data_by_time(request: Request, boletus_id:str, db: Session):
     else:
         str_update = "UPDATE events.domino_boletus_pairs SET is_winner=True WHERE pairs_id = '" + id_two_pair + "'; COMMIT;"
     db.execute(str_update)
+    
+    # actualizar los puntos en la tabla de posiciones de jugadores.
         
     try:
         result.data = close_boletus(one_boletus, currentUser['username'], db=db, verify_points=False) 
