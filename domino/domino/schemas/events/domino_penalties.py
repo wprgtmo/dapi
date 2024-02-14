@@ -16,4 +16,4 @@ class DominoAnnulledCreated(BaseModel):
     was_expelled: bool
     
 class DominoAbsencesCreated(BaseModel):
-    player_id: str
+    players: str
