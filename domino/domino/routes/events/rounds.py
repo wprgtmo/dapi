@@ -152,13 +152,16 @@ def insert_penalty(request: Request, id: str, dominopenalty: DominoPenaltiesCrea
 def update_penalty(request: Request, id: str, dominopenalty: DominoPenaltiesCreated, db: Session = Depends(get_db)):
     return update_one_penalty(request=request, penalty_id=id, domino_penalty=dominopenalty, db=db)
 
-# @rounds_route.post("/rounds/boletus/absences/{id}", response_model=ResultObject, summary="Close Boletus por absences")
-# def insert_absences(request: Request, id: str, lst_players: List[DominoAbsencesCreated], db: Session = Depends(get_db)):
-#     return new_absences(request=request, boletus_id=id, lst_players=lst_players, db=db)
-
 @rounds_route.post("/rounds/boletus/absences/{id}", response_model=ResultObject, summary="Close Boletus por absences")
-def insert_absences(request: Request, id: str, lst_players: List, db: Session = Depends(get_db)):
-    return new_absences(request=request, boletus_id=id, lst_players=lst_players, db=db)
+def insert_absences(request: Request, id: str, players: DominoAbsencesCreated, db: Session = Depends(get_db)):
+    return new_absences(request=request, boletus_id=id, lst_players=players, db=db)
+
+# @rounds_route.post("/rounds/boletus/absences/{id}", response_model=ResultObject, summary="Close Boletus por absences")
+# def insert_absences(request: Request, id: str, players: str, db: Session = Depends(get_db)):
+#     print('datos')
+#     print(id)
+#     print(players)
+#     return new_absences(request=request, boletus_id=id, lst_players=players, db=db)
 
 @rounds_route.post("/rounds/boletus/abandon/{id}", response_model=ResultObject, summary="Close Boletus por abandon")
 def insert_abandon(request: Request, id: str, lst_players: List, db: Session = Depends(get_db)):
