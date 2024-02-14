@@ -36,51 +36,7 @@ def get_penalty_by_boletus(request:Request, boletus_id: str, db: Session):
     
     locale = request.headers["accept-language"].split(",")[0].split("-")[0];
     result = ResultObject() 
-#     result.data = {
-#     "lst_data": [
-#       {
-#         "id": "90872b22-6f98-4a9b-8bdd-7420aacd0897",
-#         "player_id": "32cbcfea-a938-4352-b89f-0e08aba2537f",
-#         "player_name": "Aldrin Cuevas",
-#         "penalty_type": "Tarjeta Roja",
-#         "penalty_value": 50
-#       },
-#       {
-#         "id": "d5a1ee63-8a17-45eb-9f75-5a03c62a60bf",
-#         "player_id": "32cbcfea-a938-4352-b89f-0e08aba2537f",
-#         "player_name": "Aldrin Cuevas",
-#         "penalty_type": "Amonestacion",
-#         "penalty_value": 25
-#       },
-#       {
-#         "id": "73d3effc-7f22-43fb-b802-5736a6cb5ee3",
-#         "player_id": "de1661de-7eb5-47b5-b9d9-0cb89d53f8d1",
-#         "player_name": "Miguel Caquias",
-#         "penalty_type": "Tarjeta Roja",
-#         "penalty_value": 50
-#       }
-#     ],
-#     "lst_players": [
-#       {
-#         "profile_id": "de1661de-7eb5-47b5-b9d9-0cb89d53f8d1",
-#         "profile_name": "Miguel Caquias", "position_id": 1
-#       },
-#       {
-#         "profile_id": "9d2c9be5-f987-48bc-881c-0d36aa6b422c",
-#         "profile_name": "Melisa Ramos", "position_id": 2
-#       },
-#       {
-#         "profile_id": "3ebaa3a9-211d-49b3-8b87-7b2eb51ec440",
-#         "profile_name": "Edison Marte", "position_id": 3
-#       },
-#       {
-#         "profile_id": "32cbcfea-a938-4352-b89f-0e08aba2537f",
-#         "profile_name": "Aldrin Cuevas", "position_id": 4
-#       }
-#     ]
-#   }
-    
-#     return result
+
     dict_result = {'lst_data': [], 'lst_players': []}
     
     str_query = "SELECT bop.id, single_profile_id, pmem.name as player_name, penalty_type, penalty_value, apply_points " +\

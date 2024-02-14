@@ -132,12 +132,12 @@ def new_data(request: Request, boletus_id:str, dominodata: DominoDataCreated, db
     one_boletus.boletus_data.append(one_data)
     db.commit() 
     
-    try:
-        result.data = close_boletus(one_boletus, currentUser['username'], db=db) 
-        return result
-    except (Exception, SQLAlchemyError, IntegrityError) as e:
-        msg = _(locale, "event.error_new_event")               
-        raise HTTPException(status_code=403, detail=msg)
+    # try:
+    result.data = close_boletus(one_boletus, currentUser['username'], db=db) 
+    return result
+    # except (Exception, SQLAlchemyError, IntegrityError) as e:
+    #     msg = _(locale, "event.error_new_event")               
+    #     raise HTTPException(status_code=403, detail=msg)
     
 def verify_if_close_boletus(boletus_id:str, number_points_to_win: int, db: Session):
     

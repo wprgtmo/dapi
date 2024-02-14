@@ -312,18 +312,6 @@ def calculat_at_close_boletus(one_boletus, db: Session, verify_point_for_time=Fa
         positive_points, negative_points = points_two_pair, points_one_pair
         win_pair_id, lost_pair_id = id_two_pair, id_one_pair
     
-    str_fields_win = "is_winner=True, penalty_points=0, positive_points = " + str(positive_points) + ", negative_points=" + str(negative_points)
-    str_fields_win += " WHERE pairs_id = '" + win_pair_id + "'; "
-    str_update_bol_win = "UPDATE events.domino_boletus_position SET " + str_fields_win 
-    str_update_win = "UPDATE events.domino_boletus_pairs SET " + str_fields_win + str_update_bol_win
-    
-    str_fields_lost = "is_winner=False, penalty_points=0, positive_points = " + str(negative_points) + ", negative_points=" + str(positive_points)
-    str_fields_lost += " WHERE pairs_id = '" + lost_pair_id + "'; "
-    str_update_bol_lost = "UPDATE events.domino_boletus_position SET " + str_fields_lost 
-    str_update_lost = "UPDATE events.domino_boletus_pairs SET " + str_fields_lost + str_update_bol_lost + "COMMIT;"
-    
-    str_update = str_update_win + str_update_lost
-    
     #incluir las penalidades
     str_query = "Select single_profile_id, SUM(penalty_value) penalty_value FROM events.domino_boletus_penalties bpe " +\
         "Where boletus_id = '" + one_boletus.id + "' group by single_profile_id " 
@@ -335,10 +323,65 @@ def calculat_at_close_boletus(one_boletus, db: Session, verify_point_for_time=Fa
     for item_key, item_value in dict_penalty.items():
         str_update_pen += "UPDATE events.domino_boletus_position SET penalty_points = " + str(int(item_value)) +\
             " WHERE boletus_id = '" + one_boletus.id + "' AND single_profile_id = '" + str(item_key) + "';" 
-        
-    try:
-        db.execute(str_update)
+    if str_update_pen:
+        str_update_pen += " COMMIT; "
         db.execute(str_update_pen)
+            
+    # sumar el acumulado de penalidades por parejas
+    str_pen= "SELECT pairs_id, SUM(penalty_points) penalty_points FROM events.domino_boletus_position " +\
+        "Where boletus_id = '" + one_boletus.id + "' Group by pairs_id "
+    lst_sum_pen = db.execute(str_pen)
+    penalty_point_win, penalty_point_lost = 0, 0
+    for item in lst_sum_pen:
+        if item.pairs_id == win_pair_id:  
+            penalty_point_win += int(item.penalty_points)
+        else: 
+            penalty_point_lost += int(item.penalty_points) 
+    
+    str_fields_win = "is_winner=True, penalty_points= " + str(penalty_point_win) + ", positive_points = " + str(positive_points) +\
+        ", negative_points=" + str(negative_points)
+    str_fields_win += " WHERE pairs_id = '" + win_pair_id + "'; "
+    str_update_bol_win = "UPDATE events.domino_boletus_position SET " + str_fields_win 
+    str_update_win = "UPDATE events.domino_boletus_pairs SET " + str_fields_win + str_update_bol_win
+    
+    str_fields_lost = "is_winner=False, penalty_points= " + str(penalty_point_lost) + ", positive_points = " + str(negative_points) + ", negative_points=" + str(positive_points)
+    str_fields_lost += " WHERE pairs_id = '" + lost_pair_id + "'; "
+    str_update_bol_lost = "UPDATE events.domino_boletus_position SET " + str_fields_lost 
+    str_update_lost = "UPDATE events.domino_boletus_pairs SET " + str_fields_lost + str_update_bol_lost + "COMMIT;"
+    
+    str_update = str_update_win + str_update_lost
+    db.execute(str_update)
+    
+    # actualizar tabla de ronda pareja
+    str_round_pair = "Select pairs_id, is_winner, positive_points, negative_points, penalty_points " +\
+        "from events.domino_boletus_pairs where boletus_id = '" + one_boletus.id + "' "
+    lst_pairs = db.execute(str_round_pair)
+    
+    str_update_round_pa = ""
+    for item_pa in lst_pairs:
+        
+        games_won = 1 if item_pa.is_winner else 0
+        games_lost = 1 if not item_pa.is_winner else 0
+        points_positive = item_pa.positive_points
+        points_negative = item_pa.negative_points
+        penalty_points = item_pa.penalty_points
+        points_difference = item_pa.positive_points - item_pa.negative_points - item_pa.penalty_points
+
+        str_update_round_pa += "UPDATE events.domino_rounds_pairs SET games_won = " + str(games_won) +\
+            ", games_lost = " + str(games_lost) + ", points_positive = " + str(points_positive) +\
+            ", points_negative= " + str(points_negative) + ", penalty_points = " + str(penalty_points) +\
+            ", points_difference = " + str(points_difference) + " WHERE id = '" + item_pa.pairs_id + "'; "
+    if str_update_round_pa:
+        str_update_round_pa += "COMMIT;"
+        db.execute(str_update_round_pa) 
+    
+    print(str_update_round_pa)   
+    print('********') 
+    # actualizar tabla de scale de cada player
+    
+    
+    try:
+        
         db.commit() 
         
     except (Exception, SQLAlchemyError, IntegrityError) as e:
