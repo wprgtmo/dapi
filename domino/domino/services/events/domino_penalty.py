@@ -38,6 +38,14 @@ def get_penalty_by_boletus(request:Request, boletus_id: str, db: Session):
     result = ResultObject() 
     result.data = []
     
+    result.data = [{"id": "90872b22-6f98-4a9b-8bdd-7420aacd0897",
+      "player_id": "32cbcfea-a938-4352-b89f-0e08aba2537f",
+      "player_name": "Aldrin Cuevas", "penalty_type": "Tarjeta Roja", "penalty_value": 50},
+                   {"id": "d5a1ee63-8a17-45eb-9f75-5a03c62a60bf",
+      "player_id": "32cbcfea-a938-4352-b89f-0e08aba2537f",
+      "player_name": "Aldrin Cuevas", "penalty_type": "Amonestacion", "penalty_value": 25}]
+    return result
+    
     str_query = "SELECT bop.id, single_profile_id, pmem.name as player_name, penalty_type, penalty_value, apply_points " +\
         "FROM events.domino_boletus_penalties bop JOIN enterprise.profile_member pmem ON pmem.id = bop.single_profile_id " +\
         "WHERE boletus_id = '" + boletus_id + "' "

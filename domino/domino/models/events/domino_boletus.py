@@ -89,6 +89,7 @@ class DominoBoletusPosition(Base):
     single_profile_id = Column(String)
     scale_number = Column(Integer) 
     pairs_id = Column(String)
+    player_id = Column(String)
     
     positive_points = Column(Integer) 
     negative_points = Column(Integer) 
