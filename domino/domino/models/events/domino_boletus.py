@@ -23,8 +23,11 @@ class DominoBoletus(Base):
     is_valid = Column(Boolean, nullable=False, default=True)
     status_id  = Column(Integer, ForeignKey("resources.entities_status.id"), nullable=False)
     can_update  = Column(Boolean)
+    
     motive_closed  = Column(String)
     motive_closed_description  = Column(String)
+    motive_not_valid  = Column(String)
+    motive_not_valid_description  = Column(String)
     
     boletus_position = relationship("DominoBoletusPosition")
     boletus_pairs = relationship("DominoBoletusPairs")
@@ -92,7 +95,8 @@ class DominoBoletusPosition(Base):
     penalty_points = Column(Integer) 
     
     is_winner = Column(Boolean) 
-    expelled = Column(Boolean) 
+    expelled = Column(Boolean)
+    is_guilty_closure = Column(Boolean) 
     
     def dict(self):
         return {

@@ -10,3 +10,10 @@ class DominoPenaltiesCreated(BaseModel):
     penalty_type: str
     penalty_value: int
     
+class DominoAnnulledCreated(BaseModel):
+    player_id: str
+    annulled_type: str
+    was_expelled: bool
+    
+class DominoAbsencesCreated(BaseModel):
+    player_id: str
