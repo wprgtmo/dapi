@@ -270,6 +270,83 @@ def calculate_amount_tables_playing(round_id: str, db: Session):
     amount_play = db.execute(str_query).fetchone()[0]
     return int(amount_play)
 
+def calculat_at_close_boletus(one_boletus, db: Session, verify_point_for_time=False):
+    
+    dict_result = {'result': True, 'msg': ''}
+    
+    str_query = "Select win_pair_id, SUM(number_points) number_points from events.domino_boletus_data " +\
+        "Where boletus_id = '" + one_boletus.id + "' Group by win_pair_id " 
+    lst_pairs = db.execute(str_query)
+    
+    id_one_pair, id_two_pair = "", ""
+    for item_pa in one_boletus.boletus_pairs:
+        if not id_one_pair:
+            id_one_pair = item_pa.pairs_id
+        else:
+            id_two_pair = item_pa.pairs_id
+            
+    points_one_pair, points_two_pair = 0, 0
+    for item in lst_pairs:
+        if item.win_pair_id == id_one_pair:
+            points_one_pair += item.number_points
+        else:
+            points_two_pair += item.number_points
+    
+    if verify_point_for_time:
+        
+        if not points_one_pair and not points_two_pair:
+            dict_result['result'] = False
+            dict_result['msg']="boletus.equal_positive_points"
+            
+        if points_one_pair == points_two_pair: # estan empatados, no se puede cerrar
+            dict_result['result'] = False
+            dict_result['msg']="boletus.equal_positive_points"
+            
+        if not dict_result['result']:
+            return dict_result
+        
+    if points_one_pair > points_two_pair:
+        positive_points, negative_points = points_one_pair, points_two_pair
+        win_pair_id, lost_pair_id = id_one_pair, id_two_pair
+    else:
+        positive_points, negative_points = points_two_pair, points_one_pair
+        win_pair_id, lost_pair_id = id_two_pair, id_one_pair
+    
+    str_fields_win = "is_winner=True, penalty_points=0, positive_points = " + str(positive_points) + ", negative_points=" + str(negative_points)
+    str_fields_win += " WHERE pairs_id = '" + win_pair_id + "'; "
+    str_update_bol_win = "UPDATE events.domino_boletus_position SET " + str_fields_win 
+    str_update_win = "UPDATE events.domino_boletus_pairs SET " + str_fields_win + str_update_bol_win
+    
+    str_fields_lost = "is_winner=False, penalty_points=0, positive_points = " + str(negative_points) + ", negative_points=" + str(positive_points)
+    str_fields_lost += " WHERE pairs_id = '" + lost_pair_id + "'; "
+    str_update_bol_lost = "UPDATE events.domino_boletus_position SET " + str_fields_lost 
+    str_update_lost = "UPDATE events.domino_boletus_pairs SET " + str_fields_lost + str_update_bol_lost + "COMMIT;"
+    
+    str_update = str_update_win + str_update_lost
+    
+    #incluir las penalidades
+    str_query = "Select single_profile_id, SUM(penalty_value) penalty_value FROM events.domino_boletus_penalties bpe " +\
+        "Where boletus_id = '" + one_boletus.id + "' group by single_profile_id " 
+    lst_penalty = db.execute(str_query)
+    dict_penalty = {}
+    for item_pe in lst_penalty:
+        dict_penalty[item_pe.single_profile_id] = int(item_pe.penalty_value)
+    str_update_pen = ""
+    for item_key, item_value in dict_penalty.items():
+        str_update_pen += "UPDATE events.domino_boletus_position SET penalty_points = " + str(int(item_value)) +\
+            " WHERE boletus_id = '" + one_boletus.id + "' AND single_profile_id = '" + str(item_key) + "';" 
+        
+    try:
+        db.execute(str_update)
+        db.execute(str_update_pen)
+        db.commit() 
+        
+    except (Exception, SQLAlchemyError, IntegrityError) as e:
+        dict_result['result'] = False
+        dict_result['msg']="boletus.error_writing"
+    
+    return dict_result
+
 # def created_boletus_for_round_ubica_no_consecutivo_sino_saltanto(tourney_id, round_id, db:Session):
 
 #     # obtener listado de mesas del torneo

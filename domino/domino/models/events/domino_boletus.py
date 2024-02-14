@@ -61,6 +61,7 @@ class DominoBoletusPairs(Base):
     is_winner = Column(Boolean, nullable=False, default=False)
     positive_points = Column(Integer)
     negative_points = Column(Integer)
+    penalty_points = Column(Integer)
     start_date =  Column(DateTime, nullable=False, default=datetime.now())
     end_date =  Column(DateTime, nullable=False, default=datetime.now())
     duration = Column(Float)  # tiempo en minutos,, despues tengo que ver el tipo  de datos
