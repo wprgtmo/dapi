@@ -375,8 +375,6 @@ def calculat_at_close_boletus(one_boletus, db: Session, verify_point_for_time=Fa
         str_update_round_pa += "COMMIT;"
         db.execute(str_update_round_pa) 
     
-    print(str_update_round_pa)   
-    print('********') 
     # actualizar tabla de scale de cada player
     
     

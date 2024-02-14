@@ -695,7 +695,7 @@ def get_all_tables_by_round(request:Request, page: int, per_page: int, round_id:
         
     str_count = "Select count(*) " + str_from
     str_query = "Select dron.round_number, dtable.table_number, dtable.is_smart, dbol.id as boletus_id, " +\
-        "dbol.status_id " + str_from 
+        "dbol.status_id, dbol.can_update " + str_from 
     
     if page and page > 0 and not per_page:
         raise HTTPException(status_code=404, detail=_(locale, "commun.invalid_param"))
@@ -720,6 +720,7 @@ def get_all_tables_by_round(request:Request, page: int, per_page: int, round_id:
         dict_inf_pair['table_type'] = 'Inteligente' if item.is_smart else 'Tradicional'
         dict_inf_pair['boletus_id'] = item.boletus_id
         dict_inf_pair['status'] = status_id
+        dict_inf_pair['can_update'] = item.can_update
         dict_inf_pair['status_partida'] = 'Partido Terminado' if status_id == '1' else 'Partido Jugando'
         lst_data.append(dict_inf_pair)
     
