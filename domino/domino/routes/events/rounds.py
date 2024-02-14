@@ -145,8 +145,8 @@ def get_penalty(request: Request, id: str, db: Session = Depends(get_db)):
     return get_penalty_by_boletus(request=request, boletus_id=id, db=db)
 
 @rounds_route.post("/rounds/boletus/penalty/{id}", response_model=ResultObject, summary="Insert New Penalty of player")
-def insert_penalty(request: Request, boletus_id: str, dominopenalty: DominoPenaltiesCreated, db: Session = Depends(get_db)):
-    return new_penalty(request=request, boletus_id=boletus_id, domino_penalty=dominopenalty, db=db)
+def insert_penalty(request: Request, id: str, dominopenalty: DominoPenaltiesCreated, db: Session = Depends(get_db)):
+    return new_penalty(request=request, boletus_id=id, domino_penalty=dominopenalty, db=db)
 
 @rounds_route.put("/rounds/boletus/penalty/{id}", response_model=ResultObject, summary="Update Info of Penalty")
 def update_penalty(request: Request, id: str, dominopenalty: DominoPenaltiesCreated, db: Session = Depends(get_db)):

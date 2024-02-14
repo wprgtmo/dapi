@@ -21,7 +21,8 @@ from domino.models.events.domino_data import DominoBoletusData
 from domino.schemas.resources.result_object import ResultObject
 from domino.schemas.events.domino_data import DominoDataCreated
 
-from domino.services.events.domino_boletus import get_one as get_one_boletus, get_one_boletus_pair, get_info_player_of_boletus
+from domino.services.events.domino_boletus import get_one as get_one_boletus, get_one_boletus_pair, get_info_player_of_boletus,\
+    calculat_at_close_boletus
 from domino.services.events.domino_scale import update_info_pairs, close_round_with_verify
 from domino.services.resources.status import get_one_by_name as get_one_status_by_name
 from domino.services.resources.utils import get_result_count
@@ -169,54 +170,13 @@ def close_data_by_time(request: Request, boletus_id:str, db: Session):
     
     if one_boletus.status.name != 'INITIADED':
         raise HTTPException(status_code=404, detail=_(locale, "boletus.status_incorrect"))
+    
+    dict_result = calculat_at_close_boletus(one_boletus, db=db, verify_point_for_time=True)
+    
+    if not dict_result['result']:
+        raise HTTPException(status_code=404, detail=_(locale, dict_result['msg']))
 
-    str_query = "Select win_pair_id, SUM(number_points) number_points from events.domino_boletus_data " +\
-        "Where boletus_id = '" + boletus_id + "' Group by win_pair_id " 
-    lst_pairs = db.execute(str_query)
-    
-    id_one_pair, id_two_pair = "", ""
-    for item_pa in one_boletus.boletus_pairs:
-        if not id_one_pair:
-            id_one_pair = item_pa.pairs_id
-        else:
-            id_two_pair = item_pa.pairs_id
-            
-    points_one_pair, points_two_pair = 0, 0
-    for item in lst_pairs:
-        if item.win_pair_id == id_one_pair:
-            points_one_pair += item.number_points
-        else:
-            points_two_pair += item.number_points
-    
-    if not points_one_pair and not points_two_pair:
-        raise HTTPException(status_code=404, detail=_(locale, "boletus.equal_positive_points"))
-    
-    if points_one_pair == points_two_pair: # estan empatados, no se puede cerrar
-        raise HTTPException(status_code=404, detail=_(locale, "boletus.equal_positive_points"))
-    
-    if points_one_pair > points_two_pair:
-        positive_points, negative_points = points_one_pair, points_two_pair
-        win_pair_id, lost_pair_id = id_one_pair, id_two_pair
-    else:
-        positive_points, negative_points = points_two_pair, points_one_pair
-        win_pair_id, lost_pair_id = id_two_pair, id_one_pair
-    
-    str_fields_win = "is_winner=True, positive_points = " + str(positive_points) + ", negative_points=" + str(negative_points)
-    str_fields_win += " WHERE pairs_id = '" + win_pair_id + "'; "
-    str_update_bol_win = "UPDATE events.domino_boletus_position SET " + str_fields_win 
-    str_update_win = "UPDATE events.domino_boletus_pairs SET " + str_fields_win + str_update_bol_win
-    
-    str_fields_lost = "is_winner=False, positive_points = " + str(negative_points) + ", negative_points=" + str(positive_points)
-    str_fields_lost += " WHERE pairs_id = '" + lost_pair_id + "'; "
-    str_update_bol_lost = "UPDATE events.domino_boletus_position SET " + str_fields_lost 
-    str_update_lost = "UPDATE events.domino_boletus_pairs SET " + str_fields_lost + str_update_bol_lost + "COMMIT;"
-    
-    str_update = str_update_win + str_update_lost
-    
     try:
-        db.execute(str_update)
-        db.commit() 
-    
         result.data = close_boletus(one_boletus, currentUser['username'], db=db, verify_points=False, motive_closed='time', can_update=False) 
         return result
     except (Exception, SQLAlchemyError, IntegrityError) as e:
@@ -239,6 +199,11 @@ def close_boletus(one_boletus, username, db: Session, verify_points=True, motive
         db.add(one_boletus)
         db.commit() 
         
+        if motive_closed == 'points':
+            dict_result = calculat_at_close_boletus(one_boletus, db=db, verify_point_for_time=True)
+            if not dict_result['result']:
+                return False
+    
         amount_boletus_active = count_boletus_active(one_boletus.rounds.id, one_status_end, db=db)
         if amount_boletus_active == 0:  # ya todas están cerrados
             one_status_review = get_one_status_by_name('REVIEW', db=db)

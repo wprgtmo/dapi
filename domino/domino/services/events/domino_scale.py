@@ -464,9 +464,7 @@ def get_all_scale_by_round(request:Request, page: int, per_page: int, round_id: 
         "JOIN events.players players ON players.id = rsca.player_id " +\
         "jOIN resources.entities_status sta ON sta.id = players.status_id " +\
         "JOIN enterprise.profile_member mmb ON players.profile_id = mmb.id " 
-        # "left join resources.city ON city.id = mmb.city_id " +\
-        # "left join resources.country ON country.id = city.country_id " 
-    
+        
     str_count = "Select count(*) " + str_from
     str_query = "SELECT players.id player_id, mmb.id profile_id, mmb.name profile_name, mmb.photo, rsca.position_number, " +\
         "rsca.elo, rsca.elo_variable, rsca.games_played, " +\
@@ -503,9 +501,7 @@ def get_all_scale_acumulate(request:Request, page: int, per_page: int, tourney_i
     str_from = "FROM events.players_users rsca " +\
         "JOIN events.players players ON players.id = rsca.player_id " +\
         "JOIN enterprise.profile_member mmb ON players.profile_id = mmb.id " 
-        # "left join resources.city ON city.id = mmb.city_id " +\
-        # "left join resources.country ON country.id = city.country_id " 
-    
+        
     str_count = "Select count(*) " + str_from
     str_query = "SELECT players.id player_id, mmb.id profile_id, mmb.name profile_name, mmb.photo, " +\
         "rsca.elo, rsca.elo_current, rsca.games_played, " +\
@@ -567,7 +563,7 @@ def get_all_scale_by_round_by_pairs(request:Request, page: int, per_page: int, r
     str_query = "SELECT rspa.id, rspa.name as profile_name, rspa.position_number, domino_tables.table_number, " +\
         "rspa.elo_pair, rspa.elo_pair_opposing, " +\
         "rspa.games_won, rspa.games_lost, rspa.points_positive, rspa.points_negative, rspa.points_difference, " +\
-        "score_expected, score_obtained, k_value, elo_current, elo_at_end, bonus_points, elo_ra, penalty_points " + str_from
+        "score_expected, score_obtained, k_value, elo_current, elo_at_end, bonus_points, elo_ra, rspa.penalty_points " + str_from
     
     str_where = "WHERE rspa.round_id = '" + round_id + "' "
         
@@ -1122,7 +1118,8 @@ def restart_one_round(request: Request, round_id: str, db: Session):
     str_where = "WHERE round_id = '" + db_round.id + "'; "
     str_join = " WHERE ba.boletus_id IN (SELECT id FROM events.domino_boletus " + str_where[:-2] + "); " 
 
-    str_delete = "DELETE FROM events.domino_boletus_data ba " + str_join +\
+    str_delete = "DELETE FROM events.domino_boletus_penalties ba " + str_join +\
+        "DELETE FROM events.domino_boletus_data ba " + str_join +\
         "DELETE FROM events.domino_boletus_position ba " + str_join +\
         "DELETE FROM events.domino_boletus_pairs ba " + str_join +\
         "DELETE FROM events.domino_boletus " + str_where  +\
@@ -1143,6 +1140,41 @@ def restart_one_round(request: Request, round_id: str, db: Session):
     db.commit()
     
     return result
+
+def calculate_stadist_of_boletus(one_boletus, db:Session):
+    
+    # este metodo lo voy a llmar cada vez que cierre ua boleta.
+    if one_boletus.status.name != 'FINALIZED':
+        return False
+    
+    if one_boletus.motive_closed == 'points':
+        
+        id_one_pair, id_two_pair = "", ""
+        for item_pa in one_boletus.boletus_pairs:
+            if not id_one_pair:
+                id_one_pair = item_pa.pairs_id
+            else:
+                id_two_pair = item_pa.pairs_id
+            
+        str_query = "Select win_pair_id, SUM(number_points) number_points from events.domino_boletus_data " +\
+            "Where boletus_id = '" + one_boletus.id + "' group by win_pair_id "
+        lst_points = db.execute(str_query).fetchone()
+        points_one_pair, points_two_pair = 0, 0
+        for item_da in lst_points:
+            if item_da.win_pair_id == id_one_pair:
+                points_one_pair += item_da.number_points
+            else:
+                points_two_pair += item_da.number_points
+        
+        str_query = "Select single_profile_id, SUM(penalty_value) penalty_value FROM events.domino_boletus_penalties bpe " +\
+           "Where boletus_id = '" + one_boletus.id + "' group by single_profile_id " 
+        lst_penalty = db.execute(str_query).fetchone()
+        for item_pe in lst_penalty:
+            dict_penalty[item_pe.single_profile_id] = int(item_pe.penalty_value)
+            
+        # consulta de updates datos
+        
+    return True
 
 def calculate_stadist_of_players(db_round, db:Session):
     
