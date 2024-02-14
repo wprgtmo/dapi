@@ -18,7 +18,7 @@ from domino.app import _
 from domino.models.events.domino_penalties import DominoBoletusPenalties
 
 from domino.schemas.resources.result_object import ResultObject
-from domino.schemas.events.domino_penalties import DominoPenaltiesCreated, DominoAnnulledCreated
+from domino.schemas.events.domino_penalties import DominoPenaltiesCreated, DominoAnnulledCreated, DominoAbsencesCreated
 
 from domino.services.resources.status import get_one_by_name, get_one as get_one_status
 from domino.services.events.invitations import get_one_by_id as get_invitation_by_id
@@ -140,7 +140,7 @@ def get_type_annulled(annulled_type):
     dict_annulled = {'0': 'Sentarse Incorrectamente', '1': 'Error al Anotar', '2': 'Conducta AntiDeportiva'}
     return dict_annulled[annulled_type]
     
-def new_absences(request: Request, boletus_id: str, lst_players: List, db: Session):
+def new_absences(request: Request, boletus_id: str, players: DominoAbsencesCreated, db: Session):
     locale = request.headers["accept-language"].split(",")[0].split("-")[0];
     
     result = ResultObject() 
@@ -150,6 +150,7 @@ def new_absences(request: Request, boletus_id: str, lst_players: List, db: Sessi
         raise HTTPException(status_code=404, detail=_(locale, "boletus.not_found"))
 
     motive_closed_description=get_motive_closed('absences')
+    lst_players = players.players.split(',')
     result_close = force_closing_boletus(one_boletus, lst_players, motive_closed='absences', 
                                          motive_closed_description=motive_closed_description, db=db)
     if not result_close:
