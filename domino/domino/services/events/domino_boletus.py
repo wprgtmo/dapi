@@ -248,6 +248,20 @@ def get_list_rounds_pairs(round_id,  db: Session):
     
     return lst_pairs
 
+def get_info_player_of_boletus(boletus_id: str, db: Session):
+    
+    lst_data = []
+    
+    str_query = "SELECT single_profile_id, pmem.name, position_id FROM events.domino_boletus_position bpo " +\
+        "join enterprise.profile_member pmem ON pmem.id = bpo.single_profile_id " +\
+        "where boletus_id = '" + boletus_id + "' order by position_id "
+        
+    lst_data_exec = db.execute(str_query)
+    for item in lst_data_exec:
+        lst_data.append({'profile_id':  item.single_profile_id, 'profile_name': item.name, 'position_id': item.position_id})
+    
+    return lst_data
+
 def calculate_amount_tables_playing(round_id: str, db: Session):
     
     str_query = "Select count(*) from events.domino_boletus bol " +\

@@ -24,7 +24,7 @@ from domino.services.resources.status import get_one_by_name, get_one as get_one
 from domino.services.events.invitations import get_one_by_id as get_invitation_by_id
 from domino.services.events.tourney import get_one as get_torneuy_by_eid, get_info_categories_tourney
 from domino.services.events.domino_round import get_last_by_tourney, remove_configurate_round
-from domino.services.events.domino_boletus import get_one as get_one_boletus
+from domino.services.events.domino_boletus import get_one as get_one_boletus, get_info_player_of_boletus
 from domino.services.events.calculation_serv import get_motive_closed
 
 from domino.services.enterprise.userprofile import get_one as get_one_profile
@@ -36,15 +36,52 @@ def get_penalty_by_boletus(request:Request, boletus_id: str, db: Session):
     
     locale = request.headers["accept-language"].split(",")[0].split("-")[0];
     result = ResultObject() 
-    result.data = []
+    result.data = {
+    "lst_data": [
+      {
+        "id": "90872b22-6f98-4a9b-8bdd-7420aacd0897",
+        "player_id": "32cbcfea-a938-4352-b89f-0e08aba2537f",
+        "player_name": "Aldrin Cuevas",
+        "penalty_type": "Tarjeta Roja",
+        "penalty_value": 50
+      },
+      {
+        "id": "d5a1ee63-8a17-45eb-9f75-5a03c62a60bf",
+        "player_id": "32cbcfea-a938-4352-b89f-0e08aba2537f",
+        "player_name": "Aldrin Cuevas",
+        "penalty_type": "Amonestacion",
+        "penalty_value": 25
+      },
+      {
+        "id": "73d3effc-7f22-43fb-b802-5736a6cb5ee3",
+        "player_id": "de1661de-7eb5-47b5-b9d9-0cb89d53f8d1",
+        "player_name": "Miguel Caquias",
+        "penalty_type": "Tarjeta Roja",
+        "penalty_value": 50
+      }
+    ],
+    "lst_players": [
+      {
+        "profile_id": "de1661de-7eb5-47b5-b9d9-0cb89d53f8d1",
+        "profile_name": "Miguel Caquias", "position_id": 1
+      },
+      {
+        "profile_id": "9d2c9be5-f987-48bc-881c-0d36aa6b422c",
+        "profile_name": "Melisa Ramos", "position_id": 2
+      },
+      {
+        "profile_id": "3ebaa3a9-211d-49b3-8b87-7b2eb51ec440",
+        "profile_name": "Edison Marte", "position_id": 3
+      },
+      {
+        "profile_id": "32cbcfea-a938-4352-b89f-0e08aba2537f",
+        "profile_name": "Aldrin Cuevas", "position_id": 4
+      }
+    ]
+  }
     
-    result.data = [{"id": "90872b22-6f98-4a9b-8bdd-7420aacd0897",
-      "player_id": "32cbcfea-a938-4352-b89f-0e08aba2537f",
-      "player_name": "Aldrin Cuevas", "penalty_type": "Tarjeta Roja", "penalty_value": 50},
-                   {"id": "d5a1ee63-8a17-45eb-9f75-5a03c62a60bf",
-      "player_id": "32cbcfea-a938-4352-b89f-0e08aba2537f",
-      "player_name": "Aldrin Cuevas", "penalty_type": "Amonestacion", "penalty_value": 25}]
     return result
+    dict_result = {'lst_data': [], 'lst_players': []}
     
     str_query = "SELECT bop.id, single_profile_id, pmem.name as player_name, penalty_type, penalty_value, apply_points " +\
         "FROM events.domino_boletus_penalties bop JOIN enterprise.profile_member pmem ON pmem.id = bop.single_profile_id " +\
@@ -54,8 +91,11 @@ def get_penalty_by_boletus(request:Request, boletus_id: str, db: Session):
     
     lst_data_exec = db.execute(str_query)
     for item in lst_data_exec:
-        result.data.append({'id': item.id, 'player_id': item.single_profile_id, 'player_name': item.player_name, 
-                            'penalty_type': item.penalty_type, 'penalty_value': item.penalty_value})
+        dict_result['lst_data'].append({'id': item.id, 'player_id': item.single_profile_id, 'player_name': item.player_name, 
+                                        'penalty_type': item.penalty_type, 'penalty_value': item.penalty_value})
+    
+    dict_result['lst_players'] = get_info_player_of_boletus(boletus_id, db=db)
+    result.data = dict_result
     
     return result
 
@@ -314,13 +354,20 @@ def force_annulled_boletus(one_boletus, motive_not_valid: str, motive_not_valid_
             "negative_points=0, penalty_points=0, expelled=False, is_guilty_closure=True WHERE boletus_id ='" + one_boletus.id + "';"
     else:
         point_to_win = one_boletus.tourney.number_points_to_win if one_boletus.tourney.number_points_to_win else 200
-    
+        
         str_update = "UPDATE events.domino_boletus_position SET is_winner=True, positive_points=" + str(point_to_win) + "," +\
             "negative_points=0, penalty_points=0, expelled=False WHERE boletus_id ='" + one_boletus.id + "'"
-        str_update += "UPDATE events.domino_boletus_position SET is_winner=False, positive_points=0, " +\
+        str_update += "UPDATE events.domino_boletus_position SET is_winner=False, is_guilty_closure=True, positive_points=0, " +\
             "negative_points=" + str(point_to_win) + ", expelled=" + str(expelled) +\
             "WHERE boletus_id ='" + one_boletus.id + "' AND single_profile_id = '" + player_id + "'; "
-    db.execute(str_update)
+        if expelled:
+            status_exp_id = get_one_by_name('EXPELLED', db=db).id
+            
+            str_update += "UPDATE events.players pa SET status_id = " + str(status_exp_id) +\
+                "WHERE id IN (Select pu.player_id from events.players_users pu " +\
+                "join events.players pa ON pa.id = pu.player_id where pu.profile_id = '" + player_id + "' " +\
+                " and pa.tourney_id = '" + one_boletus.tourney.id + "'); "
+        db.execute(str_update)
     
     # marcar el boleto como que no puede ser modificado
     one_boletus.status_id = get_one_by_name('FINALIZED', db=db).id

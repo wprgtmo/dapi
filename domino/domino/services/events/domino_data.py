@@ -21,7 +21,7 @@ from domino.models.events.domino_data import DominoBoletusData
 from domino.schemas.resources.result_object import ResultObject
 from domino.schemas.events.domino_data import DominoDataCreated
 
-from domino.services.events.domino_boletus import get_one as get_one_boletus, get_one_boletus_pair
+from domino.services.events.domino_boletus import get_one as get_one_boletus, get_one_boletus_pair, get_info_player_of_boletus
 from domino.services.events.domino_scale import update_info_pairs, close_round_with_verify
 from domino.services.resources.status import get_one_by_name as get_one_status_by_name
 from domino.services.resources.utils import get_result_count
@@ -101,20 +101,6 @@ def get_info_of_boletus(boletus_id: str, dict_result, db: Session):
     
     return dict_result
 
-def get_info_player_of_boletus(boletus_id: str, db: Session):
-    
-    lst_data = []
-    
-    str_query = "SELECT single_profile_id, pmem.name, position_id FROM events.domino_boletus_position bpo " +\
-        "join enterprise.profile_member pmem ON pmem.id = bpo.single_profile_id " +\
-        "where boletus_id = '" + boletus_id + "' order by position_id "
-        
-    lst_data_exec = db.execute(str_query)
-    for item in lst_data_exec:
-        lst_data.append({'profile_id':  item.single_profile_id, 'profile_name': item.name, 'position_id': item.position_id})
-    
-    return lst_data
-
 def get_one(data_id: str, db: Session):  
     return db.query(DominoBoletusData).filter(DominoBoletusData.id == data_id).first()
     
@@ -146,7 +132,6 @@ def new_data(request: Request, boletus_id:str, dominodata: DominoDataCreated, db
     db.commit() 
     
     try:
-        one_status_end = get_one_status_by_name('FINALIZED', db=db)
         result.data = close_boletus(one_boletus, currentUser['username'], db=db) 
         return result
     except (Exception, SQLAlchemyError, IntegrityError) as e:
