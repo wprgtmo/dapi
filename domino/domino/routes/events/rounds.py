@@ -17,7 +17,7 @@ from domino.services.events.domino_scale import get_all_players_by_tables, get_a
     get_all_scale_by_round, get_all_tables_by_round, aperture_new_round, get_all_scale_by_round_by_pairs, close_one_round, \
     get_all_scale_acumulate, create_new_round, restart_one_round
 from domino.services.events.domino_data import get_all_data_by_boletus, new_data, close_data_by_time, updated_data
-from domino.services.events.domino_penalty import new as new_penalty, new_absences, new_abandon, get_penalty_by_boletus, \
+from domino.services.events.domino_penalty import new as new_penalty, new_absences, get_penalty_by_boletus, \
     update_one_penalty, new_annulled, get_all_reason_no_update, reopen_one_boletus
   
 rounds_route = APIRouter(
@@ -152,20 +152,9 @@ def insert_penalty(request: Request, id: str, dominopenalty: DominoPenaltiesCrea
 def update_penalty(request: Request, id: str, dominopenalty: DominoPenaltiesCreated, db: Session = Depends(get_db)):
     return update_one_penalty(request=request, penalty_id=id, domino_penalty=dominopenalty, db=db)
 
-@rounds_route.post("/rounds/boletus/absences/{id}", response_model=ResultObject, summary="Close Boletus por absences")
+@rounds_route.post("/rounds/boletus/absences/{id}", response_model=ResultObject, summary="Close Boletus por absences or abandon")
 def insert_absences(request: Request, id: str, players: DominoAbsencesCreated, db: Session = Depends(get_db)):
     return new_absences(request=request, boletus_id=id, players=players, db=db)
-
-# @rounds_route.post("/rounds/boletus/absences/{id}", response_model=ResultObject, summary="Close Boletus por absences")
-# def insert_absences(request: Request, id: str, players: str, db: Session = Depends(get_db)):
-#     print('datos')
-#     print(id)
-#     print(players)
-#     return new_absences(request=request, boletus_id=id, lst_players=players, db=db)
-
-@rounds_route.post("/rounds/boletus/abandon/{id}", response_model=ResultObject, summary="Close Boletus por abandon")
-def insert_abandon(request: Request, id: str, lst_players: List, db: Session = Depends(get_db)):
-    return new_abandon(request=request, boletus_id=id, lst_players=lst_players, db=db)
 
 @rounds_route.post("/rounds/boletus/annulled/{id}", response_model=ResultObject, summary="Annulled Boletus")
 def insert_annulled(request: Request, id: str, domino_annulled: DominoAnnulledCreated, db: Session = Depends(get_db)):

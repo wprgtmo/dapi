@@ -149,29 +149,12 @@ def new_absences(request: Request, boletus_id: str, players: DominoAbsencesCreat
     if not one_boletus:
         raise HTTPException(status_code=404, detail=_(locale, "boletus.not_found"))
 
-    motive_closed_description=get_motive_closed('absences')
+    players.motive = '0' if not players.motive else players.motive
+    motive_type = 'absences' if players.motive == '0' else 'abandon'
+    
+    motive_closed_description=get_motive_closed(motive_type)
     lst_players = players.players.split(',')
-    result_close = force_closing_boletus(one_boletus, lst_players, motive_closed='absences', 
-                                         motive_closed_description=motive_closed_description, db=db)
-    if not result_close:
-        raise HTTPException(status_code=404, detail=_(locale, "boletus.error_force_closing"))
-    
-    try:
-        return result
-    except (Exception, SQLAlchemyError) as e:
-        return False
-    
-def new_abandon(request: Request, boletus_id: str, lst_players: List, db: Session):
-    locale = request.headers["accept-language"].split(",")[0].split("-")[0];
-    
-    result = ResultObject() 
-    
-    one_boletus = get_one_boletus(boletus_id, db=db)
-    if not one_boletus:
-        raise HTTPException(status_code=404, detail=_(locale, "boletus.not_found"))
-
-    motive_closed_description=get_motive_closed('abandon')
-    result_close = force_closing_boletus(one_boletus, lst_players, motive_closed='abandon', 
+    result_close = force_closing_boletus(one_boletus, lst_players, motive_closed=motive_type, 
                                          motive_closed_description=motive_closed_description, db=db)
     if not result_close:
         raise HTTPException(status_code=404, detail=_(locale, "boletus.error_force_closing"))

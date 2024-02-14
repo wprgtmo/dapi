@@ -16,5 +16,5 @@ class DominoAnnulledCreated(BaseModel):
     was_expelled: bool
     
 class DominoAbsencesCreated(BaseModel):
-    motive: str
+    motive: Optional[str]
     players: str
