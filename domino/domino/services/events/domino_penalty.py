@@ -103,8 +103,6 @@ def new(request: Request, boletus_id: str, domino_penalty: DominoPenaltiesCreate
     locale = request.headers["accept-language"].split(",")[0].split("-")[0];
     
     result = ResultObject() 
-    print('entre')
-    return result
     
     one_boletus = get_one_boletus(boletus_id, db=db)
     if not one_boletus:
