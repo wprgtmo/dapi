@@ -24,7 +24,7 @@ from domino.services.resources.status import get_one_by_name, get_one as get_one
 from domino.services.events.invitations import get_one_by_id as get_invitation_by_id
 from domino.services.events.tourney import get_one as get_torneuy_by_eid, get_info_categories_tourney
 from domino.services.events.domino_round import get_last_by_tourney, remove_configurate_round
-from domino.services.events.domino_boletus import get_one as get_one_boletus, get_info_player_of_boletus
+from domino.services.events.domino_boletus import get_one as get_one_boletus, get_info_player_of_boletus, update_info_player_pairs
 from domino.services.events.calculation_serv import get_motive_closed
 
 from domino.services.enterprise.userprofile import get_one as get_one_profile
@@ -149,6 +149,9 @@ def new_absences(request: Request, boletus_id: str, players: DominoAbsencesCreat
     if not one_boletus:
         raise HTTPException(status_code=404, detail=_(locale, "boletus.not_found"))
 
+    if not one_boletus.can_update:
+        raise HTTPException(status_code=404, detail=_(locale, "boletus.can_update"))
+    
     players.motive = '0' if not players.motive else players.motive
     motive_type = 'absences' if players.motive == '0' else 'abandon'
     
@@ -176,7 +179,7 @@ def new_annulled(request: Request, boletus_id: str, domino_annulled: DominoAnnul
     annulled_type = get_type_annulled(domino_annulled.annulled_type)
     one_player = None
     if domino_annulled.annulled_type == '2':  # Conducta antidepoprtiva debe traer un jugador 
-        if not domino_annulled.player: 
+        if not domino_annulled.player_id: 
             raise HTTPException(status_code=404, detail=_(locale, "penalty.player_is_requeried"))
           
         one_player = get_one_profile(domino_annulled.player_id, db=db)
@@ -256,13 +259,13 @@ def reopen_one_boletus(request: Request, boletus_id: str,  db: Session):
            
 def force_closing_boletus(one_boletus, lst_players: List, motive_closed:str, motive_closed_description:str, db: Session):
     
-    point_to_win = one_boletus.tourney.number_points_to_win if one_boletus.tourney.number_points_to_win else 200
+    point_to_win = one_boletus.tourney.points_for_absences if one_boletus.tourney.points_for_absences else 200
     
-    str_update = "UPDATE events.domino_boletus_position SET is_winner=True, positive_points=" + str(point_to_win/2) + "," +\
+    str_update = "UPDATE events.domino_boletus_position SET is_winner=True, positive_points=" + str(point_to_win) + "," +\
         "negative_points=0, penalty_points=0, expelled=False WHERE boletus_id ='" + one_boletus.id + "'"
     db.execute(str_update)
     
-    str_update = "UPDATE events.domino_boletus_position SET is_winner=False, negative_points=" + str(point_to_win/2) + "," +\
+    str_update = "UPDATE events.domino_boletus_position SET is_winner=False, negative_points=" + str(point_to_win) + "," +\
         "positive_points=0, penalty_points=0, expelled=False, is_guilty_closure=True " +\
         "WHERE boletus_id ='" + one_boletus.id + "' AND single_profile_id IN (" 
     str_players = ''
@@ -274,6 +277,40 @@ def force_closing_boletus(one_boletus, lst_players: List, motive_closed:str, mot
         str_update += str_players   
         db.execute(str_update)
     
+    str_query = "SELECT pairs_id, SUM(positive_points)/2 positive_points, SUM(negative_points)/2 negative_points " +\
+        "FROM events.domino_boletus_position WHERE boletus_id ='" + one_boletus.id + "' group by pairs_id "
+    
+    lst_pair = db.execute(str_query)
+    str_pair_update = ''
+    one_points, two_points = 0, 0 
+    one_pair, two_pair = '', ''
+    for item in lst_pair:
+        str_pair_update += "UPDATE events.domino_boletus_pairs SET positive_points = " + str(item.positive_points) +\
+            ", negative_points = " + str(item.negative_points) + " WHERE pairs_id = '" + item.pairs_id + \
+            "' and boletus_id ='" + one_boletus.id + "';  "
+        if not one_points:
+            one_points = item.positive_points
+            one_pair = item.pairs_id
+        else:
+            two_points = item.positive_points
+            two_pair = item.pairs_id
+            
+    db.execute(str_pair_update) 
+    str_pair_winner = ""
+    if one_points ==  two_points :  #empatados, no gana nadie  
+        str_pair_winner = "UPDATE events.domino_boletus_pairs SET is_winner = False " +\
+            " WHERE boletus_id ='" + one_boletus.id + "';"
+    else:
+        if one_points > two_points:
+            str_pair_winner = "UPDATE events.domino_boletus_pairs SET is_winner = True " +\
+                " WHERE boletus_id ='" + one_boletus.id + "' AND pairs_id = '" + one_pair + "';"
+        else:
+            str_pair_winner = "UPDATE events.domino_boletus_pairs SET is_winner = True " +\
+                " WHERE boletus_id ='" + one_boletus.id + "' AND pairs_id = '" + two_pair + "';"
+                
+    if str_pair_winner:  
+        db.execute(str_pair_winner) 
+          
     # marcar el boleto como que no puede ser modificado
     one_boletus.status_id = get_one_by_name('FINALIZED', db=db).id
     one_boletus.can_update = False
@@ -283,6 +320,9 @@ def force_closing_boletus(one_boletus, lst_players: List, motive_closed:str, mot
     try:
         db.add(one_boletus)
         db.commit()
+        
+        update_info_player_pairs(one_boletus, db=db)
+        
         return True
     except (Exception, SQLAlchemyError) as e:
         return False
@@ -292,23 +332,60 @@ def force_annulled_boletus(one_boletus, motive_not_valid: str, motive_not_valid_
     if not player_id: # todo el mundo pierde
         str_update = "UPDATE events.domino_boletus_position SET is_winner=False, positive_points=0, " +\
             "negative_points=0, penalty_points=0, expelled=False, is_guilty_closure=True WHERE boletus_id ='" + one_boletus.id + "';"
+        str_update += "UPDATE events.domino_boletus_pairs SET positive_points = 0, negative_points = 0" +\
+            " WHERE boletus_id ='" + one_boletus.id + "';  "
+        db.execute(str_update)
     else:
-        point_to_win = one_boletus.tourney.number_points_to_win if one_boletus.tourney.number_points_to_win else 200
+        point_to_win = one_boletus.tourney.points_for_absences if one_boletus.tourney.points_for_absences else 200
         
         str_update = "UPDATE events.domino_boletus_position SET is_winner=True, positive_points=" + str(point_to_win) + "," +\
-            "negative_points=0, penalty_points=0, expelled=False WHERE boletus_id ='" + one_boletus.id + "'"
+            "negative_points=0, penalty_points=0, expelled=False WHERE boletus_id ='" + one_boletus.id + "';"
         str_update += "UPDATE events.domino_boletus_position SET is_winner=False, is_guilty_closure=True, positive_points=0, " +\
             "negative_points=" + str(point_to_win) + ", expelled=" + str(expelled) +\
-            "WHERE boletus_id ='" + one_boletus.id + "' AND single_profile_id = '" + player_id + "'; "
+            " WHERE boletus_id ='" + one_boletus.id + "' AND single_profile_id = '" + player_id + "'; "
         if expelled:
             status_exp_id = get_one_by_name('EXPELLED', db=db).id
             
             str_update += "UPDATE events.players pa SET status_id = " + str(status_exp_id) +\
-                "WHERE id IN (Select pu.player_id from events.players_users pu " +\
+                " WHERE id IN (Select pu.player_id from events.players_users pu " +\
                 "join events.players pa ON pa.id = pu.player_id where pu.profile_id = '" + player_id + "' " +\
                 " and pa.tourney_id = '" + one_boletus.tourney.id + "'); "
         db.execute(str_update)
     
+        str_query = "SELECT pairs_id, SUM(positive_points)/2 positive_points, SUM(negative_points)/2 negative_points " +\
+            "FROM events.domino_boletus_position WHERE boletus_id ='" + one_boletus.id + "' group by pairs_id "
+        
+        lst_pair = db.execute(str_query)
+        str_pair_update = ''
+        one_points, two_points = 0, 0 
+        one_pair, two_pair = '', ''
+        for item in lst_pair:
+            str_pair_update += "UPDATE events.domino_boletus_pairs SET positive_points = " + str(item.positive_points) +\
+                ", negative_points = " + str(item.negative_points) + " WHERE pairs_id = '" + item.pairs_id + \
+                "' and boletus_id ='" + one_boletus.id + "';  "
+            if not one_points:
+                one_points = item.positive_points
+                one_pair = item.pairs_id
+            else:
+                two_points = item.positive_points
+                two_pair = item.pairs_id
+                
+        db.execute(str_pair_update) 
+        str_pair_winner = ""
+        if one_points ==  two_points :  #empatados, no gana nadie  
+            str_pair_winner = "UPDATE events.domino_boletus_pairs SET is_winner = False " +\
+                " WHERE boletus_id ='" + one_boletus.id + "';"
+        else:
+            if one_points > two_points:
+                str_pair_winner = "UPDATE events.domino_boletus_pairs SET is_winner = True " +\
+                    " WHERE boletus_id ='" + one_boletus.id + "' AND pairs_id = '" + one_pair + "';"
+            else:
+                str_pair_winner = "UPDATE events.domino_boletus_pairs SET is_winner = True " +\
+                    " WHERE boletus_id ='" + one_boletus.id + "' AND pairs_id = '" + two_pair + "';"
+                    
+        if str_pair_winner:  
+            db.execute(str_pair_winner)
+                
     # marcar el boleto como que no puede ser modificado
     one_boletus.status_id = get_one_by_name('FINALIZED', db=db).id
     one_boletus.can_update = False

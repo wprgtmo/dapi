@@ -32,8 +32,8 @@ def calculate_new_elo(number_games_played:int, score_expected: float, score_obta
     return 0 if number_games_played == 0 else score_obtained - score_expected
     # return 0 if number_games_played == 0 else round(score_obtained - score_expected, 2)
 
-def calculate_end_elo(initial_elo:float, summary_elo_obtained: float, k2: float, k3: float):  
-    return initial_elo + summary_elo_obtained
+def calculate_end_elo(initial_elo:float, summary_elo_obtained: float, k_value: float):  
+    return initial_elo + summary_elo_obtained * k_value
 
 def get_motive_closed(motive:str):
     

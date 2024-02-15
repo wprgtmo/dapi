@@ -63,19 +63,20 @@ def get_one_configure_tourney(request:Request, tourney_id: str, db: Session):
         "start_date": '' if not db_tourney.start_date else db_tourney.start_date,
         'amount_player': get_count_players_by_tourney(tourney_id, db=db),
         "amount_smart_tables": 0 if not db_tourney.amount_smart_tables else db_tourney.amount_smart_tables,
-        "use_segmentation": True if db_tourney.use_segmentation else False,
-        "use_penalty": True if db_tourney.use_penalty else False,
-        "use_bonus": True if db_tourney.use_bonus else False,
-        "amount_bonus_tables": 0 if not db_tourney.amount_bonus_tables else db_tourney.amount_bonus_tables,
-        "amount_bonus_points": 0 if not db_tourney.amount_bonus_points else db_tourney.amount_bonus_points,
-        "amount_bonus_points_rounds": 0 if not db_tourney.amount_bonus_points_rounds else db_tourney.amount_bonus_points_rounds,
+        # "use_segmentation": True if db_tourney.use_segmentation else False,
+        # "use_penalty": True if db_tourney.use_penalty else False,
+        # "use_bonus": True if db_tourney.use_bonus else False,
+        "absences_points": db_tourney.points_for_absences if  db_tourney.points_for_absences else 0 if not db_tourney.number_points_to_win else db_tourney.number_points_to_win,
+        # "amount_bonus_tables": 0 if not db_tourney.amount_bonus_tables else db_tourney.amount_bonus_tables,
+        # "amount_bonus_points": 0 if not db_tourney.amount_bonus_points else db_tourney.amount_bonus_points,
+        # "amount_bonus_points_rounds": 0 if not db_tourney.amount_bonus_points_rounds else db_tourney.amount_bonus_points_rounds,
         "number_points_to_win": 0 if not db_tourney.number_points_to_win else db_tourney.number_points_to_win,
         "time_to_win": 0 if not db_tourney.time_to_win else db_tourney.time_to_win,
         "game_system": 'SUIZO' if not db_tourney.game_system else db_tourney.game_system,
         'lottery_type': 'MANUAL' if not db_tourney.lottery_type else db_tourney.lottery_type,
-        'penalties_limit': 0 if not db_tourney.penalties_limit else db_tourney.penalties_limit,
-        'points_penalty_yellow': 0 if not db_tourney.points_penalty_yellow else db_tourney.points_penalty_yellow,
-        'points_penalty_red': 0 if not db_tourney.points_penalty_red else db_tourney.points_penalty_red,
+        # 'penalties_limit': 0 if not db_tourney.penalties_limit else db_tourney.penalties_limit,
+        # 'points_penalty_yellow': 0 if not db_tourney.points_penalty_yellow else db_tourney.points_penalty_yellow,
+        # 'points_penalty_red': 0 if not db_tourney.points_penalty_red else db_tourney.points_penalty_red,
         'elo_min': elo_min, 'elo_max': elo_max,
         'constant_increase_ELO': 16 if not db_tourney.constant_increase_elo else db_tourney.constant_increase_elo,
         'round_ordering_one': '' if not db_tourney.round_ordering_one else db_tourney.round_ordering_one,
@@ -164,24 +165,24 @@ def configure_one_tourney(request, tourney_id: str, settingtourney: SettingTourn
     if settingtourney.constant_increase_ELO and db_tourney.constant_increase_elo != float(settingtourney.constant_increase_ELO):
         db_tourney.constant_increase_elo = int(settingtourney.constant_increase_ELO)
         
-    use_penalty = True if settingtourney.use_penalty and settingtourney.use_penalty == True else False
-    if db_tourney.use_penalty != use_penalty:
-        if not settingtourney.limitPenaltyPoints:
-            raise HTTPException(status_code=404, detail=_(locale, "tourney.limitpenalty_incorrect"))
-        if not settingtourney.points_penalty_yellow:
-            raise HTTPException(status_code=404, detail=_(locale, "tourney.penaltyyelloew_incorrect"))
-        if not settingtourney.points_penalty_red:
-            raise HTTPException(status_code=404, detail=_(locale, "tourney.penaltyred_incorrect"))
+    # use_penalty = True if settingtourney.use_penalty and settingtourney.use_penalty == True else False
+    # if db_tourney.use_penalty != use_penalty:
+    #     if not settingtourney.limitPenaltyPoints:
+    #         raise HTTPException(status_code=404, detail=_(locale, "tourney.limitpenalty_incorrect"))
+    #     if not settingtourney.points_penalty_yellow:
+    #         raise HTTPException(status_code=404, detail=_(locale, "tourney.penaltyyelloew_incorrect"))
+    #     if not settingtourney.points_penalty_red:
+    #         raise HTTPException(status_code=404, detail=_(locale, "tourney.penaltyred_incorrect"))
         
-        db_tourney.use_penalty = use_penalty
-        if db_tourney.penalties_limit != int(settingtourney.limitPenaltyPoints):
-            db_tourney.penalties_limit = int(settingtourney.limitPenaltyPoints)
+    #     db_tourney.use_penalty = use_penalty
+    #     if db_tourney.penalties_limit != int(settingtourney.limitPenaltyPoints):
+    #         db_tourney.penalties_limit = int(settingtourney.limitPenaltyPoints)
         
-        if db_tourney.points_penalty_yellow != int(settingtourney.points_penalty_yellow):
-            db_tourney.points_penalty_yellow = int(settingtourney.points_penalty_yellow)
+    #     if db_tourney.points_penalty_yellow != int(settingtourney.points_penalty_yellow):
+    #         db_tourney.points_penalty_yellow = int(settingtourney.points_penalty_yellow)
             
-        if db_tourney.points_penalty_red != int(settingtourney.points_penalty_red):
-            db_tourney.points_penalty_red = int(settingtourney.points_penalty_red)
+    #     if db_tourney.points_penalty_red != int(settingtourney.points_penalty_red):
+    #         db_tourney.points_penalty_red = int(settingtourney.points_penalty_red)
         
     use_segmentation = True if settingtourney.use_segmentation and settingtourney.use_segmentation == True else False
     if db_tourney.use_segmentation != use_segmentation:
@@ -202,38 +203,38 @@ def configure_one_tourney(request, tourney_id: str, settingtourney: SettingTourn
         if amount_category < 1:
             raise HTTPException(status_code=404, detail=_(locale, "tourney.amount_categories_incorrect"))
     
-    use_bonus = True if settingtourney.use_bonus and settingtourney.use_bonus == True else False
-    if use_bonus:
-        # debo verificar si existe una ronda anterior y en esta no se uso bonificacion, no se puede modificar el dato ya.
-        if not last_round:
-            last_round = get_last_by_tourney(db_tourney.id, db=db)
-            if last_round:
-                prevoius_round = get_one_by_number(last_round.number_round, db=db)
-                if prevoius_round and prevoius_round.use_bonus is True:
-                    raise HTTPException(status_code=404, detail=_(locale, "tourney.round_not_cant_bonus"))
+    # use_bonus = True if settingtourney.use_bonus and settingtourney.use_bonus == True else False
+    # if use_bonus:
+    #     # debo verificar si existe una ronda anterior y en esta no se uso bonificacion, no se puede modificar el dato ya.
+    #     if not last_round:
+    #         last_round = get_last_by_tourney(db_tourney.id, db=db)
+    #         if last_round:
+    #             prevoius_round = get_one_by_number(last_round.number_round, db=db)
+    #             if prevoius_round and prevoius_round.use_bonus is True:
+    #                 raise HTTPException(status_code=404, detail=_(locale, "tourney.round_not_cant_bonus"))
         
-        if not settingtourney.amount_bonus_tables:
-            raise HTTPException(status_code=404, detail=_(locale, "tourney.amount_bonus_tables_incorrect"))
-        if int(settingtourney.amount_bonus_tables) <= 0:
-            raise HTTPException(status_code=404, detail=_(locale, "tourney.amount_bonus_tables_incorrect"))
-        if not settingtourney.amount_bonus_points:
-            raise HTTPException(status_code=404, detail=_(locale, "tourney.amount_bonus_tables_incorrect"))
-        if int(settingtourney.amount_bonus_points) <= 0:
-            raise HTTPException(status_code=404, detail=_(locale, "tourney.amount_bonus_tables_incorrect"))
-        if int(settingtourney.amount_bonus_points_rounds) <= 0:
-            raise HTTPException(status_code=404, detail=_(locale, "tourney.amount_bonus_tables_incorrect"))
+    #     if not settingtourney.amount_bonus_tables:
+    #         raise HTTPException(status_code=404, detail=_(locale, "tourney.amount_bonus_tables_incorrect"))
+    #     if int(settingtourney.amount_bonus_tables) <= 0:
+    #         raise HTTPException(status_code=404, detail=_(locale, "tourney.amount_bonus_tables_incorrect"))
+    #     if not settingtourney.amount_bonus_points:
+    #         raise HTTPException(status_code=404, detail=_(locale, "tourney.amount_bonus_tables_incorrect"))
+    #     if int(settingtourney.amount_bonus_points) <= 0:
+    #         raise HTTPException(status_code=404, detail=_(locale, "tourney.amount_bonus_tables_incorrect"))
+    #     if int(settingtourney.amount_bonus_points_rounds) <= 0:
+    #         raise HTTPException(status_code=404, detail=_(locale, "tourney.amount_bonus_tables_incorrect"))
         
-        if db_tourney.use_bonus != use_bonus:
-            db_tourney.use_bonus = use_bonus
+    #     if db_tourney.use_bonus != use_bonus:
+    #         db_tourney.use_bonus = use_bonus
         
-        if db_tourney.amount_bonus_tables != int(settingtourney.amount_bonus_tables):
-            db_tourney.amount_bonus_tables = int(settingtourney.amount_bonus_tables)
+    #     if db_tourney.amount_bonus_tables != int(settingtourney.amount_bonus_tables):
+    #         db_tourney.amount_bonus_tables = int(settingtourney.amount_bonus_tables)
             
-        if db_tourney.amount_bonus_points != int(settingtourney.amount_bonus_points):
-            db_tourney.amount_bonus_points = int(settingtourney.amount_bonus_points)
+    #     if db_tourney.amount_bonus_points != int(settingtourney.amount_bonus_points):
+    #         db_tourney.amount_bonus_points = int(settingtourney.amount_bonus_points)
             
-        if db_tourney.amount_bonus_points_rounds != int(settingtourney.amount_bonus_points_rounds):
-            db_tourney.amount_bonus_points_rounds = int(settingtourney.amount_bonus_points_rounds)
+    #     if db_tourney.amount_bonus_points_rounds != int(settingtourney.amount_bonus_points_rounds):
+    #         db_tourney.amount_bonus_points_rounds = int(settingtourney.amount_bonus_points_rounds)
             
     if settingtourney.round_ordering_one and db_tourney.round_ordering_one != str(settingtourney.round_ordering_one):
         db_tourney.round_ordering_one = str(settingtourney.round_ordering_one)
@@ -398,8 +399,10 @@ def update_initializes_tourney(db_tourney, locale, db:Session):
     
     # si el sorteo es automático, ya debo crear la primera distribución.
     if db_tourney.lottery_type == "AUTOMATIC":
-        round_created = DominoRoundsAperture(use_segmentation=db_tourney.use_segmentation, use_bonus=db_tourney.use_bonus,
-                                             amount_bonus_tables=db_tourney.amount_bonus_tables, amount_bonus_points=db_tourney.amount_bonus_points)
+        # round_created = DominoRoundsAperture(use_segmentation=db_tourney.use_segmentation, use_bonus=False, #db_tourney.use_bonus,
+        #                                      amount_bonus_tables=db_tourney.amount_bonus_tables, amount_bonus_points=db_tourney.amount_bonus_points)
+        round_created = DominoRoundsAperture(use_segmentation=db_tourney.use_segmentation, use_bonus=False, 
+                                             amount_bonus_tables=0, amount_bonus_points=0)
         aperture_one_new_round(db_round_ini.id, round_created, locale, db=db)
     
     # try:

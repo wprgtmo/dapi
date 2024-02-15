@@ -121,9 +121,9 @@ def create_dict_row(item, tourney_id, page, db: Session, api_uri=""):
     
 #     return True       
 
-def created_boletus_position(one_boletus, lst_player:list, db:Session, can_update=True, points_to_win=200):
+def created_boletus_position(one_boletus, lst_player:list, db:Session, can_update=True, points_for_absences=200):
     
-    positive_points = points_to_win/2 if not can_update else 0
+    positive_points = points_for_absences if not can_update else 0
     negative_points = 0
     is_winner = True if not can_update else False
     
@@ -156,7 +156,7 @@ def created_boletus_position(one_boletus, lst_player:list, db:Session, can_updat
             
     return True
 
-def created_boletus_for_round(tourney_id, round_id, db:Session, points_to_win=200):
+def created_boletus_for_round(tourney_id, round_id, db:Session, points_for_absences=200):
 
     # obtener listado de mesas del torneo
     lst_tables = get_lst_tables(tourney_id, db=db)
@@ -203,14 +203,20 @@ def created_boletus_for_round(tourney_id, round_id, db:Session, points_to_win=20
             else:
                 can_update = False
                 
-            created_boletus_position(one_boletus, lst_player=item_tab['lst_player'], db=db, can_update=can_update, points_to_win=points_to_win)
+            created_boletus_position(one_boletus, lst_player=item_tab['lst_player'], db=db, can_update=can_update, points_for_absences=points_for_absences)
         
         if not can_update:   
             one_boletus.status_id = one_status_end.id
             one_boletus.can_update = False
             one_boletus.motive_closed = 'non_completion'
-            one_boletus.motive_closed_description = 'Cerrado por no completamiento de mesa'        
+            one_boletus.motive_closed_description = 'Cerrado por no completamiento de mesa'  
+            
         db.add(one_boletus) 
+        db.commit() 
+        
+        if not can_update: 
+            # si no se completan, se le dan los puntos a los que se quedan
+            asign_points_for_absence(one_boletus, db=db)  
     
     # ESTO YA NO SE CUMPLE- TODOS SE SIENTAN    
     # los jugadores que no posiciono, ponerlso en estado de espera
@@ -227,8 +233,6 @@ def created_boletus_for_round(tourney_id, round_id, db:Session, points_to_win=20
     #     str_update_id = str_update_id[:-1] + ");COMMIT;"
     
     #     str_update_play += str_update_id       
-    
-    db.commit()    
     
     return True      
 
@@ -269,6 +273,28 @@ def calculate_amount_tables_playing(round_id: str, db: Session):
         "where sta.name = 'INITIADED' and round_id = '" + round_id + "' " 
     amount_play = db.execute(str_query).fetchone()[0]
     return int(amount_play)
+
+def asign_points_for_absence(one_boletus, db:Session, update_position=False):
+    
+    str_points_for_absences = "SELECT points_for_absences FROM events.tourney where id='" + one_boletus.tourney_id + "'"
+    points_for_absences = db.execute(str_points_for_absences).fetchone()[0]
+    points_for_absences = 100 if not points_for_absences else points_for_absences
+    
+    if update_position:
+        str_update_bpo = "UPDATE events.domino_boletus_position SET is_winner=True, penalty_points=0, positive_points=" + str(points_for_absences) +\
+            ", negative_points=0 WHERE boletus_id = '" + one_boletus.id + "'; "
+        db.execute(str_update_bpo)
+        
+    str_update_bpa = "UPDATE events.domino_boletus_pairs SET is_winner=True, penalty_points=0, positive_points=" + str(points_for_absences) +\
+        ", negative_points=0 WHERE boletus_id = '" + one_boletus.id + "'; "
+    
+    db.execute(str_update_bpa)
+    
+    db.commit()    
+    
+    update_info_player_pairs(one_boletus, db=db)
+    
+    return True
 
 def calculat_at_close_boletus(one_boletus, db: Session, verify_point_for_time=False):
     
@@ -352,31 +378,7 @@ def calculat_at_close_boletus(one_boletus, db: Session, verify_point_for_time=Fa
     str_update = str_update_win + str_update_lost
     db.execute(str_update)
     
-    # actualizar tabla de ronda pareja
-    str_round_pair = "Select pairs_id, is_winner, positive_points, negative_points, penalty_points " +\
-        "from events.domino_boletus_pairs where boletus_id = '" + one_boletus.id + "' "
-    lst_pairs = db.execute(str_round_pair)
-    
-    str_update_round_pa = ""
-    for item_pa in lst_pairs:
-        
-        games_won = 1 if item_pa.is_winner else 0
-        games_lost = 1 if not item_pa.is_winner else 0
-        points_positive = item_pa.positive_points
-        points_negative = item_pa.negative_points
-        penalty_points = item_pa.penalty_points
-        points_difference = item_pa.positive_points - item_pa.negative_points - item_pa.penalty_points
-
-        str_update_round_pa += "UPDATE events.domino_rounds_pairs SET games_won = " + str(games_won) +\
-            ", games_lost = " + str(games_lost) + ", points_positive = " + str(points_positive) +\
-            ", points_negative= " + str(points_negative) + ", penalty_points = " + str(penalty_points) +\
-            ", points_difference = " + str(points_difference) + " WHERE id = '" + item_pa.pairs_id + "'; "
-    if str_update_round_pa:
-        str_update_round_pa += "COMMIT;"
-        db.execute(str_update_round_pa) 
-    
-    # actualizar tabla de scale de cada player
-    
+    update_info_player_pairs(one_boletus, db=db)
     
     try:
         
@@ -387,6 +389,59 @@ def calculat_at_close_boletus(one_boletus, db: Session, verify_point_for_time=Fa
         dict_result['msg']="boletus.error_writing"
     
     return dict_result
+
+def update_info_player_pairs(one_boletus, db: Session):
+    
+    # actualizar tabla de ronda pareja
+    str_round_pair = "Select pairs_id, is_winner, positive_points, negative_points, penalty_points " +\
+        "from events.domino_boletus_pairs where boletus_id = '" + one_boletus.id + "' "
+    lst_pairs = db.execute(str_round_pair)
+    
+    str_update_round_pa = ""
+    for item_pa in lst_pairs:
+        
+        games_won = 1 if item_pa.is_winner else 0
+        games_lost = 1 if not item_pa.is_winner else 0
+        points_positive = item_pa.positive_points if item_pa.positive_points else 0
+        points_negative = item_pa.negative_points if item_pa.negative_points else 0
+        penalty_points = item_pa.penalty_points if item_pa.penalty_points else 0
+        points_difference = points_positive - points_negative - penalty_points
+
+        str_update_round_pa += "UPDATE events.domino_rounds_pairs SET games_won = " + str(games_won) +\
+            ", games_lost = " + str(games_lost) + ", points_positive = " + str(points_positive) +\
+            ", points_negative= " + str(points_negative) + ", penalty_points = " + str(penalty_points) +\
+            ", points_difference = " + str(points_difference) + " WHERE id = '" + item_pa.pairs_id + "'; "
+    if str_update_round_pa:
+        str_update_round_pa += "COMMIT;"
+        db.execute(str_update_round_pa) 
+    
+    # actualizar tabla de scale de cada player
+    str_round_play = "Select single_profile_id, plu.player_id, is_winner, positive_points, negative_points, penalty_points " +\
+        "from events.domino_boletus_position dbol JOIN events.players_users plu ON plu.profile_id = dbol.single_profile_id " +\
+        "Join events.players pla ON pla.id = plu.player_id " +\
+        "where dbol.boletus_id = '" + one_boletus.id + "' "
+    lst_play = db.execute(str_round_play)
+    
+    str_update_round_play = ""
+    for item_pa in lst_play:
+        
+        games_won = 1 if item_pa.is_winner else 0
+        games_lost = 1 if not item_pa.is_winner else 0
+        points_positive = item_pa.positive_points
+        points_negative = item_pa.negative_points
+        penalty_points = item_pa.penalty_points
+        points_difference = item_pa.positive_points - item_pa.negative_points - item_pa.penalty_points
+
+        str_update_round_play += "UPDATE events.domino_rounds_scale SET games_played = 1, games_won = " + str(games_won) +\
+            ", games_lost = " + str(games_lost) + ", points_positive = " + str(points_positive) +\
+            ", points_negative= " + str(points_negative) + ", penalty_points = " + str(penalty_points) +\
+            ", points_difference = " + str(points_difference) + " WHERE player_id = '" + item_pa.player_id + "'; "
+            
+    if str_update_round_play:
+        str_update_round_play += "COMMIT;"
+        db.execute(str_update_round_play) 
+    
+    return True
 
 # def created_boletus_for_round_ubica_no_consecutivo_sino_saltanto(tourney_id, round_id, db:Session):
 

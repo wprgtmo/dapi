@@ -834,7 +834,7 @@ def clear_all_bd(request:Request, db: Session):
     
     #limpiando configuracion de torneos y eventos
     str_del_events = "DELETE FROM events.events_followers; DELETE FROM events.domino_boletus_data; " +\
-        "DELETE FROM events.trace_lottery_manual; " +\
+        "DELETE FROM events.trace_lottery_manual; DELETE FROM events.domino_boletus_penalties; " +\
         "DELETE FROM events.domino_boletus_position; DELETE FROM events.domino_boletus_pairs; " +\
         "DELETE FROM events.domino_boletus; DELETE FROM events.domino_rounds_pairs; " +\
         "DELETE FROM events.domino_rounds_scale; DELETE FROM events.domino_categories; " +\
