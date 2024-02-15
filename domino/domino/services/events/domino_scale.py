@@ -32,7 +32,7 @@ from domino.services.enterprise.auth import get_url_avatar
 from domino.services.events.player import get_lst_id_player_by_elo, change_all_status_player_at_init_round, get_one_user
 from domino.services.events.domino_round import get_one as get_one_round, get_first_by_tourney, configure_rounds, configure_new_rounds, \
     get_obj_info_to_aperturate, remove_configurate_round, calculate_amount_rounds_played, configure_next_rounds, \
-    get_last_by_tourney
+    get_last_by_tourney, calculate_amount_rounds_segmentated
 
 from domino.services.events.domino_boletus import created_boletus_for_round, get_all_by_round
 from domino.services.enterprise.auth import get_url_advertising
@@ -513,7 +513,9 @@ def get_all_scale_acumulate(request:Request, page: int, per_page: int, tourney_i
     # order by por los criterios
     dict_order = {'JG': 'games_won DESC',
                   'ERA': 'elo_current DESC',
-                  'DP': 'points_difference DESC'}
+                  'DP': 'points_difference DESC',
+                  'PF': 'points_positive DESC',
+                  'JJ': 'games_played DESC'}
     
     str_order_by = " ORDER BY " + dict_order[db_tourney.round_ordering_one]
     
@@ -1010,10 +1012,10 @@ def aperture_one_new_round(round_id:str, round_aperture: DominoRoundsAperture, l
     
     #guardar los valores configurados a la ronda
     db_round.use_segmentation = True if db_round.tourney.use_segmentation and db_round.tourney.use_segmentation else False 
-    db_round.use_bonus = True if db_round.tourney.use_bonus and db_round.tourney.use_bonus else False
-    if db_round.use_bonus:
-        db_round.amount_bonus_tables = int(db_round.tourney.amount_bonus_tables)
-        db_round.amount_bonus_points = int(db_round.tourney.amount_bonus_points)
+    # db_round.use_bonus = True if db_round.tourney.use_bonus and db_round.tourney.use_bonus else False
+    # if db_round.use_bonus:
+    #     db_round.amount_bonus_tables = int(db_round.tourney.amount_bonus_tables)
+    #     db_round.amount_bonus_points = int(db_round.tourney.amount_bonus_points)
     
     # str_query = "SELECT count(tourney_id) FROM events.domino_categories where tourney_id = '" + db_round.tourney.id + "' "
     # amount = db.execute(str_query).fetchone()[0]
@@ -1084,6 +1086,14 @@ def close_one_round(request: Request, round_id: str, db: Session):
     calculate_stadist_of_round(db_round, db=db)
     
     if open:
+        
+        if db_round.tourney.use_segmentation:
+            # verificar si ya excedió a cantidad de rondas a bonificar
+            count_seg_round = calculate_amount_rounds_segmentated 
+            if count_seg_round + 1 > db_round.tourney.amount_segmentation_round:
+                db_round.tourney.amount_segmentation_round = False
+                db.add(db_round.tourney)
+        
         db_round_next = configure_next_rounds(db_round, db=db)
         
         configure_tables_by_round(db_round_next.tourney.id, db_round_next.id, db_round_next.tourney.modality, db_round_next.tourney.updated_by, db=db)
@@ -1286,7 +1296,6 @@ def calculate_stadist_of_round(db_round, db:Session):
           
     db.commit()
          
-    # falta el acumulado de los jugadores
     return True
       
 def verify_category_is_valid(elo_max: float, elo_min: float, lst_category: list):
