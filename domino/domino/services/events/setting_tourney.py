@@ -64,6 +64,7 @@ def get_one_configure_tourney(request:Request, tourney_id: str, db: Session):
         'amount_player': get_count_players_by_tourney(tourney_id, db=db),
         "amount_smart_tables": 0 if not db_tourney.amount_smart_tables else db_tourney.amount_smart_tables,
         "use_segmentation": True if db_tourney.use_segmentation else False,
+        'amount_segmentation_round': 0 if not db_tourney.amount_segmentation_round else db_tourney.amount_segmentation_round,
         # "use_penalty": True if db_tourney.use_penalty else False,
         # "use_bonus": True if db_tourney.use_bonus else False,
         "absences_points": db_tourney.points_for_absences if  db_tourney.points_for_absences else 0 if not db_tourney.number_points_to_win else db_tourney.number_points_to_win,
@@ -188,6 +189,10 @@ def configure_one_tourney(request, tourney_id: str, settingtourney: SettingTourn
     if db_tourney.use_segmentation != use_segmentation:
         restart_setting_round = True
         db_tourney.use_segmentation = use_segmentation
+    
+    if db_tourney.use_segmentation:    
+        if db_tourney.amount_segmentation_round != settingtourney.amount_segmentation_round:
+            db_tourney.amount_segmentation_round = settingtourney.amount_segmentation_round
     
     last_round, prevoius_round = None, None  
     if use_segmentation:

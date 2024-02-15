@@ -73,6 +73,8 @@ class SettingTourneyCreated(BaseModel):
     
     use_segmentation: Optional[bool]
     
+    amount_segmentation_round: Optional[int] 
+    
     # use_bonus: Optional[bool]
     # amount_bonus_tables: Optional[int]
     # amount_bonus_points: Optional[int]
