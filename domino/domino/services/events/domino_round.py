@@ -565,7 +565,6 @@ def printing_all_boletus(request: Request, round_id: str, printing_boletus: Bole
     locale = request.headers["accept-language"].split(",")[0].split("-")[0];
     
     result = ResultObject() 
-    currentUser = get_current_user(request) 
     
     db_round = get_one(round_id, db=db)
     if not db_round:
@@ -574,7 +573,8 @@ def printing_all_boletus(request: Request, round_id: str, printing_boletus: Bole
     dict_result = {'tourney_name': db_round.tourney.name, 'lst_boletus': []}
     
     # printing_boletus.interval == '0': # son todas las boletas de la rondas, 1, mesas indicadas
-    str_query = "Select dtab.table_number, dpairs.name, pmem.name from events.domino_boletus_position bop " +\
+    str_query = "Select dtab.table_number, dpairs.name as pairs_name, pmem.name player_name "+\
+        "from events.domino_boletus_position bop " +\
         "join events.domino_boletus dbol ON dbol.id = bop.boletus_id " +\
         "join events.domino_tables dtab ON dtab.id = dbol.table_id " +\
         "join events.domino_rounds_pairs dpairs ON dpairs.id = bop.pairs_id " +\
@@ -585,14 +585,28 @@ def printing_all_boletus(request: Request, round_id: str, printing_boletus: Bole
     if printing_boletus.interval == '1':
         str_query += "and dtab.table_number in (" + printing_boletus.interval_value + ") " 
         
-    str_query += "Order by dtab.table_number, pairs_id"
+    str_query += "Order by dtab.table_number, pairs_id, bop.position_id"
     lst_boletus = db.execute(str_query)
+    dict_tables = {}
     for item in lst_boletus:
-        dict_result['lst_boletus'].append({'round_number': db_round.round_number, 'table_number': item.table_number,
-                                           'lst_pairs': [], 'lst_player': []})
+        if item.table_number not in dict_tables:
+            dict_tables[item.table_number] = {'lst_pairs': {}, 'lst_player': {}}
+            
+        if item.pairs_name not in dict_tables[item.table_number]['lst_pairs']:
+            dict_tables[item.table_number]['lst_pairs'][item.pairs_name] = item.pairs_name
+        
+        if item.player_name not in dict_tables[item.table_number]['lst_player']:
+            dict_tables[item.table_number]['lst_player'][item.player_name] = item.player_name
     
-    result.data = dict_result
-    
+    result.data = []     
+    for item_ta_key, item_pa_value in dict_tables.items():
+        dict_element = {'round_number': db_round.round_number, 'table_number': item_ta_key}
+        dict_element['lst_pair'], dict_element['lst_player'] = [], []
+        for item_pa in item_pa_value['lst_pairs']:
+            dict_element['lst_pair'].append(item_pa)
+        for item_pla in item_pa_value['lst_player']:
+            dict_element['lst_player'].append(item_pla)
+        result.data.append(dict_element)
     return result
 
 # def close_one_round(request: Request, round_id: str, open_new: bool, db: Session):
