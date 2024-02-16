@@ -266,6 +266,10 @@ def get_info_player_of_boletus(boletus_id: str, db: Session):
     
     return lst_data
 
+def get_info_to_print(round_id: str, db:Session):
+    
+    return dict
+
 def calculate_amount_tables_playing(round_id: str, db: Session):
     
     str_query = "Select count(*) from events.domino_boletus bol " +\

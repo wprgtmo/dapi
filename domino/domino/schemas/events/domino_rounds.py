@@ -50,3 +50,11 @@ class DominoRoundsAperture(BaseModel):
     amount_bonus_points: Optional[float]
     
     lottery: Optional[list]
+    
+
+class BoletusPrinting(BaseModel):
+    
+    interval: Optional[str]
+    interval_value: Optional[str]
+    quantity_by_sheets: Optional[int]
+    

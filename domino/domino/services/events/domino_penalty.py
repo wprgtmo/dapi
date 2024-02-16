@@ -126,6 +126,42 @@ def update_one_penalty(request: Request, penalty_id: str, domino_penalty: Domino
         return result
     except (Exception, SQLAlchemyError) as e:
         return False
+    
+def remove_one_penalty(request: Request, penalty_id: str, db: Session):
+    locale = request.headers["accept-language"].split(",")[0].split("-")[0];
+    
+    result = ResultObject() 
+    
+    one_penalty = get_one_penalty(penalty_id, db=db)
+    if not one_penalty:
+        raise HTTPException(status_code=404, detail=_(locale, "penalty.not_found"))
+    
+    return result
+    
+    one_player = get_one_profile(domino_penalty.player_id, db=db)
+    if not one_player:
+        raise HTTPException(status_code=404, detail=_(locale, "player.profile_not_found"))
+    
+    penalty_type = get_type_penalty(domino_penalty.penalty_type)
+    
+    # verificar si ya tiene penalidades de ese tipo pasadas, error
+    str_query = " SELECT count(id) FROM events.domino_boletus_penalties "+\
+        "Where boletus_id='" + one_penalty.boletus_id + "' and single_profile_id='" + domino_penalty.player_id +\
+        "' and penalty_type='" + penalty_type + "'"
+    amount_pen = db.execute(str_query).fetchone()[0]
+    if amount_pen > 0:
+        raise HTTPException(status_code=404, detail=_(locale, "penalty.already_exist"))
+    
+    one_penalty.single_profile_id = one_player.id
+    one_penalty.penalty_type = penalty_type
+    one_penalty.penalty_value = domino_penalty.penalty_value
+    
+    try:
+        db.add(one_penalty)
+        db.commit()
+        return result
+    except (Exception, SQLAlchemyError) as e:
+        return False
 
 def get_one_penalty(id: str, db: Session):  
     return db.query(DominoBoletusPenalties).filter(DominoBoletusPenalties.id == id).first()

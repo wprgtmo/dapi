@@ -20,11 +20,11 @@ from os import getcwd
 from domino.models.events.domino_round import DominoRounds, DominoRoundsPairs, DominoRoundsScale
 
 from domino.schemas.resources.result_object import ResultObject
-from domino.schemas.events.domino_rounds import DominoRoundsCreated
+from domino.schemas.events.domino_rounds import DominoRoundsCreated, BoletusPrinting
 
 from domino.services.resources.status import get_one_by_name as get_one_status_by_name
 from domino.services.resources.utils import get_result_count
-from domino.services.events.domino_boletus import calculate_amount_tables_playing
+from domino.services.events.domino_boletus import calculate_amount_tables_playing, get_info_to_print
 from domino.services.events.tourney import get_one as get_tourney_by_id, calculate_amount_tables, calculate_amount_categories, \
     calculate_amount_players_playing, calculate_amount_players_by_status, get_lst_categories_of_tourney, reconfig_amount_tables
                          
@@ -553,13 +553,45 @@ def publicate_one_round(request: Request, round_id: str, db: Session):
     db.add(db_round.tourney)
     db.add(db_round.tourney.event)
     
-    print('cambie estado del evento')
-    print('****************')
-    
     db.commit()
     
     db_round_ini = get_one(round_id=round_id, db=db)
     result.data = get_obj_info_to_aperturate(db_round_ini, db) 
+    
+    return result
+
+#Metodo para imprimir todas las boletas de la ronda
+def printing_all_boletus(request: Request, round_id: str, printing_boletus: BoletusPrinting, db: Session):
+    locale = request.headers["accept-language"].split(",")[0].split("-")[0];
+    
+    result = ResultObject() 
+    currentUser = get_current_user(request) 
+    
+    db_round = get_one(round_id, db=db)
+    if not db_round:
+        raise HTTPException(status_code=404, detail=_(locale, "round.not_found"))
+    
+    dict_result = {'tourney_name': db_round.tourney.name, 'lst_boletus': []}
+    
+    # printing_boletus.interval == '0': # son todas las boletas de la rondas, 1, mesas indicadas
+    str_query = "Select dtab.table_number, dpairs.name, pmem.name from events.domino_boletus_position bop " +\
+        "join events.domino_boletus dbol ON dbol.id = bop.boletus_id " +\
+        "join events.domino_tables dtab ON dtab.id = dbol.table_id " +\
+        "join events.domino_rounds_pairs dpairs ON dpairs.id = bop.pairs_id " +\
+        "join enterprise.profile_member pmem ON pmem.id = bop.single_profile_id " +\
+        "Where dbol.round_id = '" + db_round.id + "'" +\
+        "and (motive_closed is NULL or motive_closed != 'non_completion') "
+        
+    if printing_boletus.interval == '1':
+        str_query += "and dtab.table_number in (" + printing_boletus.interval_value + ") " 
+        
+    str_query += "Order by dtab.table_number, pairs_id"
+    lst_boletus = db.execute(str_query)
+    for item in lst_boletus:
+        dict_result['lst_boletus'].append({'round_number': db_round.round_number, 'table_number': item.table_number,
+                                           'lst_pairs': [], 'lst_player': []})
+    
+    result.data = dict_result
     
     return result
 

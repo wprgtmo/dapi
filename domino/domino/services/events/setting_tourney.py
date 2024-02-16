@@ -190,7 +190,9 @@ def configure_one_tourney(request, tourney_id: str, settingtourney: SettingTourn
         restart_setting_round = True
         db_tourney.use_segmentation = use_segmentation
     
-    if db_tourney.use_segmentation:    
+    if db_tourney.use_segmentation:  
+        # validar que todos los jugadores del torneo estén incluidos en los rangos de categorias.
+        # if   
         if db_tourney.amount_segmentation_round != settingtourney.amount_segmentation_round:
             db_tourney.amount_segmentation_round = settingtourney.amount_segmentation_round
     
@@ -345,6 +347,22 @@ def validate_atributes_requiered(db_tourney, locale, number_points_to_win, time_
     
     if not number_rounds:
         raise HTTPException(status_code=404, detail=_(locale, "tourney.number_rounds_incorrect"))
+    
+    return True
+
+def verify_players_by_category(tourney_id, db:Session):
+    
+    # amount_player = 
+    
+    # calculate_amount_rounds_played(tourney_id, db: Session):
+    
+    one_status_canceled = get_one_status_by_name('CANCELLED', db=db)
+    str_count = "SELECT count(id) FROM events.domino_rounds where tourney_id = '" + str(tourney_id) + "' " +\
+        "and status_id != " + str(one_status_canceled.id)
+        
+    count_round = db.execute(str_count).fetchone()[0]
+    
+    return count_round
     
     return True
 

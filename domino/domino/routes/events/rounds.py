@@ -8,17 +8,17 @@ from domino.auth_bearer import JWTBearer
 from domino.schemas.resources.result_object import ResultObject
 from domino.schemas.events.domino_data import DominoDataCreated
 from domino.schemas.events.domino_penalties import DominoPenaltiesCreated, DominoAbsencesCreated, DominoAnnulledCreated
-from domino.schemas.events.domino_rounds import DominoRoundsCreated, DominoRoundsAperture
+from domino.schemas.events.domino_rounds import DominoRoundsCreated, DominoRoundsAperture, BoletusPrinting
 
 from domino.services.events.domino_round import get_all, get_one_by_id, start_one_round, get_info_to_aperture, \
-    publicate_one_round
+    publicate_one_round, printing_all_boletus
     
 from domino.services.events.domino_scale import get_all_players_by_tables, get_all_players_by_tables_and_round, \
     get_all_scale_by_round, get_all_tables_by_round, aperture_new_round, get_all_scale_by_round_by_pairs, close_one_round, \
     get_all_scale_acumulate, create_new_round, restart_one_round
 from domino.services.events.domino_data import get_all_data_by_boletus, new_data, close_data_by_time, updated_data
 from domino.services.events.domino_penalty import new as new_penalty, new_absences, get_penalty_by_boletus, \
-    update_one_penalty, new_annulled, get_all_reason_no_update, reopen_one_boletus
+    update_one_penalty, new_annulled, get_all_reason_no_update, reopen_one_boletus, remove_one_penalty
   
 rounds_route = APIRouter(
     tags=["Rounds"],
@@ -141,6 +141,10 @@ def insert_penalty(request: Request, id: str, dominopenalty: DominoPenaltiesCrea
 def update_penalty(request: Request, id: str, dominopenalty: DominoPenaltiesCreated, db: Session = Depends(get_db)):
     return update_one_penalty(request=request, penalty_id=id, domino_penalty=dominopenalty, db=db)
 
+@rounds_route.delete("/rounds/boletus/penalty/{id}", response_model=ResultObject, summary="Delete Info of Penalty")
+def remove_penalty(request: Request, id: str, db: Session = Depends(get_db)):
+    return remove_one_penalty(request=request, penalty_id=id, domino_penalty=dominopenalty, db=db)
+
 @rounds_route.post("/rounds/boletus/absences/{id}", response_model=ResultObject, summary="Close Boletus por absences or abandon")
 def insert_absences(request: Request, id: str, players: DominoAbsencesCreated, db: Session = Depends(get_db)):
     return new_absences(request=request, boletus_id=id, players=players, db=db)
@@ -153,9 +157,9 @@ def insert_annulled(request: Request, id: str, domino_annulled: DominoAnnulledCr
 def get_reason_noupdate(request: Request, id: str, db: Session = Depends(get_db)):
     return get_all_reason_no_update(request=request, boletus_id=id, db=db)
 
-@rounds_route.post("/rounds/boletus/notupdate/{id}", response_model=ResultObject, summary="Reopen Boletus")
-def reopen_boletus(request: Request, id: str, db: Session = Depends(get_db)):
-    return reopen_one_boletus(request=request, boletus_id=id, db=db)
+@rounds_route.post("/rounds/boletus/printing/{id}", response_model=ResultObject, summary="Boletus printing")
+def printing_boletus(request: Request, id: str, printing_boletus: BoletusPrinting, db: Session = Depends(get_db)):
+    return printing_all_boletus(request=request, round_id=id, printing_boletus=printing_boletus, db=db)
 
 @rounds_route.post("/rounds/actions/create/{tourney_id}", response_model=ResultObject, summary="Aperturate new Round not setting.")
 def created_round(request: Request, tourney_id: str, db: Session = Depends(get_db)):
