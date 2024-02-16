@@ -19,6 +19,8 @@ from os import getcwd
 
 from domino.models.events.domino_round import DominoRounds, DominoRoundsPairs, DominoRoundsScale
 
+from domino.services.enterprise.auth import get_url_smartdomino
+
 from domino.schemas.resources.result_object import ResultObject
 from domino.schemas.events.domino_rounds import DominoRoundsCreated, BoletusPrinting
 
@@ -564,13 +566,13 @@ def publicate_one_round(request: Request, round_id: str, db: Session):
 def printing_all_boletus(request: Request, round_id: str, printing_boletus: BoletusPrinting, db: Session):
     locale = request.headers["accept-language"].split(",")[0].split("-")[0];
     
+    api_uri = str(settings.api_uri)
+    
     result = ResultObject() 
     
     db_round = get_one(round_id, db=db)
     if not db_round:
         raise HTTPException(status_code=404, detail=_(locale, "round.not_found"))
-    
-    dict_result = {'tourney_name': db_round.tourney.name, 'lst_boletus': []}
     
     # printing_boletus.interval == '0': # son todas las boletas de la rondas, 1, mesas indicadas
     str_query = "Select dtab.table_number, dpairs.name as pairs_name, pmem.name player_name "+\
@@ -598,6 +600,9 @@ def printing_all_boletus(request: Request, round_id: str, printing_boletus: Bole
         if item.player_name not in dict_tables[item.table_number]['lst_player']:
             dict_tables[item.table_number]['lst_player'][item.player_name] = item.player_name
     
+    image = get_url_smartdomino(api_uri=api_uri)
+    dict_result = {'round_number': db_round.round_number, 'image': image, 'lst_tables': []}
+    
     result.data = []     
     for item_ta_key, item_pa_value in dict_tables.items():
         dict_element = {'round_number': db_round.round_number, 'table_number': item_ta_key}
@@ -606,7 +611,10 @@ def printing_all_boletus(request: Request, round_id: str, printing_boletus: Bole
             dict_element['lst_pair'].append(item_pa)
         for item_pla in item_pa_value['lst_player']:
             dict_element['lst_player'].append(item_pla)
-        result.data.append(dict_element)
+        dict_result['lst_tables'].append(dict_element)
+    
+    result.data = dict_result
+        
     return result
 
 # def close_one_round(request: Request, round_id: str, open_new: bool, db: Session):

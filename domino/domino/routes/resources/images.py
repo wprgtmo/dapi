@@ -47,6 +47,10 @@ def getAvatar(user_id: str, file_name: str):
 @image_route.get("/advertising/{tourney_id}/{file_name}", summary="Mostrar imagen de una publicidad")
 def getAdvertising(tourney_id: str, file_name: str):
     return FileResponse(getcwd() + "/public/advertising/" + tourney_id + "/" + file_name)
+
+@image_route.get("/", summary="Mostrar imagen de la compañía")
+def getSmartDomino():
+    return FileResponse(getcwd() + "/public/smartdomino.png")
      
 def send_bytes_range_requests(
     file_obj: BinaryIO, start: int, end: int, chunk_size: int = 10_000
