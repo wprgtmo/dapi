@@ -143,7 +143,7 @@ def update_penalty(request: Request, id: str, dominopenalty: DominoPenaltiesCrea
 
 @rounds_route.delete("/rounds/boletus/penalty/{id}", response_model=ResultObject, summary="Delete Info of Penalty")
 def remove_penalty(request: Request, id: str, db: Session = Depends(get_db)):
-    return remove_one_penalty(request=request, penalty_id=id, domino_penalty=dominopenalty, db=db)
+    return remove_one_penalty(request=request, penalty_id=id, db=db)
 
 @rounds_route.post("/rounds/boletus/absences/{id}", response_model=ResultObject, summary="Close Boletus por absences or abandon")
 def insert_absences(request: Request, id: str, players: DominoAbsencesCreated, db: Session = Depends(get_db)):
