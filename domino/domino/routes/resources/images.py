@@ -48,7 +48,7 @@ def getAvatar(user_id: str, file_name: str):
 def getAdvertising(tourney_id: str, file_name: str):
     return FileResponse(getcwd() + "/public/advertising/" + tourney_id + "/" + file_name)
 
-@image_route.get("/", summary="Mostrar imagen de la compañía")
+@image_route.get("/default/", summary="Mostrar imagen de la compañía")
 def getSmartDomino():
     return FileResponse(getcwd() + "/public/smartdomino.png")
      
