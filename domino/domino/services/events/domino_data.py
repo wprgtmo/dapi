@@ -22,7 +22,7 @@ from domino.schemas.resources.result_object import ResultObject
 from domino.schemas.events.domino_data import DominoDataCreated
 
 from domino.services.events.domino_boletus import get_one as get_one_boletus, get_one_boletus_pair, get_info_player_of_boletus,\
-    calculat_at_close_boletus
+    calculat_at_close_boletus, clear_info_at_close_boletus
 from domino.services.events.domino_scale import update_info_pairs, close_round_with_verify
 from domino.services.resources.status import get_one_by_name as get_one_status_by_name
 from domino.services.resources.utils import get_result_count
@@ -213,6 +213,33 @@ def close_boletus(one_boletus, username, db: Session, verify_points=True, motive
             one_boletus.rounds.updated_date = datetime.now()
             db.add(one_boletus.rounds)
             db.commit() 
+    
+    db_round_ini = get_one_round(round_id=one_boletus.round_id, db=db)
+    result_data = get_obj_info_to_aperturate(db_round_ini, db) 
+            
+    return result_data
+
+def reopen_one_boletus(request: Request, boletus_id: str,  db: Session):
+    locale = request.headers["accept-language"].split(",")[0].split("-")[0];
+    currentUser = get_current_user(request)
+    
+    one_boletus = get_one_boletus(boletus_id, db=db)
+    if not one_boletus:
+        raise HTTPException(status_code=404, detail=_(locale, "boletus.not_found"))
+        
+    one_status_init = get_one_status_by_name('INITIADED', db=db)
+    one_boletus.status_id = one_status_init.id
+    one_boletus.updated_by = currentUser['username']
+    one_boletus.updated_date = datetime.now()
+    one_boletus.can_update = True
+    one_boletus.motive_closed=None
+    one_boletus.motive_closed_description=None
+    db.add(one_boletus)
+    db.commit() 
+        
+    clear_info_at_close_boletus(one_boletus, db=db)
+    
+    db.commit() 
     
     db_round_ini = get_one_round(round_id=one_boletus.round_id, db=db)
     result_data = get_obj_info_to_aperturate(db_round_ini, db) 

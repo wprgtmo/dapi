@@ -92,41 +92,7 @@ def new(request: Request, boletus_id: str, domino_penalty: DominoPenaltiesCreate
         return result
     except (Exception, SQLAlchemyError) as e:
         return False
-    
-def update_one_penalty(request: Request, penalty_id: str, domino_penalty: DominoPenaltiesCreated, db: Session):
-    locale = request.headers["accept-language"].split(",")[0].split("-")[0];
-    
-    result = ResultObject() 
-    
-    one_penalty = get_one_penalty(penalty_id, db=db)
-    if not one_penalty:
-        raise HTTPException(status_code=404, detail=_(locale, "penalty.not_found"))
-    
-    one_player = get_one_profile(domino_penalty.player_id, db=db)
-    if not one_player:
-        raise HTTPException(status_code=404, detail=_(locale, "player.profile_not_found"))
-    
-    penalty_type = get_type_penalty(domino_penalty.penalty_type)
-    
-    # verificar si ya tiene penalidades de ese tipo pasadas, error
-    str_query = " SELECT count(id) FROM events.domino_boletus_penalties "+\
-        "Where boletus_id='" + one_penalty.boletus_id + "' and single_profile_id='" + domino_penalty.player_id +\
-        "' and penalty_type='" + penalty_type + "'"
-    amount_pen = db.execute(str_query).fetchone()[0]
-    if amount_pen > 0:
-        raise HTTPException(status_code=404, detail=_(locale, "penalty.already_exist"))
-    
-    one_penalty.single_profile_id = one_player.id
-    one_penalty.penalty_type = penalty_type
-    one_penalty.penalty_value = domino_penalty.penalty_value
-    
-    try:
-        db.add(one_penalty)
-        db.commit()
-        return result
-    except (Exception, SQLAlchemyError) as e:
-        return False
-    
+   
 def remove_one_penalty(request: Request, penalty_id: str, db: Session):
     locale = request.headers["accept-language"].split(",")[0].split("-")[0];
     
@@ -136,28 +102,12 @@ def remove_one_penalty(request: Request, penalty_id: str, db: Session):
     if not one_penalty:
         raise HTTPException(status_code=404, detail=_(locale, "penalty.not_found"))
     
-    return result
-    
-    one_player = get_one_profile(domino_penalty.player_id, db=db)
-    if not one_player:
-        raise HTTPException(status_code=404, detail=_(locale, "player.profile_not_found"))
-    
-    penalty_type = get_type_penalty(domino_penalty.penalty_type)
-    
-    # verificar si ya tiene penalidades de ese tipo pasadas, error
-    str_query = " SELECT count(id) FROM events.domino_boletus_penalties "+\
-        "Where boletus_id='" + one_penalty.boletus_id + "' and single_profile_id='" + domino_penalty.player_id +\
-        "' and penalty_type='" + penalty_type + "'"
-    amount_pen = db.execute(str_query).fetchone()[0]
-    if amount_pen > 0:
-        raise HTTPException(status_code=404, detail=_(locale, "penalty.already_exist"))
-    
-    one_penalty.single_profile_id = one_player.id
-    one_penalty.penalty_type = penalty_type
-    one_penalty.penalty_value = domino_penalty.penalty_value
+    # si la ronda esta cerrada no se puede eliminar
+    if one_penalty.boletus.status.name == 'FINALIZED':
+        raise HTTPException(status_code=404, detail=_(locale, "boletus.status_incorrect"))
     
     try:
-        db.add(one_penalty)
+        db.delete(one_penalty)
         db.commit()
         return result
     except (Exception, SQLAlchemyError) as e:
@@ -260,39 +210,6 @@ def get_all_reason_no_update(request:Request, boletus_id: str, db: Session):
     result.data = dict_result
     return result
 
-def reopen_one_boletus(request: Request, boletus_id: str,  db: Session):
-    locale = request.headers["accept-language"].split(",")[0].split("-")[0];
-    
-    result = ResultObject() 
-    
-    one_boletus = get_one_boletus(boletus_id, db=db)
-    if not one_boletus:
-        raise HTTPException(status_code=404, detail=_(locale, "boletus.not_found"))
-    
-    annulled_type = get_type_annulled(domino_annulled.annulled_type)
-    one_player = None
-    if domino_annulled.annulled_type == '2':  # Conducta antidepoprtiva debe traer un jugador 
-        if not domino_annulled.player: 
-            raise HTTPException(status_code=404, detail=_(locale, "penalty.player_is_requeried"))
-          
-        one_player = get_one_profile(domino_annulled.player_id, db=db)
-        if not one_player:
-            raise HTTPException(status_code=404, detail=_(locale, "player.profile_not_found"))
-    
-    # quitar los puntos a todos los jugadores y calcular las estadísticas de ellos
-    # si fue explusado, cambiar el estado del jugador
-    
-    force_annulled_boletus(one_boletus, domino_annulled.annulled_type, annulled_type, db=db, player_id=one_player.id if one_player else None)
-    
-    one_boletus.is_valid = False
-    
-    try:
-        db.add(one_boletus)
-        db.commit()
-        return result
-    except (Exception, SQLAlchemyError) as e:
-        return False
-           
 def force_closing_boletus(one_boletus, lst_players: List, motive_closed:str, motive_closed_description:str, db: Session):
     
     point_to_win = one_boletus.tourney.points_for_absences if one_boletus.tourney.points_for_absences else 200

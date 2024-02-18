@@ -16,9 +16,9 @@ from domino.services.events.domino_round import get_all, get_one_by_id, start_on
 from domino.services.events.domino_scale import get_all_players_by_tables, get_all_players_by_tables_and_round, \
     get_all_scale_by_round, get_all_tables_by_round, aperture_new_round, get_all_scale_by_round_by_pairs, close_one_round, \
     get_all_scale_acumulate, create_new_round, restart_one_round
-from domino.services.events.domino_data import get_all_data_by_boletus, new_data, close_data_by_time, updated_data
+from domino.services.events.domino_data import get_all_data_by_boletus, new_data, close_data_by_time, updated_data, reopen_one_boletus
 from domino.services.events.domino_penalty import new as new_penalty, new_absences, get_penalty_by_boletus, \
-    update_one_penalty, new_annulled, get_all_reason_no_update, reopen_one_boletus, remove_one_penalty
+    new_annulled, get_all_reason_no_update, remove_one_penalty
   
 rounds_route = APIRouter(
     tags=["Rounds"],
@@ -137,10 +137,6 @@ def get_penalty(request: Request, id: str, db: Session = Depends(get_db)):
 def insert_penalty(request: Request, id: str, dominopenalty: DominoPenaltiesCreated, db: Session = Depends(get_db)):
     return new_penalty(request=request, boletus_id=id, domino_penalty=dominopenalty, db=db)
 
-@rounds_route.put("/rounds/boletus/penalty/{id}", response_model=ResultObject, summary="Update Info of Penalty")
-def update_penalty(request: Request, id: str, dominopenalty: DominoPenaltiesCreated, db: Session = Depends(get_db)):
-    return update_one_penalty(request=request, penalty_id=id, domino_penalty=dominopenalty, db=db)
-
 @rounds_route.delete("/rounds/boletus/penalty/{id}", response_model=ResultObject, summary="Delete Info of Penalty")
 def remove_penalty(request: Request, id: str, db: Session = Depends(get_db)):
     return remove_one_penalty(request=request, penalty_id=id, db=db)
@@ -156,6 +152,10 @@ def insert_annulled(request: Request, id: str, domino_annulled: DominoAnnulledCr
 @rounds_route.get("/rounds/boletus/notupdate/{id}", response_model=Dict, summary="Get non-update reason")
 def get_reason_noupdate(request: Request, id: str, db: Session = Depends(get_db)):
     return get_all_reason_no_update(request=request, boletus_id=id, db=db)
+
+@rounds_route.post("/rounds/boletus/notupdate/{id}", response_model=Dict, summary="Reopen Boletus")
+def clear_reason_noupdate(request: Request, id: str, db: Session = Depends(get_db)):
+    return reopen_one_boletus(request=request, boletus_id=id, db=db)
 
 @rounds_route.post("/rounds/boletus/printing/{id}", response_model=ResultObject, summary="Boletus printing")
 def printing_boletus(request: Request, id: str, printing_boletus: BoletusPrinting, db: Session = Depends(get_db)):

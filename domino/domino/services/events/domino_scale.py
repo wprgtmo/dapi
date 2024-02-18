@@ -627,7 +627,7 @@ def create_dict_row_scale_acum(item, position_number, db: Session, api_uri):
                'score_obtained': round(item['score_obtained'],4) if item['score_obtained'] else 0,
                'k_value': round(item['k_value'],4) if item['k_value'] else 0,
                'elo_at_end': round(item['elo_at_end'],4) if item['elo_at_end'] else 0,
-               'bonus_points': 0, 'penalty_yellow': 0, 'penalty_red': 0, 'penalty_total': 0}
+               'bonus_points': 0}
     position_number += 1
     
     return new_row
