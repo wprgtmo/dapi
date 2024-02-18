@@ -104,6 +104,7 @@ es:
     category_not_player: "Categoría sin jugadores, no puede ser creada"
     name_incorrect: 'Nombre de Torneo incorrecto'
     number_rounds_incorrect: 'Número de rondas incorrecto'
+    exist_player_not_categories: 'Existen jugadores con la categoría no definida'
   invitation:
     not_exist: 'Invitación no existe.'
     not_found: 'Invitación no existe.'

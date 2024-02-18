@@ -595,6 +595,81 @@ def insert_categories_tourney(request, tourney_id: str, categories: DominoCatego
     if db_tourney.status.name == 'FINALIZED':
         raise HTTPException(status_code=404, detail=_(locale, "tourney.is_configurated"))
     
+    categories.category_type = 'ELO'
+    if categories.category_type == 'ELO':
+        result.data = insert_player_by_elo_category(locale, tourney_id, categories, db=db)
+        return result
+    elif categories.category_type == 'LEVEL':
+        result.data = insert_player_by_level_category(locale, tourney_id, categories, db=db)
+    elif categories.category_type == 'LEVEL':
+        result.data = insert_player_by_level_category(locale, tourney_id, categories, db=db)
+        
+    return result
+    # except (Exception, SQLAlchemyError, IntegrityError) as e:
+    #     return result
+
+def insert_player_by_elo_category(locale, tourney_id: str, categories: DominoCategoryCreated, db: Session):
+    
+    position_number, elo_min, by_default = 0, 0, False
+    str_query = "SELECT position_number, elo_min, by_default FROM events.domino_categories where tourney_id = '" + tourney_id + "' " +\
+        "ORDER BY elo_min DESC limit 1 "
+    lst_info = db.execute(str_query).fetchone()
+    if lst_info:
+        position_number = lst_info[0]
+        elo_min = lst_info[1]
+        by_default = lst_info[2]
+
+    if by_default:  
+        str_delete = "DELETE FROM events.domino_categories where tourney_id = '" + tourney_id + "'; COMMIT; "
+        lst_info = db.execute(str_delete)
+    else:
+        if elo_min and categories.elo_max >= elo_min:
+            raise HTTPException(status_code=404, detail=_(locale, "tourney.elo_max_incorrect"))
+    
+    status_canc = get_one_status_by_name('CANCELLED', db=db)    
+    str_query = "SELECT count(player.id) FROM events.players player WHERE status_id != " + str(status_canc.id)
+    str_query += " AND player.tourney_id = '" + tourney_id + "' "  +\
+        "AND player.elo >= " + str(categories.elo_min) + " AND player.elo <= " + str(categories.elo_max)
+    amount_players = db.execute(str_query).fetchone()[0]
+    
+    if amount_players <= 1:
+        raise HTTPException(status_code=404, detail=_(locale, "tourney.category_not_player"))
+    
+    position_number += 1
+    db_one_category = DominoCategory(id=str(uuid.uuid4()), tourney_id=tourney_id, category_number=categories.category_number,
+                                     position_number=position_number, elo_min=categories.elo_min, elo_max=categories.elo_max,
+                                     amount_players=amount_players, by_default=False) 
+    
+    db.add(db_one_category)
+    db.commit()
+    
+    # marcar a los jugadores en ella contenidos
+    str_query = "SELECT player.id FROM events.players player WHERE status_id != " + str(status_canc.id)
+    str_query += " AND player.tourney_id = '" + tourney_id + "' "  +\
+        "AND player.elo >= " + str(categories.elo_min) + " AND player.elo <= " + str(categories.elo_max)
+    lst_players = db.execute(str_query)
+    str_player = ""
+    for item_pa in lst_players:  
+        str_player += "'" + item_pa.id + "',"
+    
+    if str_player:    
+        str_player = str_player[:-1] if str_player else str_player
+        update_category_at_players(db_one_category.id, db_one_category.category_number, str_player, db=db)
+    
+    return True
+    
+def update_category_at_players(category_id:str, category_number:int, str_players: str, db:Session):
+    
+    str_update = "UPDATE events.players_users SET category_id='" + category_id +\
+        "', category_number=" + str(category_number) + " WHERE player_id IN (" + str_players + "); COMMIT;"
+    db.execute(str_update)
+    
+    db.commit()
+    
+    return True
+
+def insert_player_by_level_category(locale, tourney_id: str, categories: DominoCategoryCreated, db: Session):
+    
     position_number, elo_min, by_default = 0, 0, False
     str_query = "SELECT position_number, elo_min, by_default FROM events.domino_categories where tourney_id = '" + tourney_id + "' " +\
         "ORDER BY elo_min DESC limit 1 "
@@ -629,10 +704,10 @@ def insert_categories_tourney(request, tourney_id: str, categories: DominoCatego
     
     # try:
     db.commit()
-    return result
+    return True
     # except (Exception, SQLAlchemyError, IntegrityError) as e:
-    #     return result
-    
+    #     return False
+        
 def update_amount_player_by_categories(tourney_id: str, db: Session):
     
     lst_categories = get_categories_of_tourney(tourney_id, db=db)
@@ -658,12 +733,16 @@ def delete_categories_tourney(request, category_id: str, db: Session):
     if db_category.tourney.status.name == 'FINALIZED':
         raise HTTPException(status_code=404, detail=_(locale, "tourney.is_configurated"))
     
-    try:
-        db.delete(db_category)
-        db.commit()
-        return result
-    except (Exception, SQLAlchemyError, IntegrityError) as e:
-        return result
+    # try:
+        
+    str_update = "UPDATE events.players_users SET category_id=NULL, category_number=NULL" +\
+            " WHERE category_id='" + db_category.id + "'; COMMIT;"
+    db.execute(str_update)
+    db.delete(db_category)
+    db.commit()
+    return result
+    # except (Exception, SQLAlchemyError, IntegrityError) as e:
+    #     return result
 
 def get_all_categories_tourney(request:Request, tourney_id: str, db: Session):
     locale = request.headers["accept-language"].split(",")[0].split("-")[0];
@@ -774,6 +853,6 @@ def get_values_elo_by_tourney(tourney_id: str, db: Session):
 
 def get_factor_scale():
     
-    K1 = 4 # por ahora será fijo en 4 hasta que me digan bien la formula
+    K1 = 16 # por ahora será fijo en 4 hasta que me digan bien la formula
     
     return K1

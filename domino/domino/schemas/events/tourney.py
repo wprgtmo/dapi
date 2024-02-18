@@ -103,3 +103,5 @@ class DominoCategoryCreated(BaseModel):
     elo_max: float
     amount_players: int = 0
     
+    category_type: Optional[str] = 'ELO'
+    

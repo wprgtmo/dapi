@@ -6,7 +6,7 @@ from domino.app import get_db
 from typing import List, Dict
 
 from domino.schemas.resources.result_object import ResultObject
-from domino.schemas.events.player import PlayerRegister, PlayerEloBase
+from domino.schemas.events.player import PlayerRegister, PlayerEloBase, PlayerUpdatedRegister
 
 from domino.services.events.player import new, remove_player, get_all_players_by_tourney, reject_one_invitation, \
     get_all_players_by_elo, get_number_players_by_elo, change_status_player, register_new_player, update_image_one_player, \
@@ -79,7 +79,7 @@ def update_image_player(request:Request, player_id: str, image: UploadFile = "",
     return update_image_one_player(request=request, player_id=str(player_id), db=db, file=image)
 
 @player_route.put("/player/register/{player_id}", response_model=ResultObject, summary="Update Register of player")
-def update_register_player(request:Request, player_id: str, player_register: PlayerRegister, db: Session = Depends(get_db)):
+def update_register_player(request:Request, player_id: str, player_register: PlayerUpdatedRegister, db: Session = Depends(get_db)):
     return update_register_one_player(request=request, player_id=player_id, player_register=player_register, db=db)
 
 @player_route.get("/player/register/{player_id}", response_model=ResultObject, summary="Get register of Single Player.")

@@ -66,6 +66,25 @@ class PlayerRegister(BaseModel):
             raise ValueError('Dirección de Correo es Requerida')
         return email
     
+class PlayerUpdatedRegister(BaseModel):
+    
+    name: str
+    email: str
+    elo: Optional[float]
+    level: Optional[str]
+    
+    @validator('name')
+    def name_not_empty(cls, name):
+        if not name:
+            raise ValueError('Nombre del Jugador es Requerido')
+        return name
+    
+    @validator('email')
+    def email_not_empty(cls, email):
+        if not email:
+            raise ValueError('Dirección de Correo es Requerida')
+        return email
+    
 class PlayerEloBase(BaseModel):
     
     profile_id: str

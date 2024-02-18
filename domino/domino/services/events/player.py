@@ -19,7 +19,7 @@ from domino.models.events.player import Players, PlayersUser
 from domino.models.events.invitations import Invitations
 
 from domino.schemas.resources.result_object import ResultObject, ResultData
-from domino.schemas.events.player import PlayerRegister, PlayerEloBase
+from domino.schemas.events.player import PlayerRegister, PlayerEloBase, PlayerUpdatedRegister
 
 from domino.services.enterprise.profiletype import get_one_by_name as get_profile_type_by_name
 from domino.services.resources.status import get_one_by_name, get_one as get_one_status
@@ -156,7 +156,7 @@ def register_new_player(request: Request, tourney_id: str, player_register: Play
     except (Exception, SQLAlchemyError) as e:
         return False
 
-def update_register_one_player(request: Request, player_id: str, player_register: PlayerRegister, db: Session):
+def update_register_one_player(request: Request, player_id: str, player_register: PlayerUpdatedRegister, db: Session):
     locale = request.headers["accept-language"].split(",")[0].split("-")[0];
     
     result = ResultObject() 
@@ -167,7 +167,21 @@ def update_register_one_player(request: Request, player_id: str, player_register
         raise HTTPException(status_code=404, detail=_(locale, "player.not_found"))
     
     db_player.elo = player_register.elo
+    db_player.level = player_register.level
     
+    # actualizar sus datos de jugador simple
+    
+    one_profile = get_one_profile(db_player.profile_id, db=db)
+    if not one_profile:
+        raise HTTPException(status_code=404, detail=_(locale, "player.not_found"))
+    
+    one_profile.email = player_register.email
+    
+    # buscarlo en la tabla de jugadores y actualizar estos datos
+    str_update = "Update events.players_users pu pu SET elo = " + str(float(player_register.elo)) + ", level = '" +\
+        player_register.level + "' FROM events.players pa WHERE WHERE pa.id = pu.player_id " +\
+        " pa.tourney_id = '" + db_player.tourney_id + "' and pu.profile_id = '" + db_player.profile_id + "'; COMMIT; "
+        
     try:
         db.add(db_player)
         db.commit()

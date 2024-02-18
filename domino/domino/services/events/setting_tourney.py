@@ -31,7 +31,8 @@ from domino.services.events.invitations import get_amount_invitations_by_tourney
 
 from domino.services.events.tourney import get_one as get_one_tourney, calculate_amount_tables, \
     get_count_players_by_tourney, get_values_elo_by_tourney, get_lst_categories_of_tourney, get_categories_of_tourney,\
-    create_category_by_default, update_amount_player_by_categories, calculate_amount_categories
+    create_category_by_default, update_amount_player_by_categories, calculate_amount_categories, \
+    calculate_amount_players_playing
 from domino.services.enterprise.auth import get_url_advertising
 
 def get_one_configure_tourney(request:Request, tourney_id: str, db: Session):  
@@ -190,9 +191,16 @@ def configure_one_tourney(request, tourney_id: str, settingtourney: SettingTourn
         restart_setting_round = True
         db_tourney.use_segmentation = use_segmentation
     
+    print('segmentation')
+    print( db_tourney.use_segmentation)
+    
     if db_tourney.use_segmentation:  
         # validar que todos los jugadores del torneo estén incluidos en los rangos de categorias.
-        # if   
+        # validar si todos los jugadores del torneo están en alguna categoria
+        print('verificar')
+        if not verify_players_by_category(db_tourney.id, db=db):
+            raise HTTPException(status_code=404, detail=_(locale, "tourney.exist_player_not_categories"))
+        
         if db_tourney.amount_segmentation_round != settingtourney.amount_segmentation_round:
             db_tourney.amount_segmentation_round = settingtourney.amount_segmentation_round
     
@@ -209,7 +217,8 @@ def configure_one_tourney(request, tourney_id: str, settingtourney: SettingTourn
         amount_category = calculate_amount_categories(db_tourney.id, db=db)
         if amount_category < 1:
             raise HTTPException(status_code=404, detail=_(locale, "tourney.amount_categories_incorrect"))
-    
+        
+        
     # use_bonus = True if settingtourney.use_bonus and settingtourney.use_bonus == True else False
     # if use_bonus:
     #     # debo verificar si existe una ronda anterior y en esta no se uso bonificacion, no se puede modificar el dato ya.
@@ -352,20 +361,13 @@ def validate_atributes_requiered(db_tourney, locale, number_points_to_win, time_
 
 def verify_players_by_category(tourney_id, db:Session):
     
-    # amount_player = 
-    
-    # calculate_amount_rounds_played(tourney_id, db: Session):
-    
-    one_status_canceled = get_one_status_by_name('CANCELLED', db=db)
-    str_count = "SELECT count(id) FROM events.domino_rounds where tourney_id = '" + str(tourney_id) + "' " +\
-        "and status_id != " + str(one_status_canceled.id)
+    str_count = "SELECT count(id) FROM events.players_users  pu join events.players pa ON pa.id = pu.player_id " +\
+        "Where pa.tourney_id = '" + str(tourney_id) + "' AND category_id is NULL "
         
     count_round = db.execute(str_count).fetchone()[0]
     
-    return count_round
-    
-    return True
-
+    return True if count_round == 0 else False
+  
 def update_initializes_tourney(db_tourney, locale, db:Session):
     
     # esto es por si se queda por calculos

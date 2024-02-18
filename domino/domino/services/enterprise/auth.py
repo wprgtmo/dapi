@@ -97,4 +97,4 @@ def get_url_smartdomino(api_uri=''):
 
     api_uri = str(settings.api_uri) if not api_uri else api_uri
     
-    return api_uri + "/api/default/smartdomino.png"
+    return api_uri + "/api/default"
