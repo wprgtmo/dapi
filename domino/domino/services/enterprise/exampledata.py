@@ -177,7 +177,7 @@ def create_generic_user(request:Request, usercreated: UserCreate, city_name:str,
     #     print(usercreated.username)
     #     return True
     
-    return True
+    return user_id
     
 def insert_others_profiles(request:Request, db: Session):
     
@@ -352,7 +352,7 @@ def create_single_player(request:Request, item, city_name:str, db: Session):
     except (Exception, SQLAlchemyError) as e:
         return True
 
-def create_single_player_from_file(request:Request, username, name, city, elo, db: Session):
+def create_single_player_from_file(request:Request, username, name, city, elo, db: Session, user_id=''):
     
     profile_type = get_profile_type_by_name("SINGLE_PLAYER", db=db)
     if not profile_type:
@@ -366,7 +366,7 @@ def create_single_player_from_file(request:Request, username, name, city, elo, d
     one_profile = new_profile(profile_type, id, profile_id, username, name, None, city.id if city else None, True, True, True, 
                               "USERPROFILE", username, username, None, is_confirmed=True, single_profile_id=id)
     
-    one_single_player = SingleProfile(profile_id=id, elo=elo, level='NORMAL', updated_by=username)
+    one_single_player = SingleProfile(profile_id=id, elo=elo, level='NORMAL', updated_by=username, profile_user_id=user_id)
     one_profile.profile_single_player.append(one_single_player)
     
     try:   
@@ -899,9 +899,9 @@ def insert_user_eeuu_examples_by_csv(request:Request, db: Session):
         one_user = UserCreate(username=user_name, first_name=item.nombre, last_name=item.apellidos if item.apellidos else '',
                               country_id=country.id, password='Dom.1234*')
         
-        create_generic_user(request, one_user, None, db=db)
+        user_id = create_generic_user(request, one_user, None, db=db)
         player_name = item.nombre + ' ' + item.apellidos if item.apellidos else ''
-        create_single_player_from_file(request, user_name, player_name, None, item.elo_inicial, db=db)
+        create_single_player_from_file(request, user_name, player_name, None, item.elo_inicial, db=db, user_id=user_id)
 
     return True
 
