@@ -477,7 +477,7 @@ def get_all_scale_by_round(request:Request, page: int, per_page: int, round_id: 
         
     str_count = "Select count(*) " + str_from
     str_query = "SELECT players.id player_id, mmb.id profile_id, mmb.name profile_name, mmb.photo, rsca.position_number, " +\
-        "rsca.elo, rsca.elo_variable, rsca.games_played, " +\
+        "rsca.elo, rsca.elo_variable, rsca.games_played, rsca.elo_ra, " +\
         "rsca.games_won, rsca.games_lost, rsca.points_positive, rsca.points_negative, rsca.points_difference, " +\
         "score_expected, score_obtained, k_value, elo_at_end, bonus_points, rsca.penalty_points, " +\
         "sta.id as status_id, sta.name as status_name, sta.description as status_description " + str_from
@@ -599,7 +599,7 @@ def create_dict_row_scale(item, db: Session, api_uri):
                'score_obtained': round(item['score_obtained'],2) if item['score_obtained'] else 0,
                'k_value': round(item['k_value'],4) if item['k_value'] else 0,
                'elo_at_end': round(item['elo_at_end'],2) if item['elo_at_end'] else 0,
-               'bonus_points': 0, 
+               'bonus_points': 0, 'elo_ra': item['elo_ra'] if item['elo_ra'] else 0,
                'status_id': item['status_id'], 'status_name': item['status_name'], 
                'status_description': item['status_description']}
     
