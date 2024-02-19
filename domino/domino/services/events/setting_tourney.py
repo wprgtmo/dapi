@@ -191,13 +191,12 @@ def configure_one_tourney(request, tourney_id: str, settingtourney: SettingTourn
         restart_setting_round = True
         db_tourney.use_segmentation = use_segmentation
     
-    print('segmentation')
-    print( db_tourney.use_segmentation)
-    
     if db_tourney.use_segmentation:  
         # validar que todos los jugadores del torneo estén incluidos en los rangos de categorias.
         # validar si todos los jugadores del torneo están en alguna categoria
-        print('verificar')
+        if not settingtourney.amount_segmentation_round:
+            raise HTTPException(status_code=404, detail=_(locale, "tourney.amount_segmentation_round_is_req"))
+        
         if not verify_players_by_category(db_tourney.id, db=db):
             raise HTTPException(status_code=404, detail=_(locale, "tourney.exist_player_not_categories"))
         
@@ -257,21 +256,21 @@ def configure_one_tourney(request, tourney_id: str, settingtourney: SettingTourn
     if settingtourney.round_ordering_dir_one and db_tourney.round_ordering_dir_one != str(settingtourney.round_ordering_dir_one):
         db_tourney.round_ordering_dir_one = str(settingtourney.round_ordering_dir_one)
     if not db_tourney.round_ordering_dir_one:
-        db_tourney.round_ordering_dir_one = "ASC" 
+        db_tourney.round_ordering_dir_one = "DESC" 
         
     if settingtourney.round_ordering_two and db_tourney.round_ordering_two != str(settingtourney.round_ordering_two):
         db_tourney.round_ordering_two = str(settingtourney.round_ordering_two)
     if settingtourney.round_ordering_dir_two and db_tourney.round_ordering_dir_two != str(settingtourney.round_ordering_dir_two):
         db_tourney.round_ordering_dir_two = str(settingtourney.round_ordering_dir_two)
     if not db_tourney.round_ordering_dir_two:
-        db_tourney.round_ordering_dir_two = "ASC" 
+        db_tourney.round_ordering_dir_two = "DESC" 
         
     if settingtourney.round_ordering_three and db_tourney.round_ordering_three != str(settingtourney.round_ordering_three):
         db_tourney.round_ordering_three = str(settingtourney.round_ordering_three)
     if settingtourney.round_ordering_dir_three and db_tourney.round_ordering_dir_three != str(settingtourney.round_ordering_dir_three):
         db_tourney.round_ordering_dir_three = str(settingtourney.round_ordering_dir_three)
     if not db_tourney.round_ordering_dir_three:
-        db_tourney.round_ordering_dir_three = "ASC" 
+        db_tourney.round_ordering_dir_three = "DESC" 
             
     if not db_tourney.round_ordering_one or not db_tourney.round_ordering_two or not db_tourney.round_ordering_three:
         raise HTTPException(status_code=404, detail=_(locale, "tourney.round_ordering_incorrect"))
@@ -281,21 +280,21 @@ def configure_one_tourney(request, tourney_id: str, settingtourney: SettingTourn
     if settingtourney.event_ordering_dir_one and db_tourney.event_ordering_dir_one != str(settingtourney.event_ordering_dir_one):
         db_tourney.event_ordering_dir_one = str(settingtourney.event_ordering_dir_one)
     if not db_tourney.event_ordering_dir_one:
-        db_tourney.event_ordering_dir_one = "ASC" 
+        db_tourney.event_ordering_dir_one = "DESC" 
         
     if settingtourney.event_ordering_two and db_tourney.event_ordering_two != str(settingtourney.event_ordering_two):
         db_tourney.event_ordering_two = str(settingtourney.event_ordering_two)
     if settingtourney.event_ordering_dir_two and db_tourney.event_ordering_dir_two != str(settingtourney.event_ordering_dir_two):
         db_tourney.event_ordering_dir_two = str(settingtourney.event_ordering_dir_two)
     if not db_tourney.event_ordering_dir_two:
-        db_tourney.event_ordering_dir_two = "ASC" 
+        db_tourney.event_ordering_dir_two = "DESC" 
         
     if settingtourney.event_ordering_three and db_tourney.event_ordering_three != str(settingtourney.event_ordering_three):
         db_tourney.event_ordering_three = str(settingtourney.event_ordering_three)
     if settingtourney.event_ordering_dir_three and db_tourney.event_ordering_dir_three != str(settingtourney.event_ordering_dir_three):
         db_tourney.event_ordering_dir_three = str(settingtourney.event_ordering_dir_three)
     if not db_tourney.event_ordering_dir_three:
-        db_tourney.event_ordering_dir_three = "ASC" 
+        db_tourney.event_ordering_dir_three = "DESC" 
         
     if not db_tourney.event_ordering_one or not db_tourney.event_ordering_two or not db_tourney.event_ordering_three:
         raise HTTPException(status_code=404, detail=_(locale, "tourney.event_ordering_incorrect"))

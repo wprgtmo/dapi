@@ -36,7 +36,8 @@ from domino.services.events.domino_round import get_one as get_one_round, get_fi
 
 from domino.services.events.domino_boletus import created_boletus_for_round, get_all_by_round
 from domino.services.enterprise.auth import get_url_advertising
-from domino.services.events.tourney import get_lst_categories_of_tourney, create_category_by_default, get_one as get_one_tourney
+from domino.services.events.tourney import get_lst_categories_of_tourney, create_category_by_default, get_one as get_one_tourney, \
+    get_str_to_order
 
 from domino.services.events.calculation_serv import calculate_new_elo, calculate_score_expected, calculate_score_obtained, \
     calculate_increasing_constant, calculate_end_elo
@@ -176,7 +177,7 @@ def calculate_score_expeted_of_pairs(round_id:str, acumulated_games_played:int, 
                 
     return True
 
-def calculate_score_expeted_of_player_user(round_id:str, db:Session):
+def calculate_score_expeted_of_player_user(round_id:str, db:Session, previous_round_id: str=''):
          
     # actualizar la tabla de player_users
     str_player_user = "Update events.players_users puse SET games_played = sca.games_played, " +\
@@ -184,9 +185,18 @@ def calculate_score_expeted_of_player_user(round_id:str, db:Session):
         "category_number = cat.position_number " +\
         "FROM events.domino_rounds_scale sca, events.domino_categories cat " +\
         "WHERE puse.player_id = sca.player_id and cat.id = sca.category_id  " +\
-        "AND sca.round_id = '" + round_id + "'; COMMIT;"
-    db.execute(str_player_user)
-        
+        "AND sca.round_id = '" + round_id + "';"
+    
+    str_elo_ra = ''
+    if previous_round_id:
+        str_elo_ra = "UPDATE events.players_users pu SET elo_ra = rs.elo_variable " +\
+            "FROM events.domino_rounds_scale rs Where rs.player_id = pu.player_id " +\
+            "And rs.round_id = '" + previous_round_id + "';"
+    
+    str_update =  str_player_user  + str_elo_ra + ";COMMIT;" 
+    
+    db.execute(str_update)
+    
     return True
 
 def get_round_to_configure(locale, tourney_id:str, db: Session):
@@ -511,18 +521,20 @@ def get_all_scale_acumulate(request:Request, page: int, per_page: int, tourney_i
     db_tourney = get_one_tourney(tourney_id, db=db)
 
     # order by por los criterios
-    dict_order = {'JG': 'games_won DESC',
-                  'ERA': 'elo_current DESC',
-                  'DP': 'points_difference DESC',
-                  'PF': 'points_positive DESC',
-                  'JJ': 'games_played DESC'}
+    # dict_order = {'JG': 'games_won DESC',
+    #               'ERA': 'elo_current DESC',
+    #               'DP': 'points_difference DESC',
+    #               'PF': 'points_positive DESC',
+    #               'JJ': 'games_played DESC'}
     
-    str_order_by = " ORDER BY " + dict_order[db_tourney.round_ordering_one]
+    # str_order_by = " ORDER BY " + dict_order[db_tourney.round_ordering_one]
     
-    if db_tourney.round_ordering_two:
-        str_order_by += ", " + dict_order[db_tourney.round_ordering_two]
-    if db_tourney.round_ordering_three:
-        str_order_by += ", " + dict_order[db_tourney.round_ordering_three]
+    # if db_tourney.round_ordering_two:
+    #     str_order_by += ", " + dict_order[db_tourney.round_ordering_two]
+    # if db_tourney.round_ordering_three:
+    #     str_order_by += ", " + dict_order[db_tourney.round_ordering_three]
+    
+    str_order_by = get_str_to_order(db_tourney)
         
     str_count += str_where
     str_query += str_where + str_order_by
@@ -1088,8 +1100,8 @@ def close_one_round(request: Request, round_id: str, db: Session):
     if open:
         
         if db_round.tourney.use_segmentation:
-            # verificar si ya excedió a cantidad de rondas a bonificar
-            count_seg_round = calculate_amount_rounds_segmentated 
+            # verificar si ya excedió la cantidad de rondas a bonificar
+            count_seg_round = calculate_amount_rounds_segmentated(db_round.tourney.id, db=db)
             if count_seg_round + 1 > db_round.tourney.amount_segmentation_round:
                 db_round.tourney.amount_segmentation_round = False
                 db.add(db_round.tourney)
@@ -1269,6 +1281,8 @@ def calculate_stadist_of_round(db_round, db:Session):
         "sca.category_id where round_id = '" + db_round.id + "'"
     lst_res_play = db.execute(str_query_pair) 
     str_update = ""
+    
+    # No me hace falta quitarle la categoria, simplemente después para ordenar no utilizo este campo y ya...
     for item in lst_res_play:
         score_obtenied = calculate_score_obtained(
             item.games_won if item.games_won else 0, item.points_difference if item.points_difference else 0, db_round.tourney.number_points_to_win)
@@ -1278,8 +1292,8 @@ def calculate_stadist_of_round(db_round, db:Session):
         str_update += "Update events.domino_rounds_scale SET score_obtained=" + str(score_obtenied) + ", k_value=" + str(k_value) +\
             ", elo_variable =" + str(round(elo_current,4)) + ", elo_at_end = " + str(elo_end) +\
             " WHERE id = '" + item.id + "'; "
-        category_id = str(item.category_id) if item.category_id else "''"
-        category_number = str(item.position_number) if item.position_number else '1'
+        # category_id = str(item.category_id) if item.category_id else "''"
+        # category_number = str(item.position_number) if item.position_number else '1'
         elo_ra = str(item.elo_ra) if item.elo_ra else "0"
         
         str_update += "Update events.players_users SET elo_current = elo_current + " + str(round(elo_current,4)) +\
@@ -1289,8 +1303,7 @@ def calculate_stadist_of_round(db_round, db:Session):
             str(item.points_negative) + ", points_difference = points_difference + " + str(item.points_difference) +\
             ", score_expected = score_expected + " + str(item.score_expected) + ", score_obtained = score_obtained + " +\
             str(score_obtenied) +  ", k_value = " + str(k_value) + ", penalty_total = penalty_total + " +\
-            str(item.penalty_points) + ", category_id = " + category_id + ", category_number = " + category_number +\
-            ",  elo_ra = " + elo_ra + " WHERE player_id = '" + item.player_id + "'; "
+            str(item.penalty_points) + ", elo_ra = " + elo_ra + " WHERE player_id = '" + item.player_id + "'; "
     if str_update:  
         db.execute(str_update)  
           

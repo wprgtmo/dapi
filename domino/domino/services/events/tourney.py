@@ -785,6 +785,31 @@ def get_info_categories_tourney(category_id: str, db: Session):
 
 def get_one_domino_category(category_id: str, db: Session):
     return db.query(DominoCategory).filter(DominoCategory.id == category_id).first()
+
+def get_str_to_order(db_tourney):
+    
+    str_order_by = "" 
+    dict_order = {'JG': 'games_won ',
+                  'ERA': 'elo_ra ',
+                  'DP': 'points_difference ',
+                  'JJ': 'games_played ',
+                  'PF': 'points_positive ',
+                  'ELO': 'elo_at_end '}
+    
+    # En el evento no tengo en cuenta la
+    # str_order_by = " ORDER BY category_number ASC, " if db_tourney.use_segmentation else " ORDER BY " 
+    
+    str_order_by = " ORDER BY "
+    if db_tourney.event_ordering_one:
+        str_order_by += dict_order[db_tourney.event_ordering_one] + db_tourney.event_ordering_dir_one
+    
+    if db_tourney.event_ordering_two:
+        str_order_by += ", " + dict_order[db_tourney.event_ordering_two] + db_tourney.event_ordering_dir_two
+        
+    if db_tourney.event_ordering_three:
+        str_order_by += ", " + dict_order[db_tourney.event_ordering_three] + db_tourney.event_ordering_dir_three
+    
+    return str_order_by
     
 def save_image_tourney(request, tourney_id: str, file: File, db: Session):
     locale = request.headers["accept-language"].split(",")[0].split("-")[0];

@@ -168,14 +168,33 @@ def created_round_default(db_tourney, summary:str, db:Session, round_number:int 
     except (Exception, SQLAlchemyError, IntegrityError) as e:
         return None
 
+def get_str_to_order(db_round):
+    
+    str_order_by = "" 
+    dict_order = {'JG': 'games_won ',
+                  'ERA': 'elo_ra ',
+                  'DP': 'points_difference ',
+                  'JJ': 'games_played ',
+                  'PF': 'points_positive ',
+                  'ELO': 'elo_variable '}
+    
+    str_order_by = " ORDER BY category_number ASC, " if db_round.use_segmentation else " ORDER BY " 
+    
+    if db_round.tourney.round_ordering_one:
+        str_order_by += dict_order[db_round.tourney.round_ordering_one] + db_round.tourney.round_ordering_dir_one
+    
+    if db_round.tourney.round_ordering_two:
+        str_order_by += ", " + dict_order[db_round.tourney.round_ordering_two] + db_round.tourney.round_ordering_dir_two
+        
+    if db_round.tourney.round_ordering_three:
+        str_order_by += ", " + dict_order[db_round.tourney.round_ordering_three] + db_round.tourney.round_ordering_dir_three
+    
+    return str_order_by
+
 def configure_next_rounds(db_round, db:Session):
  
     round_number = db_round.round_number + 1
     summary = 'Ronda Nro. ' + str(round_number)
-    
-    dict_order = {'JG': 'games_won ',
-                  'ERA': 'elo_ra ',
-                  'DP': 'points_difference '}
     
     status_config = get_one_status_by_name('CONFIGURATED', db=db)
     db_round_next = DominoRounds(
@@ -191,18 +210,7 @@ def configure_next_rounds(db_round, db:Session):
         "join events.players play ON play.id = puse.player_id join resources.entities_status sta ON sta.id = play.status_id " +\
         "Where sta.name IN ('CONFIRMED', 'PLAYING', 'WAITING') and tourney_id = '" + db_round.tourney.id + "' " 
     
-    # si usa segmentacion, incluir la categoria como primer criterio para ordenar y mantener
-    # ver despues como lo hago
-    if db_round.tourney.use_segmentation:
-        str_order_by = " ORDER BY category_number ASC, " + dict_order[db_round.tourney.round_ordering_one] 
-    else:
-        str_order_by = " ORDER BY " + dict_order[db_round.tourney.round_ordering_one]
-    
-    if db_round.tourney.round_ordering_two:
-        str_order_by += ", " + dict_order[db_round.tourney.round_ordering_two]
-    if db_round.tourney.round_ordering_three:
-        str_order_by += ", " + dict_order[db_round.tourney.round_ordering_three]
-        
+    str_order_by = get_str_to_order(db_round)
     str_list_player += str_order_by
     lst_all_player_to_order = db.execute(str_list_player).fetchall()
     
