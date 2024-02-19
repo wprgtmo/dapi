@@ -109,6 +109,12 @@ def configure_one_tourney(request, tourney_id: str, settingtourney: SettingTourn
     result = ResultObject() 
     currentUser = get_current_user(request)
     
+    print('puntos OKKKK an entrar')
+    print(settingtourney.absences_point)   
+    print('****************************') 
+    print(settingtourney)
+    print('****************************') 
+    
     db_tourney = get_one_tourney(tourney_id, db=db)
     if not db_tourney:
         raise HTTPException(status_code=404, detail=_(locale, "tourney.not_found"))
