@@ -654,7 +654,7 @@ def insert_player_by_elo_category(locale, tourney_id: str, categories: DominoCat
     
     if str_player:    
         str_player = str_player[:-1] if str_player else str_player
-        update_category_at_players(db_one_category.id, db_one_category.category_number, str_player, db=db)
+        update_category_at_players(db_one_category.id, db_one_category.position_number, str_player, db=db)
     
     return True
     

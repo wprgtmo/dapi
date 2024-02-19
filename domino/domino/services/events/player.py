@@ -231,8 +231,6 @@ def get_info_one_player(request: Request, player_id: str, db: Session):
         "join enterprise.users ON users.id = profile_single_player.profile_user_id " + \
         "WHERE profile_member.id='" + db_player.profile_id + "' "
     dat_result = db.execute(str_query).fetchone()
-    print(str_query)
-    print('**************************')
     if dat_result:
         db_register = PlayerRegister(username=dat_result.username, first_name=dat_result.first_name if dat_result.first_name else dat_result.username, 
                                      last_name=dat_result.last_name if dat_result.last_name else '',
