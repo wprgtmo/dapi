@@ -197,6 +197,10 @@ def created_boletus_for_round(tourney_id, round_id, db:Session, points_for_absen
             one_boletus.boletus_pairs.append(boletus_pair_one)
             can_update = True
             if len(item_tab['lst_player']) == 2:  #tengo las dos parejas por mesa
+                # debo verificar que tengo los dos jugadores de la pareja
+                if not item_tab['lst_player'][1]['two_player_id']:
+                    can_update = False
+                
                 boletus_pair_two = DominoBoletusPairs(boletus_id=boletus_id, pairs_id=item_tab['lst_player'][1]['id'],
                                                       is_initiator=False)
                 one_boletus.boletus_pairs.append(boletus_pair_two)
