@@ -89,7 +89,8 @@ def restart_one_initial_scale(request: Request, round_id:str, db: Session):
     return result
 
 
-def configure_tables_by_round(tourney_id:str, round_id: str, modality:str, created_by:str, db: Session, round_number:int=1, points_for_absences=200):
+def configure_tables_by_round(tourney_id:str, round_id: str, modality:str, created_by:str, db: Session, round_number:int=1, points_for_absences=200,
+                              round_previous_id=None):
     
     if round_number == 1:
         update_elo_initial_scale(tourney_id, round_id, modality, db=db)
@@ -104,7 +105,7 @@ def configure_tables_by_round(tourney_id:str, round_id: str, modality:str, creat
     acumulated_games_played = calculate_amount_rounds_played(tourney_id=tourney_id, db=db)
     calculate_score_expeted_of_pairs(round_id=round_id, acumulated_games_played=acumulated_games_played, db=db)
     
-    calculate_score_expeted_of_player_user(round_id=round_id, db=db)
+    calculate_score_expeted_of_player_user(round_id=round_id, db=db, previous_round_id=round_previous_id)
     
     return True
 
@@ -193,8 +194,7 @@ def calculate_score_expeted_of_player_user(round_id:str, db:Session, previous_ro
             "FROM events.domino_rounds_scale rs Where rs.player_id = pu.player_id " +\
             "And rs.round_id = '" + previous_round_id + "';"
     
-    str_update =  str_player_user  + str_elo_ra + ";COMMIT;" 
-    
+    str_update =  str_player_user  + str_elo_ra + "COMMIT;" 
     db.execute(str_update)
     
     return True
@@ -520,20 +520,6 @@ def get_all_scale_acumulate(request:Request, page: int, per_page: int, tourney_i
     
     db_tourney = get_one_tourney(tourney_id, db=db)
 
-    # order by por los criterios
-    # dict_order = {'JG': 'games_won DESC',
-    #               'ERA': 'elo_current DESC',
-    #               'DP': 'points_difference DESC',
-    #               'PF': 'points_positive DESC',
-    #               'JJ': 'games_played DESC'}
-    
-    # str_order_by = " ORDER BY " + dict_order[db_tourney.round_ordering_one]
-    
-    # if db_tourney.round_ordering_two:
-    #     str_order_by += ", " + dict_order[db_tourney.round_ordering_two]
-    # if db_tourney.round_ordering_three:
-    #     str_order_by += ", " + dict_order[db_tourney.round_ordering_three]
-    
     str_order_by = get_str_to_order(db_tourney)
         
     str_count += str_where
@@ -600,8 +586,8 @@ def create_dict_row_scale(item, db: Session, api_uri):
     
     new_row = {'id': item['player_id'], 'name': item['profile_name'], 
                'position_number': item['position_number'],
-               'photo' : photo, 'elo': round(item['elo'],4) if item['elo'] else 0, 
-               'elo_variable': round(item['elo_variable'],4) if item['elo_variable'] else 0,
+               'photo' : photo, 'elo': round(item['elo'],2) if item['elo'] else 0, 
+               'elo_variable': round(item['elo_variable'],2) if item['elo_variable'] else 0,
                'games_played': item['games_played'] if item['games_played'] else 0, 
                'games_won': item['games_won'] if item['games_won'] else 0,
                'games_lost': item['games_lost'] if item['games_lost'] else 0, 
@@ -609,11 +595,11 @@ def create_dict_row_scale(item, db: Session, api_uri):
                'points_negative': item['points_negative'] if item['points_negative'] else 0, 
                'points_difference': item['points_difference'] if item['points_difference'] else 0,
                'penalty_points': item['penalty_points'] if item['penalty_points']  else 0,
-               'score_expected': round(item['score_expected'],4) if item['score_expected'] else 0,
-               'score_obtained': round(item['score_obtained'],4) if item['score_obtained'] else 0,
+               'score_expected': round(item['score_expected'],2) if item['score_expected'] else 0,
+               'score_obtained': round(item['score_obtained'],2) if item['score_obtained'] else 0,
                'k_value': round(item['k_value'],4) if item['k_value'] else 0,
-               'elo_at_end': round(item['elo_at_end'],4) if item['elo_at_end'] else 0,
-               'bonus_points': 0, 'penalty_yellow': 0, 'penalty_red': 0, 'penalty_total': 0,
+               'elo_at_end': round(item['elo_at_end'],2) if item['elo_at_end'] else 0,
+               'bonus_points': 0, 
                'status_id': item['status_id'], 'status_name': item['status_name'], 
                'status_description': item['status_description']}
     
@@ -625,9 +611,9 @@ def create_dict_row_scale_acum(item, position_number, db: Session, api_uri):
     
     new_row = {'id': item['player_id'], 'name': item['profile_name'], 
                'position_number': position_number,
-               'photo' : photo, 'elo': round(item['elo'],4) if item['elo'] else 0, 
-               'elo_variable': round(item['elo_current'],4) if item['elo_current'] else 0,
-               'elo_at_end': round(item['elo_at_end'],4), #item['elo_at_end'] if item['elo_at_end'] else 0,  
+               'photo' : photo, 'elo': round(item['elo'],2) if item['elo'] else 0, 
+               'elo_variable': round(item['elo_current'],2) if item['elo_current'] else 0,
+               'elo_at_end': round(item['elo_at_end'],2), #item['elo_at_end'] if item['elo_at_end'] else 0,  
                'games_played': item['games_played'] if item['games_played'] else 0, 
                'games_won': item['games_won'] if item['games_won'] else 0,
                'games_lost': item['games_lost'] if item['games_lost'] else 0, 
@@ -635,10 +621,10 @@ def create_dict_row_scale_acum(item, position_number, db: Session, api_uri):
                'points_negative': item['points_negative'] if item['points_negative'] else 0, 
                'points_difference': item['points_difference'] if item['points_difference'] else 0,
                'penalty_points': item['penalty_points'] if item['penalty_points']  else 0,
-               'score_expected': round(item['score_expected'],4) if item['score_expected'] else 0,
-               'score_obtained': round(item['score_obtained'],4) if item['score_obtained'] else 0,
-               'k_value': round(item['k_value'],4) if item['k_value'] else 0,
-               'elo_at_end': round(item['elo_at_end'],4) if item['elo_at_end'] else 0,
+               'score_expected': round(item['score_expected'],2) if item['score_expected'] else 0,
+               'score_obtained': round(item['score_obtained'],2) if item['score_obtained'] else 0,
+               'k_value': round(item['k_value'],2) if item['k_value'] else 0,
+               'elo_at_end': round(item['elo_at_end'],2) if item['elo_at_end'] else 0,
                'bonus_points': 0}
     position_number += 1
     
@@ -649,20 +635,20 @@ def create_dict_row_scale_pair(item, db: Session):
     new_row = {'id': item['id'], 'name': item['profile_name'], 
                'position_number': item['position_number'],
                'table_number': item['table_number'],
-               'elo_pair': round(item['elo_pair'],4) if item['elo_pair'] else 0, 
-               'elo_pair_opposing': round(item['elo_pair_opposing'],4) if item['elo_pair_opposing'] else 0,
+               'elo_pair': round(item['elo_pair'],2) if item['elo_pair'] else 0, 
+               'elo_pair_opposing': round(item['elo_pair_opposing'],2) if item['elo_pair_opposing'] else 0,
                'games_played': 1,
                'games_won': item['games_won'] if item['games_won'] else 0,
                'games_lost': item['games_lost'] if item['games_lost'] else 0, 
                'points_positive': item['points_positive'] if item['points_positive'] else 0,
                'points_negative': item['points_negative'] if item['points_negative'] else 0, 
                'points_difference': item['points_difference'] if item['points_difference'] else 0,
-               'score_expected': round(item['score_expected'],4) if item['score_expected'] else 0,
-               'score_obtained': round(item['score_obtained'],4) if item['score_obtained'] else 0,
+               'score_expected': round(item['score_expected'],2) if item['score_expected'] else 0,
+               'score_obtained': round(item['score_obtained'],2) if item['score_obtained'] else 0,
                'k_value': item['k_value'] if item['k_value'] else 0,
-               'elo_current': round(item['elo_current'],4) if item['elo_current'] else 0,
-               'elo_at_end': round(item['elo_at_end'],4) if item['elo_at_end'] else 0,
-               'elo_ra': round(item['elo_ra'],4) if item['elo_ra'] else 0,
+               'elo_current': round(item['elo_current'],2) if item['elo_current'] else 0,
+               'elo_at_end': round(item['elo_at_end'],2) if item['elo_at_end'] else 0,
+               'elo_ra': round(item['elo_ra'],2) if item['elo_ra'] else 0,
                'bonus_points': item['bonus_points'] if item['bonus_points'] else 0,
                'penalty_points': item['penalty_points'] if item['penalty_points'] else 0}
     
@@ -1108,7 +1094,8 @@ def close_one_round(request: Request, round_id: str, db: Session):
         
         db_round_next = configure_next_rounds(db_round, db=db)
         
-        configure_tables_by_round(db_round_next.tourney.id, db_round_next.id, db_round_next.tourney.modality, db_round_next.tourney.updated_by, db=db)
+        configure_tables_by_round(db_round_next.tourney.id, db_round_next.id, db_round_next.tourney.modality, db_round_next.tourney.updated_by, db=db,
+                                  round_previous_id=db_round.id)
     
         change_all_status_player_at_init_round(db_round_next, db=db)
         
