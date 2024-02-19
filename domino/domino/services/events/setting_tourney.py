@@ -143,14 +143,19 @@ def configure_one_tourney(request, tourney_id: str, settingtourney: SettingTourn
             raise HTTPException(status_code=404, detail=_(locale, "tourney.status_incorrect"))
         db_tourney.number_points_to_win = int(settingtourney.number_points_to_win)
         
-    if settingtourney.points_for_absences and db_tourney.points_for_absences != int(settingtourney.points_for_absences):
+    if settingtourney.absences_point and db_tourney.points_for_absences != int(settingtourney.absences_point):
         if db_tourney.status.name not in ('CREATED', 'CONFIGURATED'):
             raise HTTPException(status_code=404, detail=_(locale, "tourney.status_incorrect"))
-        db_tourney.points_for_absences = int(settingtourney.points_for_absences)
+        db_tourney.points_for_absences = int(settingtourney.absences_point)
     
     if not db_tourney.points_for_absences:
-        db_tourney.points_for_absences = db_tourney.number_points_to_win / 2
-        
+        db_tourney.points_for_absences = db_tourney.number_points_to_win
+    
+    print('puntos')
+    print(settingtourney.absences_point)   
+    print('****************************') 
+    print(settingtourney)
+    
     if settingtourney.time_to_win and db_tourney.time_to_win != int(settingtourney.time_to_win):
         if db_tourney.status.name not in ('CREATED', 'CONFIGURATED'):
             raise HTTPException(status_code=404, detail=_(locale, "tourney.status_incorrect"))

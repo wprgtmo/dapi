@@ -69,7 +69,7 @@ class SettingTourneyCreated(BaseModel):
     # points_penalty_yellow: Optional[int]
     # points_penalty_red: Optional[int]
     
-    points_for_absences: Optional[int]
+    absences_point: Optional[int]
     
     use_segmentation: Optional[bool]
     

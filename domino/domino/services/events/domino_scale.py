@@ -486,7 +486,7 @@ def get_all_scale_by_round(request:Request, page: int, per_page: int, round_id: 
         
     str_count += str_where
     str_query += str_where + " ORDER BY rsca.position_number ASC "
-
+    
     if page and page > 0 and not per_page:
         raise HTTPException(status_code=404, detail=_(locale, "commun.invalid_param"))
     
