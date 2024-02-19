@@ -48,6 +48,10 @@ def new_profile_single_player(request: Request, singleprofile: SingleProfileCrea
     if exist_profile_id:
         raise  HTTPException(status_code=400, detail=_(locale, "userprofile.existprofile"))
     
+    profile_user_id = get_one_profile_by_user(currentUser['username'], "USER", db=db)
+    if not profile_user_id:
+        raise  HTTPException(status_code=400, detail=_(locale, "userprofile.not_found"))
+    
     id = str(uuid.uuid4())
     one_profile = new_profile(profile_type, id, currentUser['user_id'], currentUser['username'], singleprofile['name'], 
                               singleprofile['email'], singleprofile['city_id'], singleprofile['receive_notifications'], 
@@ -55,7 +59,8 @@ def new_profile_single_player(request: Request, singleprofile: SingleProfileCrea
                               single_profile_id=id)
     
     # a solicitud de Senen cuando los jugadores se creen un perfil de jugador simple, va con un elo de 1600
-    one_single_player = SingleProfile(profile_id=id, elo=1600, level=singleprofile['level'], updated_by=currentUser['username'])
+    one_single_player = SingleProfile(profile_id=id, elo=800, level=singleprofile['level'], updated_by=currentUser['username'],
+                                      profile_user_id=profile_user_id)
     one_profile.profile_single_player.append(one_single_player)
     
     try:   

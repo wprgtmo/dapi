@@ -249,7 +249,7 @@ def new_from_register(email: str, username: str, first_name:str, last_name:str, 
         db.add(db_user)
         db.add(one_profile_user)
         db.commit()
-        return True
+        return db_user
     except (Exception, SQLAlchemyError, IntegrityError) as e:
         msg = _(locale, "users.new_user_error")
         if e.code == 'gkpj':

@@ -26,12 +26,12 @@ from domino.services.resources.status import get_one_by_name, get_one as get_one
 from domino.services.events.invitations import get_one_by_id as get_invitation_by_id
 from domino.services.events.tourney import get_one as get_torneuy_by_eid, get_info_categories_tourney
 from domino.services.events.domino_round import get_last_by_tourney, remove_configurate_round
-from domino.services.enterprise.users import new_from_register
+from domino.services.enterprise.users import new_from_register, get_one as get_one_user_by_id
 from domino.services.enterprise.comunprofile import new_profile
 from domino.services.resources.city import get_one as city_get_one
 from domino.services.resources.country import get_one as country_get_one
 
-from domino.services.enterprise.userprofile import get_one as get_one_profile
+from domino.services.enterprise.userprofile import get_one as get_one_profile, get_one_single_profile_by_id, get_one_default_user
 
 from domino.services.resources.utils import get_result_count, create_dir, del_image, get_ext_at_file, upfile
 from domino.services.enterprise.auth import get_url_avatar
@@ -141,14 +141,15 @@ def register_new_player(request: Request, tourney_id: str, player_register: Play
         if player_register.country_id:
             country = country_get_one(player_register.country_id, db=db)
         
-    new_from_register(player_register.email, player_register.username, player_register.first_name,
+    db_user = new_from_register(player_register.email, player_register.username, player_register.first_name,
                       player_register.last_name, player_register.alias, player_register.phone, 
                       one_city, country, currentUser['username'], None, db=db, locale=locale)
    
     name = player_register.first_name + ' ' + player_register.last_name if player_register.last_name \
         else player_register.first_name if player_register.first_name else '' 
     create_new_single_player(db_tourney, player_register.username, name, player_register.email, one_city, 
-                             player_register.elo, player_register.level, currentUser['username'], None, db=db)
+                             player_register.elo, player_register.level, currentUser['username'], None, db=db,
+                             profile_user_id=db_user.id)
     
     try:
         db.commit()
@@ -156,7 +157,7 @@ def register_new_player(request: Request, tourney_id: str, player_register: Play
     except (Exception, SQLAlchemyError) as e:
         return False
 
-def update_register_one_player(request: Request, player_id: str, player_register: PlayerUpdatedRegister, db: Session):
+def update_register_one_player(request: Request, player_id: str, player_register: PlayerRegister, db: Session):
     locale = request.headers["accept-language"].split(",")[0].split("-")[0];
     
     result = ResultObject() 
@@ -171,23 +172,46 @@ def update_register_one_player(request: Request, player_id: str, player_register
     
     # actualizar sus datos de jugador simple
     
-    one_profile = get_one_profile(db_player.profile_id, db=db)
+    one_profile = get_one_single_profile_by_id(db_player.profile_id, db=db)
     if not one_profile:
         raise HTTPException(status_code=404, detail=_(locale, "player.not_found"))
     
+    # buscar su perfil y cambiar los datos
+    db_user = get_one_default_user(one_profile.profile_user_id, db=db)
+    
     one_profile.email = player_register.email
     
-    # buscarlo en la tabla de jugadores y actualizar estos datos
-    str_update = "Update events.players_users pu pu SET elo = " + str(float(player_register.elo)) + ", level = '" +\
-        player_register.level + "' FROM events.players pa WHERE WHERE pa.id = pu.player_id " +\
-        " pa.tourney_id = '" + db_player.tourney_id + "' and pu.profile_id = '" + db_player.profile_id + "'; COMMIT; "
+    if db_user.alias != player_register.alias:
+        db_user.alias = player_register.alias
+        db.add(db_user)
         
+    one_user = get_one_user_by_id(db_user.profile_id, db=db)
+    if one_user.first_name != player_register.first_name:
+        one_user.first_name = player_register.first_name
+        
+    if one_user.last_name != player_register.last_name:
+        one_user.last_name = player_register.last_name
+        
+    if one_user.email != player_register.email:
+        one_user.email = player_register.email
+        
+    if one_user.phone != player_register.phone:
+        one_user.phone = player_register.phone
+    
+    # buscarlo en la tabla de jugadores y actualizar estos datos
+    str_update = "Update events.players_users pu SET elo = " + str(float(player_register.elo)) + ", level = '" +\
+        player_register.level + "' FROM events.players pa WHERE pa.id = pu.player_id " +\
+        " AND pa.tourney_id = '" + db_player.tourney_id + "' and pu.profile_id = '" + db_player.profile_id + "'; COMMIT; "
+      
     try:
+        db.execute(str_update)  
+        db.add(one_user)
         db.add(db_player)
         db.commit()
         return result
     except (Exception, SQLAlchemyError) as e:
-        return False
+        result.success = False
+        return result
 
 def get_info_one_player(request: Request, player_id: str, db: Session):
     locale = request.headers["accept-language"].split(",")[0].split("-")[0];
@@ -203,11 +227,12 @@ def get_info_one_player(request: Request, player_id: str, db: Session):
         "enterprise.users.country_id, profile_single_player.level " +\
         "FROM enterprise.profile_member " +\
         "join enterprise.profile_users ON profile_users.profile_id = profile_member.id " +\
-        "join enterprise.users ON users.username = profile_users.username " + \
         "join enterprise.profile_single_player ON profile_single_player.profile_id = profile_member.id " +\
+        "join enterprise.users ON users.id = profile_single_player.profile_user_id " + \
         "WHERE profile_member.id='" + db_player.profile_id + "' "
     dat_result = db.execute(str_query).fetchone()
-    
+    print(str_query)
+    print('**************************')
     if dat_result:
         db_register = PlayerRegister(username=dat_result.username, first_name=dat_result.first_name if dat_result.first_name else dat_result.username, 
                                      last_name=dat_result.last_name if dat_result.last_name else '',
@@ -224,7 +249,8 @@ def get_info_one_player(request: Request, player_id: str, db: Session):
     except (Exception, SQLAlchemyError) as e:
         return False
 
-def create_new_single_player(db_tourney, username, name, email, city, elo, level, created_by, file, db: Session):
+def create_new_single_player(db_tourney, username, name, email, city, elo, level, created_by, file, db: Session,
+                             profile_user_id:str=None):
     
     profile_type = get_profile_type_by_name("SINGLE_PLAYER", db=db)
     if not profile_type:
@@ -234,7 +260,7 @@ def create_new_single_player(db_tourney, username, name, email, city, elo, level
     one_profile = new_profile(profile_type, id, id, username, name, email, city.id if city else None, True, True, True, 
                               "USERPROFILE", created_by, created_by, file, is_confirmed=True, single_profile_id=id)
     
-    one_single_player = SingleProfile(profile_id=id, elo=elo, level='NORMAL', updated_by=created_by)
+    one_single_player = SingleProfile(profile_id=id, elo=elo, level='NORMAL', updated_by=created_by, profile_user_id=profile_user_id)
     one_profile.profile_single_player.append(one_single_player)
     
     status_acc = get_one_by_name('ACCEPTED', db=db)
@@ -690,7 +716,6 @@ def get_all_players_by_tourney(request:Request, page: int, per_page: int, tourne
     str_query += " ORDER BY player.elo DESC, pro.name ASC " 
     if page != 0:
         str_query += "LIMIT " + str(per_page) + " OFFSET " + str(page*per_page-per_page)
-    
     lst_data = db.execute(str_query)
     result.data = [create_dict_row(item, page, db=db, api_uri=api_uri) for item in lst_data]
     

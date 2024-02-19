@@ -122,6 +122,7 @@ class SingleProfile(Base):
     elo = Column(Float, nullable=True)
     
     level = Column(String(60), nullable=True)
+    profile_user_id = Column(String(60), nullable=True)
     
     updated_by = Column(String, ForeignKey("enterprise.users.username"), nullable=False)
     updated_date = Column(Date, nullable=False, default=date.today())
@@ -130,7 +131,8 @@ class SingleProfile(Base):
         return {
             "profile_id": self.profile_id,
             "elo": self.elo,
-            "level": self.level
+            "level": self.level,
+            'profile_user_id': self.profile_user_id
         }
         
 class DefaultUserProfile(Base):
