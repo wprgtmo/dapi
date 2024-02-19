@@ -132,7 +132,6 @@ es:
     not_initial_round: 'Torneo no está en la ronda Inicial'
     not_found: 'Ronda no existe'
     status_incorrect: 'Estado de la Ronda no permite realizar esta acción'
-    not_initial_round: 'Solo se puede realizar esta acción con la rona en estado creada'
   tables:
     not_found: 'Mesa no existe'
     error_insert_table: 'Error creando mesa de juego'
