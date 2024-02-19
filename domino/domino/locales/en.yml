@@ -82,14 +82,33 @@ en:
     already_exist: 'Error creating profile type'
     not_found: 'Profile Type not found'
   userprofile:
-    existprofile: 'Exists for user profile'
-    errorinsert: 'Error insert profie;'
-    not_found: 'Profile not found'
-    already_exist: 'Error insert profile'
+    existprofile: 'Existe perfil de ese tipo para ese usuario'
+    errorinsert: 'Error insertnado perfil indicado'
+    not_found: 'Perfil no encontrado en el sistema'
+    already_exist: 'Error insertnado perfil indicado'
     imposible_delete: 'Imposible desactivar'
+    not_equal: 'No puede incluir su mismo perfil'
+    sigle_profile_not_exist: 'No tiene perfil de jugador individual creado'
   player:
-    not_found: 'Player not found'
+    not_found: 'Jugador no encontrado'
+    already_exist: 'Perfil ya incluido como jugador en el torneo'
+    status_incorrect: 'Estado del jugador no permite realizar esta accion'
   referee:
-    not_found: 'Referee not found'
+    not_found: 'Arbitro no encontrado'
+    already_exist: 'Perfil ya incluido como arbitro en el torneo'
   round:
-    not_initial_round: 'Not initial round'
+    not_initial_round: 'Torneo no está en la ronda Inicial'
+    not_found: 'Ronda no existe'
+    status_incorrect: 'Estado de la Ronda no permite realizar esta acción'
+    not_initial_round: 'Solo se puede realizar esta acción con la rona en estado creada'
+  tables:
+    not_found: 'Mesa no existe'
+    error_insert_table: 'Error creando mesa de juego'
+    imposible_delete: 'Error borrando Mesa de Juego'
+  boletus:
+    not_found: 'Boleta no existe.'
+    status_incorrect: 'Estado de la Boleta no permite realizar esta acción'
+    equal_positive_points: 'Parejas empatadas, no puede cerrarse por tiempo'
+    motive_non_completion: 'Cerrado por no completamiento, no se puede reabrir'
+  data:
+    not_found: 'Registro de Data no existe'

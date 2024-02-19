@@ -631,8 +631,7 @@ def insert_player_by_elo_category(locale, tourney_id: str, categories: DominoCat
     str_query += " AND player.tourney_id = '" + tourney_id + "' "  +\
         "AND player.elo >= " + str(categories.elo_min) + " AND player.elo <= " + str(categories.elo_max)
     amount_players = db.execute(str_query).fetchone()[0]
-    
-    if amount_players <= 1:
+    if amount_players <= 0:
         raise HTTPException(status_code=404, detail=_(locale, "tourney.category_not_player"))
     
     position_number += 1

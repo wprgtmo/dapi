@@ -281,7 +281,7 @@ def configure_one_tourney(request, tourney_id: str, settingtourney: SettingTourn
         db_tourney.event_ordering_dir_one = str(settingtourney.event_ordering_dir_one)
     if not db_tourney.event_ordering_dir_one:
         db_tourney.event_ordering_dir_one = "DESC" 
-        
+    
     if settingtourney.event_ordering_two and db_tourney.event_ordering_two != str(settingtourney.event_ordering_two):
         db_tourney.event_ordering_two = str(settingtourney.event_ordering_two)
     if settingtourney.event_ordering_dir_two and db_tourney.event_ordering_dir_two != str(settingtourney.event_ordering_dir_two):

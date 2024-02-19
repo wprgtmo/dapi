@@ -71,7 +71,7 @@ es:
     start_date_incorrect: 'Fecha de Inicio Incorrecta.'
     registration_date_incorrect: 'Fecha de inscripción incorrecta.'
     tourney_closed: 'Torneo ya Terminado'
-    status_incorrect: 'Estado del Torneo no permite realizar la accion'
+    status.incorrect: 'Estado del Torneo no permite realizar la accion'
     is_configurated: 'Torneo ya configurado'
     setting_tourney_failed: 'Falla registro de configuración del Torneo'
     setting_tables_failed: 'Falla configuración de las mesas'
@@ -110,7 +110,7 @@ es:
     not_exist: 'Invitación no existe.'
     not_found: 'Invitación no existe.'
     already_exist: 'Invitacion ya existe.'
-    status_incorrect: 'Estado de la invitación incorrecta.'
+    status.incorrect: 'Estado de la invitación incorrecta.'
   profiletype:
     exist_name: 'Existe nombre de tipo de perfil'
     already_exist: 'Error creando tipo de perfil'
@@ -143,5 +143,7 @@ es:
     not_found: 'Boleta no existe.'
     status_incorrect: 'Estado de la Boleta no permite realizar esta acción'
     equal_positive_points: 'Parejas empatadas, no puede cerrarse por tiempo'
+    motive_non_completion: 'Cerrado por no completamiento, no se puede reabrir'
+    motive_annulled: 'Boleta anulada, no se puede reabrir'
   data:
     not_found: 'Registro de Data no existe'

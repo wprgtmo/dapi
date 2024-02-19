@@ -176,12 +176,12 @@ def close_data_by_time(request: Request, boletus_id:str, db: Session):
     if not dict_result['result']:
         raise HTTPException(status_code=404, detail=_(locale, dict_result['msg']))
 
-    try:
-        result.data = close_boletus(one_boletus, currentUser['username'], db=db, verify_points=False, motive_closed='time', can_update=False) 
-        return result
-    except (Exception, SQLAlchemyError, IntegrityError) as e:
-        msg = _(locale, "event.error_new_event")               
-        raise HTTPException(status_code=403, detail=msg)
+    # try:
+    result.data = close_boletus(one_boletus, currentUser['username'], db=db, verify_points=False, motive_closed='time', can_update=False) 
+    return result
+    # except (Exception, SQLAlchemyError, IntegrityError) as e:
+    #     msg = _(locale, "event.error_new_event")               
+    #     raise HTTPException(status_code=403, detail=msg)
     
 def close_boletus(one_boletus, username, db: Session, verify_points=True, motive_closed='points', can_update=True):
     
@@ -226,7 +226,17 @@ def reopen_one_boletus(request: Request, boletus_id: str,  db: Session):
     one_boletus = get_one_boletus(boletus_id, db=db)
     if not one_boletus:
         raise HTTPException(status_code=404, detail=_(locale, "boletus.not_found"))
-        
+    
+    if one_boletus.status.name != 'FINALIZED': 
+        raise HTTPException(status_code=404, detail=_(locale, "boletus.status_incorrect"))
+    
+    if one_boletus.motive_closed == 'non_completion': 
+        raise HTTPException(status_code=404, detail=_(locale, "boletus.motive_non_completion"))
+    
+    if one_boletus.motive_closed == 'annulled': 
+        raise HTTPException(status_code=404, detail=_(locale, "boletus.motive_annulled"))
+    
+    # if el motivo es por no completminto no permirie reabrir    
     one_status_init = get_one_status_by_name('INITIADED', db=db)
     one_boletus.status_id = one_status_init.id
     one_boletus.updated_by = currentUser['username']
