@@ -175,7 +175,8 @@ def new_annulled(request: Request, boletus_id: str, domino_annulled: DominoAnnul
     # quitar los puntos a todos los jugadores y calcular las estadísticas de ellos
     # si fue explusado, cambiar el estado del jugador
     
-    force_annulled_boletus(one_boletus, domino_annulled.annulled_type, annulled_type, db=db, player_id=one_player.id if one_player else None)
+    force_annulled_boletus(one_boletus, domino_annulled.annulled_type, annulled_type, db=db, player_id=one_player.id if one_player else None,
+                           expelled=domino_annulled.was_expelled)
     
     one_boletus.is_valid = False
     
@@ -281,6 +282,13 @@ def force_closing_boletus(one_boletus, lst_players: List, motive_closed:str, mot
         return False
     
 def force_annulled_boletus(one_boletus, motive_not_valid: str, motive_not_valid_description:str, db: Session, player_id:str=None, expelled=False):
+    
+    print('anulando boleta')
+    print(motive_not_valid)
+    print(player_id)
+    print('fue expludo')
+    print(expelled)
+    print('***********************')
     
     if not player_id: # todo el mundo pierde
         str_update = "UPDATE events.domino_boletus_position SET is_winner=False, positive_points=0, " +\
