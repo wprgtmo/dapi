@@ -170,6 +170,10 @@ def update_register_one_player(request: Request, player_id: str, player_register
     db_player.elo = player_register.elo
     db_player.level = player_register.level
     
+    print('info')
+    print(player_register.alias)
+    print(player_register.level)
+    print('*******************')
     # actualizar sus datos de jugador simple
     
     one_profile = get_one_single_profile_by_id(db_player.profile_id, db=db)
@@ -179,7 +183,13 @@ def update_register_one_player(request: Request, player_id: str, player_register
     # buscar su perfil y cambiar los datos
     db_user = get_one_default_user(one_profile.profile_user_id, db=db)
     
-    one_profile.email = player_register.email
+    if one_profile.profile.email != player_register.email:
+        one_profile.profile.email = player_register.email
+        db.add(one_profile.profile)
+        
+    if one_profile.level != player_register.email:
+        one_profile.level = player_register.level
+        db.add(one_profile)
     
     if db_user.alias != player_register.alias:
         db_user.alias = player_register.alias

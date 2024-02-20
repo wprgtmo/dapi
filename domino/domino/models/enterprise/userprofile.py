@@ -126,6 +126,8 @@ class SingleProfile(Base):
     
     updated_by = Column(String, ForeignKey("enterprise.users.username"), nullable=False)
     updated_date = Column(Date, nullable=False, default=date.today())
+    
+    profile = relationship("ProfileMember")
      
     def dict(self):
         return {

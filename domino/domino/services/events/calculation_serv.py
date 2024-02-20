@@ -13,6 +13,7 @@ from datetime import datetime
 #     return score_obtained
 
 def calculate_score_obtained(games_won: int, points_difference: int, number_points_to_win: int): 
+    
     return games_won + (points_difference / number_points_to_win)
     
 def calculate_score_expected(elo_pair_ra: float, elo_pair_rb: float):  
