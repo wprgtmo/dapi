@@ -170,12 +170,6 @@ def update_register_one_player(request: Request, player_id: str, player_register
     db_player.elo = player_register.elo
     db_player.level = player_register.level
     
-    print('info')
-    print(player_register.alias)
-    print(player_register.level)
-    print('*******************')
-    # actualizar sus datos de jugador simple
-    
     one_profile = get_one_single_profile_by_id(db_player.profile_id, db=db)
     if not one_profile:
         raise HTTPException(status_code=404, detail=_(locale, "player.not_found"))
