@@ -193,10 +193,15 @@ def calculate_score_expeted_of_player_user(round_id:str, db:Session, previous_ro
         str_elo_ra = "UPDATE events.players_users pu SET elo_ra = rs.elo_variable " +\
             "FROM events.domino_rounds_scale rs Where rs.player_id = pu.player_id " +\
             "And rs.round_id = '" + previous_round_id + "';"
+        str_elo_ra += "Update events.domino_rounds_scale rsca_curr SET elo_ra = rsca_ant.elo_variable " +\
+            "FROM events.domino_rounds_scale rsca_ant WHERE rsca_ant.player_id = rsca_curr.player_id " +\
+            "AND rsca_ant.round_id = '" + previous_round_id + "' and rsca_curr.round_id = '" +\
+            round_id + "';"
     
     str_update =  str_player_user  + str_elo_ra + "COMMIT;" 
     db.execute(str_update)
     
+    db.commit()
     return True
 
 def get_round_to_configure(locale, tourney_id:str, db: Session):
@@ -599,7 +604,7 @@ def create_dict_row_scale(item, db: Session, api_uri):
                'score_obtained': round(item['score_obtained'],2) if item['score_obtained'] else 0,
                'k_value': round(item['k_value'],4) if item['k_value'] else 0,
                'elo_at_end': round(item['elo_at_end'],2) if item['elo_at_end'] else 0,
-               'bonus_points': 0, 'elo_ra': item['elo_ra'] if item['elo_ra'] else 0,
+               'bonus_points': 0, 'elo_ra': round(item['elo_ra'],2) if item['elo_ra'] else 0,
                'status_id': item['status_id'], 'status_name': item['status_name'], 
                'status_description': item['status_description']}
     
