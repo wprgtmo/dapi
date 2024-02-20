@@ -283,13 +283,6 @@ def force_closing_boletus(one_boletus, lst_players: List, motive_closed:str, mot
     
 def force_annulled_boletus(one_boletus, motive_not_valid: str, motive_not_valid_description:str, db: Session, player_id:str=None, expelled=False):
     
-    print('anulando boleta')
-    print(motive_not_valid)
-    print(player_id)
-    print('fue expludo')
-    print(expelled)
-    print('***********************')
-    
     if not player_id: # todo el mundo pierde
         str_update = "UPDATE events.domino_boletus_position SET is_winner=False, positive_points=0, " +\
             "negative_points=0, penalty_points=0, expelled=False, is_guilty_closure=True WHERE boletus_id ='" + one_boletus.id + "';"
