@@ -1392,5 +1392,14 @@ def remove_profile_member(db_profile: ProfileMember, currentUser):
             pass
         
     return True
+
+def get_type_level(level_name):
     
+    dict_result = {'NORMAL': 'Novato', 'rookie': 'Novato', 'professional': 'Profesional', 'expert': 'Experto'}
+    if level_name not in dict_result:
+        return level_name
+    else:
+        return dict_result[level_name]
+    
+      
 #endregion

@@ -64,7 +64,7 @@ class ProfileMember(Base):
     is_active = Column(Boolean, nullable=False, default=True)
     
     profile_users = relationship("ProfileUsers")
-    profile_single_player = relationship("SingleProfile")
+    profile_single_player = relationship("SingleProfile", )
     profile_default_user = relationship("DefaultUserProfile")
     profile_referee_player = relationship("RefereeProfile")
     profile_pair_player = relationship("PairProfile")
@@ -127,7 +127,7 @@ class SingleProfile(Base):
     updated_by = Column(String, ForeignKey("enterprise.users.username"), nullable=False)
     updated_date = Column(Date, nullable=False, default=date.today())
     
-    profile = relationship("ProfileMember")
+    profile = relationship("ProfileMember", back_populates="profile_single_player")
      
     def dict(self):
         return {

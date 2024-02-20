@@ -226,13 +226,14 @@ def get_info_one_player(request: Request, player_id: str, db: Session):
     if not db_player:
         raise HTTPException(status_code=404, detail=_(locale, "player.not_found"))
     
-    str_query = "SELECT users.username, users.first_name, users.last_name, enterprise.users.alias, " +\
-        "enterprise.users.email, enterprise.users.phone, profile_single_player.elo, enterprise.profile_member.city_id, " +\
+    str_query = "SELECT users.username, users.first_name, users.last_name, enterprise.profile_default_user.alias, " +\
+        "users.email, users.phone, profile_single_player.elo, enterprise.profile_member.city_id, " +\
         "enterprise.users.country_id, profile_single_player.level " +\
         "FROM enterprise.profile_member " +\
         "join enterprise.profile_users ON profile_users.profile_id = profile_member.id " +\
         "join enterprise.profile_single_player ON profile_single_player.profile_id = profile_member.id " +\
         "join enterprise.users ON users.id = profile_single_player.profile_user_id " + \
+        "join enterprise.profile_default_user ON profile_default_user.profile_id = users.id " + \
         "WHERE profile_member.id='" + db_player.profile_id + "' "
     dat_result = db.execute(str_query).fetchone()
     if dat_result:
@@ -245,7 +246,7 @@ def get_info_one_player(request: Request, player_id: str, db: Session):
                                      country_id=dat_result.country_id if dat_result.country_id else '1', 
                                      elo=dat_result.elo if dat_result.elo else 0, level=dat_result.level if dat_result.level else 'NORMAL')
         result.data = db_register
-        
+    
     try:
         return result
     except (Exception, SQLAlchemyError) as e:
