@@ -1288,6 +1288,7 @@ def calculate_stadist_of_round(db_round, db:Session):
         # category_id = str(item.category_id) if item.category_id else "''"
         # category_number = str(item.position_number) if item.position_number else '1'
         elo_ra = str(item.elo_ra) if item.elo_ra else "0"
+        penalty_points = str(item.penalty_points) if item.penalty_points else "0"
         
         str_update += "Update events.players_users SET elo_current = elo_current + " + str(round(elo_current,4)) +\
             ", elo_at_end = elo_at_end + " + str(elo_end) + ", games_played = games_played + 1, games_won = games_won + " +\
@@ -1296,7 +1297,7 @@ def calculate_stadist_of_round(db_round, db:Session):
             str(item.points_negative) + ", points_difference = points_difference + " + str(item.points_difference) +\
             ", score_expected = score_expected + " + str(item.score_expected) + ", score_obtained = score_obtained + " +\
             str(score_obtenied) +  ", k_value = " + str(k_value) + ", penalty_total = penalty_total + " +\
-            str(item.penalty_points) + ", elo_ra = " + elo_ra + " WHERE player_id = '" + item.player_id + "'; "
+            penalty_points + ", elo_ra = " + elo_ra + " WHERE player_id = '" + item.player_id + "'; "
     if str_update:  
         db.execute(str_update)  
           
