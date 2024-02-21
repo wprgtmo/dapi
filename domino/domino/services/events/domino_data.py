@@ -242,7 +242,6 @@ def reopen_one_boletus(request: Request, boletus_id: str,  db: Session):
     if one_boletus.motive_closed == 'annulled': 
         raise HTTPException(status_code=404, detail=_(locale, "boletus.motive_annulled"))
     
-    # if el motivo es por no completminto no permirie reabrir    
     one_status_init = get_one_status_by_name('INITIADED', db=db)
     one_boletus.status_id = one_status_init.id
     one_boletus.updated_by = currentUser['username']
@@ -251,9 +250,15 @@ def reopen_one_boletus(request: Request, boletus_id: str,  db: Session):
     one_boletus.motive_closed=None
     one_boletus.motive_closed_description=None
     db.add(one_boletus)
+    
+    # pasar la ronda a estado iniciada (por si esta en estado de review)
+    one_boletus.rounds.status_id = one_status_init.id
+    db.add(one_boletus.rounds)
+    
     db.commit() 
         
     clear_info_at_close_boletus(one_boletus, db=db)
+    
     
     db.commit() 
     

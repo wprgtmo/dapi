@@ -127,6 +127,11 @@ es:
     not_found: 'Jugador no encontrado'
     already_exist: 'Perfil ya incluido como jugador en el torneo'
     status_incorrect: 'Estado del jugador no permite realizar esta accion'
+    email_is_requeied: 'Dirección de correo es obligatoria para el registro'
+    username_is_requeied: 'Nombre de usuario es requerido'
+    first_name_is_requeied: 'Nombre del jugador es requerido'
+    level_is_requeied: 'Nivel de clasificación de jugador es requerido'
+    elo_is_requeied: 'Valor de ELO es requerido'
   referee:
     not_found: 'Arbitro no encontrado'
     already_exist: 'Perfil ya incluido como arbitro en el torneo'

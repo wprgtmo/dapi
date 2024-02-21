@@ -143,7 +143,22 @@ def register_new_player(request: Request, tourney_id: str, player_register: Play
     else:
         if player_register.country_id:
             country = country_get_one(player_register.country_id, db=db)
-        
+    
+    if  not player_register.username:
+        raise HTTPException(status_code=404, detail=_(locale, "player.username_is_requeied"))
+    
+    if  not player_register.first_name:
+        raise HTTPException(status_code=404, detail=_(locale, "player.first_name_is_requeied"))
+    
+    if  not player_register.email:
+        raise HTTPException(status_code=404, detail=_(locale, "player.email_is_requeied"))
+    
+    if not player_register.level:
+        raise HTTPException(status_code=404, detail=_(locale, "player.level_is_requeied"))
+    
+    if not player_register.elo:
+        raise HTTPException(status_code=404, detail=_(locale, "player.elo_is_requeied"))
+    
     db_user = new_from_register(player_register.email, player_register.username, player_register.first_name,
                       player_register.last_name, player_register.alias, player_register.phone, 
                       one_city, country, currentUser['username'], None, db=db, locale=locale)
@@ -153,6 +168,9 @@ def register_new_player(request: Request, tourney_id: str, player_register: Play
     create_new_single_player(db_tourney, player_register.username, name, player_register.email, one_city, 
                              player_register.elo, player_register.level, currentUser['username'], None, db=db,
                              profile_user_id=db_user.id)
+    
+    # debo siempre comprobar el estado de la ultima ronda y en dependenca desu estado, reiniciar
+    restar_round(db_tourney.id, db=db)
     
     try:
         db.commit()
@@ -459,9 +477,9 @@ def change_status_player(request: Request, player_id: str, status: str, db: Sess
 def restar_round(tourney_id:str, db:Session):
     
     lst_round = get_last_by_tourney(tourney_id, db=db)
+    
     if lst_round and lst_round.status.name in ('CREATED', 'CONFIGURATED'):
         remove_configurate_round(lst_round.tourney_id, lst_round.id, db=db)
-    
     return True
 
 def get_number_players_by_elo(request:Request, tourney_id:str, min_elo:float, max_elo:float, db:Session):  

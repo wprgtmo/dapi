@@ -741,6 +741,7 @@ def create_pair_for_profile_single(tourney_id: str, round_id: str, db: Session, 
         "Where rsca.tourney_id = '" + tourney_id + "' AND rsca.round_id = '" + round_id + "' order by rsca.position_number ASC "
     
     lst_pair = db.execute(str_user)
+    
     lst_all_pair = []
     for item in lst_pair:
         lst_all_pair.append({'name': item.name, 'player_id': item.player_id, 
@@ -879,17 +880,18 @@ def remove_configurate_round(tourney_id: str, round_id: str, db: Session):
     
     #Posicionamiento
     str_loterry = "DELETE FROM events.trace_lottery_manual WHERE tourney_id = '" + tourney_id + "'; " 
-    str_scale = "DELETE FROM events.domino_rounds_scale " + str_round +\
-        "DELETE FROM events.domino_rounds_pairs " + str_round
+    str_scale = "DELETE FROM events.domino_rounds_pairs " + str_round +\
+        "DELETE FROM events.domino_rounds_scale " + str_round
     
     #boleta
     domino_boletus = "DELETE from events.domino_boletus_position where boletus_id IN " + str_id_boletus + "; " +\
         "DELETE from events.domino_boletus_data where boletus_id IN " + str_id_boletus + "; " +\
+        "DELETE from events.domino_boletus_penalties where boletus_id IN " + str_id_boletus + "; " +\
         "DELETE from events.domino_boletus_pairs where boletus_id IN " + str_id_boletus + "; "
         
     domino_boletus += "DELETE FROM events.domino_boletus where round_id = '" + round_id + "'; " 
-    domino_boletus += "DELETE FROM events.domino_boletus where round_id = '" + round_id + "'; " 
     
+    # borrar las parejas creadas en la ronda
     # cambiar el estado de los jugadores estado confirmados
     status_play = get_one_status_by_name('CONFIRMED', db=db)
     status_canceled = get_one_status_by_name('CANCELLED', db=db)
@@ -898,9 +900,11 @@ def remove_configurate_round(tourney_id: str, round_id: str, db: Session):
     
     str_update_player = "UPDATE events.players SET status_id=" + str(status_play.id) +\
         " WHERE tourney_id = '" + tourney_id + "' and status_id not in (" + str(status_canceled.id) + "," + str(status_expeled.id) + ") ; "
-        
-    str_update_round = "UPDATE events.domino_rounds SET status_id=" + str(status_init.id) +\
-        " WHERE id = '" + round_id + "'; "
+    
+    # voy a borrar la ronda para obligarlo a configurar nuevamente    
+    # str_update_round = "UPDATE events.domino_rounds SET status_id=" + str(status_init.id) +\
+    #     " WHERE id = '" + round_id + "'; "
+    str_update_round = "DELETE FROM events.domino_rounds WHERE id = '" + round_id + "'; "
         
     str_delete = str_loterry + domino_boletus + str_scale + str_update_player + str_update_round + "COMMIT; " 
     db.execute(str_delete)

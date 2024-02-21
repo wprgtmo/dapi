@@ -119,62 +119,59 @@ def get_one_by_id(table_id: str, db: Session):
     
     return result
 
-def created_tables_default(db_tourney, db: Session):
+def created_tables_default(db_tourney, db: Session, firts_round=True, amount_new_tables=0):
     
-    str_borrar_image = "SELECT image FROM events.domino_tables WHERE tourney_id = '" + db_tourney.id + "' "
-    lst_images = db.execute(str_borrar_image)
-    
-    path_tourney = create_dir(entity_type="SETTOURNEY", user_id=None, entity_id=str(db_tourney.id))
-    
-    for item in lst_images:
-        try:
-            del_image(path=path_tourney, name=str(item))
-        except:
-            continue
+    if firts_round:
+        str_borrar_image = "SELECT image FROM events.domino_tables WHERE tourney_id = '" + db_tourney.id + "' "
+        lst_images = db.execute(str_borrar_image)
         
-    # buscar ls mesas del torneo y volverlas a crear. Si tienen imgane, no importa
-    str_query = "DELETE FROM events.domino_tables_files WHERE table_id IN (" + \
-        "SELECT id FROM events.domino_tables WHERE tourney_id = '" + db_tourney.id + "'); " +\
-        "DELETE FROM events.domino_tables WHERE tourney_id = '" + db_tourney.id + "';COMMIT; "
-    db.execute(str_query)
+        path_tourney = create_dir(entity_type="SETTOURNEY", user_id=None, entity_id=str(db_tourney.id))
+        
+        for item in lst_images:
+            try:
+                del_image(path=path_tourney, name=str(item))
+            except:
+                continue
+            
+        # buscar ls mesas del torneo y volverlas a crear. Si tienen imgane, no importa
+        str_query = "DELETE FROM events.domino_tables_files WHERE table_id IN (" + \
+            "SELECT id FROM events.domino_tables WHERE tourney_id = '" + db_tourney.id + "'); " +\
+            "DELETE FROM events.domino_tables WHERE tourney_id = '" + db_tourney.id + "';COMMIT; "
+        db.execute(str_query)
+        
+        table_number = 0
+        amount_trad_tables = db_tourney.amount_tables - db_tourney.amount_smart_tables
     
-    table_number = 0
-    amount_trad_tables = db_tourney.amount_tables - db_tourney.amount_smart_tables
-   
-    # crear las mesas inteligentes
-    if db_tourney.amount_smart_tables > 0:
-        for i in range(db_tourney.amount_smart_tables):
+        # crear las mesas inteligentes
+        if db_tourney.amount_smart_tables > 0:
+            for i in range(db_tourney.amount_smart_tables):
+                table_number += 1
+                created_one_domino_tables(db_tourney, table_number, True, 0, db, db_tourney.updated_by)
+        
+        # crear las mesas tradicionales
+        for i in range(amount_trad_tables):
             table_number += 1
-            created_one_domino_tables(db_tourney, table_number, True, 0, db, db_tourney.updated_by)
-    
-    # crear las mesas tradicionales
-    for i in range(amount_trad_tables):
-        table_number += 1
-        created_one_domino_tables(db_tourney, table_number, False, 0, db, db_tourney.updated_by)
+            created_one_domino_tables(db_tourney, table_number, False, 0, db, db_tourney.updated_by)
+    else:
+        last_table = get_last_by_tourney(tourney_id=db_tourney.id, db=db)
+        table_number = last_table.table_number
         
+        for i in range(amount_new_tables):
+            table_number += 1
+            created_one_domino_tables(db_tourney, table_number, False, 0, db, db_tourney.updated_by)
+                
     return True
 
-def configure_domino_tables_original_borrar(db_tourney, db: Session, created_by:str, file=None):
-    
-    bonus = db_tourney.amount_bonus_points
-    table_number = 0
-    amount_trad_tables = db_tourney.amount_tables - db_tourney.amount_smart_tables
-   
-    # crear las mesas inteligentes
-    if db_tourney.amount_smart_tables > 0:
-        for i in range(db_tourney.amount_smart_tables):
-            table_number += 1
-            created_one_domino_tables(db_tourney, table_number, True, bonus, db, created_by)
-            bonus -= 2
-    
-    # crear las mesas tradicionales
-    for i in range(amount_trad_tables):
-        table_number += 1
-        created_one_domino_tables(db_tourney, table_number, False, bonus, db, created_by)
-        bonus -= 2
+def get_last_by_tourney(tourney_id: str, db: Session): 
+    return db.query(DominoTables).filter(DominoTables.tourney_id==tourney_id).order_by(DominoTables.table_number.desc()).first()
+
+def get_count_tables_by_tourney(tourney_id: str, db: Session): 
+    str_query = "SELECT count(dtab.id) FROM events.domino_tables dtab " +\
+        "where dtab.tourney_id = '" + tourney_id + "'"
         
-    return True
-   
+    amount = db.execute(str_query).fetchone()[0]
+    return amount
+
 def created_one_domino_tables(db_tourney, table_number:int, is_smart:bool, amount_bonus:int, db: Session, 
                               created_by:str, file=None):
     

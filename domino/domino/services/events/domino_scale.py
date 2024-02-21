@@ -115,7 +115,8 @@ def calculate_score_expeted_of_pairs(round_id:str, acumulated_games_played:int, 
     # obtener listado de todas las mesas con sus parejas, o sea cada boleta por mesa. 
     lst_boletus =  get_all_by_round(round_id, db=db)
     for item in lst_boletus:
-        one_pair, two_pair = 0, 0
+        one_pair, two_pair = None, None
+        elo_one_player_one_pair = 0
         elo_two_player_one_pair = 0
         elo_one_player_two_pair = 0
         elo_two_player_two_pair = 0
@@ -125,19 +126,25 @@ def calculate_score_expeted_of_pairs(round_id:str, acumulated_games_played:int, 
             else:
                 two_pair = item_pair
         
-        str_query = "Select elo from events.players_users where profile_id =  '" + one_pair.pair.one_player_id + "'"
-        elo_one_player_one_pair = db.execute(str_query).fetchone()[0]
-        if one_pair.pair.two_player_id:
-            str_query = "Select elo from events.players_users where profile_id =  '" + one_pair.pair.two_player_id + "'"
-            elo_two_player_one_pair = db.execute(str_query).fetchone()[0]
+        if one_pair:
+            if one_pair.pair:
+                if one_pair.pair.one_player_id:
+                    str_query = "Select elo from events.players_users where profile_id =  '" + one_pair.pair.one_player_id + "'"
+                    elo_one_player_one_pair = db.execute(str_query).fetchone()[0]
+                
+                if one_pair.pair.two_player_id:
+                    str_query = "Select elo from events.players_users where profile_id =  '" + one_pair.pair.two_player_id + "'"
+                    elo_two_player_one_pair = db.execute(str_query).fetchone()[0]
         
-        if two_pair:    
-            str_query = "Select elo from events.players_users where profile_id =  '" + two_pair.pair.one_player_id + "'"
-            elo_one_player_two_pair = db.execute(str_query).fetchone()[0]
-            
-            if two_pair.pair.two_player_id:
-                str_query = "Select elo from events.players_users where profile_id =  '" + two_pair.pair.two_player_id + "'"
-                elo_two_player_two_pair = db.execute(str_query).fetchone()[0]
+        if two_pair:  
+            if two_pair.pair: 
+                if two_pair.pair.one_player_id:
+                    str_query = "Select elo from events.players_users where profile_id =  '" + two_pair.pair.one_player_id + "'"
+                    elo_one_player_two_pair = db.execute(str_query).fetchone()[0]
+                    
+                if two_pair.pair.two_player_id:
+                    str_query = "Select elo from events.players_users where profile_id =  '" + two_pair.pair.two_player_id + "'"
+                    elo_two_player_two_pair = db.execute(str_query).fetchone()[0]
         
         elo_one_pair = round((elo_one_player_one_pair + elo_two_player_one_pair)/2, 4)
         elo_two_pair = round((elo_one_player_two_pair + elo_two_player_two_pair)/2, 4)
@@ -148,9 +155,11 @@ def calculate_score_expeted_of_pairs(round_id:str, acumulated_games_played:int, 
         str_update = "UPDATE events.domino_rounds_pairs SET "
         str_update_scale = "UPDATE events.domino_rounds_scale SET "
         
-        str_one_pair = str_update + "score_expected = " + str(se_one_pair) + ", elo_pair = " + str(elo_one_pair) + ", " +\
-            "elo_pair_opposing = " + str(elo_two_pair) + ", acumulated_games_played = " + str(acumulated_games_played) +\
-            ", elo_ra = 0 WHERE id = '" + one_pair.pairs_id + "'; "
+        str_one_pair = ''
+        if one_pair:
+            str_one_pair = str_update + "score_expected = " + str(se_one_pair) + ", elo_pair = " + str(elo_one_pair) + ", " +\
+                "elo_pair_opposing = " + str(elo_two_pair) + ", acumulated_games_played = " + str(acumulated_games_played) +\
+                ", elo_ra = 0 WHERE id = '" + one_pair.pairs_id + "'; "
         str_two_pair = ''
         if two_pair:    
             str_two_pair = str_update + "score_expected = " + str(se_two_pair) + ", elo_pair = " + str(elo_two_pair) + ", " +\
@@ -1342,6 +1351,11 @@ def order_round_to_init(db_round, db:Session, round_aperture: DominoRoundsApertu
     return True   
 
 def order_round_to_play(db_round, db:Session, uses_segmentation=True):
+    
+    result_init = configure_automatic_lottery(db_round, db=db, uses_segmentation=uses_segmentation)
+    
+    if not result_init:
+        return False
     
     return True  
 

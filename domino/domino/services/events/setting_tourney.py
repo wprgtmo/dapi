@@ -24,7 +24,7 @@ from domino.services.resources.status import get_one_by_name as get_one_status_b
 from domino.services.resources.utils import get_result_count, upfile, create_dir, del_image, get_ext_at_file, remove_dir
 from domino.services.resources.playercategories import get_one_event_scope_by_name, get_one_event_level_by_name
 
-from domino.services.events.domino_table import created_tables_default
+from domino.services.events.domino_table import created_tables_default, get_count_tables_by_tourney
 from domino.services.events.domino_round import created_round_default, remove_configurate_round, get_last_by_tourney, get_one_by_number
 from domino.services.events.domino_scale import aperture_one_new_round
 from domino.services.events.invitations import get_amount_invitations_by_tourney
@@ -356,7 +356,7 @@ def configure_one_tourney(request, tourney_id: str, settingtourney: SettingTourn
      
     if restart_setting_round:
         update_initializes_tourney(db_tourney, locale, db=db)
-    
+        
     db.add(db_tourney)
     db.commit()
     
@@ -411,23 +411,35 @@ def update_initializes_tourney(db_tourney, locale, db:Session):
     db_tourney.elo_max = elo_max
     db_tourney.elo_min = elo_min
        
-    # crear las mesas y si ya están creadas borrar y volver a crear
-    
     db_round_ini = get_last_by_tourney(db_tourney.id, db=db)
-    if db_round_ini:
-        result_init = remove_configurate_round(db_tourney.id, db_round_ini.id, db=db)
-        status_creat = get_one_status_by_name('CREATED', db=db)
-        db_round_ini.status_id = status_creat.id
-        
-    result_init = created_tables_default(db_tourney, db)
-    if not result_init:
-        raise HTTPException(status_code=400, detail=_(locale, "tourney.setting_tables_failed"))
+    # si la ultima ronda esta en estado finalizada no tento que eliminar nada
     
-    # crear la primera ronda, si ya existe, no hacer nada.
-    if not db_round_ini:
+    if db_round_ini:
+        if db_round_ini.status.name != 'FINALIZED':
+            result_init = remove_configurate_round(db_tourney.id, db_round_ini.id, db=db)
+            status_creat = get_one_status_by_name('CREATED', db=db)
+            db_round_ini.status_id = status_creat.id
+        else:
+            # crear nueva ronda 
+            round_number = db_round_ini.round_number + 1
+            db_round_ini = created_round_default(db_tourney, 'Ronda Nro. ' +  str(round_number), db=db, round_number=round_number, is_first=False)
+            if not db_round_ini:
+                raise HTTPException(status_code=400, detail=_(locale, "tourney.setting_rounds_failed"))
+    else:
+        # crear nueva ronda 
         db_round_ini = created_round_default(db_tourney, 'Ronda Nro. 1', db=db, round_number=1, is_first=True)
         if not db_round_ini:
             raise HTTPException(status_code=400, detail=_(locale, "tourney.setting_rounds_failed"))
+    
+    # completar las mesas si faltaran    
+    amount_real_tables = get_count_tables_by_tourney(db_tourney.id, db=db)
+    amount_tables = calculate_amount_tables(db_tourney.id, db_tourney.modality, db=db)
+    amount_new_tables = amount_tables - amount_real_tables if amount_tables > amount_real_tables else 0
+    
+    firts_round = True if db_round_ini and db_round_ini.round_number == 1 and db_round_ini.status.name != 'FINALIZED'  else False
+    result_init = created_tables_default(db_tourney, db, firts_round=firts_round, amount_new_tables=amount_new_tables)
+    if not result_init:
+        raise HTTPException(status_code=400, detail=_(locale, "tourney.setting_tables_failed"))
     
     if db_tourney.segmentation_type == 'ELO':
         # actualizar elos de las categorias si existen
@@ -454,8 +466,15 @@ def update_initializes_tourney(db_tourney, locale, db:Session):
         #                                      amount_bonus_tables=db_tourney.amount_bonus_tables, amount_bonus_points=db_tourney.amount_bonus_points)
         round_created = DominoRoundsAperture(use_segmentation=db_tourney.use_segmentation, use_bonus=False, 
                                              amount_bonus_tables=0, amount_bonus_points=0)
+        
         aperture_one_new_round(db_round_ini.id, round_created, locale, db=db)
     
+    else:
+        if db_round_ini and db_round_ini.round_number != 1:
+            round_created = DominoRoundsAperture(use_segmentation=db_tourney.use_segmentation, use_bonus=False, 
+                                             amount_bonus_tables=0, amount_bonus_points=0)
+            aperture_one_new_round(db_round_ini.id, round_created, locale, db=db)
+        
     # try:
     
     return True
