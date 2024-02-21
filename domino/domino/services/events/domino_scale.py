@@ -755,14 +755,13 @@ def get_info_of_boletus_pair(boletus_id: str, api_uri: str, db: Session):
         "from events.domino_boletus_pairs dbpair " +\
         "join events.domino_boletus dbol ON dbol.id = dbpair.boletus_id " +\
         "join events.domino_rounds_pairs dpair ON dpair.id = dbpair.pairs_id " +\
-        "join events.domino_rounds_scale sca_one ON sca_one.id = dpair.scale_id_one_player " +\
-        "join events.domino_rounds_scale sca_two ON sca_two.id = dpair.scale_id_two_player " +\
-        "join enterprise.profile_member pmone ON pmone.id = dpair.one_player_id " +\
-        "join enterprise.profile_member pmtwo ON pmtwo.id = dpair.two_player_id " +\
+        "left join events.domino_rounds_scale sca_one ON sca_one.id = dpair.scale_id_one_player " +\
+        "left join events.domino_rounds_scale sca_two ON sca_two.id = dpair.scale_id_two_player " +\
+        "left join enterprise.profile_member pmone ON pmone.id = dpair.one_player_id " +\
+        "left join enterprise.profile_member pmtwo ON pmtwo.id = dpair.two_player_id " +\
         "where dbpair.boletus_id = '" + boletus_id + "' "
         
     lst_data_exec = db.execute(str_query)
-    
     pair_number, pair_one_id, pair_two_id = 1, "", ""
     for item in lst_data_exec:
         if pair_number == 1:
@@ -1092,11 +1091,10 @@ def close_one_round(request: Request, round_id: str, db: Session):
     db_round.close_date = datetime.now()
     
     count_round = calculate_amount_rounds_played(db_round.tourney.id, db=db)
-    open = True if int(count_round) <= int(db_round.tourney.number_rounds) else False
+    open_round = True if int(count_round) <= int(db_round.tourney.number_rounds) else False
     
     calculate_stadist_of_round(db_round, db=db)
-    
-    if open:
+    if open_round:
         
         if db_round.tourney.use_segmentation:
             # verificar si ya excedió la cantidad de rondas a bonificar

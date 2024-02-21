@@ -325,7 +325,6 @@ def calculate_amount_rounds_played(tourney_id, db: Session):
         "and status_id != " + str(one_status_canceled.id)
         
     count_round = db.execute(str_count).fetchone()[0]
-    
     return count_round
 
 def calculate_amount_rounds_segmentated(tourney_id, db: Session):

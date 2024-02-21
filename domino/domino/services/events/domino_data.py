@@ -120,6 +120,12 @@ def new_data(request: Request, boletus_id:str, dominodata: DominoDataCreated, db
     if one_boletus.status.name != 'INITIADED':
         raise HTTPException(status_code=404, detail=_(locale, "boletus.status_incorrect"))
 
+    if not dominodata.pair:
+        raise HTTPException(status_code=404, detail=_(locale, "boletus.pair_is_requeried"))
+    
+    if not dominodata.point:
+        raise HTTPException(status_code=404, detail=_(locale, "boletus.point_is_requeried"))
+    
     str_number = "SELECT data_number FROM events.domino_boletus_data where boletus_id = '" + boletus_id + "' " +\
         "ORDER BY data_number DESC LIMIT 1; "
     last_number = db.execute(str_number).fetchone()

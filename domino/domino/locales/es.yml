@@ -144,5 +144,7 @@ es:
     equal_positive_points: 'Parejas empatadas, no puede cerrarse por tiempo'
     motive_non_completion: 'Cerrado por no completamiento, no se puede reabrir'
     motive_annulled: 'Boleta anulada, no se puede reabrir'
+    pair_is_requeried: 'Debe indicar la pareja ganadora'
+    point_is_requeried: 'Debe especificar la cantidad de puntos a captar'
   data:
     not_found: 'Registro de Data no existe'
