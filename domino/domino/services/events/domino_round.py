@@ -97,12 +97,12 @@ def create_dict_row(item, amount_tables=0, amount_pairs=0):
 def get_one(round_id: str, db: Session):  
     return db.query(DominoRounds).filter(DominoRounds.id == round_id).first()
 
-def get_one_by_number(round_number: int, db: Session): 
+def get_one_by_number(round_number: int, tourney_id:str, db: Session): 
     # status_canceled = get_one_status_by_name('CANCELLED', db=db) 
     # return db.query(DominoRounds).filter(and_(DominoRounds.round_number==round_number).\
     #     filter(DominoRounds.status_id != status_canceled.id)).first()
     
-    return db.query(DominoRounds).filter_by(round_number=round_number).first()
+    return db.query(DominoRounds).filter_by(tourney_id=tourney_id, round_number=round_number).first()
 
 def get_one_by_id(round_id: str, db: Session): 
     result = ResultObject()  
@@ -205,13 +205,16 @@ def configure_next_rounds(db_round, db:Session):
     # calcular en base a los jugadores la cantidad de mesas que necesito y crearlas
     amount_tables, amount_player_waiting = reconfig_amount_tables(db_round.tourney, db=db)
     
-    # ordenar la escala actual por los criterior de ordenamiento del torneo.
+    # ordenar la escala actual por los criterior de ordenamiento de la ronda.
     str_list_player = "Select puse.*, sta.name as status_name, category_id from events.players_users puse " +\
         "join events.players play ON play.id = puse.player_id join resources.entities_status sta ON sta.id = play.status_id " +\
         "Where sta.name IN ('CONFIRMED', 'PLAYING', 'WAITING') and tourney_id = '" + db_round.tourney.id + "' " 
     
     str_order_by = get_str_to_order(db_round)
     str_list_player += str_order_by
+    print('consulta')
+    print(str_list_player)
+    print('*******************')
     lst_all_player_to_order = db.execute(str_list_player).fetchall()
     
     lst_player_to_order, dict_play, position_number, lst_play_waiting =  [], {}, 0, []

@@ -32,7 +32,7 @@ from domino.services.events.invitations import get_amount_invitations_by_tourney
 from domino.services.events.tourney import get_one as get_one_tourney, calculate_amount_tables, \
     get_count_players_by_tourney, get_values_elo_by_tourney, get_lst_categories_of_tourney, get_categories_of_tourney,\
     create_category_by_default, update_amount_player_by_categories, calculate_amount_categories, \
-    calculate_amount_players_playing, created_segmentation_by_level
+    calculate_amount_players_playing, created_segmentation_by_level, update_cat_at_elo_for_player
 from domino.services.enterprise.auth import get_url_advertising
 
 def get_one_configure_tourney(request:Request, tourney_id: str, db: Session):  
@@ -196,7 +196,8 @@ def configure_one_tourney(request, tourney_id: str, settingtourney: SettingTourn
         # validar que todos los jugadores del torneo estén incluidos en los rangos de categorias.
         # validar si todos los jugadores del torneo están en alguna categoria
         
-        settingtourney.segmentation_type = 'NIVEL'
+        settingtourney.segmentation_type = 'ELO'
+        # settingtourney.segmentation_type = 'NIVEL'
         if not settingtourney.segmentation_type:
             raise HTTPException(status_code=404, detail=_(locale, "tourney.segmentation_type_is_req"))
         
@@ -206,6 +207,8 @@ def configure_one_tourney(request, tourney_id: str, settingtourney: SettingTourn
         if settingtourney.segmentation_type == 'NIVEL':
             # crear las categorias de nivel if no existen
             created_segmentation_by_level(tourney_id=tourney_id, db=db)
+        else:
+            update_cat_at_elo_for_player(db_tourney.id, db=db)
             
         if not verify_players_by_category(db_tourney.id, db=db):
             raise HTTPException(status_code=404, detail=_(locale, "tourney.exist_player_not_categories"))
@@ -222,7 +225,7 @@ def configure_one_tourney(request, tourney_id: str, settingtourney: SettingTourn
         last_round = get_last_by_tourney(db_tourney.id, db=db)
         if last_round:
             if last_round.round_number != 1 : #estamos en la primera, no tengo que buscar
-                prevoius_round = get_one_by_number(last_round.round_number, db=db)
+                prevoius_round = get_one_by_number(int(last_round.round_number-1), tourney_id, db=db)
                 if prevoius_round and prevoius_round.use_segmentation is False:
                     raise HTTPException(status_code=404, detail=_(locale, "tourney.round_not_cant_categories"))
         

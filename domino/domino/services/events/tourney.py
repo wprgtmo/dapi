@@ -415,12 +415,36 @@ def update_cat_at_level_for_player(tourney_id: str, category_id: str, level: str
     amount_players = 0
     for item_res in lst_result_update:
         amount_players += 1
-    # print('jugadors')
-    # print(amount_players)   
-    # print('sonsulta')
-    # print(str_result_update)    
-    # print('555555555555555555555555555')     
     return amount_players
+
+def update_cat_at_elo_for_player(tourney_id: str, db:Session):
+    
+    str_query_not_cat = "Select pu.elo, pu.player_id, pu.profile_id FROM events.players_users pu join events.players pp ON " +\
+        "pp.id = pu.player_id WHERE pp.tourney_id = '" + tourney_id + "' and pu.category_id is NULL "
+    lst_result = db.execute(str_query_not_cat)
+    for item_pp in lst_result:
+        str_cat = "Select id, position_number from events.domino_categories Where tourney_id = '" + tourney_id + "' and elo_max >= " +\
+            str(item_pp.elo) + "order by elo_min limit 1 "
+        cat_id = db.execute(str_cat).fetchone()
+        if not cat_id:
+            str_cat = "Select id, position_number from events.domino_categories Where tourney_id = '" + tourney_id + "' " +\
+                "order by elo_min limit 1 "
+            cat_id = db.execute(str_cat).fetchone()
+        
+        if not cat_id:
+            continue
+        category_id = cat_id[0] if cat_id else ''  
+        position_number = cat_id[1] if cat_id else 0  
+        
+        str_result_update = "UPDATE events.players_users pu SET category_id = '" +\
+            category_id + "', category_number = " + str(position_number) + " FROM events.players pp " +\
+            "Where pp.id = pu.player_id and  pp.tourney_id = '" + tourney_id + "' and pu.profile_id = '" + item_pp.profile_id +\
+            "' "
+        db.execute(str_result_update)
+    
+    db.commit()
+       
+    return True
                
 def get_amount_tables(request: Request, tourney_id: str, db: Session): 
     locale = request.headers["accept-language"].split(",")[0].split("-")[0];
