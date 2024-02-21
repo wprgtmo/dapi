@@ -342,7 +342,7 @@ def create_single_player(request:Request, item, city_name:str, db: Session):
     one_profile = new_profile(profile_type, id, profile_id, item, item, None, city.id, True, True, True, "USERPROFILE", item, item, None, is_confirmed=True,
                               single_profile_id=id)
     
-    one_single_player = SingleProfile(profile_id=id, elo=0, level='NORMAL', updated_by=item)
+    one_single_player = SingleProfile(profile_id=id, elo=0, level='rookie', updated_by=item)
     one_profile.profile_single_player.append(one_single_player)
     
     try:   
@@ -366,7 +366,7 @@ def create_single_player_from_file(request:Request, username, name, city, elo, d
     one_profile = new_profile(profile_type, id, profile_id, username, name, None, city.id if city else None, True, True, True, 
                               "USERPROFILE", username, username, None, is_confirmed=True, single_profile_id=id)
     
-    one_single_player = SingleProfile(profile_id=id, elo=elo, level='NORMAL', updated_by=username, profile_user_id=user_id)
+    one_single_player = SingleProfile(profile_id=id, elo=elo, level='rookie', updated_by=username, profile_user_id=user_id)
     one_profile.profile_single_player.append(one_single_player)
     
     try:   
@@ -442,7 +442,7 @@ def create_pair_player(request:Request, item, city_name:str, db: Session):
     one_profile = new_profile(profile_type, id, me_profile_id, user_principal, name, None, city.id, True, True, True, 
                               "USERPROFILE", user_principal, user_principal, None, is_confirmed=True, single_profile_id=me_profile_id)
     
-    one_pair_player = PairProfile(profile_id=id, level='NORMAL', updated_by=user_principal, elo=0)
+    one_pair_player = PairProfile(profile_id=id, level='rookie', updated_by=user_principal, elo=0)
     one_profile.profile_pair_player.append(one_pair_player)
     
     other_user_member = ProfileUsers(profile_id=other_username_id, username=other_user, is_principal=False, created_by=user_principal, is_confirmed=True,
@@ -477,7 +477,7 @@ def create_referee(request:Request, item, city_name:str, db: Session):
     one_profile = new_profile(profile_type, id, me_profile_id, item, item, None, city.id, True, True, True, 
                               "USERPROFILE", item, item, None, is_confirmed=True, single_profile_id=me_profile_id)
     
-    one_referee_user = RefereeProfile(profile_id=id, level='NORMAL', updated_by=item)
+    one_referee_user = RefereeProfile(profile_id=id, level='rookie', updated_by=item)
     one_profile.profile_referee_player.append(one_referee_user)
     
     try:   

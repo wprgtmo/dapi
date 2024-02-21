@@ -374,21 +374,22 @@ def created_segmentation_by_level(tourney_id:str, db:Session):
         "Select id from events.players where tourney_id = '" + tourney_id + "') group by ps.level"
     lst_cat = db.execute(str_query_cat)
     
-    dict_cat = {'NORMAL': 4, 'rookie': 3, 'professional': 2, 'expert': 1}
-    dict_cat_name = {'NORMAL': 'Novato', 'rookie': 'Novato', 'professional': 'Profesional', 'expert': 'Experto'}
+    dict_cat = {'rookie': 3, 'professional': 2, 'expert': 1}
+    dict_cat_name = {'rookie': 'Novato', 'professional': 'Profesional', 'expert': 'Experto'}
     
     for item in lst_cat:
+        level_type = item.level if item.level != 'NORMAL' else 'rookie'
         str_cat_id = "Select id from events.domino_categories where tourney_id = '" + \
-            tourney_id + "' and category_number = '" + str(dict_cat_name[item.level]) + "'"
+            tourney_id + "' and category_number = '" + str(dict_cat_name[level_type]) + "'"
         category_id = db.execute(str_cat_id).fetchone()
         
         category_id = category_id[0] if category_id else None
-        category_number = str(dict_cat_name[item.level])
-        position_number = dict_cat[item.level]
+        category_number = str(dict_cat_name[level_type])
+        position_number = dict_cat[level_type]
         
         if not category_id:
             id=str(uuid.uuid4())
-            amount_players = update_cat_at_level_for_player(tourney_id, id, item.level, position_number, db=db)
+            amount_players = update_cat_at_level_for_player(tourney_id, id, level_type, position_number, db=db)
             
             db_one_category = DominoCategory(id=id, tourney_id=tourney_id, category_number=category_number,
                                              position_number=position_number, elo_min=0, elo_max=0, 
@@ -396,7 +397,7 @@ def created_segmentation_by_level(tourney_id:str, db:Session):
         
             db.add(db_one_category)
         else:
-            amount_players = update_cat_at_level_for_player(tourney_id, category_id, item.level, position_number, db=db)
+            amount_players = update_cat_at_level_for_player(tourney_id, category_id, level_type, position_number, db=db)
             str_update_cat = "Update events.domino_categories cat SET amount_players = " + str(amount_players) +\
                 "where id = '" + category_id + "';"
             db.execute(str_update_cat)
