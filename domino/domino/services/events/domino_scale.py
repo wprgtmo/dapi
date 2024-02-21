@@ -29,7 +29,8 @@ from domino.services.resources.utils import get_result_count, upfile, create_dir
 from domino.services.enterprise.userprofile import get_one as get_one_profile
 from domino.services.enterprise.auth import get_url_avatar
 
-from domino.services.events.player import get_lst_id_player_by_elo, change_all_status_player_at_init_round, get_one_user
+from domino.services.events.player import get_lst_id_player_by_elo, change_all_status_player_at_init_round, get_one_user, \
+    get_lst_id_player_by_level
 from domino.services.events.domino_round import get_one as get_one_round, get_first_by_tourney, configure_rounds, configure_new_rounds, \
     get_obj_info_to_aperturate, remove_configurate_round, calculate_amount_rounds_played, configure_next_rounds, \
     get_last_by_tourney, calculate_amount_rounds_segmentated
@@ -303,13 +304,18 @@ def configure_automatic_lottery(db_round, db: Session, uses_segmentation=False):
     position_number=0
     for item_cat in lst_categories:   
         position_number=created_automatic_lottery(
-            db_round.tourney.id, db_round.tourney.modality, db_round.id, item_cat.elo_min, item_cat.elo_max, position_number, item_cat.id, db=db)
+            db_round.tourney.id, db_round.tourney.modality, db_round.id, item_cat.elo_min, item_cat.elo_max, position_number, item_cat.id, db=db,
+            segmentation_type=db_round.tourney.segmentation_type)
         
     return True
 
-def created_automatic_lottery(tourney_id: str, modality:str, round_id: str, elo_min:float, elo_max:float, position_number:int, category_id, db: Session):
+def created_automatic_lottery(tourney_id: str, modality:str, round_id: str, elo_min:float, elo_max:float, position_number:int, 
+                              category_id, db: Session, segmentation_type='ELO'):
     
-    list_player = get_lst_id_player_by_elo(tourney_id, modality, min_elo=elo_min, max_elo=elo_max, db=db)
+    if segmentation_type == 'ELO':
+        list_player = get_lst_id_player_by_elo(tourney_id, modality, min_elo=elo_min, max_elo=elo_max, db=db)
+    elif segmentation_type == 'NIVEL':
+        list_player = get_lst_id_player_by_level(tourney_id, modality, category_id, db=db)
     
     lst_groups = sorted(list_player, key=lambda y:random.randint(0, len(list_player)))
     for item_pos in lst_groups:
@@ -1031,8 +1037,9 @@ def aperture_one_new_round(round_id:str, round_aperture: DominoRoundsAperture, l
         if db_round.tourney.use_segmentation:
             # validar todas las categorias estén contempladas entre los elo de los jugadores.
             lst_category = get_lst_categories_of_tourney(tourney_id=db_round.tourney.id, db=db)
-            if not verify_category_is_valid(float(db_round.tourney.elo_max), float(db_round.tourney.elo_min), lst_category=lst_category):
-                raise HTTPException(status_code=400, detail=_(locale, "tourney.setting_category_incorrect"))
+            if db_round.tourney.segmentation_type == 'ELO':
+                if not verify_category_is_valid(float(db_round.tourney.elo_max), float(db_round.tourney.elo_min), lst_category=lst_category):
+                    raise HTTPException(status_code=400, detail=_(locale, "tourney.setting_category_incorrect"))
         else:
             create_category_by_default(
                 db_round.tourney.id, db_round.tourney.elo_max, db_round.tourney.elo_min, info_round.amount_players_playing, db=db)

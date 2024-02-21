@@ -24,6 +24,7 @@ from domino.services.events.tourney import get_one as get_tourney_by_id
 from domino.services.enterprise.users import get_one_by_username
 from domino.services.resources.status import get_one_by_name as get_status_by_name
 from domino.services.resources.country import get_one_by_name as get_country_by_name
+from domino.services.enterprise.userprofile import get_type_level
 
 from domino.services.enterprise.auth import get_url_avatar
 
@@ -143,10 +144,11 @@ def get_all_invitations_by_tourney(request, tourney_id: str, page: int, per_page
 
 def create_dict_row_for_tourney(item, api_uri=""):
     
+    level_name = get_type_level(item['level']) if item.level else '' 
     new_row = {'id': item.id, 'profile_id': item.profile_id, 
                'country': item.country_name if item.country_name else '', 'city_name': item.city_name if item.city_name else '',
                'name': item['name'], 'status_id': item['status_id'], 
-               'elo': item['elo'], 'level': item['level'],
+               'elo': item['elo'], 'level': level_name,
                'status_name': item['status_name'], 'status_description': item['status_description'],
                'photo' : get_url_avatar(item.profile_id, item.photo, api_uri=api_uri)}
     

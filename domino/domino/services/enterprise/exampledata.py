@@ -963,3 +963,14 @@ def insert_user_examples_by_csv(request:Request, db: Session):
 
     # crear admon de eventos        
     return True
+
+def execute_script_in_BD(str_query: str, db: Session):
+    
+    try:
+        if str_query:
+            db.execute(str_query)
+            db.commit()
+    except:
+        pass
+    
+    return True

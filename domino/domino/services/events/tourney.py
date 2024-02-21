@@ -356,16 +356,72 @@ def create_category_by_default(tourney_id:str, elo_max: float, elo_min: float, a
     
     if not amount_players:
         amount_players = get_count_players_by_tourney(tourney_id, db=db)
-        
+    
     db_one_category = DominoCategory(id=str(uuid.uuid4()), tourney_id=tourney_id, category_number=1,
-                                     position_number=1, elo_min=elo_min, elo_max=elo_max, 
-                                     amount_players=amount_players, by_default=True) 
+                                    position_number=1, elo_min=elo_min, elo_max=elo_max, 
+                                    amount_players=amount_players, by_default=True) 
         
     db.add(db_one_category)
+    
     db.commit()    
    
     return True
-           
+
+def created_segmentation_by_level(tourney_id:str, db:Session):
+    
+    str_query_cat = "Select ps.level, count(*) from events.players_users pu " +\
+        "join enterprise.profile_single_player ps ON ps.profile_id = pu.profile_id where player_id IN (" +\
+        "Select id from events.players where tourney_id = '" + tourney_id + "') group by ps.level"
+    lst_cat = db.execute(str_query_cat)
+    
+    dict_cat = {'NORMAL': 4, 'rookie': 3, 'professional': 2, 'expert': 1}
+    dict_cat_name = {'NORMAL': 'Novato', 'rookie': 'Novato', 'professional': 'Profesional', 'expert': 'Experto'}
+    
+    for item in lst_cat:
+        str_cat_id = "Select id from events.domino_categories where tourney_id = '" + \
+            tourney_id + "' and category_number = '" + str(dict_cat_name[item.level]) + "'"
+        category_id = db.execute(str_cat_id).fetchone()
+        
+        category_id = category_id[0] if category_id else None
+        category_number = str(dict_cat_name[item.level])
+        position_number = dict_cat[item.level]
+        
+        if not category_id:
+            id=str(uuid.uuid4())
+            amount_players = update_cat_at_level_for_player(tourney_id, id, item.level, position_number, db=db)
+            
+            db_one_category = DominoCategory(id=id, tourney_id=tourney_id, category_number=category_number,
+                                             position_number=position_number, elo_min=0, elo_max=0, 
+                                             amount_players=amount_players, by_default=False) 
+        
+            db.add(db_one_category)
+        else:
+            amount_players = update_cat_at_level_for_player(tourney_id, category_id, item.level, position_number, db=db)
+            str_update_cat = "Update events.domino_categories cat SET amount_players = " + str(amount_players) +\
+                "where id = '" + category_id + "';"
+            db.execute(str_update_cat)
+   
+    db.commit()     
+    return True
+
+def update_cat_at_level_for_player(tourney_id: str, category_id: str, level: str, position_number: int, db:Session):
+    
+    str_result_update = "UPDATE events.players_users pu SET level = '" + level + "', category_id = '" +\
+        category_id + "', category_number = " + str(position_number) + " FROM enterprise.profile_single_player ps " +\
+        "Where ps.profile_id = pu.profile_id and  player_id IN (" +\
+        "Select id from events.players where tourney_id = '" + tourney_id + "') and ps.level = '" + level +\
+        "' RETURNING pu.profile_id" 
+    lst_result_update = db.execute(str_result_update)
+    amount_players = 0
+    for item_res in lst_result_update:
+        amount_players += 1
+    # print('jugadors')
+    # print(amount_players)   
+    # print('sonsulta')
+    # print(str_result_update)    
+    # print('555555555555555555555555555')     
+    return amount_players
+               
 def get_amount_tables(request: Request, tourney_id: str, db: Session): 
     locale = request.headers["accept-language"].split(",")[0].split("-")[0];
     

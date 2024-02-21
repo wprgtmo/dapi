@@ -72,6 +72,7 @@ class SettingTourneyCreated(BaseModel):
     absences_point: Optional[int]
     
     use_segmentation: Optional[bool]
+    segmentation_type: Optional[str]
     
     amount_segmentation_round: Optional[int] 
     

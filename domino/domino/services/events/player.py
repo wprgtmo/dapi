@@ -31,7 +31,7 @@ from domino.services.enterprise.comunprofile import new_profile
 from domino.services.resources.city import get_one as city_get_one
 from domino.services.resources.country import get_one as country_get_one
 
-from domino.services.enterprise.userprofile import get_one as get_one_profile, get_one_single_profile_by_id, get_one_default_user
+from domino.services.enterprise.userprofile import get_one as get_one_profile, get_one_single_profile_by_id, get_one_default_user, get_type_level
 
 from domino.services.resources.utils import get_result_count, create_dir, del_image, get_ext_at_file, upfile
 from domino.services.enterprise.auth import get_url_avatar
@@ -97,9 +97,12 @@ def new_player_with_user(tourney_id, profile_id, invitation_id, created_by, stat
     dict_player = get_info_of_player(profile_id, db=db)
     
     if dict_player:
+        
         if dict_player['profile_type'] == 'SINGLE_PLAYER':
+            level_name = get_type_level(dict_player['level']) if dict_player['level'] else '' 
+            
             one_player.elo = dict_player['elo']
-            one_player.level = dict_player['level']
+            one_player.level = level_name
     
             one_player_user =  PlayersUser(
                 player_id=one_player.id, profile_id=profile_id, level=one_player.level,
@@ -559,6 +562,22 @@ def get_lst_id_player_by_elo(tourney_id: str, modality:str, min_elo: float, max_
     
     return lst_players
 
+def get_lst_id_player_by_level(tourney_id: str, modality:str, category_id: str, db: Session):  
+    
+    str_query = "SELECT player_id id FROM events.players_users pu " +\
+        "JOIN events.players pp ON pp.id = pu.player_id " +\
+        "join resources.entities_status sta ON sta.id = pp.status_id " +\
+        "WHERE pp.tourney_id = '" + tourney_id + "' AND sta.name IN ('CONFIRMED', 'PLAYING', 'WAITING') " +\
+        "AND pu.category_id = '" + category_id + "'"
+    
+    str_query += " ORDER BY pp.elo DESC, pp.id ASC " 
+    lst_data = db.execute(str_query)
+    lst_players = []
+    for item in lst_data:
+        lst_players.append(item.id)
+    
+    return lst_players
+    
 def get_lst_id_player_with_boletus(tourney_id: str, db: Session):  
     
     str_query = "SELECT player.id FROM events.players player join resources.entities_status sta ON sta.id = player.status_id "
@@ -727,11 +746,12 @@ def get_all_players_by_tourney(request:Request, page: int, per_page: int, tourne
 def create_dict_row(item, page, db: Session, api_uri):
     
     image = get_url_avatar(item['profile_id'], item['photo'], api_uri=api_uri)
+    level_name = get_type_level(item['level']) if item.level else '' 
     
     new_row = {'id': item['id'], 'name': item['name'], 
                'country': item['country_name'] if item['country_name'] else '', 
                'city_name': item['city_name'] if item['city_name'] else '',  
-               'photo' : image, 'elo': item['elo'], 'level': item['level'],
+               'photo' : image, 'elo': item['elo'], 'level': level_name,
                'status_name': item['status_name'], 'status_description': item['status_description'],
                'status_id': item['status_id'], 
                'position_number': item.position_number}

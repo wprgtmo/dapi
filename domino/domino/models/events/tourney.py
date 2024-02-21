@@ -48,6 +48,7 @@ class Tourney(Base):
     amount_bonus_points = Column(Integer, nullable=True, default=0)
     amount_bonus_points_rounds = Column(Integer, nullable=True, default=0)
     amount_segmentation_round = Column(Integer, nullable=True, default=0)
+    segmentation_type = Column(String(120), nullable=True)
     
     number_rounds = Column(Integer, nullable=True, default=0)
     number_bonus_round = Column(Integer, nullable=True, default=0)

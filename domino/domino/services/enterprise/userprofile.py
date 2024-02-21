@@ -511,9 +511,10 @@ def create_dict_row_single_player(item, page, db: Session, api_uri="", profile_t
                'country_id': item['country_id'], 'country': item['country_name'], 
                'photo' : get_url_avatar(item['profile_id'], item['photo'], api_uri=api_uri)}
     
+    level_name = get_type_level(item['level']) if item['level'] else '' 
     if profile_type == 'SINGLE_PLAYER':
         dict_row['elo'] = item['elo'] if item['elo'] else '' 
-        dict_row['level'] = item['level'] if item['level'] else '' 
+        dict_row['level'] = level_name 
     
     if page != 0:
         dict_row['selected'] = False
@@ -539,12 +540,13 @@ def get_one_single_profile(request: Request, id: str, db: Session):
     
     for item in res_profile:
         photo = get_url_avatar(item.profile_id, item.photo, api_uri=api_uri)
+        level_name = get_type_level(item.level) if item.level else '' 
         
         result.data = {'id': item.profile_id, 'name': item.name, 'email': item.email,
                        'profile_type_name': item.profile_type_name, 
                        'profile_type_description': item.profile_type_description, 'photo': photo,
                        'elo': item.elo if item.elo else '', 
-                       'level': item.level if item.level else '', 
+                       'level': level_name, 
                        'country_id': item.country_id if item.country_id else '', 
                        'country': item.country_name if item.country_name else '', 
                        'city_id': item.city_id if item.city_id else '', 
@@ -572,12 +574,13 @@ def get_one_referee_profile(request: Request, id: str, db: Session):
     
     for item in res_profile:
         photo = get_url_avatar(item.profile_id, item.photo, api_uri=api_uri)
+        level_name = get_type_level(item.level) if item.level else '' 
         
         result.data = {'id': item.profile_id, 'name': item.name, 'email': item.email,
                        'profile_type_name': item.profile_type_name, 
                        'profile_type_description': item.profile_type_description, 'photo': photo,
                        'country_id': item.country_id if item.country_id else '', 
-                       'level': item.level if item.level else '',
+                       'level': level_name,
                        'country': item.country_name if item.country_name else '', 
                        'city_id': item.city_id if item.city_id else '', 
                        'city_name': item.city_name if item.city_name else '',
@@ -609,12 +612,13 @@ def get_one_pair_profile_by_id(request: Request, id: str, db: Session):
     
     for item in res_profile:
         photo = get_url_avatar(item.profile_id, item.photo, api_uri=api_uri)
+        level_name = get_type_level(item.level) if item.level else '' 
         
         result.data = {'id': item.profile_id, 'name': item.name, 'email': item.email,
                        'profile_type_name': item.profile_type_name, 
                        'profile_type_description': item.profile_type_description, 'photo': photo,
                        'elo': item.elo if item.elo else '', 
-                       'level': item.level if item.level else '', 
+                       'level': level_name, 
                        'country_id': item.country_id if item.country_id else '', 
                        'country': item.country_name if item.country_name else '', 
                        'city_id': item.city_id if item.city_id else '', 
@@ -649,12 +653,13 @@ def get_one_team_profile_by_id(request: Request, id: str, db: Session):
     
     for item in res_profile:
         photo = get_url_avatar(item.profile_id, item.photo, api_uri=api_uri)
+        level_name = get_type_level(item.level) if item.level else '' 
         
         result.data = {'id': item.profile_id, 'name': item.name, 'email': item.email,
                        'profile_type_name': item.profile_type_name, 
                        'profile_type_description': item.profile_type_description, 'photo': photo,
                        'elo': item.elo if item.elo else '', 
-                       'level': item.level if item.level else '', 
+                       'level': level_name, 
                        'country_id': item.country_id if item.country_id else '', 
                        'country': item.country_name if item.country_name else '', 
                        'city_id': item.city_id if item.city_id else '', 

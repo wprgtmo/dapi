@@ -32,7 +32,7 @@ from domino.services.events.invitations import get_amount_invitations_by_tourney
 from domino.services.events.tourney import get_one as get_one_tourney, calculate_amount_tables, \
     get_count_players_by_tourney, get_values_elo_by_tourney, get_lst_categories_of_tourney, get_categories_of_tourney,\
     create_category_by_default, update_amount_player_by_categories, calculate_amount_categories, \
-    calculate_amount_players_playing
+    calculate_amount_players_playing, created_segmentation_by_level
 from domino.services.enterprise.auth import get_url_advertising
 
 def get_one_configure_tourney(request:Request, tourney_id: str, db: Session):  
@@ -66,9 +66,10 @@ def get_one_configure_tourney(request:Request, tourney_id: str, db: Session):
         "amount_smart_tables": 0 if not db_tourney.amount_smart_tables else db_tourney.amount_smart_tables,
         "use_segmentation": True if db_tourney.use_segmentation else False,
         'amount_segmentation_round': 0 if not db_tourney.amount_segmentation_round else db_tourney.amount_segmentation_round,
+        "segmentation_type": db_tourney.segmentation_type if db_tourney.segmentation_type else 'ELO',
         # "use_penalty": True if db_tourney.use_penalty else False,
         # "use_bonus": True if db_tourney.use_bonus else False,
-        "absences_points": db_tourney.points_for_absences if  db_tourney.points_for_absences else 0 if not db_tourney.number_points_to_win else db_tourney.number_points_to_win,
+        "absences_point": db_tourney.points_for_absences if  db_tourney.points_for_absences else 0 if not db_tourney.number_points_to_win else db_tourney.number_points_to_win,
         # "amount_bonus_tables": 0 if not db_tourney.amount_bonus_tables else db_tourney.amount_bonus_tables,
         # "amount_bonus_points": 0 if not db_tourney.amount_bonus_points else db_tourney.amount_bonus_points,
         # "amount_bonus_points_rounds": 0 if not db_tourney.amount_bonus_points_rounds else db_tourney.amount_bonus_points_rounds,
@@ -194,15 +195,27 @@ def configure_one_tourney(request, tourney_id: str, settingtourney: SettingTourn
     if db_tourney.use_segmentation:  
         # validar que todos los jugadores del torneo estén incluidos en los rangos de categorias.
         # validar si todos los jugadores del torneo están en alguna categoria
+        
+        settingtourney.segmentation_type = 'NIVEL'
+        if not settingtourney.segmentation_type:
+            raise HTTPException(status_code=404, detail=_(locale, "tourney.segmentation_type_is_req"))
+        
         if not settingtourney.amount_segmentation_round:
             raise HTTPException(status_code=404, detail=_(locale, "tourney.amount_segmentation_round_is_req"))
         
+        if settingtourney.segmentation_type == 'NIVEL':
+            # crear las categorias de nivel if no existen
+            created_segmentation_by_level(tourney_id=tourney_id, db=db)
+            
         if not verify_players_by_category(db_tourney.id, db=db):
             raise HTTPException(status_code=404, detail=_(locale, "tourney.exist_player_not_categories"))
         
+        if db_tourney.segmentation_type != settingtourney.segmentation_type:
+            db_tourney.segmentation_type = settingtourney.segmentation_type
+            
         if db_tourney.amount_segmentation_round != settingtourney.amount_segmentation_round:
             db_tourney.amount_segmentation_round = settingtourney.amount_segmentation_round
-    
+            
     last_round, prevoius_round = None, None  
     if use_segmentation:
         # debo verificar si existe una ronda anterior y en esta no se uso categoria, no se puede modificar el dato ya.
@@ -216,7 +229,6 @@ def configure_one_tourney(request, tourney_id: str, settingtourney: SettingTourn
         amount_category = calculate_amount_categories(db_tourney.id, db=db)
         if amount_category < 1:
             raise HTTPException(status_code=404, detail=_(locale, "tourney.amount_categories_incorrect"))
-        
         
     # use_bonus = True if settingtourney.use_bonus and settingtourney.use_bonus == True else False
     # if use_bonus:
@@ -403,24 +415,25 @@ def update_initializes_tourney(db_tourney, locale, db:Session):
         if not db_round_ini:
             raise HTTPException(status_code=400, detail=_(locale, "tourney.setting_rounds_failed"))
     
-    # actualizar elos de las categorias si existen
-    lst_category = get_categories_of_tourney(tourney_id=db_tourney.id, db=db)
-    if lst_category:
-        first_category, last_category = None, None
-        for item in lst_category:
-            if not first_category:
-                first_category = item 
-            last_category = item
-        if first_category and first_category.elo_max != elo_max:
-            first_category.elo_max = elo_max 
-            db.add(first_category)
-            
-        if last_category and last_category.elo_min != elo_min:
-            last_category.elo_min = elo_min 
-            db.add(last_category)
-    else:
-        create_category_by_default(db_tourney.id, elo_max, elo_min, amount_players=0, db=db)
-    
+    if db_tourney.segmentation_type == 'ELO':
+        # actualizar elos de las categorias si existen
+        lst_category = get_categories_of_tourney(tourney_id=db_tourney.id, db=db)
+        if lst_category:
+            first_category, last_category = None, None
+            for item in lst_category:
+                if not first_category:
+                    first_category = item 
+                last_category = item
+            if first_category and first_category.elo_max != elo_max:
+                first_category.elo_max = elo_max 
+                db.add(first_category)
+                
+            if last_category and last_category.elo_min != elo_min:
+                last_category.elo_min = elo_min 
+                db.add(last_category)
+        else:
+            create_category_by_default(db_tourney.id, elo_max, elo_min, amount_players=0, db=db)
+        
     # si el sorteo es automático, ya debo crear la primera distribución.
     if db_tourney.lottery_type == "AUTOMATIC":
         # round_created = DominoRoundsAperture(use_segmentation=db_tourney.use_segmentation, use_bonus=False, #db_tourney.use_bonus,

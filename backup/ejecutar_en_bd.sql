@@ -1,3 +1,3 @@
 
-ALTER TABLE IF EXISTS enterprise.profile_single_player
-ADD COLUMN profile_user_id character varying;
+ALTER TABLE IF EXISTS events.tourney
+ADD COLUMN segmentation_type character varying;
