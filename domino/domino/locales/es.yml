@@ -103,7 +103,7 @@ es:
     name_incorrect: 'Nombre de Torneo incorrecto'
     number_rounds_incorrect: 'Número de rondas incorrecto'
     exist_player_not_categories: 'Existen jugadores con la categoría no definida'
-    amount_segmentation_round_is_req: 'Si usa segmentacion debe especificar cantidad de rondas',
+    amount_segmentation_round_is_req: 'Si usa segmentacion debe especificar cantidad de rondas'
     segmentation_type_is_req: 'Tipo de segmentacion es requerida'
     absences_point_incorrect: 'Puntos por ausencias no puede quedar vacio'
   invitation:
