@@ -624,15 +624,12 @@ def get_all_players_by_category(request:Request, page: int, per_page: int, categ
         round_config = False if lst_round.status.name == "CREATED" else True
      
     str_from = "FROM events.players player " +\
+        "inner join events.players_users pu ON pu.player_id = player.id " +\
         "inner join enterprise.profile_member pro ON pro.id = player.profile_id " +\
         "left join resources.city ON city.id = pro.city_id " + \
         "left join resources.country ON country.id = city.country_id " +\
         "join resources.entities_status sta ON sta.id = player.status_id "
     
-    # tourney_is_init = True if dict_result['status_name'] == 'INITIADED' or dict_result['status_name'] == 'FINALIZED' else False
-    # status_name_find = dict_result['status_name'] if dict_result else db_tourney.status.name
-    
-    # tourney_is_init = True if status_name_find != 'CREATED' else False
     if round_config:
         str_from += "LEFT JOIN events.domino_rounds_scale rscale ON rscale.player_id = player.id "   
     
@@ -651,11 +648,14 @@ def get_all_players_by_category(request:Request, page: int, per_page: int, categ
     str_where = "WHERE pro.is_ready is True AND sta.name not in ('CANCELLED', 'EXPELLED') " 
     str_where += " AND player.tourney_id = '" + tourney_id + "' " 
     
-    if round_config:
-        str_where += " AND rscale.category_id = '" + category_id + "' " if category_id else ""
+    if dict_result['segmentation_type'] == 'ELO':
+        if round_config:
+            str_where += " AND rscale.category_id = '" + category_id + "' " if category_id else ""
+        else:
+            str_where += "AND player.elo >= " + str(dict_result['elo_min']) + " AND player.elo <= " + str(dict_result['elo_max']) if category_id else ""
     else:
-        str_where += "AND player.elo >= " + str(dict_result['elo_min']) + " AND player.elo <= " + str(dict_result['elo_max']) if category_id else ""
-        
+        str_where += " AND pu.category_id = '" + category_id + "' " if category_id else ""
+              
     dict_query = {'username': " AND username = '" + criteria_value + "'"}
     if criteria_key and criteria_key not in dict_query:
         raise HTTPException(status_code=404, detail=_(locale, "commun.invalid_param"))
