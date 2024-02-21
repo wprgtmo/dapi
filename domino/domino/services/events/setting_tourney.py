@@ -203,14 +203,14 @@ def configure_one_tourney(request, tourney_id: str, settingtourney: SettingTourn
         if not settingtourney.amount_segmentation_round:
             raise HTTPException(status_code=404, detail=_(locale, "tourney.amount_segmentation_round_is_req"))
         
-        if settingtourney.segmentation_type == 'NIVEL':
-            # crear las categorias de nivel if no existen
-            created_segmentation_by_level(tourney_id=tourney_id, db=db)
-        else:
-            update_cat_at_elo_for_player(db_tourney.id, db=db)
+        # if settingtourney.segmentation_type == 'NIVEL':
+        #     # crear las categorias de nivel if no existen
+        #     created_segmentation_by_level(tourney_id=tourney_id, db=db)
+        # else:
+        #     update_cat_at_elo_for_player(db_tourney.id, db=db)
             
-        if not verify_players_by_category(db_tourney.id, db=db):
-            raise HTTPException(status_code=404, detail=_(locale, "tourney.exist_player_not_categories"))
+        # if not verify_players_by_category(db_tourney.id, db=db):
+        #     raise HTTPException(status_code=404, detail=_(locale, "tourney.exist_player_not_categories"))
         
         if db_tourney.segmentation_type != settingtourney.segmentation_type:
             db_tourney.segmentation_type = settingtourney.segmentation_type
@@ -227,7 +227,16 @@ def configure_one_tourney(request, tourney_id: str, settingtourney: SettingTourn
                 prevoius_round = get_one_by_number(int(last_round.round_number-1), tourney_id, db=db)
                 if prevoius_round and prevoius_round.use_segmentation is False:
                     raise HTTPException(status_code=404, detail=_(locale, "tourney.round_not_cant_categories"))
+            else:
+                if settingtourney.segmentation_type == 'ELO' and not verify_players_by_category(db_tourney.id, db=db):
+                    raise HTTPException(status_code=404, detail=_(locale, "tourney.exist_player_not_categories"))
         
+        if settingtourney.segmentation_type == 'NIVEL':
+            # crear las categorias de nivel if no existen
+            created_segmentation_by_level(tourney_id=tourney_id, db=db)
+        else:
+            update_cat_at_elo_for_player(db_tourney.id, db=db)
+         
         amount_category = calculate_amount_categories(db_tourney.id, db=db)
         if amount_category < 1:
             raise HTTPException(status_code=404, detail=_(locale, "tourney.amount_categories_incorrect"))
