@@ -115,7 +115,8 @@ def configure_one_tourney(request, tourney_id: str, settingtourney: SettingTourn
         raise HTTPException(status_code=404, detail=_(locale, "tourney.not_found"))
     
     validate_atributes_requiered(
-        db_tourney, locale, settingtourney.number_points_to_win, settingtourney.time_to_win, name, settingtourney.number_rounds)
+        db_tourney, locale, settingtourney.number_points_to_win, settingtourney.time_to_win, name, settingtourney.number_rounds,
+        settingtourney.absences_point)
     
     amount_tables = calculate_amount_tables(db_tourney.id, db_tourney.modality, db=db)
     restart_setting_round = False
@@ -196,8 +197,6 @@ def configure_one_tourney(request, tourney_id: str, settingtourney: SettingTourn
         # validar que todos los jugadores del torneo estén incluidos en los rangos de categorias.
         # validar si todos los jugadores del torneo están en alguna categoria
         
-        settingtourney.segmentation_type = 'ELO'
-        # settingtourney.segmentation_type = 'NIVEL'
         if not settingtourney.segmentation_type:
             raise HTTPException(status_code=404, detail=_(locale, "tourney.segmentation_type_is_req"))
         
@@ -354,7 +353,7 @@ def configure_one_tourney(request, tourney_id: str, settingtourney: SettingTourn
     
     return result
 
-def validate_atributes_requiered(db_tourney, locale, number_points_to_win, time_to_win,  name, number_rounds):
+def validate_atributes_requiered(db_tourney, locale, number_points_to_win, time_to_win,  name, number_rounds, absences_point):
     
     if db_tourney.status.name == 'FINALIZED':
         raise HTTPException(status_code=404, detail=_(locale, "tourney.tourney_closed"))
@@ -370,6 +369,9 @@ def validate_atributes_requiered(db_tourney, locale, number_points_to_win, time_
     
     if not number_rounds:
         raise HTTPException(status_code=404, detail=_(locale, "tourney.number_rounds_incorrect"))
+    
+    if not absences_point:
+        raise HTTPException(status_code=404, detail=_(locale, "tourney.absences_point_incorrect"))
     
     return True
 

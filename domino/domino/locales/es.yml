@@ -105,6 +105,7 @@ es:
     exist_player_not_categories: 'Existen jugadores con la categoría no definida'
     amount_segmentation_round_is_req: 'Si usa segmentacion debe especificar cantidad de rondas',
     segmentation_type_is_req: 'Tipo de segmentacion es requerida'
+    absences_point_incorrect: 'Puntos por ausencias no puede quedar vacio'
   invitation:
     not_exist: 'Invitación no existe.'
     not_found: 'Invitación no existe.'
