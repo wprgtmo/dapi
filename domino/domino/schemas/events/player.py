@@ -48,6 +48,9 @@ class PlayerRegister(BaseModel):
     elo: Optional[float]
     level: Optional[str]
     
+    club_id: Optional[int]
+    federation_id: Optional[int]
+    
 class PlayerUpdatedRegister(BaseModel):
     
     name: str

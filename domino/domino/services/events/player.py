@@ -249,14 +249,18 @@ def get_info_one_player(request: Request, player_id: str, db: Session):
     
     str_query = "SELECT users.username, users.first_name, users.last_name, enterprise.profile_default_user.alias, " +\
         "users.email, users.phone, profile_single_player.elo, enterprise.profile_member.city_id, " +\
-        "enterprise.users.country_id, profile_single_player.level " +\
+        "enterprise.users.country_id, profile_single_player.level, " +\
+        "profile_single_player.club_id, club.name as club_name, club.federation_id, federations.name as federation_name " +\
         "FROM enterprise.profile_member " +\
         "join enterprise.profile_users ON profile_users.profile_id = profile_member.id " +\
         "join enterprise.profile_single_player ON profile_single_player.profile_id = profile_member.id " +\
         "join enterprise.users ON users.id = profile_single_player.profile_user_id " + \
         "join enterprise.profile_default_user ON profile_default_user.profile_id = users.id " + \
+        "left Join federations.clubs club ON club.id = profile_single_player.club_id " +\
+        "left join federations.federations federations ON federations.id = club.federation_id " +\
         "WHERE profile_member.id='" + db_player.profile_id + "' "
     dat_result = db.execute(str_query).fetchone()
+    
     if dat_result:
         db_register = PlayerRegister(username=dat_result.username, first_name=dat_result.first_name if dat_result.first_name else dat_result.username, 
                                      last_name=dat_result.last_name if dat_result.last_name else '',
@@ -265,7 +269,9 @@ def get_info_one_player(request: Request, player_id: str, db: Session):
                                      phone=dat_result.phone if dat_result.phone else '',
                                      city_id=dat_result.city_id if dat_result.city_id else '1', 
                                      country_id=dat_result.country_id if dat_result.country_id else '1', 
-                                     elo=dat_result.elo if dat_result.elo else 0, level=dat_result.level if dat_result.level else 'rookie')
+                                     elo=dat_result.elo if dat_result.elo else 0, level=dat_result.level if dat_result.level else 'rookie',
+                                     club_id=dat_result.club_id, club_name=dat_result.club_name,
+                                     federation_id=dat_result.federation_id, federation_name=dat_result.federation_name)
         result.data = db_register
     
     try:
