@@ -324,7 +324,7 @@ def update_pair_elo(db: Session):
      
     return True
 
-def create_single_player(request:Request, item, city_name:str, db: Session):
+def create_single_player(request:Request, item, city_name:str, db: Session, level='rookie'):
     
     city = get_city_by_name(city_name, db=db)
     
@@ -342,7 +342,7 @@ def create_single_player(request:Request, item, city_name:str, db: Session):
     one_profile = new_profile(profile_type, id, profile_id, item, item, None, city.id, True, True, True, "USERPROFILE", item, item, None, is_confirmed=True,
                               single_profile_id=id)
     
-    one_single_player = SingleProfile(profile_id=id, elo=0, level='rookie', updated_by=item)
+    one_single_player = SingleProfile(profile_id=id, elo=0, level=level, updated_by=item)
     one_profile.profile_single_player.append(one_single_player)
     
     try:   
@@ -352,7 +352,7 @@ def create_single_player(request:Request, item, city_name:str, db: Session):
     except (Exception, SQLAlchemyError) as e:
         return True
 
-def create_single_player_from_file(request:Request, username, name, city, elo, db: Session, user_id=''):
+def create_single_player_from_file(request:Request, username, name, city, elo, db: Session, user_id='', level='rookie'):
     
     profile_type = get_profile_type_by_name("SINGLE_PLAYER", db=db)
     if not profile_type:
@@ -366,7 +366,7 @@ def create_single_player_from_file(request:Request, username, name, city, elo, d
     one_profile = new_profile(profile_type, id, profile_id, username, name, None, city.id if city else None, True, True, True, 
                               "USERPROFILE", username, username, None, is_confirmed=True, single_profile_id=id)
     
-    one_single_player = SingleProfile(profile_id=id, elo=elo, level='rookie', updated_by=username, profile_user_id=user_id)
+    one_single_player = SingleProfile(profile_id=id, elo=elo, level=level, updated_by=username, profile_user_id=user_id)
     one_profile.profile_single_player.append(one_single_player)
     
     try:   
@@ -413,7 +413,7 @@ def create_event_admon_from_file(username, city_name, name, db: Session):
     except (Exception, SQLAlchemyError) as e:
         raise True
 
-def create_pair_player(request:Request, item, city_name:str, db: Session):
+def create_pair_player(request:Request, item, city_name:str, db: Session, level='rookie'):
     
     user_principal = item['one_player']
     other_user = item['two_player']
@@ -442,7 +442,7 @@ def create_pair_player(request:Request, item, city_name:str, db: Session):
     one_profile = new_profile(profile_type, id, me_profile_id, user_principal, name, None, city.id, True, True, True, 
                               "USERPROFILE", user_principal, user_principal, None, is_confirmed=True, single_profile_id=me_profile_id)
     
-    one_pair_player = PairProfile(profile_id=id, level='rookie', updated_by=user_principal, elo=0)
+    one_pair_player = PairProfile(profile_id=id, level=level, updated_by=user_principal, elo=0)
     one_profile.profile_pair_player.append(one_pair_player)
     
     other_user_member = ProfileUsers(profile_id=other_username_id, username=other_user, is_principal=False, created_by=user_principal, is_confirmed=True,
@@ -456,7 +456,7 @@ def create_pair_player(request:Request, item, city_name:str, db: Session):
     except (Exception, SQLAlchemyError) as e:
         raise True
            
-def create_referee(request:Request, item, city_name:str, db: Session):
+def create_referee(request:Request, item, city_name:str, db: Session, level='rookie'):
     
     city = get_city_by_name(city_name, db=db)
     
@@ -477,7 +477,7 @@ def create_referee(request:Request, item, city_name:str, db: Session):
     one_profile = new_profile(profile_type, id, me_profile_id, item, item, None, city.id, True, True, True, 
                               "USERPROFILE", item, item, None, is_confirmed=True, single_profile_id=me_profile_id)
     
-    one_referee_user = RefereeProfile(profile_id=id, level='rookie', updated_by=item)
+    one_referee_user = RefereeProfile(profile_id=id, level=level, updated_by=item)
     one_profile.profile_referee_player.append(one_referee_user)
     
     try:   
@@ -899,9 +899,11 @@ def insert_user_eeuu_examples_by_csv(request:Request, db: Session):
         one_user = UserCreate(username=user_name, first_name=item.nombre, last_name=item.apellidos if item.apellidos else '',
                               country_id=country.id, password='Dom.1234*')
         
+        level_type = 'rookie' if item.elo_inicial == 800 else 'professional'
         user_id = create_generic_user(request, one_user, None, db=db)
         player_name = item.nombre + ' ' + item.apellidos if item.apellidos else ''
-        create_single_player_from_file(request, user_name, player_name, None, item.elo_inicial, db=db, user_id=user_id)
+        create_single_player_from_file(request, user_name, player_name, None, item.elo_inicial, db=db, user_id=user_id,
+                                       level=level_type)
 
     return True
 
@@ -957,9 +959,11 @@ def insert_user_examples_by_csv(request:Request, db: Session):
         one_user = UserCreate(username=item.username, first_name=item.nombre, last_name=last_name,
                               country_id=country.id, password='Dom.1234*')
         
+        level_type = 'expert' if item.elo_inicial > 1800 else 'professional' if item.elo_inicial > 1700 and item.elo_inicial < 1700 else 'rookie'
+         
         create_generic_user(request, one_user, city.name if city else None, db=db, alias=item.alias)
         player_name = item.alias if item.alias else item.nombre
-        create_single_player_from_file(request, item.username, player_name, city, item.elo, db=db)
+        create_single_player_from_file(request, item.username, player_name, city, item.elo, db=db, level=level_type)
 
     # crear admon de eventos        
     return True

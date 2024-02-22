@@ -375,7 +375,7 @@ def created_segmentation_by_level(tourney_id:str, db:Session):
     lst_cat = db.execute(str_query_cat)
     
     dict_cat = {'rookie': 3, 'professional': 2, 'expert': 1}
-    dict_cat_name = {'rookie': 'Novato', 'professional': 'Profesional', 'expert': 'Experto'}
+    dict_cat_name = {'rookie': 'TRES', 'professional': 'DOS', 'expert': 'UNO'}
     
     for item in lst_cat:
         level_type = item.level if item.level != 'NORMAL' else 'rookie'

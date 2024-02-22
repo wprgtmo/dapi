@@ -284,7 +284,8 @@ def create_new_single_player(db_tourney, username, name, email, city, elo, level
     one_profile = new_profile(profile_type, id, id, username, name, email, city.id if city else None, True, True, True, 
                               "USERPROFILE", created_by, created_by, file, is_confirmed=True, single_profile_id=id)
     
-    one_single_player = SingleProfile(profile_id=id, elo=elo, level='rookie', updated_by=created_by, profile_user_id=profile_user_id)
+    level = 'rookie' if not level else level
+    one_single_player = SingleProfile(profile_id=id, elo=elo, level=level, updated_by=created_by, profile_user_id=profile_user_id)
     one_profile.profile_single_player.append(one_single_player)
     
     status_acc = get_one_by_name('ACCEPTED', db=db)

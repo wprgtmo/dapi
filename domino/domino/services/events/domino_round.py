@@ -611,7 +611,9 @@ def printing_all_boletus(request: Request, round_id: str, printing_boletus: Bole
             dict_tables[item.table_number]['lst_player'][item.player_name] = item.player_name
     
     image = get_url_smartdomino(api_uri=api_uri)
-    dict_result = {'round_number': db_round.round_number, 'image': image, 'lst_tables': []}
+    dict_result = {'round_number': db_round.round_number, 'image': image, 'lst_tables': [],
+                   'tourney_name': db_round.tourney.name, 'modality': db_round.tourney.modality, 
+                   'date': db_round.tourney.start_date.strftime('%d-%m-%Y')}
     
     result.data = []     
     for item_ta_key, item_pa_value in dict_tables.items():
