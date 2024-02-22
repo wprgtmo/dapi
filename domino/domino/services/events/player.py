@@ -653,7 +653,9 @@ def get_all_players_by_category(request:Request, page: int, per_page: int, categ
         "inner join enterprise.profile_member pro ON pro.id = player.profile_id " +\
         "left join resources.city ON city.id = pro.city_id " + \
         "left join resources.country ON country.id = city.country_id " +\
-        "join resources.entities_status sta ON sta.id = player.status_id "
+        "join resources.entities_status sta ON sta.id = player.status_id " +\
+        "join enterprise.profile_single_player ON profile_single_player.profile_id = pro.id " +\
+        "left Join federations.clubs club ON club.id = profile_single_player.club_id  "
     
     if round_config:
         str_from += "LEFT JOIN events.domino_rounds_scale rscale ON rscale.player_id = player.id "   
@@ -661,7 +663,7 @@ def get_all_players_by_category(request:Request, page: int, per_page: int, categ
     str_count = "Select count(*) " + str_from
     str_query = "SELECT player.id, pro.name as name, pro.photo, pro.id as profile_id, " +\
         "city.name as city_name, country.name as country_name, player.level, player.elo, " +\
-        "sta.id as status_id, sta.name as status_name, sta.description as status_description "  
+        "club.name as club_name, sta.id as status_id, sta.name as status_name, sta.description as status_description "  
         
     if round_config:
         str_query += ", rscale.position_number " 

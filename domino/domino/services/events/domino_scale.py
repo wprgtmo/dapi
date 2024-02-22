@@ -1035,20 +1035,9 @@ def aperture_one_new_round(round_id:str, round_aperture: DominoRoundsAperture, l
         raise HTTPException(status_code=404, detail=_(locale, "tourney.amount_player_incorrect"))
     
     if db_round.status.name == 'CONFIGURATED':
-        # borrar todo lo que se configuro
         remove_configurate_round(db_round.tourney_id, db_round.id, db=db)
     
-    #guardar los valores configurados a la ronda
     db_round.use_segmentation = True if db_round.tourney.use_segmentation and db_round.tourney.use_segmentation else False 
-    # db_round.use_bonus = True if db_round.tourney.use_bonus and db_round.tourney.use_bonus else False
-    # if db_round.use_bonus:
-    #     db_round.amount_bonus_tables = int(db_round.tourney.amount_bonus_tables)
-    #     db_round.amount_bonus_points = int(db_round.tourney.amount_bonus_points)
-    
-    # str_query = "SELECT count(tourney_id) FROM events.domino_categories where tourney_id = '" + db_round.tourney.id + "' "
-    # amount = db.execute(str_query).fetchone()[0]
-    # if amount == 0:
-    #     raise HTTPException(status_code=404, detail=_(locale, "tourney.category_not_configurated"))
     
     if db_round.is_first:
         # sino usas las categorias en la primera, borro si tiene configuradas y creo una por defecto.

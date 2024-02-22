@@ -46,3 +46,8 @@ def get_motive_closed(motive:str):
                    'annulled': 'Cerrado por Boleta anulada'}
     
     return dict_motive[motive] if motive in dict_motive else ''
+
+def format_number(self, number):
+
+    number = "%6f" %number
+    return number[:-4]

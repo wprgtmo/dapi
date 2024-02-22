@@ -169,48 +169,17 @@ def configure_one_tourney(request, tourney_id: str, settingtourney: SettingTourn
     if settingtourney.constant_increase_ELO and db_tourney.constant_increase_elo != float(settingtourney.constant_increase_ELO):
         db_tourney.constant_increase_elo = int(settingtourney.constant_increase_ELO)
         
-    # use_penalty = True if settingtourney.use_penalty and settingtourney.use_penalty == True else False
-    # if db_tourney.use_penalty != use_penalty:
-    #     if not settingtourney.limitPenaltyPoints:
-    #         raise HTTPException(status_code=404, detail=_(locale, "tourney.limitpenalty_incorrect"))
-    #     if not settingtourney.points_penalty_yellow:
-    #         raise HTTPException(status_code=404, detail=_(locale, "tourney.penaltyyelloew_incorrect"))
-    #     if not settingtourney.points_penalty_red:
-    #         raise HTTPException(status_code=404, detail=_(locale, "tourney.penaltyred_incorrect"))
-        
-    #     db_tourney.use_penalty = use_penalty
-    #     if db_tourney.penalties_limit != int(settingtourney.limitPenaltyPoints):
-    #         db_tourney.penalties_limit = int(settingtourney.limitPenaltyPoints)
-        
-    #     if db_tourney.points_penalty_yellow != int(settingtourney.points_penalty_yellow):
-    #         db_tourney.points_penalty_yellow = int(settingtourney.points_penalty_yellow)
-            
-    #     if db_tourney.points_penalty_red != int(settingtourney.points_penalty_red):
-    #         db_tourney.points_penalty_red = int(settingtourney.points_penalty_red)
-        
     use_segmentation = True if settingtourney.use_segmentation and settingtourney.use_segmentation == True else False
     if db_tourney.use_segmentation != use_segmentation:
         restart_setting_round = True
         db_tourney.use_segmentation = use_segmentation
     
     if db_tourney.use_segmentation:  
-        # validar que todos los jugadores del torneo estén incluidos en los rangos de categorias.
-        # validar si todos los jugadores del torneo están en alguna categoria
-        
         if not settingtourney.segmentation_type:
             raise HTTPException(status_code=404, detail=_(locale, "tourney.segmentation_type_is_req"))
         
         if not settingtourney.amount_segmentation_round:
             raise HTTPException(status_code=404, detail=_(locale, "tourney.amount_segmentation_round_is_req"))
-        
-        # if settingtourney.segmentation_type == 'NIVEL':
-        #     # crear las categorias de nivel if no existen
-        #     created_segmentation_by_level(tourney_id=tourney_id, db=db)
-        # else:
-        #     update_cat_at_elo_for_player(db_tourney.id, db=db)
-            
-        # if not verify_players_by_category(db_tourney.id, db=db):
-        #     raise HTTPException(status_code=404, detail=_(locale, "tourney.exist_player_not_categories"))
         
         if db_tourney.segmentation_type != settingtourney.segmentation_type:
             db_tourney.segmentation_type = settingtourney.segmentation_type
@@ -241,39 +210,6 @@ def configure_one_tourney(request, tourney_id: str, settingtourney: SettingTourn
         if amount_category < 1:
             raise HTTPException(status_code=404, detail=_(locale, "tourney.amount_categories_incorrect"))
         
-    # use_bonus = True if settingtourney.use_bonus and settingtourney.use_bonus == True else False
-    # if use_bonus:
-    #     # debo verificar si existe una ronda anterior y en esta no se uso bonificacion, no se puede modificar el dato ya.
-    #     if not last_round:
-    #         last_round = get_last_by_tourney(db_tourney.id, db=db)
-    #         if last_round:
-    #             prevoius_round = get_one_by_number(last_round.number_round, db=db)
-    #             if prevoius_round and prevoius_round.use_bonus is True:
-    #                 raise HTTPException(status_code=404, detail=_(locale, "tourney.round_not_cant_bonus"))
-        
-    #     if not settingtourney.amount_bonus_tables:
-    #         raise HTTPException(status_code=404, detail=_(locale, "tourney.amount_bonus_tables_incorrect"))
-    #     if int(settingtourney.amount_bonus_tables) <= 0:
-    #         raise HTTPException(status_code=404, detail=_(locale, "tourney.amount_bonus_tables_incorrect"))
-    #     if not settingtourney.amount_bonus_points:
-    #         raise HTTPException(status_code=404, detail=_(locale, "tourney.amount_bonus_tables_incorrect"))
-    #     if int(settingtourney.amount_bonus_points) <= 0:
-    #         raise HTTPException(status_code=404, detail=_(locale, "tourney.amount_bonus_tables_incorrect"))
-    #     if int(settingtourney.amount_bonus_points_rounds) <= 0:
-    #         raise HTTPException(status_code=404, detail=_(locale, "tourney.amount_bonus_tables_incorrect"))
-        
-    #     if db_tourney.use_bonus != use_bonus:
-    #         db_tourney.use_bonus = use_bonus
-        
-    #     if db_tourney.amount_bonus_tables != int(settingtourney.amount_bonus_tables):
-    #         db_tourney.amount_bonus_tables = int(settingtourney.amount_bonus_tables)
-            
-    #     if db_tourney.amount_bonus_points != int(settingtourney.amount_bonus_points):
-    #         db_tourney.amount_bonus_points = int(settingtourney.amount_bonus_points)
-            
-    #     if db_tourney.amount_bonus_points_rounds != int(settingtourney.amount_bonus_points_rounds):
-    #         db_tourney.amount_bonus_points_rounds = int(settingtourney.amount_bonus_points_rounds)
-            
     if settingtourney.round_ordering_one and db_tourney.round_ordering_one != str(settingtourney.round_ordering_one):
         db_tourney.round_ordering_one = str(settingtourney.round_ordering_one)
     if settingtourney.round_ordering_dir_one and db_tourney.round_ordering_dir_one != str(settingtourney.round_ordering_dir_one):
@@ -352,8 +288,14 @@ def configure_one_tourney(request, tourney_id: str, settingtourney: SettingTourn
         
     db_tourney.updated_by=currentUser['username']
     
-    restart_setting_round = True if not restart_setting_round and db_tourney.lottery_type == 'AUTOMATIC' else restart_setting_round
-     
+    # restart_setting_round = True if not restart_setting_round and db_tourney.lottery_type == 'AUTOMATIC' else restart_setting_round
+    
+    # restart_setting_round = True if not restart_setting_round and db_tourney.lottery_type == 'AUTOMATIC' else restart_setting_round
+    
+    print('salve todos los datos OK')
+    print(restart_setting_round) 
+    print('*************************************')
+    restart_setting_round=True
     if restart_setting_round:
         update_initializes_tourney(db_tourney, locale, db=db)
         
@@ -395,17 +337,6 @@ def verify_players_by_category(tourney_id, db:Session):
   
 def update_initializes_tourney(db_tourney, locale, db:Session):
     
-    # esto es por si se queda por calculos
-    # divmod_round = divmod(db_tourney.amount_rounds,5)
-    
-    # db_tourney.amount_smart_tables = amount_smart_tables
-    # db_tourney.amount_rounds = db_tourney.amount_rounds
-    # db_tourney.use_bonus = False
-    # db_tourney.amount_bonus_tables = db_tourney.amount_rounds // 4 
-    # db_tourney.amount_bonus_points = (db_tourney.amount_rounds // 4) * 2
-    # db_tourney.number_bonus_round = db_tourney.amount_rounds + 1 if db_tourney.amount_rounds <= 9 else 4 if db_tourney.amount_rounds <= 15 else \
-    #     divmod_round[0] if divmod_round[1] == 0 else divmod_round[0] + 1
-    
     elo_max, elo_min = get_values_elo_by_tourney(tourney_id=db_tourney.id, db=db)
     
     db_tourney.elo_max = elo_max
@@ -415,17 +346,25 @@ def update_initializes_tourney(db_tourney, locale, db:Session):
     # si la ultima ronda esta en estado finalizada no tento que eliminar nada
     
     if db_round_ini:
+        print('encontre ronda')
+        round_number = db_round_ini.round_number + 1
         if db_round_ini.status.name != 'FINALIZED':
+            print('estado no finalizado ronda')
             result_init = remove_configurate_round(db_tourney.id, db_round_ini.id, db=db)
-            status_creat = get_one_status_by_name('CREATED', db=db)
-            db_round_ini.status_id = status_creat.id
-        else:
-            # crear nueva ronda 
-            round_number = db_round_ini.round_number + 1
-            db_round_ini = created_round_default(db_tourney, 'Ronda Nro. ' +  str(round_number), db=db, round_number=round_number, is_first=False)
-            if not db_round_ini:
-                raise HTTPException(status_code=400, detail=_(locale, "tourney.setting_rounds_failed"))
+            round_number = round_number -1 # para dejar el mismo numero
+            print('elimine ronda')
+        # siempre creo ver esto
+        # crear nueva ronda 
+        print('voy a crear ronda')
+        # round_number = db_round_ini.round_number + 1
+        db_round_ini = created_round_default(db_tourney, 'Ronda Nro. ' +  str(round_number), db=db, round_number=round_number, is_first=False if round_number != 1 else True)
+        if not db_round_ini:
+            raise HTTPException(status_code=400, detail=_(locale, "tourney.setting_rounds_failed"))
+        # else:
+        #     status_creat = get_one_status_by_name('CREATED', db=db)
+        #     db_round_ini.status_id = status_creat.id
     else:
+        print('no encontre ronda')
         # crear nueva ronda 
         db_round_ini = created_round_default(db_tourney, 'Ronda Nro. 1', db=db, round_number=1, is_first=True)
         if not db_round_ini:
@@ -441,6 +380,7 @@ def update_initializes_tourney(db_tourney, locale, db:Session):
     if not result_init:
         raise HTTPException(status_code=400, detail=_(locale, "tourney.setting_tables_failed"))
     
+    print('xcree ;as mesas')
     if db_tourney.segmentation_type == 'ELO':
         # actualizar elos de las categorias si existen
         lst_category = get_categories_of_tourney(tourney_id=db_tourney.id, db=db)
@@ -459,20 +399,23 @@ def update_initializes_tourney(db_tourney, locale, db:Session):
                 db.add(last_category)
         else:
             create_category_by_default(db_tourney.id, elo_max, elo_min, amount_players=0, db=db)
-        
+    
+    print('voy a sortear')    
     # si el sorteo es automático, ya debo crear la primera distribución.
     if db_tourney.lottery_type == "AUTOMATIC":
         # round_created = DominoRoundsAperture(use_segmentation=db_tourney.use_segmentation, use_bonus=False, #db_tourney.use_bonus,
         #                                      amount_bonus_tables=db_tourney.amount_bonus_tables, amount_bonus_points=db_tourney.amount_bonus_points)
         round_created = DominoRoundsAperture(use_segmentation=db_tourney.use_segmentation, use_bonus=False, 
                                              amount_bonus_tables=0, amount_bonus_points=0)
-        
+        print('llmar al metodo de aperturar ronda')  
         aperture_one_new_round(db_round_ini.id, round_created, locale, db=db)
     
     else:
+        print('sorte manual')  
         if db_round_ini and db_round_ini.round_number != 1:
             round_created = DominoRoundsAperture(use_segmentation=db_tourney.use_segmentation, use_bonus=False, 
                                              amount_bonus_tables=0, amount_bonus_points=0)
+            print('sorte manual pero voy a crearescala automatica')  
             aperture_one_new_round(db_round_ini.id, round_created, locale, db=db)
         
     # try:
