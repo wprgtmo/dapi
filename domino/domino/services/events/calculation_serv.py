@@ -47,7 +47,7 @@ def get_motive_closed(motive:str):
     
     return dict_motive[motive] if motive in dict_motive else ''
 
-def format_number(self, number):
+def format_number(number):
 
     number = "%6f" %number
     return number[:-4]

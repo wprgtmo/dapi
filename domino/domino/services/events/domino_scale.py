@@ -41,7 +41,7 @@ from domino.services.events.tourney import get_lst_categories_of_tourney, create
     get_str_to_order
 
 from domino.services.events.calculation_serv import calculate_new_elo, calculate_score_expected, calculate_score_obtained, \
-    calculate_increasing_constant, calculate_end_elo
+    calculate_increasing_constant, calculate_end_elo, format_number
     
 def new_initial_manual_round(request: Request, tourney_id:str, dominoscale: list[DominoManualScaleCreated], db: Session):
     locale = request.headers["accept-language"].split(",")[0].split("-")[0];
@@ -525,7 +525,6 @@ def get_all_scale_by_round(request:Request, page: int, per_page: int, round_id: 
         str_query += " LIMIT " + str(per_page) + " OFFSET " + str(page*per_page-per_page)
     
     lst_data = db.execute(str_query)
-    print(str_query)
     result.data = [create_dict_row_scale(item, db=db, api_uri=api_uri) for item in lst_data]
     
     return result
@@ -616,8 +615,8 @@ def create_dict_row_scale(item, db: Session, api_uri):
     
     new_row = {'id': item['player_id'], 'name': item['profile_name'], 
                'position_number': item['position_number'],
-               'photo' : photo, 'elo': round(item['elo'],2) if item['elo'] else 0, 
-               'elo_variable': round(item['elo_variable'],2) if item['elo_variable'] else 0,
+               'photo' : photo, 'elo': format_number(round(item['elo'],2)) if item['elo'] else 0, 
+               'elo_variable': format_number(round(item['elo_variable'],2)) if item['elo_variable'] else 0,
                'games_played': item['games_played'] if item['games_played'] else 0, 
                'games_won': item['games_won'] if item['games_won'] else 0,
                'games_lost': item['games_lost'] if item['games_lost'] else 0, 
@@ -625,11 +624,11 @@ def create_dict_row_scale(item, db: Session, api_uri):
                'points_negative': item['points_negative'] if item['points_negative'] else 0, 
                'points_difference': item['points_difference'] if item['points_difference'] else 0,
                'penalty_points': item['penalty_points'] if item['penalty_points']  else 0,
-               'score_expected': round(item['score_expected'],2) if item['score_expected'] else 0,
-               'score_obtained': round(item['score_obtained'],2) if item['score_obtained'] else 0,
-               'k_value': round(item['k_value'],4) if item['k_value'] else 0,
-               'elo_at_end': round(item['elo_at_end'],2) if item['elo_at_end'] else 0,
-               'bonus_points': 0, 'elo_ra': round(item['elo_ra'],2) if item['elo_ra'] else 0,
+               'score_expected': format_number(round(item['score_expected'],2)) if item['score_expected'] else 0,
+               'score_obtained': format_number(round(item['score_obtained'],2)) if item['score_obtained'] else 0,
+               'k_value': format_number(round(item['k_value'],4)) if item['k_value'] else 0,
+               'elo_at_end': format_number(round(item['elo_at_end'],2)) if item['elo_at_end'] else 0,
+               'bonus_points': 0, 'elo_ra': format_number(round(item['elo_ra'],2)) if item['elo_ra'] else 0,
                'status_id': item['status_id'], 'status_name': item['status_name'], 
                'status_description': item['status_description']}
     
