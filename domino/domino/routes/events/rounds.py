@@ -83,11 +83,12 @@ def get_tables_by_rounds(
 def get_current_scale_by_rounds(
     request: Request,
     id: str,
+    order: str = '',
     page: int = 1, 
     per_page: int = 6, 
     db: Session = Depends(get_db)
 ):
-    return get_all_scale_by_round(request=request, page=page, per_page=per_page, round_id=id, db=db)
+    return get_all_scale_by_round(request=request, page=page, per_page=per_page, round_id=id, db=db, order=order)
 
 @rounds_route.get("/rounds/scale/player/accumulated/{id}", response_model=Dict, summary="Obtain Accumulated Player ranking list")
 def get_accumulated_scale_by_rounds(

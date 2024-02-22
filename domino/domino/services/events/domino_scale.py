@@ -484,7 +484,8 @@ def get_all_players_by_tables_and_rounds(request:Request, page: int, per_page: i
             
     return result
 
-def get_all_scale_by_round(request:Request, page: int, per_page: int, round_id: str, db: Session):  
+def get_all_scale_by_round(request:Request, page: int, per_page: int, round_id: str, db: Session, order='1'):  
+    
     
     locale = request.headers["accept-language"].split(",")[0].split("-")[0];
     
