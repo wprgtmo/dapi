@@ -731,13 +731,15 @@ def get_all_players_by_tourney(request:Request, page: int, per_page: int, tourne
         "inner join enterprise.profile_member pro ON pro.id = player.profile_id " +\
         "left join resources.city ON city.id = pro.city_id " + \
         "left join resources.country ON country.id = city.country_id " +\
-        "join resources.entities_status sta ON sta.id = player.status_id "
+        "join resources.entities_status sta ON sta.id = player.status_id " +\
+        'LEFT JOIN enterprise.profile_single_player player_sing ON player_sing.profile_id = pro.id ' +\
+        "JOIN federations.clubs club ON club.id = player_sing.club_id "
     
     str_count = "Select count(*) " + str_from
     str_query = "SELECT player.id, pro.name as name, pro.photo, pro.id as profile_id, " +\
         "city.name as city_name, country.name as country_name, player.level, player.elo, " +\
         " '' as position_number, sta.id as status_id, " +\
-        "sta.name as status_name, sta.description as status_description " + str_from
+        "sta.name as status_name, sta.description as status_description, club.name as club_name " + str_from
     
     str_where = "WHERE pro.is_ready is True AND player.tourney_id = '" + tourney_id + "' " 
     
@@ -772,7 +774,7 @@ def create_dict_row(item, page, db: Session, api_uri):
                'city_name': item['city_name'] if item['city_name'] else '',  
                'photo' : image, 'elo': item['elo'], 'level': level_name,
                'status_name': item['status_name'], 'status_description': item['status_description'],
-               'status_id': item['status_id'], 
+               'status_id': item['status_id'], 'club_name': item.club_name,
                'position_number': item.position_number}
    
     return new_row

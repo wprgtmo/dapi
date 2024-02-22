@@ -153,3 +153,7 @@ es:
     point_is_requeried: 'Debe especificar la cantidad de puntos a captar'
   data:
     not_found: 'Registro de Data no existe'
+  federation:
+    not_found: 'Registro de Federacion no existe'
+  club:
+    not_found: 'Registro de Club no existe'

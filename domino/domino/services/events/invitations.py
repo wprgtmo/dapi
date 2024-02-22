@@ -109,7 +109,8 @@ def get_all_invitations_by_tourney(request, tourney_id: str, page: int, per_page
         "left join resources.country ON country.id = city.country_id " +\
         "JOIN resources.entities_status sta ON sta.name = invitations.status_name "
         
-    dict_modality = {'Individual': "join enterprise.profile_single_player player ON player.profile_id = profile_member.id ",
+    dict_modality = {'Individual': "join enterprise.profile_single_player player ON player.profile_id = profile_member.id " +\
+                     "JOIN federations.clubs club ON club.id = player.club_id ",
                      'Parejas': "join enterprise.profile_pair_player player ON player.profile_id = profile_member.id ",
                      'Equipo': "join enterprise.profile_team_player player ON player.profile_id = profile_member.id "}
     
@@ -125,7 +126,11 @@ def get_all_invitations_by_tourney(request, tourney_id: str, page: int, per_page
     str_count = "Select count(*) " + str_from
     str_query = "SELECT invitations.id, invitations.profile_id, profile_member.name, profile_member.photo, " + \
         "city.name as city_name, country.name country_name, player.level, player.elo, " +\
-        "sta.id as status_id, sta.name as status_name, sta.description as status_description " + str_from
+        "sta.id as status_id, sta.name as status_name, sta.description as status_description "
+    if db_tourney.modality == 'Individual':
+        str_query += ", club.name as club_name "
+        
+    str_query += str_from
     
     if page and page > 0 and not per_page:
         raise HTTPException(status_code=404, detail=_(locale, "commun.invalid_param"))
@@ -138,17 +143,18 @@ def get_all_invitations_by_tourney(request, tourney_id: str, page: int, per_page
         str_query += "LIMIT " + str(per_page) + " OFFSET " + str(page*per_page-per_page)
     
     lst_data = db.execute(str_query)
-    result.data = [create_dict_row_for_tourney(item, api_uri=api_uri) for item in lst_data]
+    result.data = [create_dict_row_for_tourney(item, api_uri=api_uri, modality=db_tourney.modality) for item in lst_data]
     
     return result
 
-def create_dict_row_for_tourney(item, api_uri=""):
+def create_dict_row_for_tourney(item, api_uri="", modality=''):
     
+    club_name = item.club_name if modality and modality == 'Individual' else ''
     level_name = get_type_level(item['level']) if item.level else '' 
     new_row = {'id': item.id, 'profile_id': item.profile_id, 
                'country': item.country_name if item.country_name else '', 'city_name': item.city_name if item.city_name else '',
                'name': item['name'], 'status_id': item['status_id'], 
-               'elo': item['elo'], 'level': level_name,
+               'elo': item['elo'], 'level': level_name, 'club_name': club_name,
                'status_name': item['status_name'], 'status_description': item['status_description'],
                'photo' : get_url_avatar(item.profile_id, item.photo, api_uri=api_uri)}
     

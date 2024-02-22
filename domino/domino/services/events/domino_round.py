@@ -178,7 +178,7 @@ def get_str_to_order(db_round):
                   'PF': 'points_positive ',
                   'ELO': 'elo_variable '}
     
-    str_order_by = " ORDER BY category_number ASC, " if db_round.use_segmentation else " ORDER BY " 
+    str_order_by = " ORDER BY cat.position_number ASC, " if db_round.use_segmentation else " ORDER BY " 
     
     if db_round.tourney.round_ordering_one:
         str_order_by += dict_order[db_round.tourney.round_ordering_one] + db_round.tourney.round_ordering_dir_one
@@ -208,13 +208,14 @@ def configure_next_rounds(db_round, db:Session):
     # ordenar la escala actual por los criterior de ordenamiento de la ronda.
     str_list_player = "Select puse.*, sta.name as status_name, category_id from events.players_users puse " +\
         "join events.players play ON play.id = puse.player_id join resources.entities_status sta ON sta.id = play.status_id " +\
+        "JOIN events.domino_categories cat ON cat.id = puse.category_id " +\
         "Where sta.name IN ('CONFIRMED', 'PLAYING', 'WAITING') and tourney_id = '" + db_round.tourney.id + "' " 
     
     str_order_by = get_str_to_order(db_round)
     str_list_player += str_order_by
-    print('consulta')
-    print(str_list_player)
-    print('*******************')
+    # print('consulta')
+    # print(str_list_player)
+    # print('*******************')
     lst_all_player_to_order = db.execute(str_list_player).fetchall()
     
     lst_player_to_order, dict_play, position_number, lst_play_waiting =  [], {}, 0, []

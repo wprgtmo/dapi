@@ -112,3 +112,7 @@ en:
     motive_non_completion: 'Cerrado por no completamiento, no se puede reabrir'
   data:
     not_found: 'Registro de Data no existe'
+  federation:
+    not_found: 'Registro de Federacion no existe'
+  club:
+    not_found: 'Registro de Club no existe'

@@ -72,6 +72,8 @@ from domino.routes.events.setting_tourney import settingtourney_route
 from domino.routes.events.scale import dominoscale_route
 from domino.routes.events.rounds import rounds_route
 from domino.routes.resources.playercategories import eventscategories_route
+from domino.routes.federations.federation import federation_route
+from domino.routes.federations.club import club_route
 
 @app.get("/docs", include_in_schema=False)
 async def custom_swagger_ui_html():
@@ -185,6 +187,8 @@ app.include_router(dominoscale_route, prefix="/api")
 app.include_router(rounds_route, prefix="/api")
 app.include_router(notifications_route, prefix="/api")
 app.include_router(eventscategories_route, prefix="/api")
+app.include_router(federation_route, prefix="/api")
+app.include_router(club_route, prefix="/api")
 
 @app.post("/file")
 def upfile(file: UploadFile = File(...)):

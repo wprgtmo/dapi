@@ -127,6 +127,8 @@ class SingleProfile(Base):
     updated_by = Column(String, ForeignKey("enterprise.users.username"), nullable=False)
     updated_date = Column(Date, nullable=False, default=date.today())
     
+    club_id = Column(Integer, ForeignKey("federations.clubs.id"), nullable=True)
+    
     profile = relationship("ProfileMember", back_populates="profile_single_player")
      
     def dict(self):

@@ -43,6 +43,8 @@ from domino.services.events.player import get_one_by_invitation_id as get_one_pl
 from domino.services.events.domino_boletus import created_boletus_for_round
 from domino.services.events.domino_scale import initial_scale_by_manual_lottery
 
+from domino.services.federations.clubs import get_one_by_name as get_club_by_name
+
 pwd_context = CryptContext(schemes=["bcrypt"], deprecated="auto")
 
 #region poblar BD de profiles user
@@ -352,7 +354,8 @@ def create_single_player(request:Request, item, city_name:str, db: Session, leve
     except (Exception, SQLAlchemyError) as e:
         return True
 
-def create_single_player_from_file(request:Request, username, name, city, elo, db: Session, user_id='', level='rookie'):
+def create_single_player_from_file(request:Request, username, name, city, elo, db: Session, user_id='', level='rookie',
+                                   club_id=None):
     
     profile_type = get_profile_type_by_name("SINGLE_PLAYER", db=db)
     if not profile_type:
@@ -366,7 +369,8 @@ def create_single_player_from_file(request:Request, username, name, city, elo, d
     one_profile = new_profile(profile_type, id, profile_id, username, name, None, city.id if city else None, True, True, True, 
                               "USERPROFILE", username, username, None, is_confirmed=True, single_profile_id=id)
     
-    one_single_player = SingleProfile(profile_id=id, elo=elo, level=level, updated_by=username, profile_user_id=user_id)
+    one_single_player = SingleProfile(profile_id=id, elo=elo, level=level, updated_by=username, profile_user_id=user_id,
+                                      club_id=club_id)
     one_profile.profile_single_player.append(one_single_player)
     
     try:   
@@ -890,8 +894,10 @@ def insert_user_eeuu_examples_by_csv(request:Request, db: Session):
     
     country = get_country_by_name('EUA', db=db) 
     
+    city = get_city_by_name('Tampa', db=db)
+    
     #usuarios del fichero en BD.
-    str_query = "SELECT nombre, apellidos, pais, elo_inicial FROM resources.jugadores_eeuu"
+    str_query = "SELECT nombre, apellidos, pais, elo_inicial, nivel, club_id FROM resources.jugadores_eeuu"
     
     lst_data = db.execute(str_query)
     for item in lst_data:
@@ -899,11 +905,11 @@ def insert_user_eeuu_examples_by_csv(request:Request, db: Session):
         one_user = UserCreate(username=user_name, first_name=item.nombre, last_name=item.apellidos if item.apellidos else '',
                               country_id=country.id, password='Dom.1234*')
         
-        level_type = 'rookie' if item.elo_inicial == 800 else 'professional'
-        user_id = create_generic_user(request, one_user, None, db=db)
+        level_type = 'rookie' if item.nivel == '2' else 'professional'
+        user_id = create_generic_user(request, one_user, city_name='Tampa', db=db)
         player_name = item.nombre + ' ' + item.apellidos if item.apellidos else ''
-        create_single_player_from_file(request, user_name, player_name, None, item.elo_inicial, db=db, user_id=user_id,
-                                       level=level_type)
+        create_single_player_from_file(request, user_name, player_name, city, item.elo_inicial, db=db, user_id=user_id,
+                                       level=level_type, club_id=item.club_id)
 
     return True
 
@@ -959,11 +965,14 @@ def insert_user_examples_by_csv(request:Request, db: Session):
         one_user = UserCreate(username=item.username, first_name=item.nombre, last_name=last_name,
                               country_id=country.id, password='Dom.1234*')
         
-        level_type = 'expert' if item.elo_inicial > 1800 else 'professional' if item.elo_inicial > 1700 and item.elo_inicial < 1700 else 'rookie'
+        level_type = 'expert' if item.elo > 1800 else 'professional' if item.elo > 1700 and item.elo < 1700 else 'rookie'
          
-        create_generic_user(request, one_user, city.name if city else None, db=db, alias=item.alias)
+        user_id = create_generic_user(request, one_user, city.name if city else None, db=db, alias=item.alias)
         player_name = item.alias if item.alias else item.nombre
-        create_single_player_from_file(request, item.username, player_name, city, item.elo, db=db, level=level_type)
+        club = get_club_by_name('Club del Guaso', db=db)
+        club_id = club.id if club else None
+        create_single_player_from_file(request, item.username, player_name, city, item.elo, db=db, user_id=user_id, 
+                                       level=level_type, club_id=club_id)
 
     # crear admon de eventos        
     return True

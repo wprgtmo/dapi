@@ -33,7 +33,7 @@ from domino.services.events.player import get_lst_id_player_by_elo, change_all_s
     get_lst_id_player_by_level
 from domino.services.events.domino_round import get_one as get_one_round, get_first_by_tourney, configure_rounds, configure_new_rounds, \
     get_obj_info_to_aperturate, remove_configurate_round, calculate_amount_rounds_played, configure_next_rounds, \
-    get_last_by_tourney, calculate_amount_rounds_segmentated
+    get_last_by_tourney, calculate_amount_rounds_segmentated, get_str_to_order as get_str_to_order_round
 
 from domino.services.events.domino_boletus import created_boletus_for_round, get_all_by_round
 from domino.services.enterprise.auth import get_url_advertising
@@ -486,27 +486,35 @@ def get_all_players_by_tables_and_rounds(request:Request, page: int, per_page: i
 
 def get_all_scale_by_round(request:Request, page: int, per_page: int, round_id: str, db: Session, order='1'):  
     
-    
     locale = request.headers["accept-language"].split(",")[0].split("-")[0];
     
     api_uri = str(settings.api_uri)
     
     str_from = "FROM events.domino_rounds_scale rsca " +\
         "JOIN events.players players ON players.id = rsca.player_id " +\
+        "JOIN events.players_users pu ON players.id = pu.player_id " +\
         "jOIN resources.entities_status sta ON sta.id = players.status_id " +\
+        "JOIN events.domino_categories cat ON cat.id = rsca.category_id " +\
         "JOIN enterprise.profile_member mmb ON players.profile_id = mmb.id " 
         
     str_count = "Select count(*) " + str_from
     str_query = "SELECT players.id player_id, mmb.id profile_id, mmb.name profile_name, mmb.photo, rsca.position_number, " +\
-        "rsca.elo, rsca.elo_variable, rsca.games_played, rsca.elo_ra, " +\
+        "rsca.elo, rsca.elo_variable, rsca.games_played, rsca.elo_ra, pu.category_number, " +\
         "rsca.games_won, rsca.games_lost, rsca.points_positive, rsca.points_negative, rsca.points_difference, " +\
-        "score_expected, score_obtained, k_value, elo_at_end, bonus_points, rsca.penalty_points, " +\
+        "rsca.score_expected, rsca.score_obtained, rsca.k_value, rsca.elo_at_end, rsca.bonus_points, rsca.penalty_points, " +\
         "sta.id as status_id, sta.name as status_name, sta.description as status_description " + str_from
         
     str_where = "WHERE rsca.is_active is True AND rsca.round_id = '" + round_id + "' "
         
     str_count += str_where
-    str_query += str_where + " ORDER BY rsca.position_number ASC "
+    if order == '1': # posicion al inicio
+        str_query += str_where + " ORDER BY rsca.position_number ASC "
+    else:
+        db_round = get_one_round(round_id, db=db)
+        if db_round:
+            str_query += str_where + get_str_to_order_round(db_round)
+        else:
+            str_query += str_where + " ORDER BY rsca.position_number ASC "
     
     if page and page > 0 and not per_page:
         raise HTTPException(status_code=404, detail=_(locale, "commun.invalid_param"))
@@ -514,9 +522,10 @@ def get_all_scale_by_round(request:Request, page: int, per_page: int, round_id: 
     result = get_result_count(page=page, per_page=per_page, str_count=str_count, db=db)
     
     if page != 0:
-        str_query += "LIMIT " + str(per_page) + " OFFSET " + str(page*per_page-per_page)
+        str_query += " LIMIT " + str(per_page) + " OFFSET " + str(page*per_page-per_page)
     
     lst_data = db.execute(str_query)
+    print(str_query)
     result.data = [create_dict_row_scale(item, db=db, api_uri=api_uri) for item in lst_data]
     
     return result
