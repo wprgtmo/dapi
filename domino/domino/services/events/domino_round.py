@@ -331,7 +331,7 @@ def calculate_amount_rounds_segmentated(tourney_id, db: Session):
     
     one_status_canceled = get_one_status_by_name('CANCELLED', db=db)
     str_count = "SELECT count(id) FROM events.domino_rounds where tourney_id = '" + str(tourney_id) + "' " +\
-        "and status_id != " + str(one_status_canceled.id) + "AND use_segmentation = True "
+        "and status_id != " + str(one_status_canceled.id) + " AND use_segmentation = True "
         
     count_round = db.execute(str_count).fetchone()[0]
     
