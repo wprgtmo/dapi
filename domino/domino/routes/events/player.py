@@ -72,6 +72,8 @@ def change_status(request:Request, id: str, status: str, db: Session = Depends(g
 
 @player_route.post("/player/register/{tourney_id}", response_model=ResultObject, summary="Register new player")
 def register_player(request:Request, tourney_id: str, player_register: PlayerRegister, db: Session = Depends(get_db)):
+    print(player_register)
+    print('*******************')
     return register_new_player(request=request, tourney_id=tourney_id, player_register=player_register, db=db)
 
 @player_route.put("/player/register/image/{player_id}", response_model=ResultObject, summary="Update Image of Single Player.")

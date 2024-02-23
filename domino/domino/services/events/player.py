@@ -30,6 +30,7 @@ from domino.services.enterprise.users import new_from_register, get_one as get_o
 from domino.services.enterprise.comunprofile import new_profile
 from domino.services.resources.city import get_one as city_get_one
 from domino.services.resources.country import get_one as country_get_one
+from domino.services.federations.clubs import get_one as get_one_club
 
 from domino.services.enterprise.userprofile import get_one as get_one_profile, get_one_single_profile_by_id, get_one_default_user, get_type_level
 
@@ -163,11 +164,15 @@ def register_new_player(request: Request, tourney_id: str, player_register: Play
                       player_register.last_name, player_register.alias, player_register.phone, 
                       one_city, country, currentUser['username'], None, db=db, locale=locale)
    
+    # si viene el dato del club añadirlo
+    if player_register.club_id:
+        one_club = get_one_club(player_register.club_id, db=db)
+        
     name = player_register.first_name + ' ' + player_register.last_name if player_register.last_name \
         else player_register.first_name if player_register.first_name else '' 
     create_new_single_player(db_tourney, player_register.username, name, player_register.email, one_city, 
                              player_register.elo, player_register.level, currentUser['username'], None, db=db,
-                             profile_user_id=db_user.id)
+                             profile_user_id=db_user.id, club_id=one_club.id if one_club else None)
     
     # debo siempre comprobar el estado de la ultima ronda y en dependenca desu estado, reiniciar
     restar_round(db_tourney.id, db=db)
@@ -280,7 +285,7 @@ def get_info_one_player(request: Request, player_id: str, db: Session):
         return False
 
 def create_new_single_player(db_tourney, username, name, email, city, elo, level, created_by, file, db: Session,
-                             profile_user_id:str=None):
+                             profile_user_id:str=None, club_id=None):
     
     profile_type = get_profile_type_by_name("SINGLE_PLAYER", db=db)
     if not profile_type:
@@ -291,7 +296,8 @@ def create_new_single_player(db_tourney, username, name, email, city, elo, level
                               "USERPROFILE", created_by, created_by, file, is_confirmed=True, single_profile_id=id)
     
     level = 'rookie' if not level else level
-    one_single_player = SingleProfile(profile_id=id, elo=elo, level=level, updated_by=created_by, profile_user_id=profile_user_id)
+    one_single_player = SingleProfile(profile_id=id, elo=elo, level=level, updated_by=created_by, profile_user_id=profile_user_id,
+                                      club_id=club_id)
     one_profile.profile_single_player.append(one_single_player)
     
     status_acc = get_one_by_name('ACCEPTED', db=db)
