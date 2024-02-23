@@ -30,7 +30,7 @@ from domino.services.enterprise.userprofile import get_one as get_one_profile
 from domino.services.enterprise.auth import get_url_avatar
 
 from domino.services.events.player import get_lst_id_player_by_elo, change_all_status_player_at_init_round, get_one_user, \
-    get_lst_id_player_by_level
+    get_lst_id_player_by_level, get_lst_id_player_with_boletus
 from domino.services.events.domino_round import get_one as get_one_round, get_first_by_tourney, configure_rounds, configure_new_rounds, \
     get_obj_info_to_aperturate, remove_configurate_round, calculate_amount_rounds_played, configure_next_rounds, \
     get_last_by_tourney, calculate_amount_rounds_segmentated, get_str_to_order as get_str_to_order_round
@@ -169,12 +169,14 @@ def calculate_score_expeted_of_pairs(round_id:str, acumulated_games_played:int, 
         str_execute =  str_one_pair + str_two_pair + " COMMIT;"
         db.execute(str_execute)
         
-        str_where_one_pair = str(one_pair.pair.scale_id_one_player) + "','" +  str(one_pair.pair.scale_id_two_player) if \
-            one_pair.pair.scale_id_two_player else str(one_pair.pair.scale_id_one_player)
-        
-        str_one_player = str_update_scale + "score_expected = " + str(se_one_pair) + ", games_played = " + str(acumulated_games_played) + ", " +\
-            "acumulated_games_played = " + str(acumulated_games_played) + " WHERE id IN ('" + str_where_one_pair + "'); "
-        
+        str_one_player= ''
+        if one_pair:
+            str_where_one_pair = str(one_pair.pair.scale_id_one_player) + "','" +  str(one_pair.pair.scale_id_two_player) if \
+                one_pair.pair.scale_id_two_player else str(one_pair.pair.scale_id_one_player)
+            
+            str_one_player = str_update_scale + "score_expected = " + str(se_one_pair) + ", games_played = " + str(acumulated_games_played) + ", " +\
+                "acumulated_games_played = " + str(acumulated_games_played) + " WHERE id IN ('" + str_where_one_pair + "'); "
+            
         str_two_player = ''
         if two_pair:  
             str_where_two_pair = str(two_pair.pair.scale_id_one_player) + "','" +  str(two_pair.pair.scale_id_two_player) if \
@@ -182,9 +184,10 @@ def calculate_score_expeted_of_pairs(round_id:str, acumulated_games_played:int, 
               
             str_two_player = str_update_scale + "score_expected = " + str(se_two_pair) + ", games_played = " + str(acumulated_games_played) + ", " +\
                 "acumulated_games_played = " + str(acumulated_games_played) + " WHERE id IN ('" + str_where_two_pair + "'); "
-                
-        str_execute =  str_one_player + str_two_player + " COMMIT;"
-        db.execute(str_execute)
+        
+        if str_one_player or str_two_player:       
+            str_execute =  str_one_player + str_two_player + " COMMIT;"
+            db.execute(str_execute)
                 
     return True
 
@@ -325,6 +328,8 @@ def created_automatic_lottery(tourney_id: str, modality:str, round_id: str, elo_
         list_player = get_lst_id_player_by_elo(tourney_id, modality, min_elo=elo_min, max_elo=elo_max, db=db)
     elif segmentation_type == 'NIVEL':
         list_player = get_lst_id_player_by_level(tourney_id, modality, category_id, db=db)
+    else:
+        list_player = get_lst_id_player_with_boletus(tourney_id, db=db)
     
     lst_groups = sorted(list_player, key=lambda y:random.randint(0, len(list_player)))
     for item_pos in lst_groups:
@@ -1102,7 +1107,6 @@ def close_one_round(request: Request, round_id: str, db: Session):
     
     calculate_stadist_of_round(db_round, db=db)
     if open_round:
-        print('ultima ronda if')
         if db_round.tourney.use_segmentation:
             # verificar si ya excedió la cantidad de rondas a bonificar
             count_seg_round = calculate_amount_rounds_segmentated(db_round.tourney.id, db=db)
@@ -1121,7 +1125,6 @@ def close_one_round(request: Request, round_id: str, db: Session):
         result.data = get_obj_info_to_aperturate(db_round_ini, db) 
     
     else:
-        print('ultima ronda else')
         db_round.is_last = True
         db.add(db_round)
         db.commit()

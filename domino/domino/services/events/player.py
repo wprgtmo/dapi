@@ -611,7 +611,7 @@ def get_lst_id_player_with_boletus(tourney_id: str, db: Session):
     
     str_query += str_where
 
-    str_query += " ORDER BY player.elo DESC, pro.name ASC " 
+    str_query += " ORDER BY player.elo DESC " 
     lst_data = db.execute(str_query)
     lst_players = []
     for item in lst_data:
@@ -675,13 +675,14 @@ def get_all_players_by_category(request:Request, page: int, per_page: int, categ
     str_where = "WHERE pro.is_ready is True AND sta.name not in ('CANCELLED', 'EXPELLED') " 
     str_where += " AND player.tourney_id = '" + tourney_id + "' " 
     
-    if dict_result['segmentation_type'] == 'ELO':
-        if round_config:
-            str_where += " AND rscale.category_id = '" + category_id + "' " if category_id else ""
+    if 'segmentation_type' in dict_result:
+        if dict_result['segmentation_type'] == 'ELO':
+            if round_config:
+                str_where += " AND rscale.category_id = '" + category_id + "' " if category_id else ""
+            else:
+                str_where += "AND player.elo >= " + str(dict_result['elo_min']) + " AND player.elo <= " + str(dict_result['elo_max']) if category_id else ""
         else:
-            str_where += "AND player.elo >= " + str(dict_result['elo_min']) + " AND player.elo <= " + str(dict_result['elo_max']) if category_id else ""
-    else:
-        str_where += " AND pu.category_id = '" + category_id + "' " if category_id else ""
+            str_where += " AND pu.category_id = '" + category_id + "' " if category_id else ""
               
     dict_query = {'username': " AND username = '" + criteria_value + "'"}
     if criteria_key and criteria_key not in dict_query:

@@ -152,7 +152,8 @@ def created_round_default(db_tourney, summary:str, db:Session, round_number:int 
     last_number = db.execute(str_number).fetchone()
         
     if last_number:
-        return True
+        db_round = get_one(last_number.id, db=db)
+        return db_round
     
     status_creat = get_one_status_by_name('CREATED', db=db)
     
