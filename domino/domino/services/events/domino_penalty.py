@@ -296,7 +296,7 @@ def force_closing_boletus(one_boletus, lst_players: List, motive_closed:str, mot
         db.add(one_boletus.rounds)
         db.commit() 
 
-        result_data = get_obj_info_to_aperturate(one_boletus.rounds, db) 
+    result_data = get_obj_info_to_aperturate(one_boletus.rounds, db) 
            
     return result_data
 
