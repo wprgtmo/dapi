@@ -286,18 +286,8 @@ def force_closing_boletus(one_boletus, lst_players: List, motive_closed:str, mot
     update_info_player_pairs(one_boletus, db=db)
     
     # verificar si cambia el estado de la ronda
+    result_data = verify_status_ronda(one_boletus, one_status_end, db=db)
     
-    amount_boletus_active = count_boletus_active(one_boletus.rounds.id, one_status_end, db=db)
-    if amount_boletus_active == 0:  # ya todas están cerrados
-        one_status_review = get_one_by_name('REVIEW', db=db)
-        one_boletus.rounds.close_date = datetime.now()
-        one_boletus.rounds.status_id = one_status_review.id
-        one_boletus.rounds.updated_date = datetime.now()
-        db.add(one_boletus.rounds)
-        db.commit() 
-
-    result_data = get_obj_info_to_aperturate(one_boletus.rounds, db) 
-           
     return result_data
 
     # except (Exception, SQLAlchemyError) as e:

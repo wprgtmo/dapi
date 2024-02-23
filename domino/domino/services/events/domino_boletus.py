@@ -371,10 +371,29 @@ def calculat_at_close_boletus(one_boletus, db: Session, verify_point_for_time=Fa
             penalty_point_win += int(item.penalty_points)
         else: 
             penalty_point_lost += int(item.penalty_points) 
+   
+    # verificar los puntos a los que ganan contra las penalidades
+    difference_point_win = positive_points - negative_points - penalty_point_win 
+    difference_point_lost = negative_points - positive_points - penalty_point_lost
     
-    str_fields_win_bol = "is_winner=True, positive_points = " + str(positive_points) +\
+    print('valores de ;as parejas')
+    print('difference_point_win')
+    print(difference_point_win)
+    
+    print('laotra')
+    print(difference_point_lost)
+    
+    # si la diferencia de puntos de la pareja ganadora con las penalidades es menor que la pareja perdedora no gana nadie
+    is_winner=False if difference_point_win < difference_point_lost else True
+    
+    print("valor de is winner")
+    print(is_winner)
+    
+    print('**************************')
+    
+    str_fields_win_bol = "is_winner=" + str(is_winner) + ", positive_points = " + str(positive_points) +\
         ", negative_points=" + str(negative_points) + " WHERE pairs_id = '" + win_pair_id + "'; "
-    str_fields_win = "is_winner=True, penalty_points= " + str(penalty_point_win) + ", positive_points = " + str(positive_points) +\
+    str_fields_win = "is_winner=" + str(is_winner) + ", penalty_points= " + str(penalty_point_win) + ", positive_points = " + str(positive_points) +\
         ", negative_points=" + str(negative_points) + " WHERE pairs_id = '" + win_pair_id + "'; "
     str_update_bol_win = "UPDATE events.domino_boletus_position SET " + str_fields_win_bol 
     str_update_win = "UPDATE events.domino_boletus_pairs SET " + str_fields_win + str_update_bol_win
@@ -389,7 +408,14 @@ def calculat_at_close_boletus(one_boletus, db: Session, verify_point_for_time=Fa
     str_update = str_update_win + str_update_lost
     db.execute(str_update)
     
+    print('consulta final')
+    print(str_update)
+    
+    db.commit() 
+    
+    print('voy a actualizar info pareja')
     update_info_player_pairs(one_boletus, db=db)
+    db.commit() 
     
     try:
         
@@ -417,10 +443,15 @@ def clear_info_at_close_boletus(one_boletus, db: Session):
 
 def update_info_player_pairs(one_boletus, db: Session):
     
+    print('dentro del actualizar')
+    
     # actualizar tabla de ronda pareja
     str_round_pair = "Select pairs_id, is_winner, positive_points, negative_points, penalty_points " +\
         "from events.domino_boletus_pairs where boletus_id = '" + one_boletus.id + "' "
     lst_pairs = db.execute(str_round_pair)
+    
+    print('consulta 1')
+    print(str_round_pair)
     
     str_update_round_pa = ""
     for item_pa in lst_pairs:
@@ -438,7 +469,10 @@ def update_info_player_pairs(one_boletus, db: Session):
             ", points_difference = " + str(points_difference) + " WHERE id = '" + item_pa.pairs_id + "'; "
     if str_update_round_pa:
         str_update_round_pa += "COMMIT;"
+        
         db.execute(str_update_round_pa) 
+        print('consulta 2')
+        print(str_update_round_pa)
     
     # actualizar tabla de scale de cada player
     str_round_play = "Select single_profile_id, plu.player_id, is_winner, positive_points, negative_points, penalty_points " +\
@@ -446,6 +480,9 @@ def update_info_player_pairs(one_boletus, db: Session):
         "Join events.players pla ON pla.id = plu.player_id " +\
         "where dbol.boletus_id = '" + one_boletus.id + "' "
     lst_play = db.execute(str_round_play)
+    
+    print('consulta 3')
+    print(str_round_play)
     
     str_update_round_play = ""
     for item_pa in lst_play:
@@ -465,6 +502,9 @@ def update_info_player_pairs(one_boletus, db: Session):
     if str_update_round_play:
         str_update_round_play += "COMMIT;"
         db.execute(str_update_round_play) 
+        
+        print('consulta 4')
+        print(str_update_round_play)
     
     return True
 
