@@ -23,8 +23,10 @@ from domino.schemas.events.domino_penalties import DominoPenaltiesCreated, Domin
 from domino.services.resources.status import get_one_by_name, get_one as get_one_status
 from domino.services.events.invitations import get_one_by_id as get_invitation_by_id
 from domino.services.events.tourney import get_one as get_torneuy_by_eid, get_info_categories_tourney
-from domino.services.events.domino_round import get_last_by_tourney, remove_configurate_round
+from domino.services.events.domino_round import get_last_by_tourney, remove_configurate_round, get_obj_info_to_aperturate
 from domino.services.events.domino_boletus import get_one as get_one_boletus, get_info_player_of_boletus, update_info_player_pairs
+from domino.services.events.domino_data import count_boletus_active
+
 from domino.services.events.calculation_serv import get_motive_closed
 
 from domino.services.enterprise.userprofile import get_one as get_one_profile
@@ -70,6 +72,9 @@ def new(request: Request, boletus_id: str, domino_penalty: DominoPenaltiesCreate
     one_player = get_one_profile(domino_penalty.player_id, db=db)
     if not one_player:
         raise HTTPException(status_code=404, detail=_(locale, "player.profile_not_found"))
+    
+    if not domino_penalty.penalty_type:
+        raise HTTPException(status_code=404, detail=_(locale, "penalty.motive_is_requierd"))
     
     penalty_type = get_type_penalty(domino_penalty.penalty_type)
     
@@ -174,14 +179,16 @@ def new_annulled(request: Request, boletus_id: str, domino_annulled: DominoAnnul
     
     # quitar los puntos a todos los jugadores y calcular las estadísticas de ellos
     # si fue explusado, cambiar el estado del jugador
+    one_boletus.is_valid = False
     
     force_annulled_boletus(one_boletus, domino_annulled.annulled_type, annulled_type, db=db, player_id=one_player.id if one_player else None,
                            expelled=domino_annulled.was_expelled)
     
-    one_boletus.is_valid = False
-    
     try:
         db.add(one_boletus)
+        
+        result = verify_status_ronda(one_boletus, one_boletus.status, db=db)
+        
         db.commit()
         return result
     except (Exception, SQLAlchemyError) as e:
@@ -264,22 +271,52 @@ def force_closing_boletus(one_boletus, lst_players: List, motive_closed:str, mot
                 
     if str_pair_winner:  
         db.execute(str_pair_winner) 
-          
+    
     # marcar el boleto como que no puede ser modificado
-    one_boletus.status_id = get_one_by_name('FINALIZED', db=db).id
+    one_status_end = get_one_by_name('FINALIZED', db=db)
+    one_boletus.status_id = one_status_end.id
     one_boletus.can_update = False
     one_boletus.motive_closed = motive_closed
     one_boletus.motive_closed_description = motive_closed_description
     
-    try:
-        db.add(one_boletus)
-        db.commit()
-        
-        update_info_player_pairs(one_boletus, db=db)
-        
-        return True
-    except (Exception, SQLAlchemyError) as e:
-        return False
+    # try:
+    db.add(one_boletus)
+    db.commit()
+    
+    update_info_player_pairs(one_boletus, db=db)
+    
+    # verificar si cambia el estado de la ronda
+    
+    amount_boletus_active = count_boletus_active(one_boletus.rounds.id, one_status_end, db=db)
+    if amount_boletus_active == 0:  # ya todas están cerrados
+        one_status_review = get_one_by_name('REVIEW', db=db)
+        one_boletus.rounds.close_date = datetime.now()
+        one_boletus.rounds.status_id = one_status_review.id
+        one_boletus.rounds.updated_date = datetime.now()
+        db.add(one_boletus.rounds)
+        db.commit() 
+
+        result_data = get_obj_info_to_aperturate(one_boletus.rounds, db) 
+           
+    return result_data
+
+    # except (Exception, SQLAlchemyError) as e:
+    #     return False
+
+def verify_status_ronda(one_boletus, one_status_end, db:Session):
+    
+    amount_boletus_active = count_boletus_active(one_boletus.rounds.id, one_status_end, db=db)
+    if amount_boletus_active == 0:  # ya todas están cerrados
+        one_status_review = get_one_by_name('REVIEW', db=db)
+        one_boletus.rounds.close_date = datetime.now()
+        one_boletus.rounds.status_id = one_status_review.id
+        one_boletus.rounds.updated_date = datetime.now()
+        db.add(one_boletus.rounds)
+        db.commit() 
+
+        result_data = get_obj_info_to_aperturate(one_boletus.rounds, db) 
+           
+    return result_data
     
 def force_annulled_boletus(one_boletus, motive_not_valid: str, motive_not_valid_description:str, db: Session, player_id:str=None, expelled=False):
     
@@ -341,7 +378,8 @@ def force_annulled_boletus(one_boletus, motive_not_valid: str, motive_not_valid_
             db.execute(str_pair_winner)
                 
     # marcar el boleto como que no puede ser modificado
-    one_boletus.status_id = get_one_by_name('FINALIZED', db=db).id
+    one_status_end = get_one_by_name('FINALIZED', db=db)
+    one_boletus.status_id = one_status_end.id
     one_boletus.can_update = False
     one_boletus.motive_closed = 'annulled'
     one_boletus.motive_closed_description = get_motive_closed('annulled')
@@ -349,9 +387,13 @@ def force_annulled_boletus(one_boletus, motive_not_valid: str, motive_not_valid_
     one_boletus.motive_not_valid = motive_not_valid
     one_boletus.motive_not_valid_description = motive_not_valid_description
     
+    # verificar si tengo que cambiar estado a la boleta
+    
     try:
         db.add(one_boletus)
         db.commit()
-        return True
+        
+        return verify_status_ronda(one_boletus, one_status_end=one_status_end, db=db)
+        
     except (Exception, SQLAlchemyError) as e:
-        return False
+        return None

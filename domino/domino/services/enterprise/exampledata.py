@@ -693,6 +693,8 @@ def accepted_invitations_tourneys(request:Request, tourney_name: str, db: Sessio
     lst_data_ind = db.execute(str_query_ind)
     lst_data_pair = db.execute(str_query_pair)
     
+    print(str_query_ind)
+    
     for item in lst_data_ind:
         db_invitation = get_invitation_by_id(item.invitation_id, db=db)
         if not db_invitation:

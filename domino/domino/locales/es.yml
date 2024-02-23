@@ -157,3 +157,5 @@ es:
     not_found: 'Registro de Federacion no existe'
   club:
     not_found: 'Registro de Club no existe'
+  penalty:
+    motive_is_requierd: 'Motivo es requerido'

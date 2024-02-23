@@ -239,8 +239,8 @@ def reopen_one_boletus(request: Request, boletus_id: str,  db: Session):
     if one_boletus.motive_closed == 'non_completion': 
         raise HTTPException(status_code=404, detail=_(locale, "boletus.motive_non_completion"))
     
-    if one_boletus.motive_closed == 'annulled': 
-        raise HTTPException(status_code=404, detail=_(locale, "boletus.motive_annulled"))
+    # if one_boletus.motive_closed == 'annulled': 
+    #     raise HTTPException(status_code=404, detail=_(locale, "boletus.motive_annulled"))
     
     one_status_init = get_one_status_by_name('INITIADED', db=db)
     one_boletus.status_id = one_status_init.id
@@ -258,7 +258,6 @@ def reopen_one_boletus(request: Request, boletus_id: str,  db: Session):
     db.commit() 
         
     clear_info_at_close_boletus(one_boletus, db=db)
-    
     
     db.commit() 
     
