@@ -293,6 +293,11 @@ def close_one_tourney(request: Request, tourney_id: str, db: Session):
     
     db_tourney.status_id = one_status_end.id
     
+    # si tengo una ronda creada en estado de configurada o creada debo borrarlas
+    str_delete = "Update events.domino_rounds SET status_id = 3 " + \
+        "Where tourney_id = '" + db_tourney.id + "' and (status_id = 10 or status_id = 1); COMMIT;"
+    db.execute(str_delete)
+    
     try:
         db.add(db_tourney)
         db.commit()

@@ -52,7 +52,7 @@ def get_all(request:Request, tourney_id:str, page: int, per_page: int, criteria_
     str_query = "Select drounds.id, round_number, drounds.summary, drounds.start_date, drounds.close_date, " + \
         "sta.name as status_name, sta.description as status_description " + str_from
     
-    str_where = " WHERE drounds.tourney_id = '" + tourney_id + "' "  
+    str_where = " WHERE drounds.status_id != 3 AND drounds.tourney_id = '" + tourney_id + "' "  
     
     dict_query = {'round_number': " AND round_number = " + criteria_value}
     if criteria_key and criteria_key not in dict_query:
