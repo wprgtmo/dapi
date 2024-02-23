@@ -529,7 +529,6 @@ def get_all_scale_by_round(request:Request, page: int, per_page: int, round_id: 
     
     if page != 0:
         str_query += " LIMIT " + str(per_page) + " OFFSET " + str(page*per_page-per_page)
-    print(str_query)
     lst_data = db.execute(str_query)
     result.data = [create_dict_row_scale(item, db=db, api_uri=api_uri) for item in lst_data]
     
@@ -998,14 +997,16 @@ def create_new_round(request:Request, tourney_id:str, db:Session):
     result = ResultObject() 
     
     db_round_last = get_last_by_tourney(tourney_id, db=db)
-    db_round_next = configure_next_rounds(db_round_last, db=db)
     
-    configure_tables_by_round(db_round_next.tourney.id, db_round_next.id, db_round_next.tourney.modality, db_round_next.tourney.updated_by, db=db)
+    # no me hace falta crear nueva ronda porque lo hhago en el close
+    # db_round_next = configure_next_rounds(db_round_last, db=db)
     
-    change_all_status_player_at_init_round(db_round_next, db=db)
+    # configure_tables_by_round(db_round_next.tourney.id, db_round_next.id, db_round_next.tourney.modality, db_round_next.tourney.updated_by, db=db)
     
-    db_round_ini = get_one_round(round_id=db_round_next.id, db=db)
-    result.data = get_obj_info_to_aperturate(db_round_ini, db) 
+    # change_all_status_player_at_init_round(db_round_next, db=db)
+    
+    # db_round_ini = get_one_round(round_id=db_round_next.id, db=db)
+    result.data = get_obj_info_to_aperturate(db_round_last, db) 
             
     return result
 
@@ -1035,7 +1036,6 @@ def aperture_one_new_round(round_id:str, round_aperture: DominoRoundsAperture, l
         raise HTTPException(status_code=404, detail=_(locale, "round.status_incorrect"))
     
     info_round = get_obj_info_to_aperturate(db_round, db) 
-    
     if info_round.amount_players_playing < 8:
         raise HTTPException(status_code=404, detail=_(locale, "tourney.amount_player_incorrect"))
     
@@ -1055,11 +1055,9 @@ def aperture_one_new_round(round_id:str, round_aperture: DominoRoundsAperture, l
         else:
             create_category_by_default(
                 db_round.tourney.id, db_round.tourney.elo_max, db_round.tourney.elo_min, info_round.amount_players_playing, db=db)
-        
         result_init = order_round_to_init(db_round, db=db, uses_segmentation=db_round.tourney.use_segmentation, round_aperture=round_aperture)
         if not result_init:
             raise HTTPException(status_code=404, detail=_(locale, "tourney.setting_initial_scale_failed"))
-
     else:
         result_init = order_round_to_play(db_round, db=db)
         if not result_init:
@@ -1307,12 +1305,20 @@ def calculate_stadist_of_round(db_round, db:Session):
         elo_ra = str(item.elo_ra) if item.elo_ra else "0"
         penalty_points = str(item.penalty_points) if item.penalty_points else "0"
         
+        games_won = item.games_won if item.games_won else 0
+        games_lost = item.games_lost if item.games_lost else 0
+        points_positive = item.points_positive if item.points_positive else 0
+        points_positive = item.points_positive if item.points_positive else 0
+        points_negative = item.points_negative if item.points_negative else 0
+        points_difference = item.points_difference if item.points_difference else 0
+        score_expected = item.score_expected if item.score_expected else 0
+        
         str_update += "Update events.players_users SET elo_current = elo_current + " + str(round(elo_current,4)) +\
             ", elo_at_end = elo_at_end + " + str(elo_end) + ", games_played = games_played + 1, games_won = games_won + " +\
-            str(item.games_won) + ", games_lost = games_lost + " + str(item.games_lost) +\
-            ", points_positive = points_positive + " + str(item.points_positive) + ", points_negative = points_negative + " +\
-            str(item.points_negative) + ", points_difference = points_difference + " + str(item.points_difference) +\
-            ", score_expected = score_expected + " + str(item.score_expected) + ", score_obtained = score_obtained + " +\
+            str(games_won) + ", games_lost = games_lost + " + str(games_lost) +\
+            ", points_positive = points_positive + " + str(points_positive) + ", points_negative = points_negative + " +\
+            str(points_negative) + ", points_difference = points_difference + " + str(points_difference) +\
+            ", score_expected = score_expected + " + str(score_expected) + ", score_obtained = score_obtained + " +\
             str(score_obtenied) +  ", k_value = " + str(k_value) + ", penalty_total = penalty_total + " +\
             penalty_points + ", elo_ra = " + elo_ra + " WHERE player_id = '" + item.player_id + "'; "
     if str_update:  

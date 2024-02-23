@@ -173,6 +173,7 @@ def new(request, event_id: str, tourney: TourneyCreated, db: Session):
                          summary=tourney.summary, start_date=tourney.startDate, 
                          status_id=one_status.id, created_by=currentUser['username'], 
                          game_system='SUIZO', number_rounds=tourney.number_rounds,
+                         amount_rounds=tourney.number_rounds,
                          updated_by=currentUser['username'], profile_id=one_event.profile_id,
                          constant_increase_elo=K1)
     db.add(db_tourney)

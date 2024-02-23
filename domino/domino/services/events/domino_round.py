@@ -214,9 +214,6 @@ def configure_next_rounds(db_round, db:Session):
     
     str_order_by = get_str_to_order(db_round)
     str_list_player += str_order_by
-    # print('consulta')
-    # print(str_list_player)
-    # print('*******************')
     lst_all_player_to_order = db.execute(str_list_player).fetchall()
     
     lst_player_to_order, dict_play, position_number, lst_play_waiting =  [], {}, 0, []
@@ -351,7 +348,7 @@ def get_obj_info_to_aperturate(db_round, db:Session):
     new_round.modality = db_round.tourney.modality
     
     count_round = calculate_amount_rounds_played(db_round.tourney.id, db=db)
-    is_last = True if int(count_round) >= int(db_round.tourney.number_rounds) else False
+    is_last = True if int(count_round) >= int(db_round.tourney.amount_rounds) else False
     
     new_round.is_first, new_round.is_last = db_round.is_first, is_last
     
@@ -707,6 +704,7 @@ def created_one_pair(tourney_id:str, round_id:str, one_player_id:str, two_player
                                  created_date=datetime.today(), updated_date=datetime.today(), is_active=True)
     
     db.add(one_pair)
+    db.commit()
         
     return True
 

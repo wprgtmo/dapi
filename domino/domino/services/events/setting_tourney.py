@@ -269,6 +269,7 @@ def configure_one_tourney(request, tourney_id: str, settingtourney: SettingTourn
         
     if settingtourney.number_rounds and db_tourney.number_rounds != int(settingtourney.number_rounds):
         db_tourney.number_rounds = int(settingtourney.number_rounds)
+        db_tourney.amount_rounds = int(settingtourney.number_rounds)
     
     if settingtourney.scope_tourney:
         db_scope = get_one_event_scope_by_name(settingtourney.scope_tourney, db=db)
