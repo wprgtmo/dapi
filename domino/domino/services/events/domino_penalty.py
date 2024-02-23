@@ -187,7 +187,7 @@ def new_annulled(request: Request, boletus_id: str, domino_annulled: DominoAnnul
     try:
         db.add(one_boletus)
         
-        result = verify_status_ronda(one_boletus, one_boletus.status, db=db)
+        result.data = verify_status_ronda(one_boletus, one_boletus.status, db=db)
         
         db.commit()
         return result
@@ -304,7 +304,7 @@ def verify_status_ronda(one_boletus, one_status_end, db:Session):
         db.add(one_boletus.rounds)
         db.commit() 
 
-        result_data = get_obj_info_to_aperturate(one_boletus.rounds, db) 
+    result_data = get_obj_info_to_aperturate(one_boletus.rounds, db) 
            
     return result_data
     
