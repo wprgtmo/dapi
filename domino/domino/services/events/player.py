@@ -250,7 +250,7 @@ def get_info_one_player(request: Request, player_id: str, db: Session):
     str_query = "SELECT users.username, users.first_name, users.last_name, enterprise.profile_default_user.alias, " +\
         "users.email, users.phone, profile_single_player.elo, enterprise.profile_member.city_id, " +\
         "enterprise.users.country_id, profile_single_player.level, " +\
-        "profile_single_player.club_id, club.name as club_name, club.federation_id, federations.name as federation_name " +\
+        "profile_single_player.club_id, club.siglas as club_siglas, club.federation_id, federations.name as federation_name " +\
         "FROM enterprise.profile_member " +\
         "join enterprise.profile_users ON profile_users.profile_id = profile_member.id " +\
         "join enterprise.profile_single_player ON profile_single_player.profile_id = profile_member.id " +\
@@ -270,7 +270,7 @@ def get_info_one_player(request: Request, player_id: str, db: Session):
                                      city_id=dat_result.city_id if dat_result.city_id else '1', 
                                      country_id=dat_result.country_id if dat_result.country_id else '1', 
                                      elo=dat_result.elo if dat_result.elo else 0, level=dat_result.level if dat_result.level else 'rookie',
-                                     club_id=dat_result.club_id, club_name=dat_result.club_name,
+                                     club_id=dat_result.club_id, club_siglas=dat_result.club_siglas,
                                      federation_id=dat_result.federation_id, federation_name=dat_result.federation_name)
         result.data = db_register
     
@@ -663,7 +663,7 @@ def get_all_players_by_category(request:Request, page: int, per_page: int, categ
     str_count = "Select count(*) " + str_from
     str_query = "SELECT player.id, pro.name as name, pro.photo, pro.id as profile_id, " +\
         "city.name as city_name, country.name as country_name, player.level, player.elo, " +\
-        "club.name as club_name, sta.id as status_id, sta.name as status_name, sta.description as status_description "  
+        "club.siglas as club_siglas, sta.id as status_id, sta.name as status_name, sta.description as status_description "  
         
     if round_config:
         str_query += ", rscale.position_number " 
@@ -741,13 +741,13 @@ def get_all_players_by_tourney(request:Request, page: int, per_page: int, tourne
         "left join resources.country ON country.id = city.country_id " +\
         "join resources.entities_status sta ON sta.id = player.status_id " +\
         'LEFT JOIN enterprise.profile_single_player player_sing ON player_sing.profile_id = pro.id ' +\
-        "JOIN federations.clubs club ON club.id = player_sing.club_id "
+        "LEFT JOIN federations.clubs club ON club.id = player_sing.club_id "
     
     str_count = "Select count(*) " + str_from
     str_query = "SELECT player.id, pro.name as name, pro.photo, pro.id as profile_id, " +\
         "city.name as city_name, country.name as country_name, player.level, player.elo, " +\
         " '' as position_number, sta.id as status_id, " +\
-        "sta.name as status_name, sta.description as status_description, club.name as club_name " + str_from
+        "sta.name as status_name, sta.description as status_description, club.siglas as club_siglas " + str_from
     
     str_where = "WHERE pro.is_ready is True AND player.tourney_id = '" + tourney_id + "' " 
     
@@ -767,6 +767,7 @@ def get_all_players_by_tourney(request:Request, page: int, per_page: int, tourne
     str_query += " ORDER BY player.elo DESC, pro.name ASC " 
     if page != 0:
         str_query += "LIMIT " + str(per_page) + " OFFSET " + str(page*per_page-per_page)
+        
     lst_data = db.execute(str_query)
     result.data = [create_dict_row(item, page, db=db, api_uri=api_uri) for item in lst_data]
     
@@ -782,7 +783,7 @@ def create_dict_row(item, page, db: Session, api_uri):
                'city_name': item['city_name'] if item['city_name'] else '',  
                'photo' : image, 'elo': item['elo'], 'level': level_name,
                'status_name': item['status_name'], 'status_description': item['status_description'],
-               'status_id': item['status_id'], 'club_name': item.club_name,
+               'status_id': item['status_id'], 'club_siglas': item.club_siglas,
                'position_number': item.position_number}
    
     return new_row
@@ -886,7 +887,9 @@ def change_all_status_player_at_init_round(db_round, db: Session):
         str_update_playing = "UPDATE events.players SET status_id = " + str(status_play.id) + " WHERE id IN (" + str_id_playing[:-2] + ");COMMIT;"  
         db.execute(str_update_playing)
     if str_waiting != "'":
-        str_update_waiting = "UPDATE events.players SET status_id = " + str(status_wait.id) + " WHERE id IN (" + str_waiting[:-2] + ");COMMIT;"  
+        # esto es para cuando tengo los jugadores en espera, por ahora no.
+        # str_update_waiting = "UPDATE events.players SET status_id = " + str(status_wait.id) + " WHERE id IN (" + str_waiting[:-2] + ");COMMIT;" 
+        str_update_waiting = "UPDATE events.players SET status_id = " + str(status_play.id) + " WHERE id IN (" + str_waiting[:-2] + ");COMMIT;"  
         db.execute(str_update_waiting)
     
     db.commit()

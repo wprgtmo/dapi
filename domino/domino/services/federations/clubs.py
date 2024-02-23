@@ -27,10 +27,11 @@ def get_all(request:Request, page: int, per_page: int, criteria_key: str, criter
         "LEFT JOIN resources.country ON country.id = club.country_id Where club.is_active = True " 
         
     str_count = "Select count(*)" +  str_from
-    str_query = "Select club.id, club.name, logo, club.city_id, city.name as city_name, club.country_id, " +\
+    str_query = "Select club.id, club.siglas, logo, club.city_id, city.name as city_name, club.country_id, " +\
         "country.name as country_name " + str_from
     
     dict_query = {'name': " WHERE club.name ilike '%" + criteria_value + "%'",
+                  'siglas': " WHERE club.siglas ilike '%" + criteria_value + "%'",
                   'country_id': " WHERE club.country_id =" + criteria_value}
     
     if criteria_key and criteria_key not in dict_query:
@@ -71,7 +72,7 @@ def get_all_by_federation(request:Request, federation_id: str, db: Session):
 
 def create_dict_row(item):
     
-    new_row = {'id': item['id'], 'name' : item['name'], 'logo' : item['logo'],
+    new_row = {'id': item['id'], 'name' : item['name'], 'logo' : item['logo'], 'siglas' : item['siglas'], 
                'city_name': item['city_name'], 'country_name': item['country_name']}
     return new_row
 
@@ -120,7 +121,7 @@ def new(request, db: Session, club: ClubsBase):
         else:
             country_id = one_country.id
     
-    db_one_club = Clubs(name=club.name, federation_id=one_federation.id, logo=club.logo, 
+    db_one_club = Clubs(name=club.name, federation_id=one_federation.id, logo=club.logo, siglas=club.siglas,
                         city_id=city_id, country_id=country_id, is_active=True)
     
     try:

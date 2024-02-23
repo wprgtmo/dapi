@@ -209,7 +209,7 @@ def configure_next_rounds(db_round, db:Session):
     str_list_player = "Select puse.*, sta.name as status_name, category_id from events.players_users puse " +\
         "join events.players play ON play.id = puse.player_id join resources.entities_status sta ON sta.id = play.status_id " +\
         "JOIN events.domino_categories cat ON cat.id = puse.category_id " +\
-        "Where sta.name IN ('CONFIRMED', 'PLAYING', 'WAITING') and tourney_id = '" + db_round.tourney.id + "' " 
+        "Where sta.name IN ('CONFIRMED', 'PLAYING', 'WAITING') and play.tourney_id = '" + db_round.tourney.id + "' " 
     
     str_order_by = get_str_to_order(db_round)
     str_list_player += str_order_by
@@ -367,7 +367,7 @@ def get_obj_info_to_aperturate(db_round, db:Session):
     
     new_round.lottery_type = db_round.tourney.lottery_type
     
-    new_round.use_segmentation = db_round.tourney.use_segmentation
+    new_round.use_segmentation = db_round.use_segmentation
     new_round.use_penalty = db_round.tourney.use_penalty
     new_round.use_bonus = db_round.tourney.use_bonus
     

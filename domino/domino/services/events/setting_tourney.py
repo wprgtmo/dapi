@@ -292,9 +292,6 @@ def configure_one_tourney(request, tourney_id: str, settingtourney: SettingTourn
     
     # restart_setting_round = True if not restart_setting_round and db_tourney.lottery_type == 'AUTOMATIC' else restart_setting_round
     
-    print('salve todos los datos OK')
-    print(restart_setting_round) 
-    print('*************************************')
     restart_setting_round=True
     if restart_setting_round:
         update_initializes_tourney(db_tourney, locale, db=db)
@@ -346,25 +343,19 @@ def update_initializes_tourney(db_tourney, locale, db:Session):
     # si la ultima ronda esta en estado finalizada no tento que eliminar nada
     
     if db_round_ini:
-        print('encontre ronda')
         round_number = db_round_ini.round_number + 1
         if db_round_ini.status.name != 'FINALIZED':
-            print('estado no finalizado ronda')
             result_init = remove_configurate_round(db_tourney.id, db_round_ini.id, db=db)
             round_number = round_number -1 # para dejar el mismo numero
-            print('elimine ronda')
+            
         # siempre creo ver esto
         # crear nueva ronda 
-        print('voy a crear ronda')
         # round_number = db_round_ini.round_number + 1
         db_round_ini = created_round_default(db_tourney, 'Ronda Nro. ' +  str(round_number), db=db, round_number=round_number, is_first=False if round_number != 1 else True)
         if not db_round_ini:
             raise HTTPException(status_code=400, detail=_(locale, "tourney.setting_rounds_failed"))
-        # else:
-        #     status_creat = get_one_status_by_name('CREATED', db=db)
-        #     db_round_ini.status_id = status_creat.id
+        
     else:
-        print('no encontre ronda')
         # crear nueva ronda 
         db_round_ini = created_round_default(db_tourney, 'Ronda Nro. 1', db=db, round_number=1, is_first=True)
         if not db_round_ini:
@@ -380,7 +371,6 @@ def update_initializes_tourney(db_tourney, locale, db:Session):
     if not result_init:
         raise HTTPException(status_code=400, detail=_(locale, "tourney.setting_tables_failed"))
     
-    print('xcree ;as mesas')
     if db_tourney.segmentation_type == 'ELO':
         # actualizar elos de las categorias si existen
         lst_category = get_categories_of_tourney(tourney_id=db_tourney.id, db=db)
@@ -400,22 +390,18 @@ def update_initializes_tourney(db_tourney, locale, db:Session):
         else:
             create_category_by_default(db_tourney.id, elo_max, elo_min, amount_players=0, db=db)
     
-    print('voy a sortear')    
     # si el sorteo es automático, ya debo crear la primera distribución.
     if db_tourney.lottery_type == "AUTOMATIC":
         # round_created = DominoRoundsAperture(use_segmentation=db_tourney.use_segmentation, use_bonus=False, #db_tourney.use_bonus,
         #                                      amount_bonus_tables=db_tourney.amount_bonus_tables, amount_bonus_points=db_tourney.amount_bonus_points)
         round_created = DominoRoundsAperture(use_segmentation=db_tourney.use_segmentation, use_bonus=False, 
                                              amount_bonus_tables=0, amount_bonus_points=0)
-        print('llmar al metodo de aperturar ronda')  
         aperture_one_new_round(db_round_ini.id, round_created, locale, db=db)
     
     else:
-        print('sorte manual')  
         if db_round_ini and db_round_ini.round_number != 1:
             round_created = DominoRoundsAperture(use_segmentation=db_tourney.use_segmentation, use_bonus=False, 
                                              amount_bonus_tables=0, amount_bonus_points=0)
-            print('sorte manual pero voy a crearescala automatica')  
             aperture_one_new_round(db_round_ini.id, round_created, locale, db=db)
         
     # try:

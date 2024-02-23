@@ -128,7 +128,7 @@ def get_all_invitations_by_tourney(request, tourney_id: str, page: int, per_page
         "city.name as city_name, country.name country_name, player.level, player.elo, " +\
         "sta.id as status_id, sta.name as status_name, sta.description as status_description "
     if db_tourney.modality == 'Individual':
-        str_query += ", club.name as club_name "
+        str_query += ", club.siglas as club_siglas "
         
     str_query += str_from
     
@@ -149,12 +149,12 @@ def get_all_invitations_by_tourney(request, tourney_id: str, page: int, per_page
 
 def create_dict_row_for_tourney(item, api_uri="", modality=''):
     
-    club_name = item.club_name if modality and modality == 'Individual' else ''
+    club_siglas = item.club_siglas if modality and modality == 'Individual' else ''
     level_name = get_type_level(item['level']) if item.level else '' 
     new_row = {'id': item.id, 'profile_id': item.profile_id, 
                'country': item.country_name if item.country_name else '', 'city_name': item.city_name if item.city_name else '',
                'name': item['name'], 'status_id': item['status_id'], 
-               'elo': item['elo'], 'level': level_name, 'club_name': club_name,
+               'elo': item['elo'], 'level': level_name, 'club_siglas': club_siglas,
                'status_name': item['status_name'], 'status_description': item['status_description'],
                'photo' : get_url_avatar(item.profile_id, item.photo, api_uri=api_uri)}
     

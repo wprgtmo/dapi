@@ -44,6 +44,7 @@ class Clubs(Base):
     city_id = Column(Integer, ForeignKey("resources.city.id"), nullable=True)
     country_id = Column(Integer, ForeignKey("resources.country.id"), nullable=True)
     is_active = Column(Boolean)
+    siglas = Column(String, nullable=True)
         
     def dict(self):
         return {
@@ -52,5 +53,6 @@ class Clubs(Base):
             "logo": self.logo,
             'city_id': self.city_id,
             'country_id': self.country_id,
-            "is_active": self.is_active
+            "is_active": self.is_active,
+            "siglas": self.siglas
         }

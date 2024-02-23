@@ -25,8 +25,9 @@ class ClubsBase(BaseModel):
     city: Optional[int]
     country: Optional[int]
     logo: Optional[str]
+    siglas: Optional[str]
    
-class FederationsSchema(FederationsBase):
+class ClubsSchema(FederationsBase):
     id: Optional[int]
     is_active: bool = True
      
