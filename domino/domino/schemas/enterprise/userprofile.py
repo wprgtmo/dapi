@@ -63,6 +63,8 @@ class SingleProfileCreated(BaseModel):
     
     level: Optional[str]
     
+    club_id: Optional[int]
+    
     receive_notifications: Optional[bool] = False
     
 

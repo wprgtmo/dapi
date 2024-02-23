@@ -30,6 +30,7 @@ from domino.services.resources.utils import get_result_count, upfile, create_dir
 
 from domino.services.enterprise.auth import get_url_avatar
 from domino.services.enterprise.comunprofile import new_profile
+from domino.services.federations.clubs import get_one as get_one_club
 
 #region Método de crear Nuevos perfiles
 
@@ -58,9 +59,13 @@ def new_profile_single_player(request: Request, singleprofile: SingleProfileCrea
                               True, True, "USERPROFILE", currentUser['username'], currentUser['username'], file, is_confirmed=True,
                               single_profile_id=id)
     
+    one_club = None
+    if singleprofile.club_id:
+        one_club = get_one_club(singleprofile.club_id, db=db)
+        
     # a solicitud de Senen cuando los jugadores se creen un perfil de jugador simple, va con un elo de 1600
     one_single_player = SingleProfile(profile_id=id, elo=800, level=singleprofile['level'], updated_by=currentUser['username'],
-                                      profile_user_id=profile_user_id)
+                                      profile_user_id=profile_user_id, club_id=one_club.id if one_club else None)
     one_profile.profile_single_player.append(one_single_player)
     
     try:   

@@ -165,6 +165,7 @@ def register_new_player(request: Request, tourney_id: str, player_register: Play
                       one_city, country, currentUser['username'], None, db=db, locale=locale)
    
     # si viene el dato del club añadirlo
+    one_club = None
     if player_register.club_id:
         one_club = get_one_club(player_register.club_id, db=db)
         
