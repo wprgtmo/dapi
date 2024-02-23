@@ -26,7 +26,9 @@ from domino.services.events.domino_boletus import get_one as get_one_boletus, ge
 from domino.services.events.domino_scale import update_info_pairs, close_round_with_verify
 from domino.services.resources.status import get_one_by_name as get_one_status_by_name
 from domino.services.resources.utils import get_result_count
-from domino.services.events.domino_round import calculate_amount_rounds_played, get_one as get_one_round, get_obj_info_to_aperturate
+from domino.services.events.domino_round import calculate_amount_rounds_played, get_one as get_one_round, get_obj_info_to_aperturate, \
+    new_no_complete_tables
+
 from domino.services.events.calculation_serv import get_motive_closed
 
 def get_all_data_by_boletus(request:Request, boletus_id: str, db: Session):  
@@ -218,6 +220,11 @@ def close_boletus(one_boletus, username, db: Session, verify_points=True, motive
             one_boletus.rounds.updated_by = username
             one_boletus.rounds.updated_date = datetime.now()
             db.add(one_boletus.rounds)
+            
+            # llamar a metodo que calcue mesas no cerradas
+            # actalizar estadisticas de las mesas no compelatadas
+            new_no_complete_tables(one_boletus.rounds, db=db)
+    
             db.commit() 
     
     db_round_ini = get_one_round(round_id=one_boletus.round_id, db=db)

@@ -130,6 +130,57 @@ def get_type_annulled(annulled_type):
     
     dict_annulled = {'0': 'Sentarse Incorrectamente', '1': 'Error al Anotar', '2': 'Conducta AntiDeportiva'}
     return dict_annulled[annulled_type]
+
+# def asign_points_for_absence(one_boletus, db:Session, update_position=False):
+    
+    
+    
+#     # if update_position:
+#     str_update_bpo = "UPDATE events.domino_boletus_position SET is_winner=True, penalty_points=0, positive_points=" +\
+#         str(points_for_absences) +\
+#         ", negative_points=0 WHERE single_profile_id is not NULL and boletus_id = '" + one_boletus.id + "'; "
+#     # db.execute(str_update_bpo)
+    
+    
+#     # db.execute(str_update_bpa)
+    
+#     str_updte = str_update_bpo + str_update_bpa
+#     db.commit()    
+    
+#     update_info_player_pairs(one_boletus, db=db)
+#     return True
+
+# # esta es una solucion temporal para el torneo del 24 
+# def new_no_complete_tables(one_round, db:Session):
+    
+#     str_points_for_absences = "SELECT points_for_absences FROM events.tourney where id='" + one_round.tourney_id + "'"
+#     points_for_absences = db.execute(str_points_for_absences).fetchone()[0]
+#     points_for_absences = 100 if not points_for_absences else points_for_absences
+    
+#     str_query = "Select id from events.domino_boletus where motive_closed = 'non_completion" +\
+#         "and round_id = '" + one_round.id + "'"
+#     lst_bol = db.execute(str_query)
+#     str_update_bpa = ""
+#     for item in lst_bol:
+#         one_boletus = get_one_boletus(item.id, db=db)
+#         if not one_boletus:
+#             continue
+        
+#         str_update_bpa = "UPDATE events.domino_boletus_pairs SET is_winner=True, penalty_points=0, positive_points=" + str(points_for_absences) +\
+#             ", negative_points=0 WHERE boletus_id = '" + item.id + "'; "
+        
+#         if str_update_bpa:
+#             db.execute(str_update_bpa)
+            
+#         # str_pair_update = "UPDATE events.domino_boletus_pairs SET positive_points = " + str(points_for_absences) +\
+#         #     ", negative_points =  0, penality_points = 0 WHERE boletus_id ='" + item.id + "';  "
+#         # db.execute(str_pair_update) 
+            
+#         update_info_player_pairs(one_boletus, db=db)
+        
+#         db.commit()  
+        
+#     return True
     
 def new_absences(request: Request, boletus_id: str, players: DominoAbsencesCreated, db: Session):
     locale = request.headers["accept-language"].split(",")[0].split("-")[0];
@@ -292,6 +343,17 @@ def force_closing_boletus(one_boletus, lst_players: List, motive_closed:str, mot
 
     # except (Exception, SQLAlchemyError) as e:
     #     return False
+
+def resume_closing_boletus(boletus_id, point_to_win, db: Session):
+    
+    str_pair_update += "UPDATE events.domino_boletus_pairs SET positive_points = " + str(point_to_win) +\
+        ", negative_points =  0, penality_points = 0 WHERE boletus_id ='" + boletus_id + "';  "
+    db.execute(str_pair_update) 
+    str_pair_winner = ""
+    
+    update_info_player_pairs(one_boletus, db=db)
+    
+    return result_data
 
 def verify_status_ronda(one_boletus, one_status_end, db:Session):
     

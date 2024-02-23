@@ -25,7 +25,8 @@ from domino.services.resources.utils import get_result_count, upfile, create_dir
 from domino.services.resources.playercategories import get_one_event_scope_by_name, get_one_event_level_by_name
 
 from domino.services.events.domino_table import created_tables_default, get_count_tables_by_tourney
-from domino.services.events.domino_round import created_round_default, remove_configurate_round, get_last_by_tourney, get_one_by_number
+from domino.services.events.domino_round import created_round_default, remove_configurate_round, get_last_by_tourney, get_one_by_number, \
+    new_no_complete_tables
 from domino.services.events.domino_scale import aperture_one_new_round
 from domino.services.events.invitations import get_amount_invitations_by_tourney
 
@@ -398,13 +399,13 @@ def update_initializes_tourney(db_tourney, locale, db:Session):
         round_created = DominoRoundsAperture(use_segmentation=db_tourney.use_segmentation, use_bonus=False, 
                                              amount_bonus_tables=0, amount_bonus_points=0)
         aperture_one_new_round(db_round_ini.id, round_created, locale, db=db)
-    
+        
     else:
         if db_round_ini and db_round_ini.round_number != 1:
             round_created = DominoRoundsAperture(use_segmentation=db_tourney.use_segmentation, use_bonus=False, 
                                              amount_bonus_tables=0, amount_bonus_points=0)
             aperture_one_new_round(db_round_ini.id, round_created, locale, db=db)
-        
+             
     # try:
     
     return True

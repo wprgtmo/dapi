@@ -26,7 +26,8 @@ from domino.schemas.events.domino_rounds import DominoRoundsCreated, BoletusPrin
 
 from domino.services.resources.status import get_one_by_name as get_one_status_by_name
 from domino.services.resources.utils import get_result_count
-from domino.services.events.domino_boletus import calculate_amount_tables_playing, get_info_to_print
+from domino.services.events.domino_boletus import calculate_amount_tables_playing, get_info_to_print, get_one as get_boletus_by_id, \
+    update_info_player_pairs
 from domino.services.events.tourney import get_one as get_tourney_by_id, calculate_amount_tables, calculate_amount_categories, \
     calculate_amount_players_playing, calculate_amount_players_by_status, get_lst_categories_of_tourney, reconfig_amount_tables
                          
@@ -627,6 +628,42 @@ def printing_all_boletus(request: Request, round_id: str, printing_boletus: Bole
     result.data = dict_result
         
     return result
+
+# esta es una solucion temporal para el torneo del 24 
+def new_no_complete_tables(one_round, db:Session):
+    
+    print('estoy entrando aqui')
+    str_points_for_absences = "SELECT points_for_absences FROM events.tourney where id='" + one_round.tourney_id + "'"
+    points_for_absences = db.execute(str_points_for_absences).fetchone()[0]
+    points_for_absences = 100 if not points_for_absences else points_for_absences
+    
+    str_query = "Select id from events.domino_boletus where motive_closed = 'non_completion' " +\
+        " and round_id = '" + one_round.id + "'"
+    lst_bol = db.execute(str_query)
+    str_update_bpa = ""
+    print('estoy entrando aqui')
+    print(str_query)
+    
+    for item in lst_bol:
+        print('dentro del for')
+        print(item.id)
+        one_boletus = get_boletus_by_id(item.id, db=db)
+        if not one_boletus:
+            continue
+        print('busco boleto')
+        print(item.id)
+        str_update_bpa = "UPDATE events.domino_boletus_pairs SET is_winner=True, penalty_points=0, positive_points=" + str(points_for_absences) +\
+            ", negative_points=0 WHERE boletus_id = '" + item.id + "'; "
+        
+        if str_update_bpa:
+            db.execute(str_update_bpa)
+        print(str_update_bpa)   
+         
+        update_info_player_pairs(one_boletus, db=db)
+        
+        db.commit()  
+        
+    return True
 
 # def close_one_round(request: Request, round_id: str, open_new: bool, db: Session):
 #     locale = request.headers["accept-language"].split(",")[0].split("-")[0];

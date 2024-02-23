@@ -299,6 +299,8 @@ def asign_points_for_absence(one_boletus, db:Session, update_position=False):
     # db.execute(str_update_bpa)
     
     str_updte = str_update_bpo + str_update_bpa
+    db.execute(str_updte)
+    
     db.commit()    
     
     update_info_player_pairs(one_boletus, db=db)
