@@ -530,7 +530,15 @@ def get_all_scale_by_round(request:Request, page: int, per_page: int, round_id: 
     if page != 0:
         str_query += " LIMIT " + str(per_page) + " OFFSET " + str(page*per_page-per_page)
     lst_data = db.execute(str_query)
-    result.data = [create_dict_row_scale(item, db=db, api_uri=api_uri) for item in lst_data]
+    if order == '1':
+        print('order 1')
+        result.data = [create_dict_row_scale(item, db=db, api_uri=api_uri) for item in lst_data]
+    else:
+        print('order 2')
+        position_number, result.data = 1, []
+        for item in lst_data:
+            result.data.append(create_dict_row_scale(item, db=db, api_uri=api_uri, position_number=position_number))
+            position_number += 1
     
     return result
 
@@ -567,12 +575,14 @@ def get_all_scale_acumulate(request:Request, page: int, per_page: int, tourney_i
     if page != 0:
         str_query += " LIMIT " + str(per_page) + " OFFSET " + str(page*per_page-per_page)
     
+    amount_rounds = calculate_amount_rounds_played(tourney_id, db=db)
+    
     lst_data = db.execute(str_query)
     position_number = 0
     result.data = []
     for item in lst_data:
         position_number += 1
-        result.data.append(create_dict_row_scale_acum(item, position_number, db=db, api_uri=api_uri))
+        result.data.append(create_dict_row_scale_acum(item, position_number, db=db, api_uri=api_uri, amount_rounds=amount_rounds))
     
     return result
 
@@ -614,12 +624,12 @@ def get_all_scale_by_round_by_pairs(request:Request, page: int, per_page: int, r
     
     return result
 
-def create_dict_row_scale(item, db: Session, api_uri):
+def create_dict_row_scale(item, db: Session, api_uri, position_number=None):
     
     photo = get_url_avatar(item['profile_id'], item['photo'], api_uri=api_uri)
-    
+    position_number = position_number if position_number else item['position_number']
     new_row = {'id': item['player_id'], 'name': item['profile_name'], 
-               'position_number': item['position_number'],
+               'position_number': position_number,
                'photo' : photo, 'elo': format_number(round(item['elo'],2)) if item['elo'] else 0, 
                'elo_variable': format_number(round(item['elo_variable'],2)) if item['elo_variable'] else 0,
                'games_played': item['games_played'] if item['games_played'] else 0, 
@@ -639,16 +649,17 @@ def create_dict_row_scale(item, db: Session, api_uri):
     
     return new_row
 
-def create_dict_row_scale_acum(item, position_number, db: Session, api_uri):
+def create_dict_row_scale_acum(item, position_number, db: Session, api_uri, amount_rounds=''):
     
     photo = get_url_avatar(item['profile_id'], item['photo'], api_uri=api_uri)
     
+    real_amount_rounds = amount_rounds if amount_rounds else item['games_played'] if item['games_played'] else 0
     new_row = {'id': item['player_id'], 'name': item['profile_name'], 
                'position_number': position_number,
                'photo' : photo, 'elo': format_number(round(item['elo'],2)) if item['elo'] else 0, 
                'elo_variable': format_number(round(item['elo_current'],2)) if item['elo_current'] else 0,
                'elo_at_end': format_number(round(item['elo_at_end'],2)),   
-               'games_played': item['games_played'] if item['games_played'] else 0, 
+               'games_played': real_amount_rounds, 
                'games_won': item['games_won'] if item['games_won'] else 0,
                'games_lost': item['games_lost'] if item['games_lost'] else 0, 
                'points_positive': item['points_positive'] if item['points_positive'] else 0,
