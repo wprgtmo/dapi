@@ -404,7 +404,7 @@ def created_segmentation_by_level(tourney_id:str, db:Session):
         else:
             amount_players = update_cat_at_level_for_player(tourney_id, category_id, level_type, position_number, db=db)
             str_update_cat = "Update events.domino_categories cat SET amount_players = " + str(amount_players) +\
-                "where id = '" + category_id + "';"
+                " where id = '" + category_id + "';"
             db.execute(str_update_cat)
    
     db.commit()     

@@ -83,7 +83,7 @@ def get_tables_by_rounds(
 def get_current_scale_by_rounds(
     request: Request,
     id: str,
-    order: str = '',
+    order: str = '1',
     page: int = 1, 
     per_page: int = 6, 
     db: Session = Depends(get_db)

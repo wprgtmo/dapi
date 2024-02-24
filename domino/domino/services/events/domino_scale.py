@@ -512,6 +512,7 @@ def get_all_scale_by_round(request:Request, page: int, per_page: int, round_id: 
     str_where = "WHERE rsca.is_active is True AND rsca.round_id = '" + round_id + "' "
         
     str_count += str_where
+    order = '1' if not order else order
     if order == '1': # posicion al inicio
         str_query += str_where + " ORDER BY rsca.position_number ASC "
     else:
@@ -528,7 +529,7 @@ def get_all_scale_by_round(request:Request, page: int, per_page: int, round_id: 
     
     if page != 0:
         str_query += " LIMIT " + str(per_page) + " OFFSET " + str(page*per_page-per_page)
-    
+    print(str_query)
     lst_data = db.execute(str_query)
     result.data = [create_dict_row_scale(item, db=db, api_uri=api_uri) for item in lst_data]
     
