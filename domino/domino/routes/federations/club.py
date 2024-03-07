@@ -1,5 +1,5 @@
 # Routes federation.py
-from fastapi import APIRouter, Depends, HTTPException, Request
+from fastapi import APIRouter, Depends, HTTPException, Request, UploadFile, File
 from sqlalchemy.orm import Session
 from domino.app import get_db
 from typing import List, Dict
@@ -10,7 +10,7 @@ from domino.auth_bearer import JWTBearer
 from domino.schemas.federations.federations import ClubsBase
 from domino.schemas.resources.result_object import ResultObject
 
-from domino.services.federations.clubs import new, update, delete, get_all, get_one_by_id, get_all_by_federation
+from domino.services.federations.clubs import new, update, delete, get_all, get_one_by_id, get_all_by_federation, save_logo_club
   
 club_route = APIRouter(
     tags=["Nomenclators"],  # tags=["Countries"],
@@ -22,12 +22,11 @@ def get_clubs(
     request: Request,
     page: int = 1, 
     per_page: int = 6, 
-    criteria_key: str = "",
-    criteria_value: str = "",
+    search: str = "",
     db: Session = Depends(get_db)
 ):
     return get_all(
-        request=request, page=page, per_page=per_page, criteria_key=criteria_key, criteria_value=criteria_value, db=db)
+        request=request, page=page, per_page=per_page, criteria_value=search, db=db)
 
 @club_route.get("/club/federation/{id}", response_model=ResultObject, summary="Obtain a list of Clubs.")
 def get_clubs_by_federation(request: Request, id=id, db: Session = Depends(get_db)):
@@ -48,3 +47,7 @@ def delete_club(request:Request, id: int, db: Session = Depends(get_db)):
 @club_route.put("/club/{id}", response_model=ResultObject, summary="Update Club for your ID")
 def update_club(request:Request, id: int, club: ClubsBase, db: Session = Depends(get_db)):
     return update(request=request, db=db, club_id=str(id), club=club)
+
+@club_route.post("/club/logo/{siglas}", response_model=ResultObject, summary="Save logo of Club")
+def save_logo(request:Request, siglas: str, logo: UploadFile=None, db: Session = Depends(get_db)):
+    return save_logo_club(request=request, siglas=siglas, logo=logo, db=db)

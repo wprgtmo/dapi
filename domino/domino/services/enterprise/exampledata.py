@@ -17,7 +17,7 @@ from typing import List
 from domino.app import _
 from domino.config.config import settings
 
-from domino.models.enterprise.userprofile import ProfileUsers, SingleProfile, RefereeProfile, PairProfile, EventAdmonProfile
+from domino.models.enterprise.userprofile import ProfileUsers, SingleProfile, RefereeProfile, PairProfile, EventAdmonProfile, FederatedProfile
 from domino.models.events.events import Event
 from domino.models.events.tourney import Tourney
 from domino.models.events.player import Players
@@ -32,7 +32,7 @@ from domino.services.resources.utils import create_dir, copy_image
 from domino.services.enterprise.profiletype import get_one as get_profile_type_by_id, get_one_by_name as get_profile_type_by_name
 from domino.services.enterprise.users import new as new_user, get_one as get_user_by_id
 from domino.services.enterprise.userprofile import get_one_default_user, get_user_for_single_profile_by_user, verify_exist_pair_player, \
-    get_one_single_profile_by_id, get_one_pair_profile, get_one_profile_by_user
+    get_one_single_profile_by_id, get_one_pair_profile, get_one_profile_by_user, get_one as get_profile_by_id
 from domino.services.enterprise.comunprofile import new_profile
 
 from domino.services.events.event import get_one_by_name as get_event_by_name
@@ -44,19 +44,57 @@ from domino.services.events.domino_boletus import created_boletus_for_round
 from domino.services.events.domino_scale import initial_scale_by_manual_lottery
 
 from domino.services.federations.clubs import get_one_by_name as get_club_by_name
+from domino.services.federations.federations import get_one_by_name as get_federation_by_name
 
 pwd_context = CryptContext(schemes=["bcrypt"], deprecated="auto")
 
 #region poblar BD de profiles user
 
-def insert_user_examples(request:Request, from_file: bool, from_eeuu: bool, db: Session):
-    if from_file:
-        if from_eeuu:
-            return insert_user_eeuu_examples_by_csv(request=request, db=db)
-        else:
-            return insert_user_examples_by_csv(request=request, db=db)
-    else:
-        return insert_user_examples_from_aleatory(request=request, db=db)
+def insert_user_examples(request:Request, db: Session):
+    
+    # jugadores Federacion Cubana
+    cuba_federation = get_federation_by_name('Federación Cubana del Dominó', db=db)
+    # Jugadores de la Federacion EUA
+    usa_federation = get_federation_by_name('USA Domino Federation', db=db)
+    
+    insert_user_eeuu_examples_by_csv(request=request, db=db, federation=usa_federation)
+    
+    insert_user_examples_by_csv(request=request, db=db, federation=cuba_federation)
+
+    insert_profiles_federation(request=request, db=db, usa_federation=usa_federation, cuba_federation=cuba_federation)
+    
+    return True
+
+def insert_profiles_federation(request:Request, db: Session, usa_federation=None, cuba_federation=None):
+    
+    lst_user = []
+    lst_user.append(UserCreate(username='miry', first_name='Miraidys', last_name='Garcia Tornes', email='miry@gmail.cu', 
+                               country_id=1, password='Pi=3.1416'))
+    lst_user.append(UserCreate(username='migue', first_name='Miguel', last_name='Lau Díaz', email='migue@gmail.cu', 
+                               country_id=1, password='Pi=3.1416'))
+    [create_generic_user(request, item, 'Cienfuegos', db=db) for item in lst_user]
+    create_event_admon_from_file('miry', 'Cienfuegos', 'Miry', db=db, federation=cuba_federation)
+    create_event_admon_from_file('migue', 'Matanzas', 'Migue', db=db, federation=cuba_federation)
+    
+    lst_user = []
+    lst_user.append(UserCreate(username='senen', first_name='Senen', last_name='SOA', email='senen@gmail.cu', 
+                               country_id=1, password='Senen.123'))
+    [create_generic_user(request, item, 'Guantánamo', db=db) for item in lst_user]
+    create_event_admon_from_file('senen', 'Guantánamo', 'Senen', db=db, federation=cuba_federation)
+    
+    
+    
+    lst_user = []
+    lst_user.append(UserCreate(username='wilfredo', first_name='Wilfredo', last_name='Pérez Romero', email='wilfredo@gmail.cu', 
+                               country_id=4, password='Wilfre.123'))
+    lst_user.append(UserCreate(username='alexeis', first_name='Alexeis', last_name='SOA', email='alexeis@gmail.cu', 
+                               country_id=4, password='Alexeis.123'))
+    [create_generic_user(request, item, 'Tampa', db=db) for item in lst_user]
+    create_event_admon_from_file('wilfredo', 'Tampa', 'Wilfredo', db=db, federation=usa_federation)
+    create_event_admon_from_file('alexeis', 'Tampa', 'Alexeis', db=db, federation=usa_federation)
+    
+    
+    return True
     
 def insert_user_examples_from_aleatory(request:Request, db: Session):
     
@@ -380,7 +418,7 @@ def create_single_player_from_file(request:Request, username, name, city, elo, d
     except (Exception, SQLAlchemyError) as e:
         return True
 
-def create_event_admon_from_file(username, city_name, name, db: Session):
+def create_event_admon_from_file(username, city_name, name, db: Session, federation=None):
     
     profile_type = get_profile_type_by_name("EVENTADMON", db=db)
     if not profile_type:
@@ -391,22 +429,64 @@ def create_event_admon_from_file(username, city_name, name, db: Session):
     if exist_profile_id:
         return True
     
-    me_profile_id = get_user_for_single_profile_by_user(username, db=db, profile_type='USER')
-    if not me_profile_id:
+    default_profile_id = get_user_for_single_profile_by_user(username, db=db, profile_type='USER')
+    if not default_profile_id:
         return True
     
-    default_profile_id = get_one_profile_by_user(username, db=db, profile_type='USER')
+    default_profile = get_profile_by_id(default_profile_id, db=db)
+    if not default_profile:
+        return True
+    
+    # default_profile_id = get_one_profile_by_user(username, db=db, profile_type='USER')
+    # if not default_profile_id:
+    #     return True
+    
+    city = get_city_by_name(city_name, db=db)
+
+    id = str(uuid.uuid4())
+    one_profile = new_profile(profile_type, id, default_profile.id, username, name, default_profile.email, city.id, True, True, True, 
+                              "EVENTADMON", username, username, None, is_confirmed=True, single_profile_id=None)
+    
+    one_eventadmon = EventAdmonProfile(profile_id=id, updated_by=username, federation_id=federation.id if federation else None,
+                                       profile_user_id=default_profile.id)
+    one_profile.profile_event_admon.append(one_eventadmon)
+    
+    path = create_dir(entity_type="USERPROFILE", user_id=str(id), entity_id=id)
+    
+    try:   
+        db.add(one_profile)
+        db.commit()
+        return True
+    except (Exception, SQLAlchemyError) as e:
+        raise True
+    
+def create_federated_profile(username, city_name, name, db: Session, federation=None):
+    
+    profile_type = get_profile_type_by_name("FEDERATED", db=db)
+    if not profile_type:
+        return True
+    
+    # si ya existe perfil no permitir crear otro.
+    profile_federated_id = get_one_profile_by_user(username, "FEDERATED", db=db)
+    if profile_federated_id:
+        return True
+    
+    default_profile_id = get_user_for_single_profile_by_user(username, db=db, profile_type='USER')
     if not default_profile_id:
+        return True
+    
+    default_profile = get_profile_by_id(default_profile_id, db=db)
+    if not default_profile:
         return True
     
     city = get_city_by_name(city_name, db=db)
 
     id = str(uuid.uuid4())
-    one_profile = new_profile(profile_type, id, me_profile_id, username, name, None, city.id, True, True, True, 
-                              "USERPROFILE", username, username, None, is_confirmed=True, single_profile_id=me_profile_id)
+    one_profile = new_profile(profile_type, id, default_profile_id, username, name, default_profile.email, city.id, True, True, True, 
+                              "FEDERATED", username, username, None, is_confirmed=True, single_profile_id=None)
     
-    one_eventadmon = EventAdmonProfile(profile_id=id, updated_by=username)
-    one_profile.profile_event_admon.append(one_eventadmon)
+    one_federation = FederatedProfile(profile_id=id, updated_by=username, federation_id=federation.id if federation else None)
+    one_profile.profile_federated.append(one_federation)
     
     path = create_dir(entity_type="USERPROFILE", user_id=str(id), entity_id=id)
     
@@ -846,6 +926,7 @@ def clear_all_bd(request:Request, db: Session):
         "DELETE FROM events.domino_rounds_scale; DELETE FROM events.domino_categories; " +\
         "DELETE FROM events.domino_rounds; DELETE FROM events.domino_tables_files; DELETE FROM events.domino_tables; " +\
         "DELETE FROM events.players_users; DELETE FROM events.players; DELETE FROM events.referees; " +\
+        "DELETE FROM events.inscriptions;" +\
         "DELETE FROM events.invitations; DELETE FROM events.tourney; DELETE FROM events.events; " +\
         "COMMIT; " 
     
@@ -862,7 +943,8 @@ def clear_all_bd(request:Request, db: Session):
         "DELETE FROM enterprise.profile_pair_player; DELETE FROM enterprise.profile_team_player; " +\
         "DELETE FROM enterprise.profile_single_player; DELETE FROM enterprise.profile_referee; " +\
         "DELETE FROM enterprise.profile_default_user; DELETE FROM enterprise.profile_users; " +\
-        "DELETE FROM enterprise.profile_member; DELETE FROM enterprise.user_eventroles; " +\
+        "DELETE FROM enterprise.profile_federated; DELETE FROM enterprise.user_eventroles; " +\
+        "DELETE FROM enterprise.profile_member; " +\
         "DELETE FROM enterprise.user_followers; DELETE FROM enterprise.users; COMMIT; "
         
     db.execute(str_del_profile)
@@ -874,26 +956,13 @@ def clear_all_bd(request:Request, db: Session):
     
 #llenado de las tablas a partir del fichero cvs
 
-def insert_user_eeuu_examples_by_csv(request:Request, db: Session):
+def insert_user_eeuu_examples_by_csv(request:Request, db: Session, federation=None):
     
     #ususrio domino
     # lst_user = ['domino']
     
     #usuarios genericos
-    lst_user = []
-    lst_user.append(UserCreate(username='miry', first_name='Miraidys', last_name='Garcia Tornes', email='miry@gmail.cu', country_id=1, password='Pi=3.1416'))
-    [create_generic_user(request, item, 'Cienfuegos', db=db) for item in lst_user]
-    
-    lst_user = []
-    lst_user.append(UserCreate(username='migue', first_name='Miguel', last_name='Lau Díaz', email='migue@gmail.cu', country_id=1, password='Pi=3.1416'))
-    [create_generic_user(request, item, 'Cienfuegos', db=db) for item in lst_user]
-    
-    # admion de eventos
-    create_event_admon_from_file('miry', 'Cienfuegos', 'Miry', db=db)
-    
-    lst_admon = ['migue']
-    create_event_admon_from_file('migue', 'Matanzas', 'Migue', db=db)
-    
+       
     country = get_country_by_name('EUA', db=db) 
     
     city = get_city_by_name('Tampa', db=db)
@@ -915,25 +984,7 @@ def insert_user_eeuu_examples_by_csv(request:Request, db: Session):
 
     return True
 
-def insert_user_examples_by_csv(request:Request, db: Session):
-    
-    #ususrio domino
-    # lst_user = ['domino']
-    
-    #usuarios genericos
-    lst_user = []
-    lst_user.append(UserCreate(username='miry', first_name='Miraidys', last_name='Garcia Tornes', email='miry@gmail.cu', country_id=1, password='Pi=3.1416'))
-    [create_generic_user(request, item, 'Cienfuegos', db=db) for item in lst_user]
-    
-    lst_user = []
-    lst_user.append(UserCreate(username='migue', first_name='Miguel', last_name='Lau Díaz', email='migue@gmail.cu', country_id=1, password='Pi=3.1416'))
-    [create_generic_user(request, item, 'Cienfuegos', db=db) for item in lst_user]
-    
-    # admion de eventos
-    create_event_admon_from_file('miry', 'Cienfuegos', 'Miry', db=db)
-    
-    lst_admon = ['migue']
-    create_event_admon_from_file('migue', 'Matanzas', 'Migue', db=db)
+def insert_user_examples_by_csv(request:Request, db: Session, federation=None):
     
     
     #usuarios del fichero en BD.

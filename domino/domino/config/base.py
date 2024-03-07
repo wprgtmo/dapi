@@ -19,3 +19,4 @@ from ..models.events.player import *
 from ..models.events.referees import *
 from ..models.resources.eventscategories import *
 from ..models.federations.clubs import *
+from ..models.events.inscriptions import *

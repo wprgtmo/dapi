@@ -23,8 +23,8 @@ def insert_data(request:Request, db: Session = Depends(get_db)):
     return clear_all_bd(request, db=db)
 
 @exampledata_route.post("/exampledata/step_2_users", summary="Create generic users")
-def insert_data(request:Request, from_file: bool = False, from_eeuu: bool = True, db: Session = Depends(get_db)):
-    return insert_user_examples(request, from_file, from_eeuu, db=db)
+def insert_data(request:Request, db: Session = Depends(get_db)):
+    return insert_user_examples(request, db=db)
 
 # @exampledata_route.post("/exampledata/step_3_profiles", summary="Create Others profiles")
 # def insert_profile_data(request:Request, db: Session = Depends(get_db)):

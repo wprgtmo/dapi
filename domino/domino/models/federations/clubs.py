@@ -19,7 +19,11 @@ class Federations(Base):
     city_id = Column(Integer, ForeignKey("resources.city.id"), nullable=True)
     country_id = Column(Integer, ForeignKey("resources.country.id"), nullable=True)
     is_active = Column(Boolean)
-           
+    siglas = Column(String, nullable=True)
+    
+    city = relationship('City')
+    country = relationship('Country')
+         
     def dict(self):
         return {
             "id": self.id,
@@ -45,6 +49,10 @@ class Clubs(Base):
     country_id = Column(Integer, ForeignKey("resources.country.id"), nullable=True)
     is_active = Column(Boolean)
     siglas = Column(String, nullable=True)
+    
+    federation  = relationship('Federations')
+    city = relationship('City')
+    country = relationship('Country')
         
     def dict(self):
         return {

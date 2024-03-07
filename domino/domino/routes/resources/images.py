@@ -51,6 +51,10 @@ def getAdvertising(tourney_id: str, file_name: str):
 @image_route.get("/default/", summary="Mostrar imagen de la compañía")
 def getSmartDomino():
     return FileResponse(getcwd() + "/public/smartdomino.png")
+
+@image_route.get("/federations/{federation_id}/{file_name}", summary="Mostrar logo de Federaciones o Club")
+def getFederations(federation_id:str, file_name: str):
+    return FileResponse(getcwd() + "/public/federations/" + federation_id + "/" + file_name)
      
 def send_bytes_range_requests(
     file_obj: BinaryIO, start: int, end: int, chunk_size: int = 10_000

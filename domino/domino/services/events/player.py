@@ -777,6 +777,8 @@ def get_all_players_by_tourney(request:Request, page: int, per_page: int, tourne
         str_query += "LIMIT " + str(per_page) + " OFFSET " + str(page*per_page-per_page)
         
     lst_data = db.execute(str_query)
+    print(str_query)
+    print('***********************')
     result.data = [create_dict_row(item, page, db=db, api_uri=api_uri) for item in lst_data]
     
     return result

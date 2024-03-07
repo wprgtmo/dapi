@@ -48,6 +48,7 @@ class TourneyCreated(BaseModel):
     summary: Optional[str]
     startDate: Optional[date]
     number_rounds: Optional[int]
+    inscription_import: Optional[float]
     
 class SettingTourneyCreated(BaseModel):
     
@@ -64,10 +65,7 @@ class SettingTourneyCreated(BaseModel):
     lottery: Optional[str] 
     constant_increase_ELO: Optional[float]
     
-    # use_penalty: Optional[bool]
-    # limitPenaltyPoints: Optional[int]
-    # points_penalty_yellow: Optional[int]
-    # points_penalty_red: Optional[int]
+    inscription_import: Optional[float]
     
     absences_point: Optional[int]
     

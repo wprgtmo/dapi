@@ -34,10 +34,7 @@ class Tourney(Base):
     game_system = Column(String(120), nullable=True)
     lottery_type = Column(String(120), nullable=True)
     
-    use_penalty = Column(Boolean, nullable=True, default=False)
-    points_penalty_yellow = Column(Integer, nullable=True, default=0)
-    points_penalty_red = Column(Integer, nullable=True, default=0)
-    penalties_limit = Column(Integer, nullable=True, default=0)
+    inscription_import = Column(Float)
     
     image = Column(Text, nullable=True)
     
@@ -50,7 +47,6 @@ class Tourney(Base):
     amount_segmentation_round = Column(Integer, nullable=True, default=0)
     segmentation_type = Column(String(120), nullable=True)
     
-    number_rounds = Column(Integer, nullable=True, default=0)
     number_bonus_round = Column(Integer, nullable=True, default=0)
     
     elo_min = Column(Float, nullable=True)
@@ -69,14 +65,10 @@ class Tourney(Base):
     round_ordering_one = Column(String(120), nullable=True)
     round_ordering_two = Column(String(120), nullable=True)
     round_ordering_three = Column(String(120), nullable=True)
-    round_ordering_four = Column(String(120), nullable=True)
-    round_ordering_five = Column(String(120), nullable=True)
     
     event_ordering_one = Column(String(120), nullable=True)
     event_ordering_two = Column(String(120), nullable=True)
     event_ordering_three = Column(String(120), nullable=True)
-    event_ordering_four = Column(String(120), nullable=True)
-    event_ordering_five = Column(String(120), nullable=True)
     
     scope_tourney = Column(Integer, ForeignKey("resources.events_scopes.id"), nullable=False)
     level_tourney = Column(Integer, ForeignKey("resources.events_levels.id"), nullable=False)
@@ -84,14 +76,10 @@ class Tourney(Base):
     round_ordering_dir_one = Column(String(5), nullable=True)
     round_ordering_dir_two = Column(String(5), nullable=True)
     round_ordering_dir_three = Column(String(5), nullable=True)
-    round_ordering_dir_four = Column(String(5), nullable=True)
-    round_ordering_dir_five = Column(String(5), nullable=True)
     
     event_ordering_dir_one = Column(String(5), nullable=True)
     event_ordering_dir_two = Column(String(5), nullable=True)
     event_ordering_dir_three = Column(String(5), nullable=True)
-    event_ordering_dir_four = Column(String(5), nullable=True)
-    event_ordering_dir_five = Column(String(5), nullable=True)
     
     points_for_absences = Column(Integer, nullable=True, default=0)
     

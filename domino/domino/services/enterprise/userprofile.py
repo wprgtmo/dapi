@@ -428,6 +428,24 @@ def get_all_single_profile(request:Request, profile_id: str, page: int, per_page
     
     api_uri = str(settings.api_uri)
     
+    api_uri = str(settings.api_uri)
+
+    # por el perfil, buscar a que federacion pertenece
+    one_profile = get_one(profile_id, db=db)
+    if not one_profile:
+        raise HTTPException(status_code=404, detail=_(locale, "userprofile.not_found"))
+    
+    federation_id = None
+    if one_profile.profile_type == 'EVENTADMON':
+        federation_id = one_profile.profile_event_admon[0].federation_id if one_profile.profile_event_admon else None
+    elif one_profile.profile_type == 'FEDERATED':
+        federation_id = one_profile.profile_federated[0].federation_id if one_profile.profile_federated else None
+    else:
+        raise HTTPException(status_code=404, detail=_(locale, "userprofile.not_found"))
+    
+    if not federation_id:
+        raise HTTPException(status_code=404, detail=_(locale, "userprofile.not_found"))
+    
     str_from = "FROM enterprise.profile_member pmem " +\
         "JOIN enterprise.profile_single_player psin ON psin.profile_id = pmem.id " +\
         "left join resources.city city ON city.id = pmem.city_id " +\
@@ -439,7 +457,8 @@ def get_all_single_profile(request:Request, profile_id: str, page: int, per_page
     
     str_where = " WHERE pmem.is_active = True "  
     
-    dict_query = {'name': " AND pmem.name ilike '%" + criteria_value + "%'"
+    dict_query = {'name': " AND pmem.name ilike '%" + criteria_value + "%'",
+                  'club_id': " AND psin.club_id = " + criteria_value 
                  }
     
     str_count += str_where
@@ -463,7 +482,8 @@ def get_all_single_profile(request:Request, profile_id: str, page: int, per_page
      
     lst_data = db.execute(str_query)
     result.data = [create_dict_row_single_player(item, page, db=db, api_uri=api_uri) for item in lst_data]
-    
+    print(str_query)
+    print('*****************************')
     return result
 
 def get_all_eventadmon_profile(request:Request, profile_id: str, page: int, per_page: int, criteria_key: str, criteria_value: str, db: Session):  

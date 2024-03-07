@@ -70,6 +70,7 @@ class ProfileMember(Base):
     profile_pair_player = relationship("PairProfile")
     profile_team_player = relationship("TeamProfile")
     profile_event_admon = relationship("EventAdmonProfile")
+    profile_federated = relationship("FederatedProfile")
     
     city = relationship(City)
      
@@ -175,6 +176,9 @@ class RefereeProfile(Base):
     
     level = Column(String(60), nullable=True)
     
+    federation_id = Column(Integer, ForeignKey("federations.federations.id"), nullable=True)
+    profile_user_id = Column(String, nullable=True)
+    
     updated_by = Column(String, ForeignKey("enterprise.users.username"), nullable=False)
     updated_date = Column(Date, nullable=False, default=date.today())
      
@@ -198,6 +202,8 @@ class PairProfile(Base):
     
     updated_by = Column(String, ForeignKey("enterprise.users.username"), nullable=False)
     updated_date = Column(Date, nullable=False, default=date.today())
+    
+    club_id = Column(Integer, ForeignKey("federations.clubs.id"), nullable=True)
      
     def dict(self):
         return {
@@ -221,6 +227,8 @@ class TeamProfile(Base):
     
     updated_by = Column(String, ForeignKey("enterprise.users.username"), nullable=False)
     updated_date = Column(Date, nullable=False, default=date.today())
+    
+    club_id = Column(Integer, ForeignKey("federations.clubs.id"), nullable=True)
      
     def dict(self):
         return {
@@ -264,6 +272,28 @@ class EventAdmonProfile(Base):
     __table_args__ = {'schema' : 'enterprise'}
     
     profile_id = Column(String, ForeignKey("enterprise.profile_member.id"), primary_key=True)
+    
+    federation_id = Column(Integer, ForeignKey("federations.federations.id"), nullable=True)
+    profile_user_id = Column(String, nullable=True)
+    
+    updated_by = Column(String, ForeignKey("enterprise.users.username"), nullable=False)
+    updated_date = Column(Date, nullable=False, default=date.today())
+     
+    def dict(self):
+        return {
+            "profile_id": self.profile_id,
+            }
+        
+class FederatedProfile(Base):
+    """FederatedProfilerofile Class contains standard information for a Profile of Federated"""
+ 
+    __tablename__ = "profile_federated"
+    __table_args__ = {'schema' : 'enterprise'}
+    
+    profile_id = Column(String, ForeignKey("enterprise.profile_member.id"), primary_key=True)
+    
+    federation_id = Column(Integer, ForeignKey("federations.federations.id"), nullable=True)
+    profile_user_id = Column(String, nullable=True)
     
     updated_by = Column(String, ForeignKey("enterprise.users.username"), nullable=False)
     updated_date = Column(Date, nullable=False, default=date.today())

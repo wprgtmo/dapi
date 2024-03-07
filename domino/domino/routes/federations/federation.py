@@ -1,5 +1,5 @@
 # Routes federation.py
-from fastapi import APIRouter, Depends, HTTPException, Request
+from fastapi import APIRouter, Depends, HTTPException, Request, UploadFile, File
 from sqlalchemy.orm import Session
 from domino.app import get_db
 from typing import List, Dict
@@ -10,7 +10,7 @@ from domino.auth_bearer import JWTBearer
 from domino.schemas.federations.federations import FederationsBase
 from domino.schemas.resources.result_object import ResultObject
 
-from domino.services.federations.federations import new, update, delete, get_all, get_one_by_id, get_all_list
+from domino.services.federations.federations import new, update, delete, get_all, get_one_by_id, get_all_list, save_logo_federation
   
 federation_route = APIRouter(
     tags=["Nomenclators"],  # tags=["Countries"],
@@ -22,12 +22,11 @@ def get_federations(
     request: Request,
     page: int = 1, 
     per_page: int = 6, 
-    criteria_key: str = "",
-    criteria_value: str = "",
+    search: str = "",
     db: Session = Depends(get_db)
 ):
     return get_all(
-        request=request, page=page, per_page=per_page, criteria_key=criteria_key, criteria_value=criteria_value, db=db)
+        request=request, page=page, per_page=per_page, criteria_value=search, db=db)
 
 @federation_route.get("/federation/all/", response_model=Dict, summary="Obtain a list of Federations.")
 def get_federations_all(request: Request, db: Session = Depends(get_db)):
@@ -48,3 +47,7 @@ def delete_federation(request:Request, id: int, db: Session = Depends(get_db)):
 @federation_route.put("/federation/{id}", response_model=ResultObject, summary="Update Federation for your ID")
 def update_federation(request:Request, id: int, federation: FederationsBase, db: Session = Depends(get_db)):
     return update(request=request, db=db, federation_id=str(id), federation=federation)
+
+@federation_route.post("/federation/logo/{siglas}", response_model=ResultObject, summary="Save logo of Federation")
+def save_logo(request:Request, siglas: str, logo: UploadFile=None, db: Session = Depends(get_db)):
+    return save_logo_federation(request=request, siglas=siglas, logo=logo, db=db)
