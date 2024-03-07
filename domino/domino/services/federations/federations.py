@@ -21,6 +21,8 @@ from domino.schemas.resources.result_object import ResultObject, ResultData
 from domino.services.resources.utils import get_result_count, create_dir, del_image, get_ext_at_file, upfile
 from domino.services.resources.city import get_one as get_one_city
 from domino.services.resources.country import get_one as get_one_country
+
+from domino.services.enterprise.auth import get_url_federation
             
 def get_all(request:Request, page: int, per_page: int, criteria_value: str, db: Session):  
     locale = request.headers["accept-language"].split(",")[0].split("-")[0];
@@ -113,7 +115,7 @@ def new(request, db: Session, federation: FederationsBase):
     result = ResultObject() 
     currentUser = get_current_user(request)
     
-    db_one_federation = get_one_by_name(federation.siglas, db=db)  
+    db_one_federation = get_one_by_siglas(federation.siglas, db=db)  
     if db_one_federation:
         return result
     
@@ -209,6 +211,7 @@ def delete(request: Request, federation_id: str, db: Session):
     
 def save_logo_federation(request: Request, siglas: str, logo: File, db: Session):
     locale = request.headers["accept-language"].split(",")[0].split("-")[0];
+    api_uri = api_uri = str(settings.api_uri)
     
     result = ResultObject() 
     currentUser = get_current_user(request) 
@@ -243,6 +246,7 @@ def save_logo_federation(request: Request, siglas: str, logo: File, db: Session)
     try:
         db.add(one_federation)
         db.commit()
+        result.data = get_url_federation(one_federation.id, one_federation.logo, api_uri=api_uri)
         return result
     except (Exception, SQLAlchemyError) as e:
         print(e.code)

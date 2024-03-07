@@ -23,6 +23,8 @@ from domino.services.resources.city import get_one as get_one_city
 from domino.services.resources.country import get_one as get_one_country
 from domino.services.federations.federations import get_one as get_one_federation
             
+from domino.services.enterprise.auth import get_url_federation
+
 def get_all(request:Request, page: int, per_page: int, criteria_value: str, db: Session):  
     locale = request.headers["accept-language"].split(",")[0].split("-")[0];
     api_uri = api_uri = str(settings.api_uri)
@@ -213,6 +215,7 @@ def delete(request: Request, club_id: str, db: Session):
     
 def save_logo_club(request: Request, siglas: str, logo: File, db: Session):
     locale = request.headers["accept-language"].split(",")[0].split("-")[0];
+    api_uri = api_uri = str(settings.api_uri)
     
     result = ResultObject() 
     currentUser = get_current_user(request) 
@@ -247,6 +250,7 @@ def save_logo_club(request: Request, siglas: str, logo: File, db: Session):
     try:
         db.add(one_club)
         db.commit()
+        result.data = get_url_federation(one_club.federation.id, one_club.logo, api_uri=api_uri)
         return result
     except (Exception, SQLAlchemyError) as e:
         print(e.code)
