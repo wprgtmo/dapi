@@ -155,7 +155,9 @@ es:
     not_found: 'Registro de Data no existe'
   federation:
     not_found: 'Registro de Federacion no existe'
+    siglas_exist: 'Siglas Existen ya registradas'
   club:
     not_found: 'Registro de Club no existe'
+    siglas_exist: 'Siglas Existen ya registradas'
   penalty:
     motive_is_requierd: 'Motivo es requerido'

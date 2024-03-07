@@ -175,10 +175,15 @@ def update(request: Request, federation_id: str, federation: FederationsBase, db
             raise HTTPException(status_code=404, detail=_(locale, "country.not_found"))
         else:
             db_one_federation.country_id = one_country.id
-            
+    
+    # siglas no se pueden repetir
+    one_federation_by_siglas = get_one_by_siglas(federation.siglas)
+    if one_federation_by_siglas:
+        raise HTTPException(status_code=404, detail=_(locale, "federation.siglas_exist"))
+           
     db_one_federation.name = federation.name
-    # tema logo
-        
+    db_one_federation.siglas = federation.siglas
+       
     try:
         
         db.add(db_one_federation)
@@ -188,8 +193,7 @@ def update(request: Request, federation_id: str, federation: FederationsBase, db
         print(e.code)
         if e.code == "gkpj":
             raise HTTPException(status_code=400, detail=_(locale, "federation.already_exist"))
-   
-
+ 
 def delete(request: Request, federation_id: str, db: Session):
     locale = request.headers["accept-language"].split(",")[0].split("-")[0];
     
@@ -243,12 +247,12 @@ def save_logo_federation(request: Request, siglas: str, logo: File, db: Session)
     one_federation.updated_by = currentUser['username']
     one_federation.updated_date = datetime.now()
             
-    # try:
-    db.add(one_federation)
-    db.commit()
-    result.data = get_url_federation(one_federation.id, one_federation.logo, api_uri=api_uri)
-    return result
-    # except (Exception, SQLAlchemyError) as e:
-    #     print(e.code)
-    #     if e.code == "gkpj":
-    #         raise HTTPException(status_code=400, detail=_(locale, "event.already_exist"))
+    try:
+        db.add(one_federation)
+        db.commit()
+        result.data = get_url_federation(one_federation.id, one_federation.logo, api_uri=api_uri)
+        return result
+    except (Exception, SQLAlchemyError) as e:
+        print(e.code)
+        if e.code == "gkpj":
+            raise HTTPException(status_code=400, detail=_(locale, "event.already_exist"))
