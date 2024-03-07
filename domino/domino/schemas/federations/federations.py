@@ -23,7 +23,6 @@ class ClubsBase(BaseModel):
     name: str
     federations_id: int
     city: Optional[int]
-    country: Optional[int]
     siglas: Optional[str]
    
 class ClubsSchema(FederationsBase):

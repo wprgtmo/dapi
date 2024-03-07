@@ -158,7 +158,7 @@ def update(request: Request, federation_id: str, federation: FederationsBase, db
     result = ResultObject() 
     
     db_one_federation = get_one(federation_id, db=db)  
-    if db_one_federation:
+    if not db_one_federation:
         raise HTTPException(status_code=404, detail=_(locale, "federation.not_found"))
     
     if federation.city:
@@ -200,7 +200,7 @@ def delete(request: Request, federation_id: str, db: Session):
     result = ResultObject() 
     
     db_one_federation = get_one(federation_id, db=db)  
-    if db_one_federation:
+    if not db_one_federation:
         raise HTTPException(status_code=404, detail=_(locale, "federation.not_found"))
     
     try:
