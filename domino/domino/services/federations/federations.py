@@ -243,12 +243,12 @@ def save_logo_federation(request: Request, siglas: str, logo: File, db: Session)
     one_federation.updated_by = currentUser['username']
     one_federation.updated_date = datetime.now()
             
-    try:
-        db.add(one_federation)
-        db.commit()
-        result.data = get_url_federation(one_federation.id, one_federation.logo, api_uri=api_uri)
-        return result
-    except (Exception, SQLAlchemyError) as e:
-        print(e.code)
-        if e.code == "gkpj":
-            raise HTTPException(status_code=400, detail=_(locale, "event.already_exist"))
+    # try:
+    db.add(one_federation)
+    db.commit()
+    result.data = get_url_federation(one_federation.id, one_federation.logo, api_uri=api_uri)
+    return result
+    # except (Exception, SQLAlchemyError) as e:
+    #     print(e.code)
+    #     if e.code == "gkpj":
+    #         raise HTTPException(status_code=400, detail=_(locale, "event.already_exist"))

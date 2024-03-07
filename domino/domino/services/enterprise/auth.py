@@ -98,7 +98,7 @@ def get_url_federation(federation_id: str, file_name: str, api_uri=''):
     api_uri = str(settings.api_uri) if not api_uri else api_uri
     logo = file_name if file_name else "smartdomino.png"
     
-    return api_uri + "/api/federations/" + federation_id + "/" + logo
+    return api_uri + "/api/federations/" + str(federation_id) + "/" + logo
 
 def get_url_smartdomino(api_uri=''):
 
