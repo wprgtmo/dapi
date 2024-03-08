@@ -12,7 +12,7 @@ from domino.schemas.resources.result_object import ResultObject
 
 from domino.services.federations.federations import new, update, delete, get_all, get_one_by_id, get_all_list, save_logo_federation, \
     get_city_at_federation
-  
+    
 federation_route = APIRouter(
     tags=["Nomenclators"],  # tags=["Countries"],
     dependencies=[Depends(JWTBearer())]   
@@ -34,8 +34,8 @@ def get_federations_all(request: Request, db: Session = Depends(get_db)):
     return get_all_list(request=request, db=db)
         
 @federation_route.post("/federation", response_model=ResultObject, summary="Create new Federation")
-def create_federation(request:Request, federation: FederationsBase, db: Session = Depends(get_db)):
-    return new(request=request, federation=federation, db=db)
+def create_federation(request:Request, federation: FederationsBase = Depends(), logo: UploadFile = None,  db: Session = Depends(get_db)):
+    return new(request=request, federation=federation.dict(), logo=logo, db=db)
 
 @federation_route.get("/federation/one/{id}", response_model=ResultObject, summary="Get a Federation for your ID.")
 def get_federation_by_id(request:Request, id: int, db: Session = Depends(get_db)):
@@ -50,9 +50,5 @@ def delete_federation(request:Request, id: int, db: Session = Depends(get_db)):
     return delete(request=request, federation_id=str(id), db=db)
     
 @federation_route.put("/federation/{id}", response_model=ResultObject, summary="Update Federation for your ID")
-def update_federation(request:Request, id: int, federation: FederationsBase, db: Session = Depends(get_db)):
-    return update(request=request, db=db, federation_id=str(id), federation=federation)
-
-@federation_route.post("/federation/logo/{siglas}", response_model=ResultObject, summary="Save logo of Federation")
-def save_logo(request:Request, siglas: str, logo: UploadFile=None, db: Session = Depends(get_db)):
-    return save_logo_federation(request=request, siglas=siglas, logo=logo, db=db)
+def update_federation(request:Request, id: int, federation: FederationsBase = Depends(), logo: UploadFile = None,  db: Session = Depends(get_db)):
+    return update(request=request, federation_id=str(id), federation=federation.dict(), logo=logo, db=db)

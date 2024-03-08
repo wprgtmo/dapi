@@ -33,8 +33,8 @@ def get_clubs_by_federation(request: Request, id=id, db: Session = Depends(get_d
     return get_all_by_federation(request=request, federation_id=id, db=db)
         
 @club_route.post("/club", response_model=ResultObject, summary="Create new Club")
-def create_club(request:Request, club: ClubsBase, db: Session = Depends(get_db)):
-    return new(request=request, club=club, db=db)
+def create_club(request:Request, club: ClubsBase = Depends(), logo: UploadFile = None, db: Session = Depends(get_db)):
+    return new(request=request, club=club.dict(), logo=logo, db=db)
 
 @club_route.get("/club/one/{id}", response_model=ResultObject, summary="Get a Club for your ID.")
 def get_club_by_id(request:Request, id: int, db: Session = Depends(get_db)):
@@ -45,9 +45,5 @@ def delete_club(request:Request, id: int, db: Session = Depends(get_db)):
     return delete(request=request, club_id=str(id), db=db)
     
 @club_route.put("/club/{id}", response_model=ResultObject, summary="Update Club for your ID")
-def update_club(request:Request, id: int, club: ClubsBase, db: Session = Depends(get_db)):
-    return update(request=request, db=db, club_id=str(id), club=club)
-
-@club_route.post("/club/logo/{siglas}", response_model=ResultObject, summary="Save logo of Club")
-def save_logo(request:Request, siglas: str, logo: UploadFile=None, db: Session = Depends(get_db)):
-    return save_logo_club(request=request, siglas=siglas, logo=logo, db=db)
+def update_club(request:Request, id: int, club: ClubsBase = Depends(), logo: UploadFile = None, db: Session = Depends(get_db)):
+    return update(request=request, db=db, club_id=str(id), club=club.dict(), logo=logo)

@@ -125,38 +125,51 @@ def get_one_by_name(name: str, db: Session):
 def get_one_by_siglas(siglas: str, db: Session):  
     return db.query(Federations).filter(Federations.siglas == siglas).first()
       
-def new(request, db: Session, federation: FederationsBase):
+def new(request, federation: FederationsBase, logo: File, db: Session):
     locale = request.headers["accept-language"].split(",")[0].split("-")[0];
-    
+   
     result = ResultObject() 
-    currentUser = get_current_user(request)
     
-    db_one_federation = get_one_by_siglas(federation.siglas, db=db)  
+    db_one_federation = get_one_by_siglas(federation['siglas'], db=db)  
     if db_one_federation:
-        return result
+        raise HTTPException(status_code=404, detail=_(locale, "federation.siglas_exist"))
     
     country_id, city_id = None, None
     
-    if federation.city:
-        one_ciy = get_one_city(federation.city, db=db)
+    if federation['city']:
+        one_ciy = get_one_city(federation['city'], db=db)
         if not one_ciy:
             raise HTTPException(status_code=404, detail=_(locale, "city.not_found"))
         else:
             country_id = one_ciy.country_id
             city_id = one_ciy.id
             
-    if not country_id and federation.country:
-        one_country = get_one_country(federation.country, db=db)
+    if not country_id and federation['country']:
+        one_country = get_one_country(federation['country'], db=db)
         if not one_country:
             raise HTTPException(status_code=404, detail=_(locale, "country.not_found"))
         else:
             country_id = one_country.id
     
-    db_one_federation = Federations(name=federation.name, siglas=federation.siglas, city_id=city_id, country_id=country_id, is_active=True)
+    logo_name = ''
+    if logo:
+        logo_id = str(uuid.uuid4())
+        ext = get_ext_at_file(logo.filename)
+        logo.filename = logo_id + "." + ext
+        logo_name = logo.filename
+        
+    db_one_federation = Federations(name=federation['name'], siglas=federation['siglas'], logo=logo_name,
+                                    city_id=city_id, country_id=country_id, is_active=True)
     
     try:
         db.add(db_one_federation)
         db.commit()
+        db.refresh(db_one_federation)
+        
+        if logo_name:
+            path_federation = create_dir(entity_type='FEDERATION', user_id=None, entity_id=str(db_one_federation.id))
+            upfile(file=logo, path=path_federation)
+        
         return result
     except (Exception, SQLAlchemyError, IntegrityError) as e:
         print(e)
@@ -167,48 +180,71 @@ def new(request, db: Session, federation: FederationsBase):
                 msg = msg + _(locale, "status.already_exist")
         
         raise HTTPException(status_code=403, detail=msg)
- 
-def update(request: Request, federation_id: str, federation: FederationsBase, db: Session):
+
+def update(request: Request, federation_id: str, federation: FederationsBase, logo: File, db: Session):
     locale = request.headers["accept-language"].split(",")[0].split("-")[0];
-    
     result = ResultObject() 
     
     db_one_federation = get_one(federation_id, db=db)  
     if not db_one_federation:
         raise HTTPException(status_code=404, detail=_(locale, "federation.not_found"))
     
-    if federation.city:
-        one_ciy = get_one_city(federation.city, db=db)
+    if federation['city'] and federation['city'] != db_one_federation.city_id:
+        one_ciy = get_one_city(federation['city'], db=db)
         if not one_ciy:
             raise HTTPException(status_code=404, detail=_(locale, "city.not_found"))
         else:
             db_one_federation.country_id = one_ciy.country_id
             db_one_federation.city_id = one_ciy.id
             
-    if federation.country:
-        one_country = get_one_country(federation.country, db=db)
+    if federation['country']:
+        one_country = get_one_country(federation['country'], db=db)
         if not one_country:
             raise HTTPException(status_code=404, detail=_(locale, "country.not_found"))
         else:
             db_one_federation.country_id = one_country.id
     
     # siglas no se pueden repetir
-    one_federation_by_siglas = get_one_by_siglas(federation.siglas)
+    one_federation_by_siglas = get_one_by_siglas(federation['siglas'], db=db)
     if one_federation_by_siglas:
         raise HTTPException(status_code=404, detail=_(locale, "federation.siglas_exist"))
-           
-    db_one_federation.name = federation.name
-    db_one_federation.siglas = federation.siglas
-       
-    try:
+    
+    if federation['name'] and federation['name'] != db_one_federation.name:      
+        db_one_federation.name = federation['name']
         
-        db.add(db_one_federation)
-        db.commit()
-        return result
-    except (Exception, SQLAlchemyError) as e:
-        print(e.code)
-        if e.code == "gkpj":
-            raise HTTPException(status_code=400, detail=_(locale, "federation.already_exist"))
+    if federation['siglas'] and federation['siglas'] != db_one_federation.siglas:      
+        db_one_federation.siglas = federation['siglas']
+        
+    logo_name = ''
+    if logo:
+        if db_one_federation.logo:  # borrar la actual
+            current_image = db_one_federation.logo
+            path_del = "/public/federations/" + str(db_one_federation.id) + "/"
+            # try:
+            del_image(path=path_del, name=str(current_image))
+            # except:
+            #     pass
+            
+        logo_id = str(uuid.uuid4())
+        ext = get_ext_at_file(logo.filename)
+        logo.filename = logo_id + "." + ext
+        logo_name = logo.filename
+        
+        db_one_federation.logo = logo_name
+           
+    # try:
+    db.add(db_one_federation)
+    db.commit()
+    
+    if logo_name:
+        path_federation = create_dir(entity_type='FEDERATION', user_id=None, entity_id=str(db_one_federation.id))
+        upfile(file=logo, path=path_federation)
+        
+    return result
+    # except (Exception, SQLAlchemyError) as e:
+    #     print(e.code)
+    #     if e.code == "gkpj":
+    #         raise HTTPException(status_code=400, detail=_(locale, "federation.already_exist"))
  
 def delete(request: Request, federation_id: str, db: Session):
     locale = request.headers["accept-language"].split(",")[0].split("-")[0];
@@ -262,9 +298,6 @@ def save_logo_federation(request: Request, siglas: str, logo: File, db: Session)
         upfile(file=logo, path=path_tourney)
         one_federation.logo = logo.filename
     
-    one_federation.updated_by = currentUser['username']
-    one_federation.updated_date = datetime.now()
-            
     try:
         db.add(one_federation)
         db.commit()

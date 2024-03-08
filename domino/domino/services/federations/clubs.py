@@ -110,40 +110,51 @@ def get_one_by_id(request, club_id: str, db: Session):
     
     return result
       
-def new(request, db: Session, club: ClubsBase):
+def new(request, db: Session, club: ClubsBase, logo: File):
     locale = request.headers["accept-language"].split(",")[0].split("-")[0];
     
     result = ResultObject() 
     
-    db_one_club = get_one_by_name(club.siglas, db=db)  
+    db_one_club = get_one_by_name(club['siglas'], db=db)  
     if db_one_club:
-        return result
+        raise HTTPException(status_code=404, detail=_(locale, "club.siglas_exist"))
     
-    one_federation = get_one_federation(club.federations_id, db=db)
+    one_federation = get_one_federation(club['federations_id'], db=db)
     if not one_federation:
         raise HTTPException(status_code=404, detail=_(locale, "federation.not_found"))
         
     country_id, city_id = None, None
     
-    if club.city:
-        one_ciy = get_one_city(club.city, db=db)
+    if club['city'] and one_federation.city_id != club['city']:
+        one_ciy = get_one_city(club['city'], db=db)
         if not one_ciy:
             raise HTTPException(status_code=404, detail=_(locale, "city.not_found"))
         else:
             country_id = one_ciy.country_id
             city_id = one_ciy.id
             
-    if not country_id and club.country:
-        one_country = get_one_country(club.country, db=db)
+    if not country_id and club['country']:
+        one_country = get_one_country(club['country'], db=db)
         if not one_country:
             raise HTTPException(status_code=404, detail=_(locale, "country.not_found"))
         else:
             country_id = one_country.id
     
-    db_one_club = Clubs(name=club.name, federation_id=one_federation.id, siglas=club.siglas,
-                        city_id=city_id, country_id=country_id, is_active=True)
+    logo_name = ''
+    if logo:
+        logo_id = str(uuid.uuid4())
+        ext = get_ext_at_file(logo.filename)
+        logo.filename = logo_id + "." + ext
+        logo_name = logo.filename
+        
+    db_one_club = Clubs(name=club['name'], federation_id=one_federation.id, siglas=club['siglas'],
+                        logo=logo_name, city_id=city_id, country_id=country_id, is_active=True)
     
     try:
+        if logo_name:
+            path_federation = create_dir(entity_type='CLUB', user_id=None, entity_id=str(db_one_club.federation_id))
+            upfile(file=logo, path=path_federation)
+            
         db.add(db_one_club)
         db.commit()
         return result
@@ -157,31 +168,32 @@ def new(request, db: Session, club: ClubsBase):
         
         raise HTTPException(status_code=403, detail=msg)
  
-def update(request: Request, club_id: str, club: ClubsBase, db: Session):
+def update(request: Request, club_id: str, club: ClubsBase, db: Session, logo: File):
     locale = request.headers["accept-language"].split(",")[0].split("-")[0];
     
     result = ResultObject() 
     
     db_one_club = get_one(club_id, db=db)  
-    if db_one_club:
+    if not db_one_club:
         raise HTTPException(status_code=404, detail=_(locale, "club.not_found"))
     
-    if club.city:
-        one_ciy = get_one_city(club.city, db=db)
+    if club['city'] and db_one_club.city_id != club['city']:
+        one_ciy = get_one_city(club['city'], db=db)
         if not one_ciy:
             raise HTTPException(status_code=404, detail=_(locale, "city.not_found"))
         else:
             db_one_club.country_id = one_ciy.country_id
             db_one_club.city_id = one_ciy.id
-            
-    if club.country:
-        one_country = get_one_country(club.country, db=db)
-        if not one_country:
-            raise HTTPException(status_code=404, detail=_(locale, "country.not_found"))
-        else:
-            db_one_club.country_id = one_country.id
-            
-    db_one_club.name = club.name
+            db_one_club.country_id = one_ciy.country_id
+    
+    if club['name'] and club['name'] != db_one_club.name:        
+        db_one_club.name = club['name']
+        
+    if club['siglas'] and club['siglas'] != db_one_club.siglas:  
+        db_one_club_sigla = get_one_by_name(club['siglas'], db=db)  
+        if db_one_club_sigla:
+            raise HTTPException(status_code=404, detail=_(locale, "club.siglas_exist"))
+        db_one_club.siglas = club['siglas']
         
     try:
         
@@ -192,15 +204,14 @@ def update(request: Request, club_id: str, club: ClubsBase, db: Session):
         print(e.code)
         if e.code == "gkpj":
             raise HTTPException(status_code=400, detail=_(locale, "federation.already_exist"))
-   
-
+ 
 def delete(request: Request, club_id: str, db: Session):
     locale = request.headers["accept-language"].split(",")[0].split("-")[0];
     
     result = ResultObject() 
     
     db_one_club = get_one(club_id, db=db)  
-    if db_one_club:
+    if not db_one_club:
         raise HTTPException(status_code=404, detail=_(locale, "club.not_found"))
     
     try:
@@ -218,7 +229,6 @@ def save_logo_club(request: Request, siglas: str, logo: File, db: Session):
     api_uri = api_uri = str(settings.api_uri)
     
     result = ResultObject() 
-    currentUser = get_current_user(request) 
     
     one_club = get_one_by_siglas(siglas, db=db)
     if not one_club:
@@ -244,9 +254,6 @@ def save_logo_club(request: Request, siglas: str, logo: File, db: Session):
         upfile(file=logo, path=path_tourney)
         one_club.logo = logo.filename
     
-    one_club.updated_by = currentUser['username']
-    one_club.updated_date = datetime.now()
-            
     try:
         db.add(one_club)
         db.commit()
