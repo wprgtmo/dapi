@@ -10,7 +10,8 @@ from domino.auth_bearer import JWTBearer
 from domino.schemas.federations.federations import FederationsBase
 from domino.schemas.resources.result_object import ResultObject
 
-from domino.services.federations.federations import new, update, delete, get_all, get_one_by_id, get_all_list, save_logo_federation
+from domino.services.federations.federations import new, update, delete, get_all, get_one_by_id, get_all_list, save_logo_federation, \
+    get_city_at_federation
   
 federation_route = APIRouter(
     tags=["Nomenclators"],  # tags=["Countries"],

@@ -19,7 +19,7 @@ from domino.schemas.federations.federations import FederationsBase
 from domino.schemas.resources.result_object import ResultObject, ResultData
 
 from domino.services.resources.utils import get_result_count, create_dir, del_image, get_ext_at_file, upfile
-from domino.services.resources.city import get_one as get_one_city
+from domino.services.resources.city import get_one as get_one_city, get_list_by_country_id
 from domino.services.resources.country import get_one as get_one_country
 
 from domino.services.enterprise.auth import get_url_federation
@@ -111,16 +111,12 @@ def get_city_at_federation(request, federation_id: str, db: Session):
     if not one_federation:
         raise HTTPException(status_code=404, detail=_(locale, "federation.not_found"))
     
+    result.data = []
+    lst_city = get_list_by_country_id(one_federation.country_id, db=db)
+    if lst_city:
+        for item in lst_city:
+            result.data.append({'id': item.id, 'name': item.name})
     
-    
-    logo = api_uri + "/api/federations/" + str(one_federation.id) + "/" + one_federation.logo if one_federation.logo else ''
-    
-    result.data = {'id': one_federation.id, 'name' : one_federation.name, 'logo' : logo, 'siglas' : one_federation.siglas,
-                   'city_name': one_federation.city.name if one_federation.city else '', 
-                   'city_id': one_federation.city.id if one_federation.city else '', 
-                   'country_id': one_federation.country.id if one_federation.country else '',
-                   'country_name': one_federation.country.name if one_federation.country else ''}
-     
     return result
     
 def get_one_by_name(name: str, db: Session):  
