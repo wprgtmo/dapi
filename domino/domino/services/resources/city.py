@@ -76,6 +76,9 @@ def get_one_by_id(city_id: int, db: Session):
     result.data = db.query(City).filter(City.id == city_id).first()
     return result
 
+def get_list_by_country_id(country_id: int, db: Session):  
+    return db.query(City).filter(City.country_id == country_id).first()
+
 def new(request, db: Session, city: CitySchema):
     locale = request.headers["accept-language"].split(",")[0].split("-")[0];
     

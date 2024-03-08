@@ -103,6 +103,26 @@ def get_one_by_id(request, federation_id: str, db: Session):
      
     return result
 
+def get_city_at_federation(request, federation_id: str, db: Session): 
+    locale = request.headers["accept-language"].split(",")[0].split("-")[0];
+    
+    result = ResultObject() 
+    one_federation = get_one(federation_id=federation_id, db=db)
+    if not one_federation:
+        raise HTTPException(status_code=404, detail=_(locale, "federation.not_found"))
+    
+    
+    
+    logo = api_uri + "/api/federations/" + str(one_federation.id) + "/" + one_federation.logo if one_federation.logo else ''
+    
+    result.data = {'id': one_federation.id, 'name' : one_federation.name, 'logo' : logo, 'siglas' : one_federation.siglas,
+                   'city_name': one_federation.city.name if one_federation.city else '', 
+                   'city_id': one_federation.city.id if one_federation.city else '', 
+                   'country_id': one_federation.country.id if one_federation.country else '',
+                   'country_name': one_federation.country.name if one_federation.country else ''}
+     
+    return result
+    
 def get_one_by_name(name: str, db: Session):  
     return db.query(Federations).filter(Federations.name == name).first()
 
@@ -222,7 +242,9 @@ def save_logo_federation(request: Request, siglas: str, logo: File, db: Session)
     
     one_federation = get_one_by_siglas(siglas, db=db)
     if not one_federation:
-        raise HTTPException(status_code=404, detail=_(locale, "federation.not_found"))
+        one_federation = Federations(name='Nueva Creación', siglas=siglas, is_active=True)
+         
+        # raise HTTPException(status_code=404, detail=_(locale, "federation.not_found"))
     
     path_tourney = create_dir(entity_type='FEDERATION', user_id=None, entity_id=str(one_federation.id))
     
@@ -250,7 +272,7 @@ def save_logo_federation(request: Request, siglas: str, logo: File, db: Session)
     try:
         db.add(one_federation)
         db.commit()
-        result.data = get_url_federation(one_federation.id, one_federation.logo, api_uri=api_uri)
+        result.data = {'id': one_federation.id, 'url': get_url_federation(one_federation.id, one_federation.logo, api_uri=api_uri)}
         return result
     except (Exception, SQLAlchemyError) as e:
         print(e.code)

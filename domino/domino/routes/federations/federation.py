@@ -40,6 +40,10 @@ def create_federation(request:Request, federation: FederationsBase, db: Session 
 def get_federation_by_id(request:Request, id: int, db: Session = Depends(get_db)):
     return get_one_by_id(request, federation_id=id, db=db)
 
+@federation_route.get("/federation/city/{id}", response_model=ResultObject, summary="Get list of cities of Federation")
+def get_city(request:Request, id: int, db: Session = Depends(get_db)):
+    return get_city_at_federation(request, federation_id=id, db=db)
+
 @federation_route.delete("/federation/{id}", response_model=ResultObject, summary="Remove Federation for your ID")
 def delete_federation(request:Request, id: int, db: Session = Depends(get_db)):
     return delete(request=request, federation_id=str(id), db=db)
