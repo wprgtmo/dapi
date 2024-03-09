@@ -205,15 +205,14 @@ def update(request: Request, federation_id: str, federation: FederationsBase, lo
             db_one_federation.country_id = one_country.id
     
     # siglas no se pueden repetir
-    one_federation_by_siglas = get_one_by_siglas(federation['siglas'], db=db)
-    if one_federation_by_siglas:
-        raise HTTPException(status_code=404, detail=_(locale, "federation.siglas_exist"))
-    
+    if federation['siglas'] and federation['siglas'] != db_one_federation.siglas:  
+        one_federation_by_siglas = get_one_by_siglas(federation['siglas'], db=db)
+        if one_federation_by_siglas:
+            raise HTTPException(status_code=404, detail=_(locale, "federation.siglas_exist"))
+        db_one_federation.siglas = federation['siglas']
+        
     if federation['name'] and federation['name'] != db_one_federation.name:      
         db_one_federation.name = federation['name']
-        
-    if federation['siglas'] and federation['siglas'] != db_one_federation.siglas:      
-        db_one_federation.siglas = federation['siglas']
         
     logo_name = ''
     if logo:
