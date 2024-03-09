@@ -29,15 +29,18 @@ def get_all(request:Request, page: int, per_page: int, criteria_value: str, db: 
     locale = request.headers["accept-language"].split(",")[0].split("-")[0];
     api_uri = api_uri = str(settings.api_uri)
     
-    str_from = " FROM federations.clubs club LEFT JOIN resources.city ON city.id = club.city_id " +\
-        "LEFT JOIN resources.country ON country.id = club.country_id Where club.is_active = True " 
+    str_from = " FROM federations.clubs club " +\
+        "JOIN federations.federations fed ON fed.id = club.federation_id " +\
+        "LEFT JOIN resources.city ON city.id = club.city_id " +\
+        "LEFT JOIN resources.country ON country.id = fed.country_id Where club.is_active = True " 
         
     str_count = "Select count(*)" +  str_from
-    str_query = "Select club.id, club.name,  club.siglas, logo, club.city_id, city.name as city_name, club.country_id, " +\
-        "country.name as country_name, club.federation_id " + str_from
+    str_query = "Select club.id, club.name,  club.siglas, club.logo, club.city_id, city.name as city_name, club.country_id, " +\
+        "country.name as country_name, club.federation_id, fed.name as federation_name " + str_from
     
     str_criteria = " AND (club.name ilike '%" + criteria_value + "%' OR club.siglas ilike '%" +  criteria_value + "%'" +\
-        " OR city.name ilike '%" + criteria_value + "%' OR country.name ilike '%" + criteria_value + "%') " if criteria_value else ''
+        " OR city.name ilike '%" + criteria_value + "%' OR country.name ilike '%" + criteria_value + "%' " +\
+        "OR fed.name ilike '%" + criteria_value + "%') " if criteria_value else ''
     
     if page and page > 0 and not per_page:
         raise HTTPException(status_code=404, detail=_(locale, "commun.invalid_param"))
@@ -47,7 +50,7 @@ def get_all(request:Request, page: int, per_page: int, criteria_value: str, db: 
     
     result = get_result_count(page=page, per_page=per_page, str_count=str_count, db=db)
     
-    str_query += " ORDER BY club.name "
+    str_query += " ORDER BY fed.name, club.name "
     
     if page != 0:
         str_query += "LIMIT " + str(per_page) + " OFFSET " + str(page*per_page-per_page)
@@ -79,6 +82,7 @@ def create_dict_row(item, api_uri=''):
     logo = api_uri + "/api/federations/" + str(item['federation_id']) + "/" + item['logo'] if item['logo'] else None
     
     new_row = {'id': item['id'], 'name' : item['name'], 'logo' : logo, 'siglas' : item['siglas'], 
+               'federation_id': item['federation_id'], 'federation_name': item['federation_name'],
                'city_name': item['city_name'], 'country_name': item['country_name']}
     return new_row
 
