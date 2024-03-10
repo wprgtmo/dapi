@@ -99,7 +99,7 @@ def get_one_by_id(tourney_id: str, db: Session):
     api_uri = str(settings.api_uri)
     
     str_query = "Select tou.id, event_id, eve.name as event_name, tou.modality, tou.name, tou.summary, tou.start_date, " +\
-        "lottery_type, number_rounds, tou.image, " +\
+        "lottery_type, amount_rounds number_rounds, tou.image, " +\
         "tou.status_id, sta.name as status_name, sta.description as status_description FROM events.tourney tou " +\
         "JOIN events.events eve ON eve.id = tou.event_id " +\
         "JOIN resources.entities_status sta ON sta.id = tou.status_id " +\
@@ -172,8 +172,7 @@ def new(request, event_id: str, tourney: TourneyCreated, db: Session):
     db_tourney = Tourney(id=id, event_id=event_id, modality=tourney.modality, name=tourney.name, 
                          summary=tourney.summary, start_date=tourney.startDate, 
                          status_id=one_status.id, created_by=currentUser['username'], 
-                         game_system='SUIZO', number_rounds=tourney.number_rounds,
-                         amount_rounds=tourney.number_rounds,
+                         game_system='SUIZO', amount_rounds=tourney.number_rounds,
                          updated_by=currentUser['username'], profile_id=one_event.profile_id,
                          constant_increase_elo=K1)
     db.add(db_tourney)

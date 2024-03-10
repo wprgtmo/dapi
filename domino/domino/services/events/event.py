@@ -453,7 +453,7 @@ def get_lst_tourney_by_event_id(event_id: str, db: Session, only_iniciaded=False
         "JOIN resources.entities_status sta ON sta.id = tou.status_id "
     
     str_query = "Select tou.id, event_id, tou.modality, tou.name, tou.summary, tou.start_date, " +\
-        "tou.status_id, sta.name as status_name, sta.description as status_description, tou.image, tou.number_rounds " + str_from
+        "tou.status_id, sta.name as status_name, sta.description as status_description, tou.image, tou.amount_rounds number_rounds " + str_from
     
     if only_iniciaded:
         str_query += " WHERE (sta.name = 'INITIADED' or sta.name = 'FINALIZED') and event_id = '" + str(event_id) + "' ORDER BY start_date "  

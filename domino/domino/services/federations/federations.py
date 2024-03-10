@@ -219,10 +219,10 @@ def update(request: Request, federation_id: str, federation: FederationsBase, lo
         if db_one_federation.logo:  # borrar la actual
             current_image = db_one_federation.logo
             path_del = "/public/federations/" + str(db_one_federation.id) + "/"
-            # try:
-            del_image(path=path_del, name=str(current_image))
-            # except:
-            #     pass
+            try:
+                del_image(path=path_del, name=str(current_image))
+            except:
+                pass
             
         logo_id = str(uuid.uuid4())
         ext = get_ext_at_file(logo.filename)

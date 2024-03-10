@@ -913,6 +913,67 @@ def get_all_profile_by_user_profile_id(request: Request, profile_id: str, db: Se
         print(e)
         raise HTTPException(status_code=404, detail=_(locale, "userprofile.imposible_delete"))
 
+def get_all_federated_profile(request:Request, page: int, per_page: int, criteria_value: str, db: Session):  
+    locale = request.headers["accept-language"].split(",")[0].split("-")[0];
+    
+    api_uri = str(settings.api_uri)
+    
+    currentUser = get_current_user(request)
+
+    # por el perfil, buscar a que federacion pertenece
+    one_profile_id = get_user_for_single_profile_by_user(currentUser['username'], db=db, profile_type='FEDERATED')
+    if not one_profile_id:
+        one_profile_id = get_user_for_single_profile_by_user(currentUser['username'], db=db, profile_type='EVENTADMON')
+    
+    if not one_profile_id:
+        raise HTTPException(status_code=404, detail=_(locale, "userprofile.not_found"))
+    
+    one_profile = get_one(one_profile_id, db=db)
+    
+    federation_id = None
+    if one_profile.profile_type == 'EVENTADMON':
+        federation_id = one_profile.profile_event_admon[0].federation_id if one_profile.profile_event_admon else None
+    elif one_profile.profile_type == '':
+        federation_id = one_profile.profile_federated[0].federation_id if one_profile.profile_federated else None
+    else:
+        raise HTTPException(status_code=404, detail=_(locale, "userprofile.not_found"))
+    
+    if not federation_id:
+        raise HTTPException(status_code=404, detail=_(locale, "userprofile.not_found"))
+    
+    str_from = "FROM enterprise.profile_member pmem " +\
+        "JOIN enterprise.profile_single_player psin ON psin.profile_id = pmem.id " +\
+        "left join resources.city city ON city.id = pmem.city_id " +\
+        "left join resources.country pa ON pa.id = city.country_id "
+    
+    str_count = "Select count(*) " + str_from
+    str_query = "Select pmem.id profile_id, pmem.name, photo, pmem.city_id, city.name city_name, city.country_id, " +\
+        "pa.name as country_name, psin.elo, psin.level " + str_from
+    
+    str_where = " WHERE pmem.is_active = True "  
+    
+    str_search = ''
+    if criteria_value:
+        str_search = "AND (pmem.name ilike '%" + criteria_value + "%' OR city_name ilike '%" + criteria_value + "%')"
+        str_where += str_search
+        
+    str_count += str_where
+    str_query += str_where
+    
+    if page and page > 0 and not per_page:
+        raise HTTPException(status_code=404, detail=_(locale, "commun.invalid_param"))
+    
+    result = get_result_count(page=page, per_page=per_page, str_count=str_count, db=db)
+    
+    str_query += " ORDER BY pmem.name " 
+    
+    if page != 0:
+        str_query += "LIMIT " + str(per_page) + " OFFSET " + str(page*per_page-per_page)
+     
+    lst_data = db.execute(str_query)
+    result.data = [create_dict_row_single_player(item, page, db=db, api_uri=api_uri) for item in lst_data]
+    return result
+
 #endregion        
 
 #region Metodos de actualizar perfiles

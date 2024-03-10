@@ -50,5 +50,5 @@ def delete_federation(request:Request, id: int, db: Session = Depends(get_db)):
     return delete(request=request, federation_id=str(id), db=db)
     
 @federation_route.put("/federation/{id}", response_model=ResultObject, summary="Update Federation for your ID")
-def update_federation(request:Request, id: int, federation: FederationsBase = Depends(), logo: UploadFile = None,  db: Session = Depends(get_db)):
+def update_federation(request:Request, id: int, federation: FederationsBase=Depends(), logo: UploadFile=None,  db: Session = Depends(get_db)):
     return update(request=request, federation_id=str(id), federation=federation.dict(), logo=logo, db=db)
