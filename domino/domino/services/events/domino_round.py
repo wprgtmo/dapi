@@ -173,12 +173,19 @@ def created_round_default(db_tourney, summary:str, db:Session, round_number:int 
 def get_str_to_order(db_round):
     
     str_order_by = "" 
-    dict_order = {'JG': 'games_won ',
+    # dict_order = {'JG': 'games_won ',
+    #               'ERA': 'elo_ra ',
+    #               'DP': 'points_difference ',
+    #               'JJ': 'games_played ',
+    #               'PF': 'points_positive ',
+    #               'ELO': 'elo_variable '}
+    
+    dict_order = {'JG': 'acumulated_games_won ',
                   'ERA': 'elo_ra ',
-                  'DP': 'points_difference ',
-                  'JJ': 'games_played ',
-                  'PF': 'points_positive ',
-                  'ELO': 'elo_variable '}
+                  'DP': 'acumulated_points_positive-acumulated_points_negative ',
+                  'JJ': 'acumulated_games_played ',
+                  'PF': 'acumulated_points_positive ',
+                  'ELO': 'acumulated_elo_variable '}
     
     str_order_by = " ORDER BY cat.position_number ASC, " if db_round.use_segmentation else " ORDER BY " 
     
@@ -208,10 +215,12 @@ def configure_next_rounds(db_round, db:Session):
     amount_tables, amount_player_waiting = reconfig_amount_tables(db_round.tourney, db=db)
     
     # ordenar la escala actual por los criterior de ordenamiento de la ronda.
-    str_list_player = "Select puse.*, sta.name as status_name, category_id from events.players_users puse " +\
+    str_list_player = "Select sca.*, sta.name as status_name, category_id from events.players_users puse " +\
         "join events.players play ON play.id = puse.player_id join resources.entities_status sta ON sta.id = play.status_id " +\
         "JOIN events.domino_categories cat ON cat.id = puse.category_id " +\
         "Where sta.name IN ('CONFIRMED', 'PLAYING', 'WAITING') and play.tourney_id = '" + db_round.tourney.id + "' " 
+    
+    # events.domino_rounds_scale
     
     str_order_by = get_str_to_order(db_round)
     str_list_player += str_order_by
@@ -367,8 +376,8 @@ def get_obj_info_to_aperturate(db_round, db:Session):
     new_round.lottery_type = db_round.tourney.lottery_type
     
     new_round.use_segmentation = db_round.use_segmentation
-    new_round.use_penalty = db_round.tourney.use_penalty
-    new_round.use_bonus = db_round.tourney.use_bonus
+    new_round.use_penalty = True # db_round.tourney.use_penalty
+    new_round.use_bonus = False # db_round.tourney.use_bonus
     
     return new_round
 
