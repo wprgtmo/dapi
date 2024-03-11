@@ -542,30 +542,34 @@ def get_all_scale_by_round(request:Request, page: int, per_page: int, round_id: 
     
     return result
 
-def get_all_scale_acumulate(request:Request, page: int, per_page: int, tourney_id: str, db: Session):  
+def get_all_scale_acumulate(request:Request, page: int, per_page: int, round_id: str, db: Session):  
     
     locale = request.headers["accept-language"].split(",")[0].split("-")[0];
+    round_id = '360a1c60-631a-4b92-bdf6-a98261ed0034'
+    one_round = get_one_round(round_id=round_id, db=db)
+    if not one_round:
+        raise HTTPException(status_code=404, detail=_(locale, "round.not_found"))
     
     api_uri = str(settings.api_uri)
     
-    str_from = "FROM events.players_users rsca " +\
+    str_from = "FROM  events.domino_rounds_scale rsca " +\
         "JOIN events.players players ON players.id = rsca.player_id " +\
         "JOIN enterprise.profile_member mmb ON players.profile_id = mmb.id " 
         
     str_count = "Select count(*) " + str_from
     str_query = "SELECT players.id player_id, mmb.id profile_id, mmb.name profile_name, mmb.photo, " +\
-        "rsca.elo, rsca.elo_current, rsca.games_played, rsca.penalty_total penalty_points, " +\
-        "rsca.games_won, rsca.games_lost, rsca.points_positive, rsca.points_negative, rsca.points_difference, " +\
-        "score_expected, score_obtained, k_value, elo_at_end, bonus_points " + str_from
-        
-    str_where = "WHERE players.tourney_id = '" + tourney_id + "' "
+        "rsca.elo, rsca.acumulated_elo_variable elo_current, rsca.acumulated_penalty_points penalty_points, " +\
+        "rsca.acumulated_games_won games_won,  rsca.acumulated_games_lost games_lost, " +\
+        "rsca.acumulated_points_positive points_positive, rsca.acumulated_points_negative points_negative, " +\
+        "rsca.acumulated_score_expected score_expected, score_obtained, k_value, acumulated_elo_at_end elo_at_end, " +\
+        "acumulated_bonus_points bonus_points, position_number_at_end " + str_from
     
-    db_tourney = get_one_tourney(tourney_id, db=db)
-
-    str_order_by = get_str_to_order(db_tourney)
+    str_where = "WHERE rsca.round_id = '" + round_id + "' "
+    
+    # str_order_by = get_str_to_order_round(one_round)
         
     str_count += str_where
-    str_query += str_where + str_order_by
+    str_query += str_where + " ORDER BY position_number_at_end "
 
     if page and page > 0 and not per_page:
         raise HTTPException(status_code=404, detail=_(locale, "commun.invalid_param"))
@@ -575,14 +579,12 @@ def get_all_scale_acumulate(request:Request, page: int, per_page: int, tourney_i
     if page != 0:
         str_query += " LIMIT " + str(per_page) + " OFFSET " + str(page*per_page-per_page)
     
-    amount_rounds = calculate_amount_rounds_played(tourney_id, db=db)
+    amount_rounds = calculate_amount_rounds_played(one_round.tourney_id, db=db)
     
     lst_data = db.execute(str_query)
-    position_number = 0
     result.data = []
     for item in lst_data:
-        position_number += 1
-        result.data.append(create_dict_row_scale_acum(item, position_number, db=db, api_uri=api_uri, amount_rounds=amount_rounds))
+        result.data.append(create_dict_row_scale_acum(item, db=db, api_uri=api_uri, amount_rounds=amount_rounds))
     
     return result
 
@@ -649,13 +651,14 @@ def create_dict_row_scale(item, db: Session, api_uri, position_number=None):
     
     return new_row
 
-def create_dict_row_scale_acum(item, position_number, db: Session, api_uri, amount_rounds=''):
+def create_dict_row_scale_acum(item, db: Session, api_uri, amount_rounds=''):
     
     photo = get_url_avatar(item['profile_id'], item['photo'], api_uri=api_uri)
     
     real_amount_rounds = amount_rounds if amount_rounds else item['games_played'] if item['games_played'] else 0
+    points_difference = item['points_positive'] - item['points_negative'] - item['penalty_points'] 
     new_row = {'id': item['player_id'], 'name': item['profile_name'], 
-               'position_number': position_number,
+               'position_number': item.position_number_at_end,
                'photo' : photo, 'elo': format_number(round(item['elo'],2)) if item['elo'] else 0, 
                'elo_variable': format_number(round(item['elo_current'],2)) if item['elo_current'] else 0,
                'elo_at_end': format_number(round(item['elo_at_end'],2)),   
@@ -664,7 +667,7 @@ def create_dict_row_scale_acum(item, position_number, db: Session, api_uri, amou
                'games_lost': item['games_lost'] if item['games_lost'] else 0, 
                'points_positive': item['points_positive'] if item['points_positive'] else 0,
                'points_negative': item['points_negative'] if item['points_negative'] else 0, 
-               'points_difference': item['points_difference'] if item['points_difference'] else 0,
+               'points_difference': points_difference,
                'penalty_points': item['penalty_points'] if item['penalty_points']  else 0,
                'penalty_total': item['penalty_points'] if item['penalty_points']  else 0,
                'score_expected': format_number(round(item['score_expected'],2)) if item['score_expected'] else 0,
@@ -672,7 +675,6 @@ def create_dict_row_scale_acum(item, position_number, db: Session, api_uri, amou
                'k_value': format_number(round(item['k_value'],2)) if item['k_value'] else 0,
                'elo_at_end': format_number(round(item['elo_at_end'],2)) if item['elo_at_end'] else 0,
                'bonus_points': 0}
-    position_number += 1
     
     return new_row
 
@@ -1113,12 +1115,14 @@ def close_one_round(request: Request, round_id: str, db: Session):
     db_round.close_date = datetime.now()
     
     count_round = calculate_amount_rounds_played(db_round.tourney.id, db=db)
-    open_round = True if int(count_round) <= int(db_round.tourney.number_rounds) else False
+    open_round = True if int(count_round) <= int(db_round.tourney.amount_rounds) else False
     
     calculate_stadist_of_round(db_round, db=db)
+    calculate_position_at_end(db_round, db=db)
+    
     if open_round:
         if db_round.tourney.use_segmentation:
-            # verificar si ya excedió la cantidad de rondas a bonificar
+            # verificar si ya excedió la cantidad de rondas a segmentar
             count_seg_round = calculate_amount_rounds_segmentated(db_round.tourney.id, db=db)
             if count_seg_round + 1 > db_round.tourney.amount_segmentation_round:
                 db_round.tourney.use_segmentation = False
@@ -1135,6 +1139,8 @@ def close_one_round(request: Request, round_id: str, db: Session):
         result.data = get_obj_info_to_aperturate(db_round_ini, db) 
     
     else:
+        
+        # llena la tabla de resultado final
         db_round.is_last = True
         db.add(db_round)
         db.commit()
@@ -1278,7 +1284,10 @@ def calculate_stadist_of_players(db_round, db:Session):
 
 def calculate_stadist_of_round(db_round, db:Session):
     
-    str_query_pair = "Select id, elo_pair, score_expected, games_won, games_lost, points_positive, points_negative, points_difference " +\
+    str_query_pair = "Select id, elo_pair, score_expected, games_won, games_lost, points_positive, points_negative, points_difference, " +\
+        "penalty_points, bonus_points, " +\
+        "acumulated_games_won, acumulated_games_lost, acumulated_points_positive, acumulated_points_negative, acumulated_penalty_points," +\
+        "acumulated_bonus_points, acumulated_score_expected, acumulated_elo_current, acumulated_elo_at_end " +\
         "From events.domino_rounds_pairs where round_id = '" + db_round.id + "'"
     lst_res_pair = db.execute(str_query_pair) 
     str_update = ""
@@ -1288,14 +1297,35 @@ def calculate_stadist_of_round(db_round, db:Session):
         k_value = db_round.tourney.constant_increase_elo   # realizo calculo para jugadores
         elo_current = calculate_new_elo(item.games_won if item.games_won else 0, item.score_expected, score_obtenied)
         elo_end = item.elo_pair + elo_current
+        
+        acumulated_games_won = item.games_won if not item.acumulated_games_won else item.acumulated_games_won + item.games_won
+        acumulated_games_lost = item.games_lost if not item.acumulated_games_lost else item.acumulated_games_lost + item.games_lost
+        acumulated_points_positive = item.points_positive if not item.acumulated_points_positive else item.acumulated_points_positive + item.points_positive
+        acumulated_points_negative = item.points_negative if not item.acumulated_points_negative else item.acumulated_points_negative + item.points_negative
+        penalty_points = item.penalty_points if item.penalty_points else 0 
+        acumulated_penalty_points = penalty_points if not item.acumulated_penalty_points else item.acumulated_penalty_points + penalty_points
+        bonus_points = item.bonus_points if item.bonus_points else 0 
+        acumulated_bonus_points = bonus_points if not item.acumulated_bonus_points else item.acumulated_bonus_points + bonus_points
+        
+        acumulated_score_expected = score_obtenied if not item.acumulated_score_expected else item.acumulated_score_expected + score_obtenied
+        acumulated_elo_current = elo_current if not item.acumulated_elo_current else item.acumulated_elo_current + elo_current
+        acumulated_elo_at_end = elo_end if not item.acumulated_elo_at_end else item.acumulated_elo_at_end + elo_end
+        
         str_update += "Update events.domino_rounds_pairs SET score_obtained=" + str(score_obtenied) + ", k_value=" + str(k_value) +\
             ", elo_current =" + str(round(elo_current,4)) + ", elo_at_end = " + str(elo_end) +\
+            ", acumulated_games_won =" + str(acumulated_games_won) + ", acumulated_games_lost =" + str(acumulated_games_lost) +\
+            ", acumulated_points_positive =" + str(acumulated_points_positive) + ", acumulated_points_negative =" + str(acumulated_points_negative) +\
+            ", acumulated_penalty_points =" + str(acumulated_penalty_points) + ", acumulated_bonus_points =" + str(acumulated_bonus_points) +\
+            ", acumulated_score_expected =" + str(acumulated_score_expected) + ", acumulated_elo_current =" + str(acumulated_elo_current) +\
+            ", acumulated_elo_at_end =" + str(acumulated_elo_at_end) +\
             " WHERE id = '" + item.id + "'; "
     if str_update:  
         db.execute(str_update)  
           
-    str_query_pair = "Select sca.id, player_id, elo, score_expected, games_won, games_lost, points_positive, points_negative, points_difference " +\
-        ", penalty_points, cat.position_number, cat.id as category_id, elo_ra " +\
+    str_query_pair = "Select sca.id, player_id, elo, score_expected, games_won, games_lost, points_positive, points_negative, points_difference, " +\
+        "penalty_points, cat.position_number, cat.id as category_id, elo_ra, bonus_points, acumulated_games_won, acumulated_games_lost, " +\
+        "acumulated_points_positive, acumulated_points_negative, acumulated_penalty_points, acumulated_bonus_points, acumulated_score_expected, " +\
+        "acumulated_elo_variable, acumulated_elo_at_end " +\
         "From events.domino_rounds_scale sca left join events.domino_categories cat ON cat.id = " +\
         "sca.category_id where round_id = '" + db_round.id + "'"
     lst_res_play = db.execute(str_query_pair) 
@@ -1308,37 +1338,75 @@ def calculate_stadist_of_round(db_round, db:Session):
         k_value = db_round.tourney.constant_increase_elo   # realizo calculo para jugadores
         elo_current = calculate_new_elo(item.games_won if item.games_won else 0, item.score_expected, score_obtenied)
         elo_end = calculate_end_elo(item.elo, elo_current, db_round.tourney.constant_increase_elo)
-        str_update += "Update events.domino_rounds_scale SET score_obtained=" + str(score_obtenied) + ", k_value=" + str(k_value) +\
-            ", elo_variable =" + str(round(elo_current,4)) + ", elo_at_end = " + str(elo_end) +\
-            " WHERE id = '" + item.id + "'; "
-        # category_id = str(item.category_id) if item.category_id else "''"
-        # category_number = str(item.position_number) if item.position_number else '1'
-        elo_ra = str(item.elo_ra) if item.elo_ra else "0"
-        penalty_points = str(item.penalty_points) if item.penalty_points else "0"
         
         games_won = item.games_won if item.games_won else 0
         games_lost = item.games_lost if item.games_lost else 0
         points_positive = item.points_positive if item.points_positive else 0
         points_positive = item.points_positive if item.points_positive else 0
         points_negative = item.points_negative if item.points_negative else 0
-        points_difference = item.points_difference if item.points_difference else 0
         score_expected = item.score_expected if item.score_expected else 0
+        bonus_points = item.bonus_points if item.bonus_points else 0 
+        penalty_points = item.penalty_points if item.penalty_points else 0 
         
-        str_update += "Update events.players_users SET elo_current = elo_current + " + str(round(elo_current,4)) +\
-            ", elo_at_end = elo_at_end + " + str(elo_end) + ", games_played = games_played + 1, games_won = games_won + " +\
-            str(games_won) + ", games_lost = games_lost + " + str(games_lost) +\
-            ", points_positive = points_positive + " + str(points_positive) + ", points_negative = points_negative + " +\
-            str(points_negative) + ", points_difference = points_difference + " + str(points_difference) +\
-            ", score_expected = score_expected + " + str(score_expected) + ", score_obtained = score_obtained + " +\
-            str(score_obtenied) +  ", k_value = " + str(k_value) + ", penalty_total = penalty_total + " +\
-            penalty_points + ", elo_ra = " + elo_ra + " WHERE player_id = '" + item.player_id + "'; "
+        elo_ra = str(item.elo_ra) if item.elo_ra else "0"
+        
+        acumulated_games_won = games_won if not item.acumulated_games_won else item.acumulated_games_won + games_won
+        acumulated_games_lost = games_lost if not item.acumulated_games_lost else item.acumulated_games_lost + games_lost
+        acumulated_points_positive = points_positive if not item.acumulated_points_positive else item.acumulated_points_positive + points_positive
+        acumulated_points_negative = points_negative if not item.acumulated_points_negative else item.acumulated_points_negative + points_negative
+        
+        acumulated_penalty_points = penalty_points if not item.acumulated_penalty_points else item.acumulated_penalty_points + penalty_points
+        acumulated_bonus_points = bonus_points if not item.acumulated_bonus_points else item.acumulated_bonus_points + bonus_points
+        
+        acumulated_score_expected = score_obtenied if not item.acumulated_score_expected else item.acumulated_score_expected + score_obtenied
+        acumulated_elo_current = elo_current if not item.acumulated_elo_variable else item.acumulated_elo_variable + elo_current
+        acumulated_elo_at_end = elo_end if not item.acumulated_elo_at_end else item.acumulated_elo_at_end + elo_end
+        
+        str_update += "Update events.domino_rounds_scale SET score_obtained=" + str(score_obtenied) + ", k_value=" + str(k_value) +\
+            ", elo_variable =" + str(round(elo_current,4)) + ", elo_at_end = " + str(elo_end) +\
+            ", acumulated_games_won =" + str(acumulated_games_won) + ", acumulated_games_lost =" + str(acumulated_games_lost) +\
+            ", acumulated_points_positive =" + str(acumulated_points_positive) + ", acumulated_points_negative =" + str(acumulated_points_negative) +\
+            ", acumulated_penalty_points =" + str(acumulated_penalty_points) + ", acumulated_bonus_points =" + str(acumulated_bonus_points) +\
+            ", acumulated_score_expected =" + str(acumulated_score_expected) + ", acumulated_elo_variable =" + str(acumulated_elo_current) +\
+            ", acumulated_elo_at_end =" + str(acumulated_elo_at_end) + " WHERE id = '" + item.id + "'; "
+          
+        
+        
+        # str_update += "Update events.players_users SET elo_current = elo_current + " + str(round(elo_current,4)) +\
+        #     ", elo_at_end = elo_at_end + " + str(elo_end) + ", games_played = games_played + 1, games_won = games_won + " +\
+        #     str(games_won) + ", games_lost = games_lost + " + str(games_lost) +\
+        #     ", points_positive = points_positive + " + str(points_positive) + ", points_negative = points_negative + " +\
+        #     str(points_negative) + ", points_difference = points_difference + " + str(points_difference) +\
+        #     ", score_expected = score_expected + " + str(score_expected) + ", score_obtained = score_obtained + " +\
+        #     str(score_obtenied) +  ", k_value = " + str(k_value) + ", penalty_total = penalty_total + " +\
+        #     penalty_points + ", elo_ra = " + elo_ra + " WHERE player_id = '" + item.player_id + "'; "
     if str_update:  
         db.execute(str_update)  
           
     db.commit()
          
     return True
-      
+
+def calculate_position_at_end(db_round, db:Session):
+    
+    str_order = get_str_to_order_round(db_round)
+    
+    str_query_position = "Select player_id From events.domino_rounds_scale where round_id = '" + db_round.id + "' " + str_order
+    lst_res_pos = db.execute(str_query_position) 
+    position_number = 1
+    str_update=""
+    for item in lst_res_pos:
+        str_update += "UPDATE events.domino_rounds_scale SET position_number_at_end =" + str(position_number) +\
+            "WHERE player_id ='" + item.player_id + "';"
+        position_number+= 1
+    
+    if str_update:
+        str_update += 'COMMIT;'
+        db.execute(str_update) 
+        db.commit()
+        
+    return True
+     
 def verify_category_is_valid(elo_max: float, elo_min: float, lst_category: list):
     
     current_elo_max = float(elo_max)

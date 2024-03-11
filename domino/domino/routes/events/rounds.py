@@ -98,7 +98,7 @@ def get_accumulated_scale_by_rounds(
     per_page: int = 6, 
     db: Session = Depends(get_db)
 ):
-    return get_all_scale_acumulate(request=request, page=page, per_page=per_page, tourney_id=id, db=db)
+    return get_all_scale_acumulate(request=request, page=page, per_page=per_page, round_id=id, db=db)
 
 @rounds_route.get("/rounds/scale/player/pairs/{id}", response_model=Dict, summary="Obtain Player ranking list")
 def get_scale_by_rounds(

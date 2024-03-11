@@ -58,7 +58,7 @@ def get_one_configure_tourney(request:Request, tourney_id: str, db: Session):
     elo_max, elo_min = get_values_elo_by_tourney(tourney_id=tourney_id, db=db)
     
     result.data = {
-        "tourney_id": tourney_id, "amount_tables": amount_tables, 'number_rounds': db_tourney.number_rounds,
+        "tourney_id": tourney_id, "amount_tables": amount_tables, 'number_rounds': db_tourney.amount_rounds,
         "name": '' if not db_tourney.name else db_tourney.name,
         "modality": '' if not db_tourney.modality else db_tourney.modality,
         "summary": '' if not db_tourney.summary else db_tourney.summary,
@@ -268,8 +268,7 @@ def configure_one_tourney(request, tourney_id: str, settingtourney: SettingTourn
     if settingtourney.start_date and db_tourney.start_date != settingtourney.start_date:
         db_tourney.start_date = settingtourney.start_date
         
-    if settingtourney.number_rounds and db_tourney.number_rounds != int(settingtourney.number_rounds):
-        db_tourney.number_rounds = int(settingtourney.number_rounds)
+    if settingtourney.number_rounds and db_tourney.amount_rounds != int(settingtourney.number_rounds):
         db_tourney.amount_rounds = int(settingtourney.number_rounds)
     
     if settingtourney.scope_tourney:

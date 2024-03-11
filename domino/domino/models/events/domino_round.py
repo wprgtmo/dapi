@@ -73,6 +73,8 @@ class DominoRoundsScale(Base):
     round_id = Column(String, ForeignKey("events.domino_rounds.id"), nullable=False)
     round_number = Column(Integer, nullable=False)
     position_number = Column(Integer, nullable=False)
+    position_number_at_end = Column(Integer, nullable=True)
+    
     player_id = Column(String, ForeignKey("events.players.id"))
     elo = Column(Float)
     elo_variable = Column(Float)
@@ -87,13 +89,25 @@ class DominoRoundsScale(Base):
     
     score_expected = Column(Float)
     score_obtained = Column(Float)
-    acumulated_games_played = Column(Integer)
     k_value = Column(Float)
     elo_at_end = Column(Float)
     elo_ra = Column(Float)
     
     bonus_points = Column(Float)
     penalty_points = Column(Float)
+    
+    acumulated_games_played = Column(Integer)
+    acumulated_games_won = Column(Integer)
+    acumulated_games_lost = Column(Integer)
+    acumulated_points_positive = Column(Integer)
+    acumulated_points_negative = Column(Integer)
+    acumulated_penalty_points = Column(Integer)
+    acumulated_bonus_points = Column(Integer)
+    
+    acumulated_score_expected = Column(Float)
+    acumulated_score_obtained = Column(Float)
+    acumulated_elo_variable = Column(Float)
+    acumulated_elo_at_end = Column(Float)
     
     def dict(self):
         return {
@@ -141,7 +155,6 @@ class DominoRoundsPairs(Base):
     score_obtained = Column(Float)
     elo_pair = Column(Float)
     elo_pair_opposing = Column(Float)
-    acumulated_games_played = Column(Integer)
     k_value = Column(Float)
     elo_current = Column(Float)
     elo_at_end = Column(Float)
@@ -151,6 +164,19 @@ class DominoRoundsPairs(Base):
     bonus_points = Column(Float)
     penalty_points = Column(Float)
     
+    acumulated_games_played = Column(Integer)
+    acumulated_games_won = Column(Integer)
+    acumulated_games_lost = Column(Integer)
+    acumulated_points_positive = Column(Integer)
+    acumulated_points_negative = Column(Integer)
+    acumulated_penalty_points = Column(Integer)
+    acumulated_bonus_points = Column(Integer)
+    
+    acumulated_score_expected = Column(Float)
+    acumulated_score_obtained = Column(Float)
+    acumulated_elo_current = Column(Float)
+    acumulated_elo_at_end = Column(Float)
+
     def dict(self):
         return {
             "tourney_id": self.tourney_id,
