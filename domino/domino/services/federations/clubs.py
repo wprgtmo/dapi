@@ -32,7 +32,11 @@ def get_all(request:Request, page: int, per_page: int, criteria_value: str, prof
     str_from = " FROM federations.clubs club " +\
         "JOIN federations.federations fed ON fed.id = club.federation_id " +\
         "LEFT JOIN resources.city ON city.id = club.city_id " +\
-        "LEFT JOIN resources.country ON country.id = fed.country_id Where club.is_active = True " 
+        "LEFT JOIN resources.country ON country.id = fed.country_id Where club.is_active = True " +\
+        "and club.federation_id IN (Select federation_id from enterprise.profile_member pm " +\
+        "join enterprise.profile_event_admon pa ON pa.profile_id = pm.id " +\
+        "where profile_type IN ('EVENTADMON', 'FEDERATED') " +\
+        " and id = '" + profile_id + "') "
         
     str_count = "Select count(*)" +  str_from
     str_query = "Select club.id, club.name,  club.siglas, club.logo, club.city_id, city.name as city_name, club.country_id, " +\
@@ -57,7 +61,6 @@ def get_all(request:Request, page: int, per_page: int, criteria_value: str, prof
      
     lst_data = db.execute(str_query)
     result.data = [create_dict_row(item, api_uri=api_uri) for item in lst_data]
-    print(str_query)        
     return result
 
 def get_all_by_federation(request:Request, federation_id: str, db: Session):  
