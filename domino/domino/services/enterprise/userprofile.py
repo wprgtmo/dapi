@@ -913,22 +913,18 @@ def get_all_profile_by_user_profile_id(request: Request, profile_id: str, db: Se
         print(e)
         raise HTTPException(status_code=404, detail=_(locale, "userprofile.imposible_delete"))
 
-def get_all_federated_profile(request:Request, page: int, per_page: int, criteria_value: str, db: Session):  
+def get_all_federated_profile(request:Request, page: int, per_page: int, criteria_value: str, profile_id: str, db: Session):  
     locale = request.headers["accept-language"].split(",")[0].split("-")[0];
     
     api_uri = str(settings.api_uri)
     
-    currentUser = get_current_user(request)
-
     # por el perfil, buscar a que federacion pertenece
-    one_profile_id = get_user_for_single_profile_by_user(currentUser['username'], db=db, profile_type='FEDERATED')
-    if not one_profile_id:
-        one_profile_id = get_user_for_single_profile_by_user(currentUser['username'], db=db, profile_type='EVENTADMON')
+    one_profile = get_one(profile_id, db=db)
     
-    if not one_profile_id:
+    if not one_profile:
         raise HTTPException(status_code=404, detail=_(locale, "userprofile.not_found"))
     
-    one_profile = get_one(one_profile_id, db=db)
+    print('aqui')
     
     federation_id = None
     if one_profile.profile_type == 'EVENTADMON':
@@ -971,7 +967,8 @@ def get_all_federated_profile(request:Request, page: int, per_page: int, criteri
         str_query += "LIMIT " + str(per_page) + " OFFSET " + str(page*per_page-per_page)
      
     lst_data = db.execute(str_query)
-    result.data = [create_dict_row_single_player(item, page, db=db, api_uri=api_uri) for item in lst_data]
+    print(str_query)
+    # result.data = [create_dict_row_single_player(item, page, db=db, api_uri=api_uri) for item in lst_data]
     return result
 
 #endregion        

@@ -15,12 +15,7 @@ federative_route = APIRouter(
     dependencies=[Depends(JWTBearer())]   
 )
 
-@federative_route.get("/federative", response_model=ResultData, summary="Obtain a list of Federated profile")
-def get_profile(
-    request: Request,
-    page: int = 1, 
-    per_page: int = 6, 
-    search: str = "",
-    db: Session = Depends(get_db)
-):
-    return get_all_federated_profile(request=request, page=page, per_page=per_page, criteria_value=search, db=db)
+# por ahora hasta que se aclare bien, los federativos son los administradores de eventos
+@federative_route.get("/federative/{profile_id}", response_model=ResultData, summary="Obtain a list of Federated profile")
+def get_profile(request: Request, profile_id: str, page: int = 1, per_page: int = 6, search: str = "", db: Session = Depends(get_db)):
+    return get_all_federated_profile(request=request, page=page, per_page=per_page, criteria_value=search, profile_id=profile_id, db=db)
