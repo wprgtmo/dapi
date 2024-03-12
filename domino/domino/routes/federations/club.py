@@ -17,16 +17,9 @@ club_route = APIRouter(
     dependencies=[Depends(JWTBearer())]   
 )
 
-@club_route.get("/club", response_model=Dict, summary="Obtain a list of Clubs.")
-def get_clubs(
-    request: Request,
-    page: int = 1, 
-    per_page: int = 6, 
-    search: str = "",
-    db: Session = Depends(get_db)
-):
-    return get_all(
-        request=request, page=page, per_page=per_page, criteria_value=search, db=db)
+@club_route.get("/club/{profile_id}", response_model=Dict, summary="Obtain a list of Clubs.")
+def get_clubs(request: Request, profile_id: str, page: int = 1, per_page: int = 6, search: str = "", db: Session = Depends(get_db)):
+    return get_all(request=request, page=page, per_page=per_page, criteria_value=search, profile_id=profile_id, db=db)
 
 @club_route.get("/club/federation/{id}", response_model=ResultObject, summary="Obtain a list of Clubs.")
 def get_clubs_by_federation(request: Request, id=id, db: Session = Depends(get_db)):

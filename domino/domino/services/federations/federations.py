@@ -23,14 +23,19 @@ from domino.services.resources.city import get_one as get_one_city, get_list_by_
 from domino.services.resources.country import get_one as get_one_country
 
 from domino.services.enterprise.auth import get_url_federation
+
             
-def get_all(request:Request, page: int, per_page: int, criteria_value: str, db: Session):  
+def get_all(request:Request, page: int, per_page: int, profile_id: str, criteria_value: str, db: Session):  
     locale = request.headers["accept-language"].split(",")[0].split("-")[0];
     
     api_uri = api_uri = str(settings.api_uri)
     
     str_from = " FROM federations.federations fed LEFT JOIN resources.city ON city.id = fed.city_id " +\
-        "LEFT JOIN resources.country ON country.id = fed.country_id Where fed.is_active = True " 
+        "LEFT JOIN resources.country ON country.id = fed.country_id Where fed.is_active = True " +\
+        "and fed.id IN (Select federation_id from enterprise.profile_member pm " +\
+        "join enterprise.profile_event_admon pa ON pa.profile_id = pm.id " +\
+        "where profile_type IN ('EVENTADMON', 'FEDERATED') " +\
+        " and id = '" + profile_id + "') "
         
     str_count = "Select count(*)" +  str_from
     str_query = "Select fed.id, fed.name, fed.siglas, logo, fed.city_id, city.name as city_name, fed.country_id, " +\
@@ -38,7 +43,7 @@ def get_all(request:Request, page: int, per_page: int, criteria_value: str, db: 
     
     str_criteria = " AND (fed.name ilike '%" + criteria_value + "%' OR fed.siglas ilike '%" +  criteria_value + "%'" +\
         " OR city.name ilike '%" + criteria_value + "%' OR country.name ilike '%" + criteria_value + "%') " if criteria_value else ''
-        
+    
     if page and page > 0 and not per_page:
         raise HTTPException(status_code=404, detail=_(locale, "commun.invalid_param"))
         
@@ -53,16 +58,22 @@ def get_all(request:Request, page: int, per_page: int, criteria_value: str, db: 
         str_query += "LIMIT " + str(per_page) + " OFFSET " + str(page*per_page-per_page)
      
     lst_data = db.execute(str_query)
+    
     result.data = [create_dict_row(item, api_uri=api_uri) for item in lst_data]
             
     return result
 
-def get_all_list(request:Request, db: Session):  
+def get_all_list(request:Request, profile_id:str, db: Session):  
     locale = request.headers["accept-language"].split(",")[0].split("-")[0];
     
     result = ResultObject() 
     
-    str_query = "Select fed.id, fed.name FROM federations.federations fed Where fed.is_active = True ORDER BY id  "
+    str_query = "Select fed.id, fed.name FROM federations.federations fed " +\
+        "Where fed.is_active = True " +\
+        "and fed.id IN (Select federation_id from enterprise.profile_member pm " +\
+        "join enterprise.profile_event_admon pa ON pa.profile_id = pm.id " +\
+        "where profile_type IN ('EVENTADMON', 'FEDERATED') " +\
+        " and id = '" + profile_id + "') ORDER BY id  "
      
     lst_data = db.execute(str_query)
     result.data = []

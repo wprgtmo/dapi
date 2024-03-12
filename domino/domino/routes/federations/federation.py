@@ -18,20 +18,13 @@ federation_route = APIRouter(
     dependencies=[Depends(JWTBearer())]   
 )
 
-@federation_route.get("/federation", response_model=Dict, summary="Obtain a list of Federations.")
-def get_federations(
-    request: Request,
-    page: int = 1, 
-    per_page: int = 6, 
-    search: str = "",
-    db: Session = Depends(get_db)
-):
-    return get_all(
-        request=request, page=page, per_page=per_page, criteria_value=search, db=db)
+@federation_route.get("/federation/{profile_id}", response_model=Dict, summary="Obtain a list of Federations with page.")
+def get_federations(request: Request, profile_id: str, page: int=1, per_page: int=6, search: str="",  db: Session = Depends(get_db)):
+    return get_all(request=request, page=page, per_page=per_page, profile_id=id, criteria_value=search, db=db)
 
-@federation_route.get("/federation/all/", response_model=Dict, summary="Obtain a list of Federations.")
-def get_federations_all(request: Request, db: Session = Depends(get_db)):
-    return get_all_list(request=request, db=db)
+@federation_route.get("/federation/all/{profile_id}", response_model=Dict, summary="Obtain a list of Federations.")
+def get_federations_all(request: Request, id: str, db: Session = Depends(get_db)):
+    return get_all_list(request=request, profile_id=profile_id, db=db)
         
 @federation_route.post("/federation", response_model=ResultObject, summary="Create new Federation")
 def create_federation(request:Request, federation: FederationsBase = Depends(), logo: UploadFile = None,  db: Session = Depends(get_db)):

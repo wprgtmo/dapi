@@ -83,6 +83,6 @@ def reset_password(
 # ):
 #     return get_all_not_followers(request=request, db=db)
 
-@user_route.get("/{user_id}/{name}", summary="Mostrar la imagen de perfil de un usuario")
+@user_route.get("/users/{user_id}/{name}", summary="Mostrar la imagen de perfil de un usuario")
 def getprofile(user_id: str, file_name: str):
     return FileResponse(getcwd() + "/public/profile/" + user_id + "/" + file_name)

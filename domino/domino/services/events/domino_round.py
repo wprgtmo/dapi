@@ -215,12 +215,25 @@ def configure_next_rounds(db_round, db:Session):
     amount_tables, amount_player_waiting = reconfig_amount_tables(db_round.tourney, db=db)
     
     # ordenar la escala actual por los criterior de ordenamiento de la ronda.
+    # str_list_player = "Select sca.*, sta.name as status_name, category_id from events.players_users puse " +\
+    #     "join events.players play ON play.id = puse.player_id join resources.entities_status sta ON sta.id = play.status_id " +\
+    #     "JOIN events.domino_categories cat ON cat.id = puse.category_id " +\
+    #     "Where sta.name IN ('CONFIRMED', 'PLAYING', 'WAITING') and play.tourney_id = '" + db_round.tourney.id + "' " 
+        
     str_list_player = "Select sca.*, sta.name as status_name, category_id from events.players_users puse " +\
         "join events.players play ON play.id = puse.player_id join resources.entities_status sta ON sta.id = play.status_id " +\
         "JOIN events.domino_categories cat ON cat.id = puse.category_id " +\
         "Where sta.name IN ('CONFIRMED', 'PLAYING', 'WAITING') and play.tourney_id = '" + db_round.tourney.id + "' " 
     
-    # events.domino_rounds_scale
+    # SELECT play.status_id, puse.player_id, rsca.position_number_at_end,
+# rsca.acumulated_games_won, rsca.acumulated_penalty_points - rsca.acumulated_points_negative - rsca.acumulated_penalty_points dfee_point,
+# acumulated_elo_variable,
+# rsca.acumulated_penalty_points, rsca.acumulated_points_negative, rsca.acumulated_penalty_points,acumulated_elo_variable
+# FROM events.players_users puse
+# JOIN events.players play ON play.id = puse.player_id
+# left join events.domino_rounds_scale rsca ON rsca.player_id = puse.player_id where rsca.round_id = '360a1c60-631a-4b92-bdf6-a98261ed0034'
+# order by rsca.acumulated_games_won DESC, (rsca.acumulated_penalty_points - rsca.acumulated_points_negative - rsca.acumulated_penalty_points) DESC,
+# acumulated_elo_variable DESC
     
     str_order_by = get_str_to_order(db_round)
     str_list_player += str_order_by

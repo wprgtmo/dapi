@@ -25,7 +25,7 @@ from domino.services.federations.federations import get_one as get_one_federatio
             
 from domino.services.enterprise.auth import get_url_federation
 
-def get_all(request:Request, page: int, per_page: int, criteria_value: str, db: Session):  
+def get_all(request:Request, page: int, per_page: int, criteria_value: str, profile_id:str, db: Session):  
     locale = request.headers["accept-language"].split(",")[0].split("-")[0];
     api_uri = api_uri = str(settings.api_uri)
     
@@ -57,7 +57,7 @@ def get_all(request:Request, page: int, per_page: int, criteria_value: str, db: 
      
     lst_data = db.execute(str_query)
     result.data = [create_dict_row(item, api_uri=api_uri) for item in lst_data]
-            
+    print(str_query)        
     return result
 
 def get_all_by_federation(request:Request, federation_id: str, db: Session):  
@@ -104,12 +104,14 @@ def get_one_by_id(request, club_id: str, db: Session):
     if not one_club:
         raise HTTPException(status_code=404, detail=_(locale, "club.not_found"))
     
-    logo = api_uri + "/api/federations/" + str(one_club.federation_.id) + "/" + one_club.logo if one_club.logo else ''
+    logo = api_uri + "/api/federations/" + str(one_club.federation.id) + "/" + one_club.logo if one_club.logo else ''
     
     result.data = {'id': one_club.id, 'name' : one_club.name, 'logo' : logo, 'siglas' : one_club.siglas,
                    'city_name': one_club.city.name if one_club.city else '', 
                    'city_id': one_club.city.id if one_club.city else '', 
                    'country_id': one_club.country.id if one_club.country else '',
+                   'federation_id':one_club.federation.id,
+                   'federation_name':one_club.federation.name,
                    'country_name': one_club.country.name if one_club.country else ''}
     
     return result
@@ -198,7 +200,24 @@ def update(request: Request, club_id: str, club: ClubsBase, db: Session, logo: F
         if db_one_club_sigla:
             raise HTTPException(status_code=404, detail=_(locale, "club.siglas_exist"))
         db_one_club.siglas = club['siglas']
+    
+    logo_name = ''
+    if logo:
+        if db_one_club.logo:  # borrar la actual
+            current_image = db_one_club.logo
+            path_del = "/public/federations/" + str(db_one_club.federation.id) + "/"
+            try:
+                del_image(path=path_del, name=str(current_image))
+            except:
+                pass
+            
+        logo_id = str(uuid.uuid4())
+        ext = get_ext_at_file(logo.filename)
+        logo.filename = logo_id + "." + ext
+        logo_name = logo.filename
         
+        db_one_club.logo = logo_name
+            
     try:
         
         db.add(db_one_club)

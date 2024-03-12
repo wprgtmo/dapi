@@ -545,7 +545,6 @@ def get_all_scale_by_round(request:Request, page: int, per_page: int, round_id: 
 def get_all_scale_acumulate(request:Request, page: int, per_page: int, round_id: str, db: Session):  
     
     locale = request.headers["accept-language"].split(",")[0].split("-")[0];
-    round_id = '360a1c60-631a-4b92-bdf6-a98261ed0034'
     one_round = get_one_round(round_id=round_id, db=db)
     if not one_round:
         raise HTTPException(status_code=404, detail=_(locale, "round.not_found"))
