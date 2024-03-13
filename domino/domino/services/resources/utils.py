@@ -44,11 +44,6 @@ def create_dir(entity_type: str, user_id: str, entity_id: str):
             os.mkdir("public/post")
         path = "public/post/"
         
-    elif entity_type == 'EVENT':
-        if not os.path.isdir("public/events"):
-            os.mkdir("public/events")
-        path = "public/events/"
-        
     elif entity_type == 'USER' or entity_type == 'USERPROFILE':
         if not os.path.isdir("public/profile"):
             os.mkdir("public/profile")

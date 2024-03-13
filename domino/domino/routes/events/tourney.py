@@ -51,21 +51,21 @@ def get_by_event(event_id: str, db: Session = Depends(get_db)):
 def get_tourney_by_id(id: str, db: Session = Depends(get_db)):
     return get_one_by_id(tourney_id=id, db=db)
 
-@tourney_route.post("/tourney", response_model=ResultObject, summary="Create a Tourney..")
-def create_tourney(request:Request, event_id: str, tourney: TourneyCreated, db: Session = Depends(get_db)):
-    return new(request=request, event_id=event_id, tourney=tourney, db=db)
+@tourney_route.post("/tourney/{profile_id}", response_model=ResultObject, summary="Create a Tourney..")
+def create_tourney(request:Request, profile_id: str, tourney: TourneyCreated = Depends(), image: UploadFile = None, db: Session = Depends(get_db)):
+    return new(request=request, profile_id=profile_id, tourney=tourney.dict(), image=image, db=db)
 
-@tourney_route.put("/tourney/image/{id}", response_model=ResultObject, summary="Update Image of Tourney.")
-def update_image(request:Request, id: str, image: UploadFile = "", db: Session = Depends(get_db)):
-    return update_image_tourney(request=request, tourney_id=str(id), db=db, file=image)
+# @tourney_route.put("/tourney/image/{id}", response_model=ResultObject, summary="Update Image of Tourney.")
+# def update_image(request:Request, id: str, image: UploadFile = "", db: Session = Depends(get_db)):
+#     return update_image_tourney(request=request, tourney_id=str(id), db=db, file=image)
 
 @tourney_route.delete("/tourney/{id}", response_model=ResultObject, summary="Deactivate a Tourney by its ID.")
 def delete_tourney(request:Request, id: str, db: Session = Depends(get_db)):
     return delete(request=request, tourney_id=str(id), db=db)
     
 @tourney_route.put("/tourney/{id}", response_model=ResultObject, summary="Update a Tourney by its ID")
-def update_tourney(request:Request, id: str, tourney: TourneyCreated, db: Session = Depends(get_db)):
-    return update(request=request, db=db, tourney_id=id, tourney=tourney)
+def update_tourney(request:Request, id: str, tourney: TourneyCreated = Depends(), image: UploadFile = None, db: Session = Depends(get_db)):
+    return update(request=request, db=db, tourney_id=id, tourney=tourney.dict(), image=image)
 
 @tourney_route.post("/tourney/close/{id}", response_model=ResultObject, summary="Close a Tourney by its ID")
 def close_tourney(request:Request, id: str, db: Session = Depends(get_db)):

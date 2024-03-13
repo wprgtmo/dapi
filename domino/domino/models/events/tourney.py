@@ -82,7 +82,7 @@ class Tourney(Base):
     
     points_for_absences = Column(Integer, nullable=True, default=0)
     
-    federation_id = Column(Integer, nullable=True)
+    federation_id = Column(Integer, ForeignKey("federations.federations.id"), nullable=True)
     
     federation = relationship("Federations")
     status = relationship("StatusElement")

@@ -123,6 +123,7 @@ es:
     imposible_delete: 'Imposible desactivar'
     not_equal: 'No puede incluir su mismo perfil'
     sigle_profile_not_exist: 'No tiene perfil de jugador individual creado'
+    profile_incorrect: 'Usuario no tiene permiso para realizar la acción'
   player:
     not_found: 'Jugador no encontrado'
     already_exist: 'Perfil ya incluido como jugador en el torneo'

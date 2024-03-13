@@ -138,52 +138,55 @@ def get_all_by_event_id(event_id: str, db: Session):
     
     return result
 
-def new(request, event_id: str, tourney: TourneyCreated, db: Session):
+def new(request, profile_id: str, tourney: TourneyCreated, image: File, db: Session):
     locale = request.headers["accept-language"].split(",")[0].split("-")[0];
     
     result = ResultObject() 
     currentUser = get_current_user(request)
     
+    one_profile = get_one_profile(profile_id, db=db)
+    if not one_profile:
+        raise HTTPException(status_code=404, detail=_(locale, "userprofile.not_found"))
+    
+    if one_profile.profile_type != "EVENTADMON":
+        raise HTTPException(status_code=404, detail=_(locale, "userprofile.profile_incorrect"))
+    
     one_status = get_one_status_by_name('CREATED', db=db)
     if not one_status:
         raise HTTPException(status_code=404, detail=_(locale, "status.not_found"))
     
-    one_status_end = get_one_status_by_name('FINALIZED', db=db)
-    if not one_status_end:
-        raise HTTPException(status_code=404, detail=_(locale, "status.not_found"))
-    
-    one_event = get_one_event(event_id, db=db)
-    if one_event.status_id == one_status_end.id:
-        raise HTTPException(status_code=404, detail=_(locale, "event.event_closed"))
-    
     id = str(uuid.uuid4())
-    if tourney.startDate < one_event.start_date: 
-        raise HTTPException(status_code=404, detail=_(locale, "tourney.incorrect_startDate"))
-    
-    if tourney.startDate > one_event.close_date: 
-        raise HTTPException(status_code=404, detail=_(locale, "tourney.incorrect_startDate"))
-    
     K1= get_factor_scale()
     
-    db_tourney = Tourney(id=id, event_id=event_id, modality=tourney.modality, name=tourney.name, 
-                         summary=tourney.summary, start_date=tourney.startDate, 
-                         status_id=one_status.id, created_by=currentUser['username'], 
-                         game_system='SUIZO', amount_rounds=tourney.number_rounds,
-                         updated_by=currentUser['username'], profile_id=one_event.profile_id,
+    db_tourney = Tourney(id=id, modality=tourney['modality'], name=tourney['name'], summary=tourney['summary'], 
+                         start_date=tourney['startDate'], status_id=one_status.id, created_by=currentUser['username'], 
+                         game_system='SUIZO', amount_rounds=tourney['number_rounds'], updated_by=currentUser['username'], 
+                         profile_id=one_profile.id, federation_id=one_profile.profile_event_admon[0].federation_id,
                          constant_increase_elo=K1)
     db.add(db_tourney)
     
     #crear la carpeta con la imagen de la publicidad....
-    path = create_dir(entity_type="SETTOURNEY", user_id=None, entity_id=str(db_tourney.id))
-    
-    image_domino="public/smartdomino.png"
-    image_destiny = path + "smartdomino.png"
-    copy_image(image_domino, image_destiny)
+    path_tourney = create_dir(entity_type="SETTOURNEY", user_id=None, entity_id=str(id))
+
+    image_name = ''
+    if image:
+        ext = get_ext_at_file(image.filename)
+        image.filename = id + "." + ext
+        upfile(file=image, path=path_tourney)
+        image_name = image.filename
+        
+    else:
+        image_domino="public/smartdomino.png"
+        image_destiny = path_tourney + "smartdomino.png"
+        copy_image(image_domino, image_destiny)
+        image_name = image.filename
+       
+    db_tourney.image = image_name
         
     try:
         
         db.commit()
-        result.data = {'event_id': event_id}
+        result.data = {'tourney_id': str(id)}
         return result
        
     except (Exception, SQLAlchemyError, IntegrityError) as e:
@@ -201,37 +204,40 @@ def delete(request: Request, tourney_id: str, db: Session):
     if not one_status:
         raise HTTPException(status_code=404, detail=_(locale, "status.not_found"))
     
+    db_tourney= db.query(Tourney).filter(Tourney.id == tourney_id).first()
+    if not db_tourney:
+        raise HTTPException(status_code=404, detail=_(locale, "tourney.not_found"))
+    
+    if db_tourney.status.name != 'CREATED':
+        raise HTTPException(status_code=404, detail=_(locale, "tourney.status_incorrect"))
+    
     try:
-        db_tourney= db.query(Tourney).filter(Tourney.id == tourney_id).first()
-        if db_tourney:
-            path_tourney = create_dir(entity_type="SETTOURNEY", user_id=None, entity_id=str(tourney_id))
-            
-            if db_tourney.image:  # tiene una imagen asociada
-                try:
-                    del_image(path=path_tourney, name=str(db_tourney.image))
-                except:
-                    pass
-                    
-            db_tourney.status_id = one_status.id
-            db_tourney.updated_by = currentUser['username']
-            db_tourney.updated_date = datetime.now()
-            db.commit()
-            return result
-        else:
-            raise HTTPException(status_code=404, detail=_(locale, "tourney.not_found"))
+        
+        path_tourney = create_dir(entity_type="SETTOURNEY", user_id=None, entity_id=str(tourney_id))
+        
+        if db_tourney.image:  # tiene una imagen asociada
+            try:
+                del_image(path=path_tourney, name=str(db_tourney.image))
+            except:
+                pass
+                
+        db_tourney.status_id = one_status.id
+        db_tourney.updated_by = currentUser['username']
+        db_tourney.updated_date = datetime.now()
+        db.commit()
+        return result
         
     except (Exception, SQLAlchemyError) as e:
         print(e)
         raise HTTPException(status_code=404, detail=_(locale, "tourney.imposible_delete"))
     
-def update(request: Request, tourney_id: str, tourney: TourneyCreated, db: Session):
+def update(request: Request, tourney_id: str, tourney: TourneyCreated, image: File, db: Session):
     locale = request.headers["accept-language"].split(",")[0].split("-")[0];
     
     result = ResultObject() 
     currentUser = get_current_user(request) 
     
     one_status_end = get_one_status_by_name('FINALIZED', db=db)
-    one_status_new = get_one_status_by_name('CREATED', db=db)
     
     db_tourney = get_one(tourney_id, db=db)
     if not db_tourney:
@@ -240,23 +246,39 @@ def update(request: Request, tourney_id: str, tourney: TourneyCreated, db: Sessi
     if db_tourney.status_id == one_status_end.id:
         raise HTTPException(status_code=404, detail=_(locale, "tourney.tourney_closed"))
     
-    if db_tourney.name != tourney.name:
-        db_tourney.name = tourney.name
+    if tourney['name'] and db_tourney.name != tourney['name']:
+        db_tourney.name = tourney['name']
         
-    if db_tourney.summary != tourney.summary:
-        db_tourney.summary = tourney.summary
+    if tourney['summary'] and db_tourney.summary != tourney['summary']:
+        db_tourney.summary = tourney['summary']
         
-    if db_tourney.modality != tourney.modality:
-        db_tourney.modality = tourney.modality
+    if tourney['modality'] and db_tourney.modality != tourney['modality']:
+        db_tourney.modality = tourney['modality']
         
-    if db_tourney.start_date != tourney.startDate:
-        db_tourney.start_date = tourney.startDate
+    if tourney['startDate'] and db_tourney.start_date != tourney['startDate']:
+        db_tourney.start_date = tourney['startDate']
         
-    if db_tourney.number_rounds != tourney.number_rounds:
-        db_tourney.number_rounds = tourney.number_rounds
+    if tourney['number_rounds'] and db_tourney.amount_rounds != tourney['number_rounds']:
+        db_tourney.amount_rounds = tourney['number_rounds']
         
     db_tourney.updated_by = currentUser['username']
     db_tourney.updated_date = datetime.now()
+    
+    path_tourney = create_dir(entity_type="SETTOURNEY", user_id=None, entity_id=str(db_tourney.id))
+    
+    if image:
+        if db_tourney.image:  # ya tiene una imagen asociada
+            current_image = db_tourney.image
+            try:
+                del_image(path=path_tourney, name=str(current_image))
+            except:
+                pass
+            
+        ext = get_ext_at_file(image.filename)
+        image.filename = str(uuid.uuid4()) + "." + ext
+        
+        upfile(file=image, path=path_tourney)
+        db_tourney.image = image.filename
     
     try:
         db.add(db_tourney)
