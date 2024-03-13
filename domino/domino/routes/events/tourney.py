@@ -19,16 +19,17 @@ tourney_route = APIRouter(
     dependencies=[Depends(JWTBearer())]   
 )
 
-@tourney_route.get("/tourney/", response_model=Dict, summary="Obtain a list of Tourney.")
+# solo los creados por ese perfil
+@tourney_route.get("/tourney/{profile_id}", response_model=Dict, summary="Obtain a list of Tourney.")
 def get_tourney(
     request: Request,
+    profile_id: str, 
     page: int = 1, 
     per_page: int = 6, 
-    criteria_key: str = "",
-    criteria_value: str = "",
+    search: str = "", 
     db: Session = Depends(get_db)
 ):
-    return get_all(request=request, page=page, per_page=per_page, criteria_key=criteria_key, criteria_value=criteria_value, db=db)
+    return get_all(request=request, profile_id=profile_id, page=page, per_page=per_page, criteria_value=search, db=db)
 
 @tourney_route.get("/tourney/tables/{id}", response_model=Dict, summary="Get List of Tables for Tourney.")
 def get_all_tables(

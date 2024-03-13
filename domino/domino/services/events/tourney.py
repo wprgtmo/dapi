@@ -29,38 +29,34 @@ from domino.services.enterprise.userprofile import get_one as get_one_profile
 
 from domino.services.enterprise.auth import get_url_advertising
             
-def get_all(request:Request, page: int, per_page: int, criteria_key: str, criteria_value: str, db: Session):  
+def get_all(request:Request, page: int, per_page: int, profile_id: str, criteria_value: str, db: Session):  
     locale = request.headers["accept-language"].split(",")[0].split("-")[0];
     
     api_uri = str(settings.api_uri)
     
     str_from = "FROM events.tourney tou " +\
-        "JOIN events.events eve ON eve.id = tou.event_id " +\
-        "JOIN resources.entities_status sta ON sta.id = tou.status_id " 
+        "JOIN resources.entities_status sta ON sta.id = tou.status_id " +\
+        "JOIN federations.federations fed ON fed.id = tou.federation_id "
     
     str_count = "Select count(*) " + str_from
-    str_query = "Select tou.id, event_id, eve.name as event_name, tou.modality, tou.name, tou.summary, tou.start_date, " +\
-        "tou.status_id, sta.name as status_name, sta.description as status_description, lottery_type, number_rounds, tou.image " + str_from
+    str_query = "Select tou.id, tou.modality, tou.name, tou.summary, tou.start_date, " +\
+        "tou.federation_id, fed.name as federation_name, " +\
+        "tou.status_id, sta.name as status_name, sta.description as status_description, lottery_type, amount_rounds, tou.image " + str_from
     
     str_where = " WHERE sta.name != 'CANCELLED' "  
     
-    dict_query = {'name': " AND eve.name ilike '%" + criteria_value + "%'",
-                  'summary': " AND summary ilike '%" + criteria_value + "%'",
-                  'modality': " AND modality ilike '%" + criteria_value + "%'",
-                  'start_date': " AND start_date >= '%" + criteria_value + "%'",
-                  }
+    if profile_id:
+        str_where += "AND profile_id = '" + profile_id + "' "
+        
+    str_where += " AND (tou.name ilike '%" + criteria_value + "%' OR tou.modality ilike '%" +  criteria_value + "%'" +\
+        " OR tou.summary ilike '%" + criteria_value + "%' OR start_date >='%" + criteria_value + "%'" +\
+        " OR tou.lottery_type ilike '%" + criteria_value + "%' OR fed.name ilike '%" + criteria_value + "%') " if criteria_value else ''
     
     str_count += str_where
     str_query += str_where
     
-    if criteria_key and criteria_key not in dict_query:
-        raise HTTPException(status_code=404, detail=_(locale, "commun.invalid_param"))
-    
     if page and page > 0 and not per_page:
         raise HTTPException(status_code=404, detail=_(locale, "commun.invalid_param"))
-    
-    str_count += dict_query[criteria_key] if criteria_value else "" 
-    str_query += dict_query[criteria_key] if criteria_value else "" 
     
     result = get_result_count(page=page, per_page=per_page, str_count=str_count, db=db)
     
@@ -70,21 +66,21 @@ def get_all(request:Request, page: int, per_page: int, criteria_key: str, criter
         str_query += "LIMIT " + str(per_page) + " OFFSET " + str(page*per_page-per_page)
      
     lst_data = db.execute(str_query)
+    print(str_query)
     result.data = [create_dict_row(item, page, api_uri=api_uri, db=db) for item in lst_data]
     
     return result
 
 def create_dict_row(item, page, api_uri:str, db: Session):
     
-    new_row = {'id': item['id'], 'event_id': item['event_id'], 'event_name': item['event_name'], 'name': item['name'], 
-               'modality': item['modality'], 'summary' : item['summary'], 'startDate': item['start_date'],
+    new_row = {'id': item['id'], 'name': item['name'], 'modality': item['modality'], 'summary' : item['summary'], 
+               'startDate': item['start_date'],
                'status_id': item['status_id'], 'status_name': item['status_name'], 'status_description': item['status_description'],
-               'lottery_type': item['lottery_type'], 'number_rounds': item['number_rounds'],
+               'lottery_type': item['lottery_type'], 'number_rounds': item['amount_rounds'],
+               'federation_id': item['federation_id'], 'federation_name': item['federation_name'],
                'image': get_url_advertising(tourney_id=item['id'], file_name=item['image'] if item['image'] else None, api_uri=api_uri)
                }
        
-    if page != 0:
-        new_row['selected'] = False
     return new_row
 
 def get_one(tourney_id: str, db: Session):  

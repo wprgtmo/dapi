@@ -18,7 +18,6 @@ class Tourney(Base):
     __table_args__ = {'schema' : 'events'}
     
     id = Column(String, primary_key=True, default=generate_uuid)
-    event_id = Column(String, ForeignKey("events.events.id"), nullable=False)
     modality = Column(String(30), nullable=False)
     name = Column(String(100), nullable=True)
     summary = Column(Text, nullable=True)
@@ -83,8 +82,9 @@ class Tourney(Base):
     
     points_for_absences = Column(Integer, nullable=True, default=0)
     
-    event = relationship("Event", back_populates="tourneys")
+    federation_id = Column(Integer, nullable=True)
     
+    federation = relationship("Federations")
     status = relationship("StatusElement")
     scope = relationship("EventScopes")
     level = relationship("EventLevels")

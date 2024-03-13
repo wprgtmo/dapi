@@ -1,6 +1,13 @@
-ALTER TABLE IF EXISTS enterprise.profile_event_admon
-ADD COLUMN profile_user_id character varying;
-ALTER TABLE IF EXISTS enterprise.profile_federated
-ADD COLUMN profile_user_id character varying;
-ALTER TABLE IF EXISTS enterprise.profile_referee
-ADD COLUMN profile_user_id character varying;
+
+ALTER TABLE IF EXISTS events.tourney DROP CONSTRAINT IF EXISTS tourney_event_id_fkey;
+ALTER TABLE IF EXISTS events.tourney DROP COLUMN IF EXISTS event_id;
+
+ALTER TABLE IF EXISTS events.tourney
+ADD COLUMN federation_id integer;
+ALTER TABLE IF EXISTS events.tourney
+    ADD CONSTRAINT tourney_federation_by_fley FOREIGN KEY (federation_id)
+    REFERENCES federations.federations (id) MATCH SIMPLE
+    ON UPDATE NO ACTION
+    ON DELETE NO ACTION
+    NOT VALID;
+    
