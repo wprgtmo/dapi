@@ -66,7 +66,7 @@ def get_all(request:Request, page: int, per_page: int, profile_id: str, criteria
         str_query += "LIMIT " + str(per_page) + " OFFSET " + str(page*per_page-per_page)
      
     lst_data = db.execute(str_query)
-    print(str_query)
+    
     result.data = [create_dict_row(item, page, api_uri=api_uri, db=db) for item in lst_data]
     
     return result
