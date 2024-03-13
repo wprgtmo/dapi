@@ -36,11 +36,14 @@ def get_all(request:Request, page: int, per_page: int, profile_id: str, criteria
     
     str_from = "FROM events.tourney tou " +\
         "JOIN resources.entities_status sta ON sta.id = tou.status_id " +\
-        "JOIN federations.federations fed ON fed.id = tou.federation_id "
+        "JOIN federations.federations fed ON fed.id = tou.federation_id " +\
+        "LEFT JOIN resources.city city ON city.id = tou.city_id " +\
+        "LEFT JOIN resources.country country ON country.id = city.country_id " 
     
     str_count = "Select count(*) " + str_from
     str_query = "Select tou.id, tou.modality, tou.name, tou.summary, tou.start_date, " +\
-        "tou.federation_id, fed.name as federation_name, " +\
+        "tou.federation_id, fed.name as federation_name, city.name as city_name, inscription_import, " +\
+        "main_location, country.id as country_id, city.id  as city_id, country.name as country_name, " +\
         "tou.status_id, sta.name as status_name, sta.description as status_description, lottery_type, amount_rounds, tou.image " + str_from
     
     str_where = " WHERE sta.name != 'CANCELLED' "  
@@ -50,6 +53,7 @@ def get_all(request:Request, page: int, per_page: int, profile_id: str, criteria
         
     str_where += " AND (tou.name ilike '%" + criteria_value + "%' OR tou.modality ilike '%" +  criteria_value + "%'" +\
         " OR tou.summary ilike '%" + criteria_value + "%' OR start_date >='%" + criteria_value + "%'" +\
+        " OR city.name ilike '%" + criteria_value + "%' OR main_location ilike '%" + criteria_value + "%'" +\
         " OR tou.lottery_type ilike '%" + criteria_value + "%' OR fed.name ilike '%" + criteria_value + "%') " if criteria_value else ''
     
     str_count += str_where
@@ -74,9 +78,12 @@ def get_all(request:Request, page: int, per_page: int, profile_id: str, criteria
 def create_dict_row(item, page, api_uri:str, db: Session):
     
     new_row = {'id': item['id'], 'name': item['name'], 'modality': item['modality'], 'summary' : item['summary'], 
-               'startDate': item['start_date'],
+               'startDate': item['start_date'], 'main_location': item['main_location'] if item['main_location'] else '',
+               'city': item['city_id'] if item['city_id'] else '', 'city_name': item['city_name'] if item['city_name'] else '',
+               'country': item['country_id'] if item['country_id'] else '', 'country_name': item['country_name'] if item['country_name'] else '',
                'status_id': item['status_id'], 'status_name': item['status_name'], 'status_description': item['status_description'],
                'lottery_type': item['lottery_type'], 'number_rounds': item['amount_rounds'],
+               'inscription_import': item['inscription_import'] if item['inscription_import'] else 0.00,
                'federation_id': item['federation_id'], 'federation_name': item['federation_name'],
                'image': get_url_advertising(tourney_id=item['id'], file_name=item['image'] if item['image'] else None, api_uri=api_uri)
                }
@@ -94,13 +101,17 @@ def get_one_by_id(tourney_id: str, db: Session):
     
     api_uri = str(settings.api_uri)
     
-    str_query = "Select tou.id, event_id, eve.name as event_name, tou.modality, tou.name, tou.summary, tou.start_date, " +\
-        "lottery_type, amount_rounds number_rounds, tou.image, " +\
+    str_query = "Select tou.id,tou.modality, tou.name, tou.summary, tou.start_date, " +\
+        "lottery_type, amount_rounds, tou.image, tou.main_location, tou.inscription_import, " +\
+        "tou.federation_id, fed.name as federation_name, " +\
+        "country.id as country_id, city.id  as city_id, country.name as country_name, city.name as city_name, " +\
         "tou.status_id, sta.name as status_name, sta.description as status_description FROM events.tourney tou " +\
-        "JOIN events.events eve ON eve.id = tou.event_id " +\
+        "JOIN federations.federations fed ON fed.id = tou.federation_id " +\
         "JOIN resources.entities_status sta ON sta.id = tou.status_id " +\
+        "LEFT JOIN resources.city city ON city.id = tou.city_id " +\
+        "LEFT JOIN resources.country country ON country.id = city.country_id " +\
         " WHERE tou.id = '" + str(tourney_id)  + "' "
-        
+    
     lst_data = db.execute(str_query)
     if lst_data:
         for item in lst_data:
@@ -162,7 +173,8 @@ def new(request, profile_id: str, tourney: TourneyCreated, image: File, db: Sess
                          start_date=tourney['startDate'], status_id=one_status.id, created_by=currentUser['username'], 
                          game_system='SUIZO', amount_rounds=tourney['number_rounds'], updated_by=currentUser['username'], 
                          profile_id=one_profile.id, federation_id=one_profile.profile_event_admon[0].federation_id,
-                         constant_increase_elo=K1)
+                         constant_increase_elo=K1, main_location=tourney['main_location'], inscription_import=tourney.inscription_import,
+                         city_id=tourney['city_id'])
     db.add(db_tourney)
     
     #crear la carpeta con la imagen de la publicidad....
@@ -260,6 +272,15 @@ def update(request: Request, tourney_id: str, tourney: TourneyCreated, image: Fi
         
     if tourney['number_rounds'] and db_tourney.amount_rounds != tourney['number_rounds']:
         db_tourney.amount_rounds = tourney['number_rounds']
+        
+    if tourney['main_location'] and db_tourney.main_location != tourney['main_location']:
+        db_tourney.main_location = tourney['main_location']
+        
+    if tourney['inscription_import'] and db_tourney.inscription_import != tourney['inscription_import']:
+        db_tourney.inscription_import = tourney['inscription_import']
+        
+    if tourney['city_id'] and db_tourney.city_id != tourney['city_id']:
+        db_tourney.city_id = tourney['city_id']
         
     db_tourney.updated_by = currentUser['username']
     db_tourney.updated_date = datetime.now()

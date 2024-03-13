@@ -83,6 +83,8 @@ class Tourney(Base):
     points_for_absences = Column(Integer, nullable=True, default=0)
     
     federation_id = Column(Integer, ForeignKey("federations.federations.id"), nullable=True)
+    city_id = Column(Integer, ForeignKey("resources.city.id"), nullable=False)
+    main_location = Column(String(255), nullable=True)
     
     federation = relationship("Federations")
     status = relationship("StatusElement")
@@ -92,7 +94,6 @@ class Tourney(Base):
     def dict(self):
         return {
             "id": self.id,
-            "event_id": self.event_id,
             "modality": self.modality,
             "name": self.name,
             "summary": self.summary,
@@ -112,6 +113,7 @@ class Tourney(Base):
             'lottery_type': self.lottery_type,
             'penalties_limit': self.penalties_limit,
             'image': self.image,
+            'main_location': self.main_location
         }
     
         

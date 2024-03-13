@@ -10,4 +10,16 @@ ALTER TABLE IF EXISTS events.tourney
     ON UPDATE NO ACTION
     ON DELETE NO ACTION
     NOT VALID;
-    
+
+ALTER TABLE IF EXISTS events.tourney
+ADD COLUMN main_location character varying(255);
+ALTER TABLE IF EXISTS events.tourney
+ADD COLUMN city_id integer;
+
+ALTER TABLE IF EXISTS events.tourney
+    ADD CONSTRAINT tourney_city_by_fkey FOREIGN KEY (city_id)
+    REFERENCES resources.city (id) MATCH SIMPLE
+    ON UPDATE NO ACTION
+    ON DELETE NO ACTION
+    NOT VALID;
+

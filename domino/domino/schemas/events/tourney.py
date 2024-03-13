@@ -6,9 +6,11 @@ from typing import Optional
  
 class TourneyBase(BaseModel):
     name: str
-    event_id: str
     modality: Optional[str]
     summary: Optional[str]
+    
+    city_id: Optional[int]
+    main_location: Optional[str]
     
     start_date: Optional[date] = date.today()
     
@@ -18,17 +20,17 @@ class TourneyBase(BaseModel):
             raise ValueError('Nombre de Torneo es Requerido')
         return name
     
-    @validator('event_id')
-    def event_id_not_empty(cls, event_id):
-        if not event_id:
-            raise ValueError('Id del Evento es Requerida')
-        return event_id
-    
     @validator('modality')
     def modality_not_empty(cls, modality):
         if not modality:
             raise ValueError('Modalidad del torneo es Requerida')
         return modality
+    
+    @validator('city_id')
+    def city_id_id_not_empty(cls, city_id):
+        if not city_id:
+            raise ValueError('Ciudad del Evento es Requerida')
+        return city_id
     
 class TourneySchema(TourneyBase):
     id: Optional[int]
@@ -46,6 +48,8 @@ class TourneyCreated(BaseModel):
     name: Optional[str]
     modality: Optional[str]
     summary: Optional[str]
+    city_id: Optional[int]
+    main_location: Optional[str]
     startDate: Optional[date]
     number_rounds: Optional[int]
     inscription_import: Optional[float]

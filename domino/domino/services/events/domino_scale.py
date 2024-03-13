@@ -58,8 +58,6 @@ def new_initial_manual_round(request: Request, tourney_id:str, dominoscale: list
     
     # cambiar estado del torneo a Iniciado
     str_update = "UPDATE events.tourney SET status_id=" + str(one_status_init.id) + " WHERE id = '" + tourney_id + "';"
-    str_update += "UPDATE events.events SET status_id=" + str(one_status_init.id) + " WHERE id IN " +\
-        "(Select tourney.event_id FROM events.tourney where id = '" + tourney_id + "');COMMIT;"
     db.execute(str_update)
     
     return result

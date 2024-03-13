@@ -169,11 +169,9 @@ def get_all_invitations_by_user(request, profile_id: str, status_name:str, db: S
     api_uri = str(settings.api_uri)
                                             
     str_query = "SELECT invitations.id, tourney.name as tourney_name, tourney.modality, tourney.start_date, " + \
-        "events.name as event_name, events.close_date, events.main_location, city.name as city_name, " + \
-        "country.name country_name, events.id as event_id, events.image, events.profile_id " +\
+        "city.name as city_name, country.name country_name, tourney.image, events.profile_id " +\
         "FROM events.invitations " + \
         "inner join events.tourney ON tourney.id = invitations.tourney_id " + \
-        "inner join events.events ON events.id = tourney.event_id " + \
         "left join resources.city ON city.id = events.city_id " +\
         "left join resources.country ON country.id = city.country_id " +\
         "WHERE events.invitations.profile_id = '" + profile_id + "' "
@@ -191,12 +189,9 @@ def create_dict_row_invitation(item, api_uri=""):
     
     image = api_uri + "/api/image/" + str(item['profile_id']) + "/" + item['event_id'] + "/" + item['image']
     
-    new_row = {'id': item['id'], 'event_name': item['event_name'], 
-               'country': item['country_name'], 'city_name': item['city_name'],
-               'campus': item['main_location'], 
-               'tourney_name': item['tourney_name'], 
-               'modality': item['modality'], 
-               'startDate': item['start_date'], 'endDate': item['close_date'], 
+    new_row = {'id': item['id'], 'country': item['country_name'], 'city_name': item['city_name'],
+               'campus': item['main_location'], 'tourney_name': item['tourney_name'], 
+               'modality': item['modality'], 'startDate': item['start_date'], 'endDate': item['close_date'], 
                'photo' : image}
     
     return new_row
