@@ -21,7 +21,7 @@ from domino.schemas.resources.result_object import ResultObject, ResultData
 from domino.services.resources.status import get_one_by_name as get_one_status_by_name, get_one as get_one_status
 
 from domino.services.resources.utils import get_result_count
-from domino.services.events.event import get_one as get_one_event, get_all as get_all_event
+# from domino.services.events.event import get_one as get_one_event, get_all as get_all_event
 from domino.services.events.domino_table import created_one_domino_tables
 
 from domino.services.resources.utils import get_result_count, upfile, create_dir, del_image, get_ext_at_file, remove_dir, copy_image, del_image

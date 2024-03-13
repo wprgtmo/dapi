@@ -51,7 +51,7 @@ from domino.routes.resources.package import packages_route
 from domino.routes.resources.status import status_route
 from domino.routes.post.post import post_route
 from domino.routes.post.comment import comment_route
-from domino.routes.events.event import event_route
+# from domino.routes.events.event import event_route
 from domino.routes.events.tourney import tourney_route
 from domino.routes.resources.images import image_route
 from domino.routes.enterprise.profiletype import profiletype_route
@@ -167,7 +167,7 @@ app.include_router(status_route, prefix="/api")
 app.include_router(profiletype_route, prefix="/api")
 app.include_router(post_route, prefix="/api")
 app.include_router(comment_route, prefix="/api")
-app.include_router(event_route, prefix="/api")
+# app.include_router(event_route, prefix="/api")
 app.include_router(tourney_route, prefix="/api")
 app.include_router(image_route, prefix="/api")
 app.include_router(invitation_route, prefix="/api")

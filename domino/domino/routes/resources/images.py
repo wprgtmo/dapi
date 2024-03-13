@@ -7,11 +7,9 @@ from domino.auth_bearer import JWTBearer
 from fastapi.responses import FileResponse, JSONResponse, StreamingResponse
 from os import getcwd, remove
 
-from domino.schemas.events.events import EventBase
 from domino.schemas.events.tourney import TourneyCreated
 from domino.schemas.resources.result_object import ResultObject
 
-from domino.services.events.event import get_all, new, get_one_by_id, delete, update, get_image_event
   
 image_route = APIRouter(
     tags=["Images"]   

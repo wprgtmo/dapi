@@ -18,7 +18,7 @@ from domino.app import _
 from domino.config.config import settings
 
 from domino.models.enterprise.userprofile import ProfileUsers, SingleProfile, RefereeProfile, PairProfile, EventAdmonProfile, FederatedProfile
-from domino.models.events.events import Event
+# from domino.models.events.events import Event
 from domino.models.events.tourney import Tourney
 from domino.models.events.player import Players
     
@@ -35,7 +35,7 @@ from domino.services.enterprise.userprofile import get_one_default_user, get_use
     get_one_single_profile_by_id, get_one_pair_profile, get_one_profile_by_user, get_one as get_profile_by_id
 from domino.services.enterprise.comunprofile import new_profile
 
-from domino.services.events.event import get_one_by_name as get_event_by_name
+# from domino.services.events.event import get_one_by_name as get_event_by_name
 from domino.services.events.tourney import get_one_by_name as get_tourney_by_name, get_one as get_one_tourney
 from domino.services.events.invitations import generate_for_tourney, get_one_by_id as get_invitation_by_id
 from domino.services.events.player import get_one_by_invitation_id as get_one_player_by_invitation_id, new_player_with_user

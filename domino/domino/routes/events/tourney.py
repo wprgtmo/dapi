@@ -9,7 +9,7 @@ from domino.schemas.events.tourney import TourneyCreated
 from domino.schemas.resources.result_object import ResultObject
 
 from domino.services.events.domino_table import get_all as get_all_tables_for_tourney
-from domino.services.events.tourney import get_all, new, get_one_by_id, delete, update, get_all_by_event_id, \
+from domino.services.events.tourney import get_all, new, get_one_by_id, delete, update, \
     get_amount_tables, update_image_tourney, close_one_tourney
     
 from domino.services.events.player import created_all_players
@@ -43,9 +43,9 @@ def get_all_tables(
     return get_all_tables_for_tourney(
         request=request, tourney_id=id, page=page, per_page=per_page, criteria_key=criteria_key, criteria_value=criteria_value, db=db)
 
-@tourney_route.get("/tourney/event/{event_id}", response_model=ResultObject, summary="Get List of Tourney for Event.")
-def get_by_event(event_id: str, db: Session = Depends(get_db)):
-    return get_all_by_event_id(event_id=event_id, db=db)
+# @tourney_route.get("/tourney/event/{event_id}", response_model=ResultObject, summary="Get List of Tourney for Event.")
+# def get_by_event(event_id: str, db: Session = Depends(get_db)):
+#     return get_all_by_event_id(event_id=event_id, db=db)
 
 @tourney_route.get("/tourney/one/{id}", response_model=ResultObject, summary="Get a Tourney for your ID.")
 def get_tourney_by_id(id: str, db: Session = Depends(get_db)):

@@ -6,7 +6,7 @@ from domino.app import get_db
 from starlette import status
 from domino.auth_bearer import JWTBearer
 
-from domino.services.enterprise.exampledata import insert_user_examples, insert_others_profiles, create_events, \
+from domino.services.enterprise.exampledata import insert_user_examples, insert_others_profiles, \
     create_tourneys, created_invitations_tourneys, accepted_invitations_tourneys, created_players, update_elo, \
     clear_all_bd, execute_script_in_BD
 
@@ -34,9 +34,9 @@ def insert_data(request:Request, db: Session = Depends(get_db)):
 # def update_elo_data(request:Request, db: Session = Depends(get_db)):
 #     return update_elo(request, db=db)
 
-@exampledata_route.post("/exampledata/step_5_events", summary="Create Events")
-def insert_event_data(request:Request, username: str, db: Session = Depends(get_db)):
-    return create_events(request, username, db=db)
+# @exampledata_route.post("/exampledata/step_5_events", summary="Create Events")
+# def insert_event_data(request:Request, username: str, db: Session = Depends(get_db)):
+#     return create_events(request, username, db=db)
 
 @exampledata_route.post("/exampledata/step_6_tourneys", summary="Create two Tourneys")
 def insert_tourney_data(request:Request, db: Session = Depends(get_db)):
