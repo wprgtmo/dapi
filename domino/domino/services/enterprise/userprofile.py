@@ -428,8 +428,6 @@ def get_all_single_profile(request:Request, profile_id: str, page: int, per_page
     
     api_uri = str(settings.api_uri)
     
-    api_uri = str(settings.api_uri)
-
     # por el perfil, buscar a que federacion pertenece
     one_profile = get_one(profile_id, db=db)
     if not one_profile:
@@ -482,8 +480,6 @@ def get_all_single_profile(request:Request, profile_id: str, page: int, per_page
      
     lst_data = db.execute(str_query)
     result.data = [create_dict_row_single_player(item, page, db=db, api_uri=api_uri) for item in lst_data]
-    print(str_query)
-    print('*****************************')
     return result
 
 def get_all_eventadmon_profile(request:Request, profile_id: str, page: int, per_page: int, criteria_key: str, criteria_value: str, db: Session):  
@@ -552,7 +548,8 @@ def create_dict_row_federation_profile(item, db: Session, api_uri=""):
                'city': item['city_id'], 'city_name': item['city_name'], 
                'country_id': item['country_id'], 'country': item['country_name'], 
                'photo' : get_url_avatar(item['profile_id'], item['photo'], api_uri=api_uri),
-               'federation_id': item['federation_id'], 'federation_name': item['federation_name']}
+               'federation_id': item['federation_id'], 'federation_name': item['federation_name'],
+               'federation_siglas': item['siglas']}
     
     return dict_row
 
@@ -928,7 +925,7 @@ def get_all_federated_profile(request:Request, page: int, per_page: int, criteri
     
     api_uri = str(settings.api_uri)
     
-    profile_id = '812e971f-aed4-4d7c-9c79-c158b6a05a58' if not profile_id else profile_id 
+    # profile_id = '812e971f-aed4-4d7c-9c79-c158b6a05a58' if not profile_id else profile_id 
     # por el perfil, buscar a que federacion pertenece
     one_profile = get_one(profile_id, db=db)
     
@@ -954,14 +951,14 @@ def get_all_federated_profile(request:Request, page: int, per_page: int, criteri
     
     str_count = "Select count(*) " + str_from
     str_query = "Select pmem.id profile_id, pmem.name, photo, pmem.city_id, city.name city_name, city.country_id, " +\
-        "co.name as country_name, fed.name, fed.siglas " + str_from
+        "co.name as country_name, fed.id as federation_id, fed.name as federation_name, fed.siglas " + str_from
     
     str_where = " WHERE pmem.is_active = True "  
 
     str_search = ''
     if criteria_value:
         str_search = "AND (pmem.name ilike '%" + criteria_value + "%' OR city_name ilike '%" + criteria_value +\
-            "%' OR )"
+            "%' OR fed.name ilike '%" + criteria_value + "%')"
         str_where += str_search
         
     str_count += str_where
