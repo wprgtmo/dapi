@@ -225,6 +225,11 @@ def update(request: Request, club_id: str, club: ClubsBase, db: Session, logo: F
         
         db.add(db_one_club)
         db.commit()
+        
+        if logo_name:
+            path_federation = create_dir(entity_type='FEDERATION', user_id=None, entity_id=str(db_one_club.federation.id))
+            upfile(file=logo, path=path_federation)
+            
         return result
     except (Exception, SQLAlchemyError) as e:
         print(e.code)
