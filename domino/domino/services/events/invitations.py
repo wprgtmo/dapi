@@ -36,15 +36,15 @@ def get_all(request:Request, profile_id:str, page: int, per_page: int, criteria_
     
     api_uri = str(settings.api_uri)
     
-    str_from = "FROM events.events eve " +\
-        "JOIN resources.entities_status sta ON sta.id = eve.status_id " +\
-        "JOIN resources.city city ON city.id = eve.city_id " +\
+    str_from = "FROM events.tourney tou " +\
+        "JOIN resources.entities_status sta ON sta.id = tou.status_id " +\
+        "JOIN resources.city city ON city.id = tou.city_id " +\
         "JOIN resources.country country ON country.id = city.country_id " 
         
     str_count = "Select count(*) " + str_from
-    str_query = "Select eve.id, eve.name, start_date, close_date, registration_date, registration_price, city.name as city_name, " +\
-        "main_location, summary, image, eve.status_id, sta.name as status_name, country.id as country_id, city.id  as city_id, " +\
-        "eve.profile_id as profile_id " + str_from
+    str_query = "Select tou.id, tou.name, start_date, inscription_import, city.name as city_name, " +\
+        "main_location, summary, image, tou.status_id, sta.name as status_name, country.id as country_id, city.id  as city_id, " +\
+        "tou.profile_id as profile_id " + str_from
     
     str_where = " WHERE sta.name != 'CANCELLED' "  
     
@@ -52,7 +52,7 @@ def get_all(request:Request, profile_id:str, page: int, per_page: int, criteria_
         str_where += "AND profile_id = '" + profile_id + "' "
     # debo incluir los de los perfiles que el sigue
     
-    dict_query = {'name': " AND eve.name ilike '%" + criteria_value + "%'",
+    dict_query = {'name': " AND tou.name ilike '%" + criteria_value + "%'",
                   'summary': " AND summary ilike '%" + criteria_value + "%'",
                   'city_name': " AND city_name ilike '%" + criteria_value + "%'",
                   'start_date': " AND start_date >= '%" + criteria_value + "%'",
@@ -169,10 +169,10 @@ def get_all_invitations_by_user(request, profile_id: str, status_name:str, db: S
     api_uri = str(settings.api_uri)
                                             
     str_query = "SELECT invitations.id, tourney.name as tourney_name, tourney.modality, tourney.start_date, " + \
-        "city.name as city_name, country.name country_name, tourney.image, events.profile_id " +\
+        "city.name as city_name, country.name country_name, tourney.image, tourney.profile_id " +\
         "FROM events.invitations " + \
         "inner join events.tourney ON tourney.id = invitations.tourney_id " + \
-        "left join resources.city ON city.id = events.city_id " +\
+        "left join resources.city ON city.id = tourney.city_id " +\
         "left join resources.country ON country.id = city.country_id " +\
         "WHERE events.invitations.profile_id = '" + profile_id + "' "
 
