@@ -546,6 +546,16 @@ def create_dict_row_single_player(item, page, db: Session, api_uri="", profile_t
     
     return dict_row
 
+def create_dict_row_federation_profile(item, db: Session, api_uri=""):
+    
+    dict_row = {'profile_id': item['profile_id'], 'name': item['name'], 
+               'city': item['city_id'], 'city_name': item['city_name'], 
+               'country_id': item['country_id'], 'country': item['country_name'], 
+               'photo' : get_url_avatar(item['profile_id'], item['photo'], api_uri=api_uri),
+               'federation_id': item['federation_id'], 'federation_name': item['federation_name']}
+    
+    return dict_row
+
 def get_one_single_profile(request: Request, id: str, db: Session): 
     
     result = ResultObject() 
@@ -918,13 +928,12 @@ def get_all_federated_profile(request:Request, page: int, per_page: int, criteri
     
     api_uri = str(settings.api_uri)
     
+    profile_id = '812e971f-aed4-4d7c-9c79-c158b6a05a58' if not profile_id else profile_id 
     # por el perfil, buscar a que federacion pertenece
     one_profile = get_one(profile_id, db=db)
     
     if not one_profile:
         raise HTTPException(status_code=404, detail=_(locale, "userprofile.not_found"))
-    
-    print('aqui')
     
     federation_id = None
     if one_profile.profile_type == 'EVENTADMON':
@@ -938,19 +947,21 @@ def get_all_federated_profile(request:Request, page: int, per_page: int, criteri
         raise HTTPException(status_code=404, detail=_(locale, "userprofile.not_found"))
     
     str_from = "FROM enterprise.profile_member pmem " +\
-        "JOIN enterprise.profile_single_player psin ON psin.profile_id = pmem.id " +\
+        "JOIN enterprise.profile_event_admon pa ON pa.profile_id = pmem.id " +\
+        "JOIN federations.federations fed ON fed.id = pa.federation_id " +\
         "left join resources.city city ON city.id = pmem.city_id " +\
-        "left join resources.country pa ON pa.id = city.country_id "
+        "left join resources.country co ON co.id = city.country_id "
     
     str_count = "Select count(*) " + str_from
     str_query = "Select pmem.id profile_id, pmem.name, photo, pmem.city_id, city.name city_name, city.country_id, " +\
-        "pa.name as country_name, psin.elo, psin.level " + str_from
+        "co.name as country_name, fed.name, fed.siglas " + str_from
     
     str_where = " WHERE pmem.is_active = True "  
-    
+
     str_search = ''
     if criteria_value:
-        str_search = "AND (pmem.name ilike '%" + criteria_value + "%' OR city_name ilike '%" + criteria_value + "%')"
+        str_search = "AND (pmem.name ilike '%" + criteria_value + "%' OR city_name ilike '%" + criteria_value +\
+            "%' OR )"
         str_where += str_search
         
     str_count += str_where
@@ -967,8 +978,7 @@ def get_all_federated_profile(request:Request, page: int, per_page: int, criteri
         str_query += "LIMIT " + str(per_page) + " OFFSET " + str(page*per_page-per_page)
      
     lst_data = db.execute(str_query)
-    print(str_query)
-    # result.data = [create_dict_row_single_player(item, page, db=db, api_uri=api_uri) for item in lst_data]
+    result.data = [create_dict_row_federation_profile(item, db=db, api_uri=api_uri) for item in lst_data]
     return result
 
 #endregion        
