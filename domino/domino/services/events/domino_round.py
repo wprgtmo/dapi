@@ -200,6 +200,22 @@ def get_str_to_order(db_round):
     
     return str_order_by
 
+def get_lst_player_orderend(tourney_id: str, round_id: str):
+    
+    str_list_player = "Select puse.player_id, rsca.elo, rsca.elo_variable, rsca.acumulated_games_played, " +\
+        "rsca.acumulated_games_won, rsca.acumulated_games_lost, rsca.acumulated_points_positive, rsca.acumulated_points_negative, " +\
+        "rsca.acumulated_penalty_points, rsca.acumulated_bonus_points, rsca.acumulated_score_expected, rsca.acumulated_score_obtained, " +\
+        "rsca.acumulated_elo_at_end, rsca.acumulated_elo_variable, puse.category_id, rsca.k_value  " +\
+        "from events.players_users puse JOIN events.players play ON play.id = puse.player_id " +\
+        "join resources.entities_status sta ON sta.id = play.status_id " +\
+        "left join events.domino_rounds_scale rsca ON rsca.player_id = puse.player_id " +\
+        "LEFT JOIN events.domino_categories cat ON cat.id = puse.category_id " +\
+        "where play.tourney_id = '" + tourney_id + "' " +\
+        "and rsca.round_id = '" + round_id + "' " +\
+        "and sta.name IN ('CONFIRMED', 'PLAYING', 'WAITING') "
+    
+    return list
+
 def configure_next_rounds(db_round, db:Session):
  
     round_number = db_round.round_number + 1
