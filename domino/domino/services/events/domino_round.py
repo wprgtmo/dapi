@@ -180,12 +180,12 @@ def get_str_to_order(db_round):
     #               'PF': 'points_positive ',
     #               'ELO': 'elo_variable '}
     
-    dict_order = {'JG': 'acumulated_games_won ',
-                  'ERA': 'elo_ra ',
-                  'DP': 'acumulated_points_positive-acumulated_points_negative ',
-                  'JJ': 'acumulated_games_played ',
-                  'PF': 'acumulated_points_positive ',
-                  'ELO': 'acumulated_elo_variable '}
+    dict_order = {'JG': 'rsca.acumulated_games_won ',
+                  'ERA': 'rsca.elo_ra ',
+                  'DP': 'rsca.acumulated_points_positive-rsca.acumulated_points_negative ',
+                  'JJ': 'rsca.acumulated_games_played ',
+                  'PF': 'rsca.acumulated_points_positive ',
+                  'ELO': 'rsca.acumulated_elo_variable '}
     
     str_order_by = " ORDER BY cat.position_number ASC, " if db_round.use_segmentation else " ORDER BY " 
     
@@ -216,7 +216,7 @@ def configure_next_rounds(db_round, db:Session):
     str_list_player = "Select puse.player_id, rsca.elo, rsca.elo_variable, rsca.acumulated_games_played, " +\
         "rsca.acumulated_games_won, rsca.acumulated_games_lost, rsca.acumulated_points_positive, rsca.acumulated_points_negative, " +\
         "rsca.acumulated_penalty_points, rsca.acumulated_bonus_points, rsca.acumulated_score_expected, rsca.acumulated_score_obtained, " +\
-        "rsca.acumulated_elo_at_end, rsca.acumulated_elo_variable, puse.category_id, k_value  " +\
+        "rsca.acumulated_elo_at_end, rsca.acumulated_elo_variable, puse.category_id, rsca.k_value  " +\
         "from events.players_users puse JOIN events.players play ON play.id = puse.player_id " +\
         "join resources.entities_status sta ON sta.id = play.status_id " +\
         "left join events.domino_rounds_scale rsca ON rsca.player_id = puse.player_id " +\
@@ -234,65 +234,22 @@ def configure_next_rounds(db_round, db:Session):
     for item_pos in lst_player_to_order:
         
         # id, tourney_id, round_id, round_number, position_number, player_id, elo, elo_variable, games_played, games_won, games_lost, points_positive, points_negative, points_difference, is_active, category_id, score_expected, score_obtained, acumulated_games_played, k_value, elo_at_end, bonus_points, elo_ra, penalty_points, acumulated_games_won, acumulated_games_lost, acumulated_points_positive, acumulated_points_negative, acumulated_penalty_points, acumulated_bonus_points, acumulated_score_expected, acumulated_score_obtained, acumulated_elo_at_end, acumulated_elo_variable, position_number_at_end
-        # , acumulated_games_lost, acumulated_points_positive, acumulated_points_negative, acumulated_penalty_points, acumulated_bonus_points, acumulated_score_expected, acumulated_score_obtained, acumulated_elo_at_end, acumulated_elo_variable, position_number_at_end
-	
-        pass
-        # one_scale = DominoRoundsScale(
-        #     id=str(uuid.uuid4()), tourney_id=db_round.tourney.id, round_id=db_round_next.id, round_number=db_round_next.round_number, 
-        #     position_number=int(position_number), player_id=item_pos.player_id, is_active=True, category_id=item_pos.category_id,
-        #     elo=item_pos.elo, elo_variable=float(0.00), games_played=float(0.00), games_won=float(0.00), 
-        #     games_lost=float(0.00), points_positive=float(0.00), points_negative=float(0.00), points_difference=float(0.00), 
-        #     score_expected=float(0.00), score_obtained=float(0.00), acumulated_games_played=item_pos.acumulated_games_played,
-        #     k_value=item_pos.k_value, elo_at_end=float(0.00), bonus_points=float(0.00), penalty_points=float(0.00),
-        #     elo_ra=item_pos.elo_variable, acumulated_games_won=item_pos.acumulated_games_won,
-        #     acumulated_games_played=item_pos.acumulated_games_played, acumulated_games_played=item_pos.acumulated_games_played,
-        #     acumulated_games_played=item_pos.acumulated_games_played, acumulated_games_played=item_pos.acumulated_games_played,
-        #     acumulated_games_played=item_pos.acumulated_games_played, acumulated_games_played=item_pos.acumulated_games_played,
-        #     acumulated_games_played=item_pos.acumulated_games_played, acumulated_games_played=item_pos.acumulated_games_played,)
+        one_scale = DominoRoundsScale(
+            id=str(uuid.uuid4()), tourney_id=db_round.tourney.id, round_id=db_round_next.id, round_number=db_round_next.round_number, 
+            position_number=int(position_number), player_id=item_pos.player_id, is_active=True, category_id=item_pos.category_id,
+            elo=item_pos.elo, elo_variable=float(0.00), games_played=float(0.00), games_won=float(0.00), 
+            games_lost=float(0.00), points_positive=float(0.00), points_negative=float(0.00), points_difference=float(0.00), 
+            score_expected=float(0.00), score_obtained=float(0.00), acumulated_games_played=item_pos.acumulated_games_played,
+            k_value=item_pos.k_value, elo_at_end=float(0.00), bonus_points=float(0.00), penalty_points=float(0.00),
+            elo_ra=item_pos.elo_variable, acumulated_games_won=item_pos.acumulated_games_won,
+            acumulated_games_lost=item_pos.acumulated_games_lost, acumulated_points_positive=item_pos.acumulated_points_positive,
+            acumulated_points_negative=item_pos.acumulated_points_negative, acumulated_penalty_points=item_pos.acumulated_penalty_points,
+            acumulated_bonus_points=item_pos.acumulated_bonus_points, acumulated_score_expected=item_pos.acumulated_score_expected,
+            acumulated_score_obtained=item_pos.acumulated_score_obtained, acumulated_elo_at_end=item_pos.acumulated_elo_at_end,
+            acumulated_elo_variable=item_pos.acumulated_elo_variable, position_number_at_end=0)
         
-        # db.add(one_scale)
-        # position_number += 1
-        
-        # new_record = create_new_record(item_pos, position_number)
-        # lst_player_to_order.append(new_record)
-        # dict_play[position_number] = new_record
-        
-        # num_table = divmod(int(position_number + 1),4)
-        # if num_table[0] > amount_tables:
-        #     if new_record['status_name'] == 'WAITING':
-        #         lst_play_waiting.append(new_record)
-        # else:
-        #     if num_table[0] == amount_tables and num_table[1] != 0:
-        #         if new_record['status_name'] == 'WAITING':
-        #             lst_play_waiting.append(new_record)
-                
-        # position_number += 1
-    
-    # if amount_player_waiting != 0:  # coinciden mesas y jugadores, es solo ordernar.
-        
-    #     last_position_play = position_number -1 
-    #     for item_waiting in lst_play_waiting:
-    #         for item_play in dict_play:
-    #             if dict_play[last_position_play]['status_name'] == 'PLAYING':
-    #                 lst_player_to_order[last_position_play], lst_player_to_order[item_waiting['position_number']] = lst_player_to_order[item_waiting['position_number']], lst_player_to_order[last_position_play]
-    #                 last_position_play -= 1
-    #                 break
-    #             else:
-    #                 last_position_play -= 1
-        
-    # recorrer la nueva lista y ponerla ya en la escala
-    # position_number = 1
-    # for item_scala in lst_player_to_order:
-    #     one_scale = DominoRoundsScale(
-    #         id=str(uuid.uuid4()), tourney_id=db_round.tourney.id, round_id=db_round_next.id, round_number=db_round_next.round_number, 
-    #         position_number=int(position_number), player_id=item_scala['player_id'], is_active=True, category_id=item_scala['category_id'],
-    #         elo=item_scala['elo'], elo_variable=item_scala['elo_current'], games_played=item_scala['games_played'], 
-    #         games_won=0, games_lost=0, points_positive=0, points_negative=0, points_difference=0, score_expected=0, score_obtained=0,
-    #         acumulated_games_played=item_scala['games_played'], k_value=item_scala['k_value'], 
-    #         elo_at_end=0, bonus_points=item_scala['bonus_points'])
-        
-    #     db.add(one_scale)
-    #     position_number += 1
+        db.add(one_scale)
+        position_number += 1
     
     try:
         db.add(db_round_next)

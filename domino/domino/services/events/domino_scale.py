@@ -1388,7 +1388,7 @@ def calculate_position_at_end(db_round, db:Session):
     
     str_order = get_str_to_order_round(db_round)
     
-    str_query_position = "Select player_id From events.domino_rounds_scale where round_id = '" + db_round.id + "' " + str_order
+    str_query_position = "Select player_id From events.domino_rounds_scale rsca where round_id = '" + db_round.id + "' " + str_order
     lst_res_pos = db.execute(str_query_position) 
     position_number = 1
     str_update=""
