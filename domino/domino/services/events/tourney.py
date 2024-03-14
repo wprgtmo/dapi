@@ -173,7 +173,7 @@ def new(request, profile_id: str, tourney: TourneyCreated, image: File, db: Sess
                          start_date=tourney['startDate'], status_id=one_status.id, created_by=currentUser['username'], 
                          game_system='SUIZO', amount_rounds=tourney['number_rounds'], updated_by=currentUser['username'], 
                          profile_id=one_profile.id, federation_id=one_profile.profile_event_admon[0].federation_id,
-                         constant_increase_elo=K1, main_location=tourney['main_location'], inscription_import=tourney.inscription_import,
+                         constant_increase_elo=K1, main_location=tourney['main_location'], inscription_import=tourney['inscription_import'],
                          city_id=tourney['city_id'])
     db.add(db_tourney)
     
@@ -191,14 +191,13 @@ def new(request, profile_id: str, tourney: TourneyCreated, image: File, db: Sess
         image_domino="public/smartdomino.png"
         image_destiny = path_tourney + "smartdomino.png"
         copy_image(image_domino, image_destiny)
-        image_name = image.filename
+        image_name = "smartdomino.png"
        
     db_tourney.image = image_name
         
     try:
         
         db.commit()
-        result.data = {'tourney_id': str(id)}
         return result
        
     except (Exception, SQLAlchemyError, IntegrityError) as e:
