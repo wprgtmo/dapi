@@ -21,13 +21,13 @@ from domino.schemas.resources.result_object import ResultObject, ResultData
 from domino.services.resources.status import get_one_by_name as get_one_status_by_name, get_one as get_one_status
 
 from domino.services.resources.utils import get_result_count
-# from domino.services.events.event import get_one as get_one_event, get_all as get_all_event
 from domino.services.events.domino_table import created_one_domino_tables
 
 from domino.services.resources.utils import get_result_count, upfile, create_dir, del_image, get_ext_at_file, remove_dir, copy_image, del_image
 from domino.services.enterprise.userprofile import get_one as get_one_profile
 
-from domino.services.enterprise.auth import get_url_advertising
+from domino.services.enterprise.auth import get_url_advertising, get_url_avatar
+from domino.services.events.calculation_serv import format_number
             
 def get_all(request:Request, page: int, per_page: int, profile_id: str, criteria_value: str, db: Session):  
     locale = request.headers["accept-language"].split(",")[0].split("-")[0];
@@ -326,6 +326,8 @@ def close_one_tourney(request: Request, tourney_id: str, db: Session):
     str_delete = "Update events.domino_rounds SET status_id = 3 " + \
         "Where tourney_id = '" + db_tourney.id + "' and (status_id = 10 or status_id = 1); COMMIT;"
     db.execute(str_delete)
+    
+    # calcular al final
     
     try:
         db.add(db_tourney)
@@ -904,12 +906,19 @@ def get_one_domino_category(category_id: str, db: Session):
 def get_str_to_order(db_tourney):
     
     str_order_by = "" 
-    dict_order = {'JG': 'games_won ',
-                  'ERA': 'elo_ra ',
-                  'DP': 'points_difference ',
-                  'JJ': 'games_played ',
-                  'PF': 'points_positive ',
-                  'ELO': 'elo_at_end '}
+    # dict_order = {'JG': 'games_won ',
+    #               'ERA': 'elo_ra ',
+    #               'DP': 'points_difference ',
+    #               'JJ': 'games_played ',
+    #               'PF': 'points_positive ',
+    #               'ELO': 'elo_at_end '}
+    
+    dict_order = {'JG': 'rsca.acumulated_games_won ',
+                  'ERA': 'rsca.elo_ra ',
+                  'DP': 'rsca.acumulated_points_positive-rsca.acumulated_points_negative ',
+                  'JJ': 'rsca.acumulated_games_played ',
+                  'PF': 'rsca.acumulated_points_positive ',
+                  'ELO': 'rsca.acumulated_elo_variable '}
     
     # En el evento no tengo en cuenta la
     # str_order_by = " ORDER BY category_number ASC, " if db_tourney.use_segmentation else " ORDER BY " 
@@ -996,3 +1005,65 @@ def get_factor_scale():
     K1 = 16 # por ahora será fijo en 4 hasta que me digan bien la formula
     
     return K1
+
+def get_all_accumulated_scale_by_tourney(request:Request, page: int, per_page: int, tourney_id: str, db: Session):  
+    
+    locale = request.headers["accept-language"].split(",")[0].split("-")[0];
+    
+    api_uri = str(settings.api_uri)
+    
+    str_from = "FROM events.players_users rsca " +\
+        "JOIN events.players players ON players.id = rsca.player_id " +\
+        "JOIN enterprise.profile_member mmb ON players.profile_id = mmb.id " 
+        
+    str_count = "Select count(*) " + str_from
+    str_query = "SELECT players.id player_id, mmb.id profile_id, mmb.name profile_name, mmb.photo, rsca.games_played, " +\
+        "rsca.elo, rsca.elo_current, rsca.penalty_total penalty_points, rsca.games_won,  rsca.games_lost, points_difference, " +\
+        "rsca.points_positive, rsca.points_negative, rsca.score_expected, score_obtained, k_value, elo_at_end, " +\
+        "bonus_points, position_number_at_end " + str_from
+    
+    str_where = "WHERE players.tourney_id = '" + tourney_id + "' "
+    
+    str_count += str_where
+    str_query += str_where + " ORDER BY position_number_at_end "
+
+    if page and page > 0 and not per_page:
+        raise HTTPException(status_code=404, detail=_(locale, "commun.invalid_param"))
+    
+    result = get_result_count(page=page, per_page=per_page, str_count=str_count, db=db)
+    
+    if page != 0:
+        str_query += " LIMIT " + str(per_page) + " OFFSET " + str(page*per_page-per_page)
+    
+    lst_data = db.execute(str_query)
+    
+    result.data = []
+    for item in lst_data:
+        result.data.append(create_dict_row_scale_acum(item, api_uri=api_uri))
+    
+    return result
+    
+def create_dict_row_scale_acum(item, api_uri):
+    
+    photo = get_url_avatar(item['profile_id'], item['photo'], api_uri=api_uri)
+    
+    new_row = {'id': item['player_id'], 'name': item['profile_name'], 
+               'position_number': item.position_number_at_end,
+               'photo' : photo, 'elo': format_number(round(item['elo'],2)) if item['elo'] else 0, 
+               'elo_variable': format_number(round(item['elo_current'],2)) if item['elo_current'] else 0,
+               'elo_at_end': format_number(round(item['elo_at_end'],2)),   
+               'games_played': item['games_played'], 
+               'games_won': item['games_won'] if item['games_won'] else 0,
+               'games_lost': item['games_lost'] if item['games_lost'] else 0, 
+               'points_positive': item['points_positive'] if item['points_positive'] else 0,
+               'points_negative': item['points_negative'] if item['points_negative'] else 0, 
+               'points_difference': item['points_difference'],
+               'penalty_points': item['penalty_points'] if item['penalty_points']  else 0,
+               'penalty_total': item['penalty_points'] if item['penalty_points']  else 0,
+               'score_expected': format_number(round(item['score_expected'],2)) if item['score_expected'] else 0,
+               'score_obtained': format_number(round(item['score_obtained'],2)) if item['score_obtained'] else 0,
+               'k_value': format_number(round(item['k_value'],2)) if item['k_value'] else 0,
+               'elo_at_end': format_number(round(item['elo_at_end'],2)) if item['elo_at_end'] else 0,
+               'bonus_points': 0}
+    
+    return new_row

@@ -79,6 +79,7 @@ class PlayersUser(Base):
     penalty_total = Column(Integer)
     
     bonus_points = Column(Float)
+    position_number_at_end = Column(Integer)
     
     player = relationship("Players", back_populates="users")
     

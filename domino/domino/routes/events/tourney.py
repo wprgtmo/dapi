@@ -10,7 +10,7 @@ from domino.schemas.resources.result_object import ResultObject
 
 from domino.services.events.domino_table import get_all as get_all_tables_for_tourney
 from domino.services.events.tourney import get_all, new, get_one_by_id, delete, update, \
-    get_amount_tables, update_image_tourney, close_one_tourney
+    get_amount_tables, update_image_tourney, close_one_tourney, get_all_accumulated_scale_by_tourney
     
 from domino.services.events.player import created_all_players
   
@@ -79,17 +79,12 @@ def amount_tables(request:Request, id: str, db: Session = Depends(get_db)):
 def confirm_player_to_tourney(request:Request, id: str, db: Session = Depends(get_db)):
     return created_all_players(request=request, tourney_id=str(id), db=db)
 
-# @tourney_route.post("/tourney/setting/{profile_id}", response_model=ResultObject, summary="Configure Tourney..")
-# def configure_tourney(request:Request, profile_id: str, id: str, lst_categories: List[DominoCategoryCreated]=[], 
-#                       settingtourney: SettingTourneyCreated = Depends(), 
-#                       image: UploadFile = None, db: Session = Depends(get_db)):
-#     return configure_one_tourney(request=request, profile_id=profile_id, tourney_id=id, lst_categories=lst_categories,
-#                                  settingtourney=settingtourney.dict(), file=image, db=db)
-    
-    
-# @tourney_route.post("/tourney/setting/{profile_id}", response_model=ResultObject, summary="Configure Tourney..")
-# def configure_tourney(request:Request, profile_id: str, id: str, lst_categories: List[DominoCategoryCreated],
-#                       settingtourney: SettingTourneyCreated = Depends(), 
-#                       image: UploadFile = None, db: Session = Depends(get_db)):
-#     return configure_one_tourney(request=request, profile_id=profile_id, tourney_id=id, lst_categories=lst_categories,
-#                                  settingtourney=settingtourney.dict(), file=image, db=db)
+@tourney_route.get("/tourney/accumulated/{id}", response_model=Dict, summary="Obtain Accumulated Player ranking list")
+def get_accumulated_scale_by_tourney(
+    request: Request,
+    id: str,
+    page: int = 1, 
+    per_page: int = 6, 
+    db: Session = Depends(get_db)
+):
+    return get_all_accumulated_scale_by_tourney(request=request, page=page, per_page=per_page, tourney_id=id, db=db)

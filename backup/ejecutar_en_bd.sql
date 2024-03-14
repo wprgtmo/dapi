@@ -1,4 +1,10 @@
 
+ALTER TABLE IF EXISTS events.players_users
+ADD COLUMN position_number_at_end integer;
+
+*******
+
+
 ALTER TABLE IF EXISTS events.tourney DROP CONSTRAINT IF EXISTS tourney_event_id_fkey;
 ALTER TABLE IF EXISTS events.tourney DROP COLUMN IF EXISTS event_id;
 
