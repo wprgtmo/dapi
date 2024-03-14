@@ -114,20 +114,21 @@ def get_one_by_id(request, federation_id: str, db: Session):
      
     return result
 
-def get_city_at_federation(request, federation_id: str, db: Session): 
+def get_city_at_federation(request, profile_id: str, db: Session): 
     locale = request.headers["accept-language"].split(",")[0].split("-")[0];
     
+    str_query = "Select city.id, city.name from enterprise.profile_event_admon pev " +\
+        "join federations.federations fed ON fed.id = pev.federation_id " +\
+        "join resources.country country ON country.id = fed.country_id " +\
+        "JOIN resources.city city ON city.country_id = country.id " +\
+        "where fed.is_active = True and pev.profile_id = '" + profile_id + "' order by name " 
+
     result = ResultObject() 
-    one_federation = get_one(federation_id=federation_id, db=db)
-    if not one_federation:
-        raise HTTPException(status_code=404, detail=_(locale, "federation.not_found"))
+    lst_data = db.execute(str_query)
     
     result.data = []
-    lst_city = get_list_by_country_id(one_federation.country_id, db=db)
-    if lst_city:
-        for item in lst_city:
-            result.data.append({'id': item.id, 'name': item.name})
-    
+    for item in lst_data:
+        result.data.append({'id': item.id, 'name': item.name})
     return result
     
 def get_one_by_name(name: str, db: Session):  

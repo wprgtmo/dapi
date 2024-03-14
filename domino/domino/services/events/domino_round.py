@@ -211,6 +211,117 @@ def configure_next_rounds(db_round, db:Session):
         close_date=datetime.now(), created_by=db_round.updated_by, updated_by=db_round.updated_by, created_date=datetime.now(), 
         updated_date=datetime.now(), status_id=status_config.id, is_first=False, is_last=False)
     
+    reconfig_amount_tables(db_round.tourney, db=db)
+    
+    str_list_player = "Select puse.player_id, rsca.elo, rsca.elo_variable, rsca.acumulated_games_played, " +\
+        "rsca.acumulated_games_won, rsca.acumulated_games_lost, rsca.acumulated_points_positive, rsca.acumulated_points_negative, " +\
+        "rsca.acumulated_penalty_points, rsca.acumulated_bonus_points, rsca.acumulated_score_expected, rsca.acumulated_score_obtained, " +\
+        "rsca.acumulated_elo_at_end, rsca.acumulated_elo_variable, puse.category_id, k_value  " +\
+        "from events.players_users puse JOIN events.players play ON play.id = puse.player_id " +\
+        "join resources.entities_status sta ON sta.id = play.status_id " +\
+        "left join events.domino_rounds_scale rsca ON rsca.player_id = puse.player_id " +\
+        "LEFT JOIN events.domino_categories cat ON cat.id = puse.category_id " +\
+        "where play.tourney_id = '" + db_round.tourney.id + "' " +\
+        "and rsca.round_id = '" + db_round.id + "' " +\
+        "and sta.name IN ('CONFIRMED', 'PLAYING', 'WAITING') "
+    
+    str_list_player += get_str_to_order(db_round)
+    lst_player_to_order = db.execute(str_list_player).fetchall()
+    
+    # lst_player_to_order, dict_play, position_number = [], {}, 0
+    
+    position_number = 1 
+    for item_pos in lst_player_to_order:
+        
+        # id, tourney_id, round_id, round_number, position_number, player_id, elo, elo_variable, games_played, games_won, games_lost, points_positive, points_negative, points_difference, is_active, category_id, score_expected, score_obtained, acumulated_games_played, k_value, elo_at_end, bonus_points, elo_ra, penalty_points, acumulated_games_won, acumulated_games_lost, acumulated_points_positive, acumulated_points_negative, acumulated_penalty_points, acumulated_bonus_points, acumulated_score_expected, acumulated_score_obtained, acumulated_elo_at_end, acumulated_elo_variable, position_number_at_end
+        # , acumulated_games_lost, acumulated_points_positive, acumulated_points_negative, acumulated_penalty_points, acumulated_bonus_points, acumulated_score_expected, acumulated_score_obtained, acumulated_elo_at_end, acumulated_elo_variable, position_number_at_end
+	
+        pass
+        # one_scale = DominoRoundsScale(
+        #     id=str(uuid.uuid4()), tourney_id=db_round.tourney.id, round_id=db_round_next.id, round_number=db_round_next.round_number, 
+        #     position_number=int(position_number), player_id=item_pos.player_id, is_active=True, category_id=item_pos.category_id,
+        #     elo=item_pos.elo, elo_variable=float(0.00), games_played=float(0.00), games_won=float(0.00), 
+        #     games_lost=float(0.00), points_positive=float(0.00), points_negative=float(0.00), points_difference=float(0.00), 
+        #     score_expected=float(0.00), score_obtained=float(0.00), acumulated_games_played=item_pos.acumulated_games_played,
+        #     k_value=item_pos.k_value, elo_at_end=float(0.00), bonus_points=float(0.00), penalty_points=float(0.00),
+        #     elo_ra=item_pos.elo_variable, acumulated_games_won=item_pos.acumulated_games_won,
+        #     acumulated_games_played=item_pos.acumulated_games_played, acumulated_games_played=item_pos.acumulated_games_played,
+        #     acumulated_games_played=item_pos.acumulated_games_played, acumulated_games_played=item_pos.acumulated_games_played,
+        #     acumulated_games_played=item_pos.acumulated_games_played, acumulated_games_played=item_pos.acumulated_games_played,
+        #     acumulated_games_played=item_pos.acumulated_games_played, acumulated_games_played=item_pos.acumulated_games_played,)
+        
+        # db.add(one_scale)
+        # position_number += 1
+        
+        # new_record = create_new_record(item_pos, position_number)
+        # lst_player_to_order.append(new_record)
+        # dict_play[position_number] = new_record
+        
+        # num_table = divmod(int(position_number + 1),4)
+        # if num_table[0] > amount_tables:
+        #     if new_record['status_name'] == 'WAITING':
+        #         lst_play_waiting.append(new_record)
+        # else:
+        #     if num_table[0] == amount_tables and num_table[1] != 0:
+        #         if new_record['status_name'] == 'WAITING':
+        #             lst_play_waiting.append(new_record)
+                
+        # position_number += 1
+    
+    # if amount_player_waiting != 0:  # coinciden mesas y jugadores, es solo ordernar.
+        
+    #     last_position_play = position_number -1 
+    #     for item_waiting in lst_play_waiting:
+    #         for item_play in dict_play:
+    #             if dict_play[last_position_play]['status_name'] == 'PLAYING':
+    #                 lst_player_to_order[last_position_play], lst_player_to_order[item_waiting['position_number']] = lst_player_to_order[item_waiting['position_number']], lst_player_to_order[last_position_play]
+    #                 last_position_play -= 1
+    #                 break
+    #             else:
+    #                 last_position_play -= 1
+        
+    # recorrer la nueva lista y ponerla ya en la escala
+    # position_number = 1
+    # for item_scala in lst_player_to_order:
+    #     one_scale = DominoRoundsScale(
+    #         id=str(uuid.uuid4()), tourney_id=db_round.tourney.id, round_id=db_round_next.id, round_number=db_round_next.round_number, 
+    #         position_number=int(position_number), player_id=item_scala['player_id'], is_active=True, category_id=item_scala['category_id'],
+    #         elo=item_scala['elo'], elo_variable=item_scala['elo_current'], games_played=item_scala['games_played'], 
+    #         games_won=0, games_lost=0, points_positive=0, points_negative=0, points_difference=0, score_expected=0, score_obtained=0,
+    #         acumulated_games_played=item_scala['games_played'], k_value=item_scala['k_value'], 
+    #         elo_at_end=0, bonus_points=item_scala['bonus_points'])
+        
+    #     db.add(one_scale)
+    #     position_number += 1
+    
+    try:
+        db.add(db_round_next)
+        db.commit()
+        return db_round_next
+    except (Exception, SQLAlchemyError, IntegrityError) as e:
+        return None
+
+def create_new_record(item, position_number):
+    return {'position_number': position_number, 'player_id': item.player_id, 'profile_id': item.profile_id,
+            'level': item.level, 'elo': item.elo, 'elo_current': item.elo_current, 'elo_at_end': item.elo_at_end,
+            'games_played': item.games_played, 'games_won': item.games_won, 'games_lost': item.games_lost, 
+            'points_positive': item.points_positive, 'points_negative': item.points_negative, 
+            'points_difference': item.points_difference, 'score_expected': item.score_expected, 
+            'score_obtained': item.score_obtained, 'k_value': item.k_value, 'penalty_yellow': item.penalty_yellow,
+            'penalty_red': item.penalty_red, 'penalty_total': item.penalty_total, 'bonus_points': item.bonus_points,
+            'status_name': item.status_name, 'category_id': item.category_id}
+
+def configure_next_rounds_with_palyer_waiting(db_round, db:Session):
+ 
+    round_number = db_round.round_number + 1
+    summary = 'Ronda Nro. ' + str(round_number)
+    
+    status_config = get_one_status_by_name('CONFIGURATED', db=db)
+    db_round_next = DominoRounds(
+        id=str(uuid.uuid4()), tourney_id=db_round.tourney_id, round_number=round_number, summary=summary, start_date=datetime.now(), 
+        close_date=datetime.now(), created_by=db_round.updated_by, updated_by=db_round.updated_by, created_date=datetime.now(), 
+        updated_date=datetime.now(), status_id=status_config.id, is_first=False, is_last=False)
+    
     # calcular en base a los jugadores la cantidad de mesas que necesito y crearlas
     amount_tables, amount_player_waiting = reconfig_amount_tables(db_round.tourney, db=db)
     
@@ -219,27 +330,24 @@ def configure_next_rounds(db_round, db:Session):
     #     "join events.players play ON play.id = puse.player_id join resources.entities_status sta ON sta.id = play.status_id " +\
     #     "JOIN events.domino_categories cat ON cat.id = puse.category_id " +\
     #     "Where sta.name IN ('CONFIRMED', 'PLAYING', 'WAITING') and play.tourney_id = '" + db_round.tourney.id + "' " 
-        
-    str_list_player = "Select sca.*, sta.name as status_name, category_id from events.players_users puse " +\
-        "join events.players play ON play.id = puse.player_id join resources.entities_status sta ON sta.id = play.status_id " +\
-        "JOIN events.domino_categories cat ON cat.id = puse.category_id " +\
-        "Where sta.name IN ('CONFIRMED', 'PLAYING', 'WAITING') and play.tourney_id = '" + db_round.tourney.id + "' " 
     
-    # SELECT play.status_id, puse.player_id, rsca.position_number_at_end,
-# rsca.acumulated_games_won, rsca.acumulated_penalty_points - rsca.acumulated_points_negative - rsca.acumulated_penalty_points dfee_point,
-# acumulated_elo_variable,
-# rsca.acumulated_penalty_points, rsca.acumulated_points_negative, rsca.acumulated_penalty_points,acumulated_elo_variable
-# FROM events.players_users puse
-# JOIN events.players play ON play.id = puse.player_id
-# left join events.domino_rounds_scale rsca ON rsca.player_id = puse.player_id where rsca.round_id = '360a1c60-631a-4b92-bdf6-a98261ed0034'
-# order by rsca.acumulated_games_won DESC, (rsca.acumulated_penalty_points - rsca.acumulated_points_negative - rsca.acumulated_penalty_points) DESC,
-# acumulated_elo_variable DESC
+    str_list_player = "Select puse.player_id, rsca.elo, rsca.elo_variable, rsca.acumulated_games_played, " +\
+        "rsca.acumulated_games_won, rsca.acumulated_games_lost, rsca.acumulated_points_positive, rsca.acumulated_points_negative, " +\
+        "rsca.acumulated_penalty_points, rsca.acumulated_bonus_points, rsca.acumulated_score_expected, rsca.acumulated_score_obtained, " +\
+        "rsca.acumulated_elo_at_end, rsca.acumulated_elo_variable " +\
+        "from events.players_users puse JOIN events.players play ON play.id = puse.player_id " +\
+        "join resources.entities_status sta ON sta.id = play.status_id " +\
+        "left join events.domino_rounds_scale rsca ON rsca.player_id = puse.player_id " +\
+        "LEFT JOIN events.domino_categories cat ON cat.id = puse.category_id " +\
+        "where play.tourney_id = '" + db_round.tourney.id + "' " +\
+        "and rsca.round_id = '" + db_round.id + "' " +\
+        "and sta.name IN ('CONFIRMED', 'PLAYING', 'WAITING') "
     
     str_order_by = get_str_to_order(db_round)
     str_list_player += str_order_by
     lst_all_player_to_order = db.execute(str_list_player).fetchall()
     
-    lst_player_to_order, dict_play, position_number, lst_play_waiting =  [], {}, 0, []
+    lst_player_to_order, dict_play, position_number = [], {}, 0
     
     for item_pos in lst_all_player_to_order:
         
@@ -290,17 +398,7 @@ def configure_next_rounds(db_round, db:Session):
         return db_round_next
     except (Exception, SQLAlchemyError, IntegrityError) as e:
         return None
-
-def create_new_record(item, position_number):
-    return {'position_number': position_number, 'player_id': item.player_id, 'profile_id': item.profile_id,
-            'level': item.level, 'elo': item.elo, 'elo_current': item.elo_current, 'elo_at_end': item.elo_at_end,
-            'games_played': item.games_played, 'games_won': item.games_won, 'games_lost': item.games_lost, 
-            'points_positive': item.points_positive, 'points_negative': item.points_negative, 
-            'points_difference': item.points_difference, 'score_expected': item.score_expected, 
-            'score_obtained': item.score_obtained, 'k_value': item.k_value, 'penalty_yellow': item.penalty_yellow,
-            'penalty_red': item.penalty_red, 'penalty_total': item.penalty_total, 'bonus_points': item.bonus_points,
-            'status_name': item.status_name, 'category_id': item.category_id}
-    
+        
 def configure_new_rounds(tourney_id, summary:str, db:Session, created_by:str, round_number=''):
  
     if round_number:
