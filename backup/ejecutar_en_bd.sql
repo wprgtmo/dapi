@@ -23,3 +23,5 @@ ALTER TABLE IF EXISTS events.tourney
     ON DELETE NO ACTION
     NOT VALID;
 
+ALTER TABLE IF EXISTS events.tourney
+ADD COLUMN inscription_import double precision;
