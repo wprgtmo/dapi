@@ -482,36 +482,45 @@ def get_all_single_profile(request:Request, profile_id: str, page: int, per_page
     result.data = [create_dict_row_single_player(item, page, db=db, api_uri=api_uri) for item in lst_data]
     return result
 
-def get_all_eventadmon_profile(request:Request, profile_id: str, page: int, per_page: int, criteria_key: str, criteria_value: str, db: Session):  
+def get_all_eventadmon_profile(request:Request, profile_id: str, page: int, per_page: int, criteria_value: str, db: Session):  
     locale = request.headers["accept-language"].split(",")[0].split("-")[0];
     
     api_uri = str(settings.api_uri)
     
+    one_profile = get_one(profile_id, db=db)
+    if not one_profile:
+        raise HTTPException(status_code=404, detail=_(locale, "userprofile.not_found"))
+    
+    if one_profile.profile_type != 'EVENTADMON':
+        raise HTTPException(status_code=404, detail=_(locale, "userprofile.profile_incorrect"))
+    
+    federation_id = one_profile.profile_event_admon[0].federation_id if one_profile.profile_event_admon else None
+    if not federation_id:
+        raise HTTPException(status_code=404, detail=_(locale, "userprofile.not_found"))
+    
     str_from = "FROM enterprise.profile_member pmem " +\
-        "JOIN enterprise.profile_event_admon pevent ON pevent.profile_id = pmem.id " +\
+        "JOIN enterprise.profile_event_admon pa ON pa.profile_id = pmem.id " +\
+        "JOIN federations.federations fed ON fed.id = pa.federation_id " +\
         "left join resources.city city ON city.id = pmem.city_id " +\
-        "left join resources.country pa ON pa.id = city.country_id "
+        "left join resources.country co ON co.id = city.country_id "
     
     str_count = "Select count(*) " + str_from
     str_query = "Select pmem.id profile_id, pmem.name, photo, pmem.city_id, city.name city_name, city.country_id, " +\
-        "pa.name as country_name " + str_from
+        "co.name as country_name, fed.name as federation_name, fed.siglas " + str_from
     
     str_where = " WHERE pmem.is_active = True "  
-    
-    dict_query = {'name': " AND pmem.name ilike '%" + criteria_value + "%'"
-                 }
-    
+
+    str_search = ''
+    if criteria_value:
+        str_search = "AND (pmem.name ilike '%" + criteria_value + "%' OR city.name ilike '%" + criteria_value +\
+            "%' OR fed.siglas ilike '%" + criteria_value + "%')"
+        str_where += str_search
+        
     str_count += str_where
     str_query += str_where
     
-    if criteria_key and criteria_key not in dict_query:
-        raise HTTPException(status_code=404, detail=_(locale, "commun.invalid_param"))
-    
     if page and page > 0 and not per_page:
         raise HTTPException(status_code=404, detail=_(locale, "commun.invalid_param"))
-    
-    str_count += dict_query[criteria_key] if criteria_value else "" 
-    str_query += dict_query[criteria_key] if criteria_value else "" 
     
     result = get_result_count(page=page, per_page=per_page, str_count=str_count, db=db)
     
@@ -521,9 +530,9 @@ def get_all_eventadmon_profile(request:Request, profile_id: str, page: int, per_
         str_query += "LIMIT " + str(per_page) + " OFFSET " + str(page*per_page-per_page)
      
     lst_data = db.execute(str_query)
-    result.data = [create_dict_row_single_player(item, page, db=db, api_uri=api_uri, profile_type='EVENTADMON_PROLILE') for item in lst_data]
-    
+    result.data = [create_dict_row_federation_profile(item, db=db, api_uri=api_uri) for item in lst_data]
     return result
+    
 
 def create_dict_row_single_player(item, page, db: Session, api_uri="", profile_type='SINGLE_PLAYER'):
     
@@ -548,8 +557,7 @@ def create_dict_row_federation_profile(item, db: Session, api_uri=""):
                'city': item['city_id'], 'city_name': item['city_name'], 
                'country_id': item['country_id'], 'country': item['country_name'], 
                'photo' : get_url_avatar(item['profile_id'], item['photo'], api_uri=api_uri),
-               'federation_id': item['federation_id'], 'federation_name': item['federation_name'],
-               'federation_siglas': item['siglas']}
+               'federation_name': item['federation_name'], 'federation_siglas': item['siglas']}
     
     return dict_row
 

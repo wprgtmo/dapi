@@ -51,8 +51,8 @@ def get_all(request:Request, page: int, per_page: int, profile_id: str, criteria
         str_where += "AND profile_id = '" + profile_id + "' "
         
     str_where += " AND (tou.name ilike '%" + criteria_value + "%' OR tou.modality ilike '%" +  criteria_value + "%'" +\
-        " OR tou.summary ilike '%" + criteria_value + "%' OR start_date >='%" + criteria_value + "%'" +\
-        " OR city.name ilike '%" + criteria_value + "%' OR main_location ilike '%" + criteria_value + "%') " if criteria_value else ''
+        " OR tou.summary ilike '%" + criteria_value + "%'  OR city.name ilike '%" + criteria_value + \
+        "%' OR main_location ilike '%" + criteria_value + "%') " if criteria_value else ''
     
     str_count += str_where
     str_query += str_where
