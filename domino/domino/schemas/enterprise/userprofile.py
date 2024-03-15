@@ -167,3 +167,14 @@ class EventAdmonProfileCreated(BaseModel):
     city_id: Optional[int]
     
     others_profile_id: Optional[str]
+    
+class GenericProfileCreated(BaseModel):
+    username: Optional[str]
+    first_name: Optional[str]
+    last_name: Optional[str]
+    
+    email: Optional[str]
+    phone: Optional[str]
+    
+    city_id: Optional[int]
+    
