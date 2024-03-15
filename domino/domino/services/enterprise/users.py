@@ -224,10 +224,11 @@ def new_from_register(email: str, username: str, first_name:str, last_name:str, 
     if amount_user > 0:
         raise HTTPException(status_code=404, detail=_(locale, "users.username_exist")) 
     
-    str_user = "SELECT count(username) FROM enterprise.users where email = '" + email + "' "
-    amount_user = db.execute(str_user).fetchone()[0]
-    if amount_user > 0:
-        raise HTTPException(status_code=404, detail=_(locale, "users.email_exist"))  
+    if email:
+        str_user = "SELECT count(username) FROM enterprise.users where email = '" + email + "' "
+        amount_user = db.execute(str_user).fetchone()[0]
+        if amount_user > 0:
+            raise HTTPException(status_code=404, detail=_(locale, "users.email_exist"))  
     
     id = str(uuid.uuid4())
     user_password = pwd_context.hash('Dom.1234*')  

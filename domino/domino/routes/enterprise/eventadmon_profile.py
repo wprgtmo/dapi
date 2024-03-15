@@ -4,11 +4,12 @@ from domino.app import get_db
 from starlette import status
 from domino.auth_bearer import JWTBearer
 
-from domino.schemas.enterprise.userprofile import EventAdmonProfileCreated
+from domino.schemas.enterprise.userprofile import EventAdmonProfileCreated, GenericProfileCreated
 from domino.schemas.resources.result_object import ResultObject, ResultData
 
 from domino.services.enterprise.userprofile import new_profile_event_admon, get_one_eventadmon_profile_by_id, \
-    update_one_event_admon_profile, delete_one_profile, get_all_eventadmon_profile
+    update_one_event_admon_profile, delete_one_profile, get_all_eventadmon_profile, new_generic_event_admon, \
+    update_generic_event_admon_profile, get_generic_eventadmon_profile_by_id
   
 eventadmonprofile_route = APIRouter(
     tags=["Profile"],
@@ -37,3 +38,17 @@ def delete_eventadmon_profile(request:Request, id: str, db: Session = Depends(ge
 def update_eventadmon_profile(
     request:Request, id: str, eventadmonprofile: EventAdmonProfileCreated = Depends(), image: UploadFile = None, db: Session = Depends(get_db)):
     return update_one_event_admon_profile(request=request, db=db, id=str(id), eventadmonprofile=eventadmonprofile.dict(), file=image)
+
+@eventadmonprofile_route.post("/profile/generic/eventadmon/{profile_id}", response_model=ResultObject, summary="Create a Profile of Event Admon")
+def create_eventadmon_generic_profile(
+    request:Request, profile_id: str, eventadmonprofile: GenericProfileCreated = Depends(), image: UploadFile = None, db: Session = Depends(get_db)):
+    return new_generic_event_admon(request=request, profile_id=profile_id, eventadmonprofile=eventadmonprofile.dict(), file=image, db=db)
+
+@eventadmonprofile_route.put("/profile/generic/eventadmon/{id}", response_model=ResultObject, summary="Update Event Admon Profile for your ID")
+def update_eventadmon_generic_profile(
+    request:Request, id: str, eventadmonprofile: GenericProfileCreated = Depends(), image: UploadFile = None, db: Session = Depends(get_db)):
+    return update_generic_event_admon_profile(request=request, db=db, id=str(id), eventadmonprofile=eventadmonprofile.dict(), file=image)
+
+@eventadmonprofile_route.get("/profile/generic/eventadmon/{id}", response_model=ResultObject, summary="Get a Event Admon Profile for your ID.")
+def get_eventadmon_generic_profile(request: Request, id: str, db: Session = Depends(get_db)):
+    return get_generic_eventadmon_profile_by_id(request, id=id, db=db)

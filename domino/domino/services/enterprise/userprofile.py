@@ -19,12 +19,12 @@ from domino.models.enterprise.userprofile import ProfileMember, ProfileUsers, Si
     DefaultUserProfile, RefereeProfile, PairProfile, TeamProfile, EventAdmonProfile
     
 from domino.schemas.enterprise.userprofile import SingleProfileCreated, DefaultUserProfileBase, \
-    RefereeProfileCreated, PairProfileCreated, TeamProfileCreated, EventAdmonProfileCreated
+    RefereeProfileCreated, PairProfileCreated, TeamProfileCreated, EventAdmonProfileCreated, GenericProfileCreated
 from domino.schemas.resources.result_object import ResultObject, ResultData
 
 from domino.services.enterprise.profiletype import get_one as get_profile_type_by_id, get_one_by_name as get_profile_type_by_name
 
-from domino.services.enterprise.users import get_one_by_username, get_one as get_one_user_by_id
+from domino.services.enterprise.users import get_one_by_username, get_one as get_one_user_by_id, new_from_register
 from domino.services.resources.city import get_one as get_city_by_id
 from domino.services.resources.utils import get_result_count, upfile, create_dir, del_image, get_ext_at_file, remove_dir, copy_image
 
@@ -304,7 +304,73 @@ def new_profile_event_admon(request: Request, eventadmonprofile: EventAdmonProfi
         return result
     except (Exception, SQLAlchemyError) as e:
         raise HTTPException(status_code=400, detail=_(locale, "userprofile.errorinsert"))
-            
+
+def new_generic_event_admon(request: Request, profile_id: str, eventadmonprofile: GenericProfileCreated, file: File, db: Session): 
+    locale = request.headers["accept-language"].split(",")[0].split("-")[0];
+    
+    result = ResultObject() 
+    currentUser = get_current_user(request)
+    
+    if not eventadmonprofile['username']:
+        raise HTTPException(status_code=400, detail=_(locale, "users.user_name_empty"))
+    
+    if not eventadmonprofile['first_name']:
+        raise HTTPException(status_code=400, detail=_(locale, "users.first_name_empty"))
+    
+     # verificar que ese usernamer no sea ya administador que lo esta creando
+    if currentUser['username'] == eventadmonprofile['username']:
+        raise HTTPException(status_code=400, detail=_(locale, "userprofile.already_exist"))
+    
+    # buscar el profile de quien lo esta creando, debe ser administrador, coger de aqui la 
+    one_profile_admon = get_one(profile_id, db=db)
+    if not one_profile_admon:
+        raise HTTPException(status_code=400, detail=_(locale, "userprofile.not_found"))
+    
+    if one_profile_admon.profile_type != 'EVENTADMON':
+        raise HTTPException(status_code=400, detail=_(locale, "userprofile.profile_incorrect"))
+    
+    profile_type = get_profile_type_by_name("EVENTADMON", db=db)
+    if not profile_type:
+        raise HTTPException(status_code=400, detail=_(locale, "profiletype.not_found"))
+    
+    # verificar que el username no exista, error si ya existe
+    default_profile_id = get_one_profile_by_user(eventadmonprofile['username'], db=db, profile_type='USER')
+    if default_profile_id:
+        raise HTTPException(status_code=400, detail=_(locale, "userprofile.already_exist"))
+    
+    # crear el usuario, 
+    email = eventadmonprofile['email'] if eventadmonprofile['email'] else None  
+    last_name = eventadmonprofile['last_name'] if eventadmonprofile['last_name'] else None     
+    
+    city = get_city_by_id(eventadmonprofile['city_id'], db=db)  if eventadmonprofile['city_id'] else None
+    country = city.country if city else None
+         
+    one_user = new_from_register(
+        email, eventadmonprofile['username'], eventadmonprofile['first_name'], last_name, None, None, city, 
+        country, currentUser['username'], file=file, db=db, locale=locale)
+    if not one_user:  
+        raise HTTPException(status_code=400, detail=_(locale, "commun.error_writing_bd"))  
+        
+    id = str(uuid.uuid4())
+    name = eventadmonprofile['first_name']
+    name += ' ' + eventadmonprofile['last_name'] if eventadmonprofile['last_name'] else ''
+    
+    one_profile = new_profile(profile_type, id, one_user.id, eventadmonprofile['username'], name, 
+                              eventadmonprofile['email'], city.id if city else None, True, 
+                              True, True, "USERPROFILE", currentUser['username'], currentUser['username'], file, is_confirmed=True)
+    
+    one_eventadmon = EventAdmonProfile(profile_id=id, updated_by=currentUser['username'], profile_user_id=one_user.id, 
+                                       federation_id=one_profile_admon.profile_event_admon[0].federation_id )
+    one_profile.profile_event_admon.append(one_eventadmon)
+    
+    try:   
+        db.add(one_profile)
+        db.commit()
+        result.data = {'id': id}
+        return result
+    except (Exception, SQLAlchemyError) as e:
+        raise HTTPException(status_code=400, detail=_(locale, "userprofile.errorinsert"))
+                
 #endregion
  
 #region Obteniendo valores    
@@ -747,6 +813,39 @@ def get_one_eventadmon_profile_by_id(request: Request, id: str, db: Session):
                        'city_name': item.city_name if item.city_name else '',
                        'receive_notifications': item.receive_notifications,
                        'lst_users': get_lst_users_team_profile(item.profile_id, db=db)}
+    
+    if not result.data:
+        raise HTTPException(status_code=400, detail=_(locale, "userprofile.not_found"))
+    
+    return result
+
+def get_generic_eventadmon_profile_by_id(request: Request, id: str, db: Session): 
+    locale = request.headers["accept-language"].split(",")[0].split("-")[0];
+    
+    result = ResultObject() 
+    
+    api_uri = str(settings.api_uri)
+    
+    str_query = "Select us.username, us.first_name, us.last_name, us.email, " +\
+        "pro.id profile_id, pro.city_id, us.photo, pro.receive_notifications, " +\
+        "city.name as city_name, city.country_id, co.name as country_name  " +\
+        "FROM enterprise.profile_member pro " +\
+        "inner join enterprise.profile_event_admon pa ON pa.profile_id = pro.id " +\
+        "JOIN enterprise.users us ON us.id = pa.profile_user_id " +\
+        "left join resources.city city ON city.id = pro.city_id " +\
+        "left join resources.country co ON co.id = city.country_id " +\
+        "Where pro.is_active = True AND pro.id='" + id + "' "
+
+    res_profile=db.execute(str_query)
+    
+    for item in res_profile:
+        result.data = {'id': item.profile_id, 'first_name': item.first_name, 'last_name': item.last_name, 
+                       'email': item.email, 'username': item.username, 'country_id': item.country_id if item.country_id else '', 
+                       'country': item.country_name if item.country_name else '', 
+                       'city_id': item.city_id if item.city_id else '', 
+                       'city_name': item.city_name if item.city_name else '',
+                       'photo': get_url_avatar(item.profile_id, item.photo, api_uri=api_uri)
+                       }
     
     if not result.data:
         raise HTTPException(status_code=400, detail=_(locale, "userprofile.not_found"))
@@ -1429,7 +1528,40 @@ def update_one_event_admon_profile(request: Request, id: str, eventadmonprofile:
         print(e.code)
         if e.code == "gkpj":
             raise HTTPException(status_code=400, detail=_(locale, "userprofile.already_exist"))
-                
+
+def update_generic_event_admon_profile(request: Request, id: str, eventadmonprofile: GenericProfileCreated, file: File, db: Session):
+    locale = request.headers["accept-language"].split(",")[0].split("-")[0];
+    
+    result = ResultObject() 
+    currentUser = get_current_user(request)
+    
+    default_profile_id = get_one_profile_by_user(eventadmonprofile['username'], db=db, profile_type='USER')
+    if not default_profile_id:
+        raise HTTPException(status_code=400, detail=_(locale, "userprofile.not_exist"))
+    
+    db_profile = get_one(default_profile_id, db=db)
+    if not db_profile:
+        raise HTTPException(status_code=400, detail=_(locale, "userprofile.not_found"))
+    
+    name = eventadmonprofile['first_name']
+    name += ' ' + eventadmonprofile['last_name'] if eventadmonprofile['last_name'] else ''
+    
+    update_profile(db_profile, file, currentUser, name, eventadmonprofile['email'], eventadmonprofile['city_id'], True)
+    
+    db_profile.updated_by = currentUser['username']
+    db_profile.updated_date = datetime.now()
+    
+    try:
+        db.add(db_profile)
+        db.commit()
+        result.data = get_url_avatar(db_profile.id, db_profile.photo)
+        
+        return result
+    except (Exception, SQLAlchemyError) as e:
+        print(e.code)
+        if e.code == "gkpj":
+            raise HTTPException(status_code=400, detail=_(locale, "userprofile.already_exist"))
+                        
 #endregion
 
 #region Metodo de borrado de perfiles

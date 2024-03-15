@@ -12,6 +12,7 @@ es:
     not_registered: 'Usuario no activado.'
   commun:
     invalid_param: 'Parámetro de consultas no válidos.'
+    error_writing_bd: 'Error escribiendo en Base de datos'
   users:
     data_error: 'Estructura de la contraseña incorrecta.'
     new_user_error: 'Error creando nuevo usuario.'
@@ -24,6 +25,8 @@ es:
     wrong_password: 'Contraaseña incorrecta.'  
     imposible_verify: 'No es posible Verificar'
     incorrect_code: 'Código incorrecto.'
+    user_name_empty: 'Nombre de usuario es requerido'
+    first_name_empty: 'Nombre No puede ser vacio '
   country:
     exist_name: 'Existe pais con ese nombre.'
     error_new_contry: 'Error creando el nuevo pais.'
@@ -117,7 +120,7 @@ es:
     not_found: 'Tipo de perfil no existe'
   userprofile:
     existprofile: 'Existe perfil de ese tipo para ese usuario'
-    errorinsert: 'Error insertnado perfil indicado'
+    errorinsert: 'Error insertando perfil indicado'
     not_found: 'Perfil no encontrado en el sistema'
     already_exist: 'Error insertnado perfil indicado'
     imposible_delete: 'Imposible desactivar'

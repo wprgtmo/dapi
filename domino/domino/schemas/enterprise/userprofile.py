@@ -177,4 +177,3 @@ class GenericProfileCreated(BaseModel):
     phone: Optional[str]
     
     city_id: Optional[int]
-    
