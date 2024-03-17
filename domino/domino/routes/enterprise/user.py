@@ -12,38 +12,34 @@ from fastapi.responses import FileResponse
 from os import getcwd
 
 from domino.schemas.enterprise.user import UserShema, UserCreate, UserBase, ChagePasswordSchema, UserFollowerBase
+from domino.schemas.enterprise.userprofile import DefaultUserProfileBase
 from domino.schemas.resources.result_object import ResultObject
 
 from domino.services.enterprise.users import get_all, get_one_by_id, delete, update, change_password, get_one_profile, \
     add_one_followers, remove_one_followers, get_all_followers, get_all_not_followers
 
+from domino.services.enterprise.userprofile import new_generic_default_profile, update_one_default_profile
+    
 user_route = APIRouter(
     tags=["Users"],
     dependencies=[Depends(JWTBearer())]
 )
 
 @user_route.get("/users", response_model=Dict, summary="Get list of Users.")
-def get_users(
-    request: Request,
-    page: int = 1,
-    per_page: int = 6,
-    criteria_key: str = "",
-    criteria_value: str = "",
-    db: Session = Depends(get_db)
-):
-    return get_all(request=request, page=page, per_page=per_page, criteria_key=criteria_key, criteria_value=criteria_value, db=db)
+def get_users(request: Request, page: int = 1, per_page: int = 6, search: str = "", db: Session = Depends(get_db)):
+    return get_all(request=request, page=page, per_page=per_page, criteria_value=search, db=db)
 
 @user_route.get("/users/{id}", response_model=ResultObject, summary="Get a User by his ID")
 def get_user_by_id(request:Request, id: str, db: Session = Depends(get_db)):
     return get_one_by_id(user_id=id, db=db, request=request)
 
-# @user_route.get("/profile/{id}", response_model=ResultObject, summary="Get Profile a User by his ID")
-# def get_profile(
-#     request: Request,
-#     id: str, 
-#     db: Session = Depends(get_db)
-# ):
-#     return get_one_profile(request, user_id=id, db=db)
+@user_route.post("/users", response_model=ResultObject, summary="Create a New user")
+def create_default_profile(request:Request, defaultusereprofile: DefaultUserProfileBase = Depends(), image: UploadFile = None, db: Session = Depends(get_db)):
+    return new_generic_default_profile(request=request, db=db, defaultuserprofile=defaultusereprofile.dict(), avatar=image)
+
+@user_route.put("/users/{id}", response_model=ResultObject, summary="Update Default User Profile for your ID")
+def update_default_profile(request:Request, id: str, defaultusereprofile: DefaultUserProfileBase = Depends(), image: UploadFile = None, db: Session = Depends(get_db)):
+    return update_one_default_profile(request=request, db=db, id=str(id), defaultuserprofile=defaultusereprofile.dict(), avatar=image)
 
 @user_route.delete("/users/{id}", response_model=ResultObject, summary="Eliminar un Usuario por su ID")
 def delete_user(request:Request, id: uuid.UUID, db: Session = Depends(get_db)):

@@ -1,3 +1,13 @@
+ALTER TABLE IF EXISTS enterprise.users DROP COLUMN IF EXISTS sex;
+	ALTER TABLE IF EXISTS enterprise.users DROP COLUMN IF EXISTS birthdate;
+	ALTER TABLE IF EXISTS enterprise.users DROP COLUMN IF EXISTS alias;
+	ALTER TABLE IF EXISTS enterprise.users DROP COLUMN IF EXISTS job;
+	ALTER TABLE IF EXISTS enterprise.users DROP COLUMN IF EXISTS city_id;
+	ALTER TABLE IF EXISTS enterprise.users DROP COLUMN IF EXISTS photo;
+	ALTER TABLE IF EXISTS enterprise.users DROP COLUMN IF EXISTS elo;
+	ALTER TABLE IF EXISTS enterprise.users DROP COLUMN IF EXISTS receive_notifications;
+
+----Sabado 16    
 
 ALTER TABLE IF EXISTS events.players_users
 ADD COLUMN position_number_at_end integer;

@@ -107,32 +107,32 @@ def password_check(passwd, min_len, max_len, level):
 
     return RespObj
 
-def get_all(request:Request, page: int, per_page: int, criteria_key: str, criteria_value: str, db: Session):    
+def get_all(request:Request, page: int, per_page: int, criteria_value: str, db: Session):    
     locale = request.headers["accept-language"].split(",")[0].split("-")[0];
     
     api_uri = str(settings.api_uri)
-    
-    str_where = "WHERE use.is_active=True " 
-    str_count = "Select count(*) FROM enterprise.users use "
-    str_query = "Select use.id, username, first_name, last_name, pro.email, phone, password, use.is_active, country_id, " \
-        "pa.name as country, pro.photo, pro.receive_notifications " \
-        "FROM enterprise.users use " + \
-        "inner join enterprise.profile_member pro ON pro.id = use.id " +\
-        "left join resources.country pa ON pa.id = use.country_id "
+    str_where = "WHERE us.is_active=True " 
+    str_from = "FROM enterprise.users us JOIN enterprise.profile_users pus ON pus.username = us.username " +\
+        "JOIN enterprise.profile_member pro ON pro.id = pus.profile_id " +\
+        "JOIN enterprise.profile_default_user pdu ON pdu.profile_id = pus.profile_id " +\
+        "left join resources.city ON city.id = pdu.city_id left join resources.country co ON co.id = us.country_id "
+            
+    str_count = "Select count(*) " + str_from
+    str_query = "Select us.id, us.username, first_name, last_name, us.email, phone, us.country_id, " \
+        "sex, birthdate, alias, job, pro.city_id, pro.photo, city.name as city_name, " +\
+        "co.name as country_name, pro.receive_notifications " + str_from
 
-    dict_query = {'username': " AND username ilike '%" + criteria_value + "%'",
-                  'first_name': " AND first_name ilike '%" + criteria_value + "%'",
-                  'last_name': " AND last_name ilike '%" + criteria_value + "%'",
-                  'country': " AND pa.name ilike '%" + criteria_value + "%'",
-                  'id': " AND id = '" + criteria_value + "' "}
-    
-    if criteria_key and criteria_key not in dict_query:
-        raise HTTPException(status_code=404, detail=_(locale, "commun.invalid_param"))
-    
+    str_search = ''
+    if criteria_value:
+        str_search = "AND (us.first_name ilike '%" + criteria_value + "%' OR city.name ilike '%" + criteria_value +\
+            "%' OR us.username ilike '%" + criteria_value + "%' OR sex ilike '%" + criteria_value +\
+            "%' OR alias ilike '%" + criteria_value + "%' OR co.name ilike '%" + criteria_value +\
+            "%' OR us.last_name ilike '%" + criteria_value + "%' OR us.email ilike '%" + criteria_value + "%')"
+        str_where += str_search
+ 
     if page and page > 0 and not per_page:
         raise HTTPException(status_code=404, detail=_(locale, "commun.invalid_param"))
     
-    str_where = str_where + dict_query[criteria_key] if criteria_value else str_where  
     str_count += str_where 
     str_query += str_where
     
@@ -144,19 +144,22 @@ def get_all(request:Request, page: int, per_page: int, criteria_key: str, criter
         str_query += "LIMIT " + str(per_page) + " OFFSET " + str(page*per_page-per_page)
     
     lst_data = db.execute(str_query)
-    result.data = [create_dict_row(item, page, api_uri=api_uri) for item in lst_data]
+    result.data = [create_dict_row(item, api_uri=api_uri) for item in lst_data]
     
     return result
 
-def create_dict_row(item, page, api_uri=''):
+def create_dict_row(item, api_uri=''):
     
     new_row = {'id': item['id'], 'username' : item['username'], 'first_name': item['first_name'], 
-               'last_name': item['last_name'], 'email': item['email'], 'phone': item['phone'], 
-               'country_id': item['country_id'], 'country': item['country'], 
-               'receive_notifications': item['receive_notifications'],
+               'last_name': item['last_name'] if item['last_name'] else '', 'email': item['email'] if item['email'] else '', 
+               'phone': item['phone'] if item['phone'] else '', 'sex': item['sex'] if item['sex'] else '', 
+               'birthdate': item['birthdate'] if item['birthdate'] else '', 'alias': item['alias'] if item['alias'] else '', 
+               'job': item['job'] if item['job'] else '', 
+               'country_id': item['country_id'] if item['country_id'] else '', 
+               'country_name': item['country_name'] if item['country_name'] else '', 
+               'city_id': item['city_id'] if item['city_id'] else '', 'city_name': item['city_name'] if item['city_name'] else '', 
+               'receive_notifications': item['receive_notifications'] if item['receive_notifications'] else False,
                'photo': get_url_avatar(item['id'], item['photo'], api_uri=api_uri)}
-    if page != 0:
-        new_row['selected'] = False
     return new_row
  
 #crear un usuario siempre crea el perfil de ususraio asociado...        
@@ -269,36 +272,33 @@ def get_one_by_id(request: Request, user_id: str, db: Session):
     
     api_uri = str(settings.api_uri)
     
-    str_query = "Select use.id user_id, username, first_name, last_name, pro.email, phone, password, use.is_active, use.country_id, " \
+    str_query = "Select use.id id, use.username, first_name, last_name, pro.email, phone, use.country_id, " \
         "pa.name as country_name, pro.photo, pro.receive_notifications, def.job, def.sex, def.birthdate, def.alias, " \
         "city.id as city_id, city.name as city_name " +\
         "FROM enterprise.users use " + \
         "inner join enterprise.profile_member pro ON pro.id = use.id " +\
         "inner join enterprise.profile_default_user def ON def.profile_id = pro.id " +\
         "left join resources.country pa ON pa.id = use.country_id " +\
-        "left join resources.city city ON city.id = pro.city_id "
-    
+        "left join resources.city city ON city.id = pro.city_id " +\
+        "WHERE use.is_active=True and use.id = '" + user_id + "' "
+        
     lst_data = db.execute(str_query)
     if not lst_data:
         raise HTTPException(status_code=404, detail=_(locale, "auth.not_found"))
     
-    
     user_id, username, first_name, last_name, photo = '', '', '', '', ''
     email, job, sex, birthdate, alias = '', '', '', '', ''
-    is_active, receive_notifications = False, False
+    receive_notifications = False
     country_id, country_name, city_id, city_name = '', '', '', ''
     for item in lst_data:
-        user_id, username = item.user_id, item.username
+        user_id, username = item.id, item.username
         first_name, last_name, birthdate = item.first_name, item.last_name, item.birthdate
         email, phone, job, sex = item.email, item.phone, item.job, item.sex
         photo, alias = item.photo, item.alias
-        is_active = item.is_active
+        receive_notifications = item.receive_notifications
         country_id, country_name = item.country_id, item.country_name
         city_id, city_name = item.city_id, item.city_name
         
-    if is_active is False:
-        raise HTTPException(status_code=404, detail=_(locale, "auth.not_registered"))
-    
     result.data = {'id': user_id, 'username': username, 
                    'first_name': first_name, 'last_name': last_name if last_name else '', 
                    'email': email if email else '', 'phone': phone if phone else '', 

@@ -170,10 +170,6 @@ class EventAdmonProfileCreated(BaseModel):
     
 class GenericProfileCreated(BaseModel):
     username: Optional[str]
-    first_name: Optional[str]
-    last_name: Optional[str]
-    
+    name: str
     email: Optional[str]
-    phone: Optional[str]
-    
-    city_id: Optional[int]
+    receive_notifications: Optional[bool] = False

@@ -9,6 +9,7 @@ class Settings(BaseSettings):
     secret: str
     access_token_expire_minutes: int    
     algorithm: str
+    default_password: str
     
     app_name: str = 'DOMINO'
     app_description: str = 'API para la gestión del DOMINO' 
