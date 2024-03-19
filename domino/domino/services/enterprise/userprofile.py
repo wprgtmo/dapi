@@ -21,7 +21,7 @@ from domino.models.enterprise.userprofile import ProfileMember, ProfileUsers, Si
     DefaultUserProfile, RefereeProfile, PairProfile, TeamProfile, EventAdmonProfile
     
 from domino.schemas.enterprise.userprofile import SingleProfileCreated, DefaultUserProfileBase, \
-    RefereeProfileCreated, PairProfileCreated, TeamProfileCreated, EventAdmonProfileCreated, GenericProfileCreated
+    RefereeProfileCreated, PairProfileCreated, TeamProfileCreated, EventAdmonProfileCreated, GenericProfileCreated, GenericSingleProfileCreated
 from domino.schemas.resources.result_object import ResultObject, ResultData
 
 from domino.services.enterprise.profiletype import get_one as get_profile_type_by_id, get_one_by_name as get_profile_type_by_name
@@ -41,37 +41,49 @@ pwd_context = CryptContext(schemes=["bcrypt"], deprecated="auto")
 
 #region Método de crear Nuevos perfiles
 
-def new_profile_single_player(request: Request, singleprofile: SingleProfileCreated, file: File, db: Session): 
+def new_profile_single_player(request: Request, profile_id:str, singleprofile: GenericSingleProfileCreated, file: File, db: Session): 
     locale = request.headers["accept-language"].split(",")[0].split("-")[0];
     
     result = ResultObject() 
     currentUser = get_current_user(request)
+    
+    # buscar el profile de quien lo esta creando, debe ser administrador, coger de aqui la federacion
+    one_profile_admon = get_one(profile_id, db=db)
+    if not one_profile_admon:
+        raise HTTPException(status_code=400, detail=_(locale, "userprofile.not_found"))
+    
+    if one_profile_admon.profile_type != 'EVENTADMON':
+        raise HTTPException(status_code=400, detail=_(locale, "userprofile.profile_incorrect"))
     
     profile_type = get_profile_type_by_name("SINGLE_PLAYER", db=db)
     if not profile_type:
         raise HTTPException(status_code=400, detail=_(locale, "profiletype.not_found"))
     
     # si ya tengo perfil no permitir crear otro.
-    exist_profile_id = get_one_profile_by_user(currentUser['username'], "SINGLE_PLAYER", db=db)
+    exist_profile_id = get_one_profile_by_user(singleprofile['username'], "SINGLE_PLAYER", db=db)
     if exist_profile_id:
         raise  HTTPException(status_code=400, detail=_(locale, "userprofile.existprofile"))
     
-    profile_user_id = get_one_profile_by_user(currentUser['username'], "USER", db=db)
+    profile_user_id = get_one_profile_by_user(singleprofile['username'], "USER", db=db)
     if not profile_user_id:
         raise  HTTPException(status_code=400, detail=_(locale, "userprofile.not_found"))
     
-    id = str(uuid.uuid4())
-    one_profile = new_profile(profile_type, id, currentUser['user_id'], currentUser['username'], singleprofile['name'], 
-                              singleprofile['email'], singleprofile['city_id'], singleprofile['receive_notifications'], 
-                              True, True, "USERPROFILE", currentUser['username'], currentUser['username'], file, is_confirmed=True,
-                              single_profile_id=id)
+    default_profile = get_one(profile_user_id, db=db)
     
-    one_club = None
-    if singleprofile.club_id:
-        one_club = get_one_club(singleprofile.club_id, db=db)
-        
-    # a solicitud de Senen cuando los jugadores se creen un perfil de jugador simple, va con un elo de 1600
-    one_single_player = SingleProfile(profile_id=id, elo=800, level=singleprofile['level'], updated_by=currentUser['username'],
+    id = str(uuid.uuid4())
+    one_profile = new_profile(profile_type, id, profile_user_id, singleprofile['username'], singleprofile['name'], 
+                              default_profile.email,  default_profile.city_id, False, True, True, "USERPROFILE", 
+                              currentUser['username'], currentUser['username'], file, is_confirmed=True,
+                              single_profile_id=profile_user_id)
+    
+    if not singleprofile['club_id']:
+        raise  HTTPException(status_code=400, detail=_(locale, "club.is_requiered"))
+    
+    one_club = get_one_club(singleprofile['club_id'], db=db)
+    
+    # a solicitud de Senen cuando los jugadores se creen un perfil de jugador simple, va con un elo de 800
+    elo = 800 if not  singleprofile['elo'] else singleprofile['elo']
+    one_single_player = SingleProfile(profile_id=id, elo=elo, level=singleprofile['level'], updated_by=currentUser['username'],
                                       profile_user_id=profile_user_id, club_id=one_club.id if one_club else None)
     one_profile.profile_single_player.append(one_single_player)
     
@@ -543,7 +555,7 @@ def get_all_default_profile(request:Request, profile_id: str, page: int, per_pag
         str_query += "LIMIT " + str(per_page) + " OFFSET " + str(page*per_page-per_page)
      
     lst_data = db.execute(str_query)
-    result.data = [create_dict_row_single_player(item, page, db=db, api_uri=api_uri, profile_type='USER') for item in lst_data]
+    result.data = [create_dict_row_single_player(item, db=db, api_uri=api_uri, profile_type='USER') for item in lst_data]
     
     return result
 
@@ -551,15 +563,12 @@ def get_all_single_profile(request:Request, profile_id: str, page: int, per_page
     locale = request.headers["accept-language"].split(",")[0].split("-")[0];
     
     api_uri = str(settings.api_uri)
-    print('profile_id')
-    print(profile_id)
-    print('*******************')  
     
     # por el perfil, buscar a que federacion pertenece
     one_profile = get_one(profile_id, db=db)
     if not one_profile:
         raise HTTPException(status_code=404, detail=_(locale, "userprofile.not_found"))
-    print(one_profile.id)
+    
     federation_id = None
     if one_profile.profile_type == 'EVENTADMON':
         federation_id = one_profile.profile_event_admon[0].federation_id if one_profile.profile_event_admon else None
@@ -573,19 +582,22 @@ def get_all_single_profile(request:Request, profile_id: str, page: int, per_page
     
     str_from = "FROM enterprise.profile_member pmem " +\
         "JOIN enterprise.profile_single_player psin ON psin.profile_id = pmem.id " +\
+        "JOIN federations.clubs club ON club.id = psin.club_id " +\
         "left join resources.city city ON city.id = pmem.city_id " +\
-        "left join resources.country pa ON pa.id = city.country_id "
+        "left join resources.country co ON co.id = city.country_id "
     
     str_count = "Select count(*) " + str_from
-    str_query = "Select pmem.id profile_id, pmem.name, photo, pmem.city_id, city.name city_name, city.country_id, " +\
-        "pa.name as country_name, psin.elo, psin.level " + str_from
+    str_query = "Select pmem.name, pmem.id profile_id, pmem.photo, psin.elo, psin.level, club.name as club_name, " +\
+        "club.id as club_id, club.name as club_name, " +\
+        "pmem.city_id, city.name city_name, city.country_id, co.name as country_name " + str_from
     
-    str_where = " WHERE pmem.is_active = True and pa.federation_id = " + str(federation_id)   
-
+    str_where = " WHERE pmem.is_active = True and club.federation_id = " + str(federation_id)   
+    
     str_search = ''
     if criteria_value:
-        str_search = "AND (pa.name ilike '%" + criteria_value + "%' OR city.name ilike '%" + criteria_value +\
-            "%' OR us.email ilike '%" + criteria_value + "%')"
+        str_search = " AND (pmem.name ilike '%" + criteria_value + "%' OR city.name ilike '%" + criteria_value +\
+            "%' OR psin.level ilike '%" + criteria_value + "%' OR club.name ilike '%" + criteria_value +\
+            "%' OR co.name ilike '%" + criteria_value + "%')"
         str_where += str_search
         
     str_count += str_where
@@ -600,9 +612,9 @@ def get_all_single_profile(request:Request, profile_id: str, page: int, per_page
     
     if page != 0:
         str_query += "LIMIT " + str(per_page) + " OFFSET " + str(page*per_page-per_page)
-     
+    
     lst_data = db.execute(str_query)
-    result.data = [create_dict_row_single_player(item, page, db=db, api_uri=api_uri) for item in lst_data]
+    result.data = [create_dict_row_single_player(item, db=db, api_uri=api_uri) for item in lst_data]
     return result
 
 def get_all_eventadmon_profile(request:Request, profile_id: str, page: int, per_page: int, criteria_value: str, db: Session):  
@@ -656,7 +668,7 @@ def get_all_eventadmon_profile(request:Request, profile_id: str, page: int, per_
     return result
     
 
-def create_dict_row_single_player(item, page, db: Session, api_uri="", profile_type='SINGLE_PLAYER'):
+def create_dict_row_single_player(item, db: Session, api_uri="", profile_type='SINGLE_PLAYER'):
     
     dict_row = {'profile_id': item['profile_id'], 'name': item['name'], 
                'city': item['city_id'], 'city_name': item['city_name'], 
@@ -666,10 +678,9 @@ def create_dict_row_single_player(item, page, db: Session, api_uri="", profile_t
     level_name = get_type_level(item['level']) if item['level'] else '' 
     if profile_type == 'SINGLE_PLAYER':
         dict_row['elo'] = item['elo'] if item['elo'] else '' 
-        dict_row['level'] = level_name 
-    
-    if page != 0:
-        dict_row['selected'] = False
+        dict_row['level'] = level_name
+        dict_row['club_id'] = item.club_id 
+        dict_row['club_name'] = item.club_name
     
     return dict_row
 
@@ -690,14 +701,14 @@ def get_one_single_profile(request: Request, id: str, db: Session):
     
     api_uri = str(settings.api_uri)
     
-    str_query = "Select pro.id profile_id, pro.name, pro.email, pro.city_id, pro.photo, pro.receive_notifications, " +\
-        "eve.name as profile_type_name, eve.description as profile_type_description, " +\
-        "city.name as city_name, city.country_id, pa.name as country_name, sing.elo, sing.level  " +\
+    str_query = "Select pro.id profile_id, pro.name, pro.city_id, pro.photo, " +\
+        "club.id as club_id, club.name as club_name, " +\
+        "city.name as city_name, city.country_id, co.name as country_name, sing.elo, sing.level  " +\
         "FROM enterprise.profile_member pro " +\
-        "inner join enterprise.profile_type eve ON eve.name = pro.profile_type " +\
-        "inner join enterprise.profile_single_player sing ON sing.profile_id = pro.id " +\
+        "join enterprise.profile_single_player sing ON sing.profile_id = pro.id " +\
+        "JOIN federations.clubs club ON club.id = sing.club_id " +\
         "left join resources.city city ON city.id = pro.city_id " +\
-        "left join resources.country pa ON pa.id = city.country_id " +\
+        "left join resources.country co ON co.id = city.country_id " +\
         "Where pro.is_active = True AND pro.id='" + id + "' "
     res_profile=db.execute(str_query)
     
@@ -705,17 +716,15 @@ def get_one_single_profile(request: Request, id: str, db: Session):
         photo = get_url_avatar(item.profile_id, item.photo, api_uri=api_uri)
         level_name = get_type_level(item.level) if item.level else '' 
         
-        result.data = {'id': item.profile_id, 'name': item.name, 'email': item.email,
-                       'profile_type_name': item.profile_type_name, 
-                       'profile_type_description': item.profile_type_description, 'photo': photo,
+        result.data = {'id': item.profile_id, 'name': item.name, 
                        'elo': item.elo if item.elo else '', 
                        'level': level_name, 
                        'country_id': item.country_id if item.country_id else '', 
-                       'country': item.country_name if item.country_name else '', 
+                       'country_name': item.country_name if item.country_name else '', 
+                       'club_id': item.club_id, 'club_name': item.club_name,
                        'city_id': item.city_id if item.city_id else '', 
-                       'city_name': item.city_name if item.city_name else '',
-                       'receive_notifications': item.receive_notifications}
-    
+                       'city_name': item.city_name if item.city_name else ''}
+        
     return result
 
 def get_one_referee_profile(request: Request, id: str, db: Session): 
@@ -1162,15 +1171,23 @@ def update_one_single_profile(request: Request, id: str, singleprofile: SinglePr
     if not db_member_profile:
         raise HTTPException(status_code=400, detail=_(locale, "userprofile.not_found"))
     
-    update_profile(db_member_profile, file, currentUser, singleprofile['name'], singleprofile['email'], singleprofile['city_id'], 
-                   singleprofile['receive_notifications'])
-    
     db_single_profile = get_one_single_profile_by_id(id, db=db) 
     if not db_single_profile:
         raise HTTPException(status_code=400, detail=_(locale, "userprofile.not_found"))
+    
+    default_profile = get_one(db_member_profile.profile_single_player[0].profile_user_id, db=db) if \
+        db_member_profile.profile_single_player[0].profile_user_id else None
+    
+    email = default_profile.email if default_profile and default_profile.email else None
+    city_id = default_profile.city_id if default_profile and default_profile.city_id else None
+    
+    update_profile(db_member_profile, file, currentUser, singleprofile['name'], email, city_id, False)
      
     try:
         db_single_profile.level = singleprofile['level'] if singleprofile['level'] else None
+        
+        if singleprofile['elo'] and db_single_profile.elo != singleprofile['elo']:
+            db_single_profile.elo = singleprofile['elo']
         
         db_member_profile.updated_by = currentUser['username']
         db_member_profile.updated_date = datetime.now()

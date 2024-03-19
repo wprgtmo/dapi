@@ -171,5 +171,13 @@ class EventAdmonProfileCreated(BaseModel):
 class GenericProfileCreated(BaseModel):
     name: str
     username: Optional[str]
+        
+class GenericSingleProfileCreated(BaseModel):
+    name: str
+    username: Optional[str]
     
+    elo: Optional[float]
+    level: Optional[str]
+    
+    club_id: Optional[int]
     
