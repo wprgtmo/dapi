@@ -53,7 +53,4 @@ def update_eventadmon_generic_profile(
 
 @eventadmonprofile_route.get("/profile/federative/one/{id}", response_model=ResultObject, summary="Get a Event Admon Profile for your ID.")
 def get_eventadmon_generic_profile(request: Request, id: str, db: Session = Depends(get_db)):
-    print('id')
-    print(id)
-    print('**************')
     return get_generic_eventadmon_profile_by_id(request, id=id, db=db)

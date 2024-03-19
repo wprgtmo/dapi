@@ -172,6 +172,4 @@ class GenericProfileCreated(BaseModel):
     name: str
     username: Optional[str]
     
-    federation_id: Optional[int]  # este tendre valor cuando se cree por el propio usuario
-    
     

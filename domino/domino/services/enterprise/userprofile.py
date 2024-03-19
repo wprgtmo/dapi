@@ -896,10 +896,7 @@ def get_generic_eventadmon_profile_by_id(request: Request, id: str, db: Session)
         "left join resources.country co ON co.id = city.country_id " +\
         "Where pmem.is_active = True AND pmem.id='" + id + "' "
         
-        
-        
     res_profile=db.execute(str_query)
-    print(str_query)
     for item in res_profile:
         result.data = {'id': item.profile_id, 'name': item.name, 'email': item.email if item.email else '', 
                        'country_id': item.country_id if item.country_id else '', 
