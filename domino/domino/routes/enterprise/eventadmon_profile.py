@@ -35,7 +35,6 @@ eventadmonprofile_route = APIRouter(
 #     return update_one_event_admon_profile(request=request, db=db, id=str(id), eventadmonprofile=eventadmonprofile.dict(), file=image)
 
 
-
 @eventadmonprofile_route.get("/profile/federative/{profile_id}", response_model=ResultData, summary="Obtain a list of Eventy Admon profile")
 def get_profile(request: Request, profile_id: str, page: int = 1, per_page: int = 6, search: str = "", db: Session = Depends(get_db)):
     return get_all_eventadmon_profile(request=request, profile_id=profile_id, page=page, per_page=per_page, 
