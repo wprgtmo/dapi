@@ -169,7 +169,9 @@ class EventAdmonProfileCreated(BaseModel):
     others_profile_id: Optional[str]
     
 class GenericProfileCreated(BaseModel):
-    username: Optional[str]
     name: str
-    email: Optional[str]
-    receive_notifications: Optional[bool] = False
+    username: Optional[str]
+    
+    federation_id: Optional[int]  # este tendre valor cuando se cree por el propio usuario
+    
+    

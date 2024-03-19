@@ -408,13 +408,13 @@ def new_generic_event_admon(request: Request, profile_id: str, eventadmonprofile
     
     default_profile = get_one(default_profile_id, db=db)
     
-    email = eventadmonprofile['email'] if eventadmonprofile['email'] else None  
+    email = default_profile.email if default_profile.email else None  
     name = eventadmonprofile['name'] if eventadmonprofile['name'] else default_profile.name  
     
     id = str(uuid.uuid4())
     one_profile = new_profile(profile_type, id, default_profile_id, eventadmonprofile['username'], name, 
-                              email, default_profile.city_id, eventadmonprofile['receive_notifications'], 
-                              True, True, "USERPROFILE", currentUser['username'], currentUser['username'], file, is_confirmed=True,
+                              email, default_profile.city_id, False, True, True, "USERPROFILE", 
+                              currentUser['username'], currentUser['username'], file, is_confirmed=True,
                               single_profile_id=default_profile_id)
     
     one_eventadmon = EventAdmonProfile(profile_id=id, updated_by=currentUser['username'], 
@@ -547,16 +547,19 @@ def get_all_default_profile(request:Request, profile_id: str, page: int, per_pag
     
     return result
 
-def get_all_single_profile(request:Request, profile_id: str, page: int, per_page: int, criteria_key: str, criteria_value: str, db: Session):  
+def get_all_single_profile(request:Request, profile_id: str, page: int, per_page: int, criteria_value: str, db: Session):  
     locale = request.headers["accept-language"].split(",")[0].split("-")[0];
     
     api_uri = str(settings.api_uri)
+    print('profile_id')
+    print(profile_id)
+    print('*******************')  
     
     # por el perfil, buscar a que federacion pertenece
     one_profile = get_one(profile_id, db=db)
     if not one_profile:
         raise HTTPException(status_code=404, detail=_(locale, "userprofile.not_found"))
-    
+    print(one_profile.id)
     federation_id = None
     if one_profile.profile_type == 'EVENTADMON':
         federation_id = one_profile.profile_event_admon[0].federation_id if one_profile.profile_event_admon else None
@@ -577,23 +580,19 @@ def get_all_single_profile(request:Request, profile_id: str, page: int, per_page
     str_query = "Select pmem.id profile_id, pmem.name, photo, pmem.city_id, city.name city_name, city.country_id, " +\
         "pa.name as country_name, psin.elo, psin.level " + str_from
     
-    str_where = " WHERE pmem.is_active = True "  
-    
-    dict_query = {'name': " AND pmem.name ilike '%" + criteria_value + "%'",
-                  'club_id': " AND psin.club_id = " + criteria_value 
-                 }
-    
+    str_where = " WHERE pmem.is_active = True and pa.federation_id = " + str(federation_id)   
+
+    str_search = ''
+    if criteria_value:
+        str_search = "AND (pa.name ilike '%" + criteria_value + "%' OR city.name ilike '%" + criteria_value +\
+            "%' OR us.email ilike '%" + criteria_value + "%')"
+        str_where += str_search
+        
     str_count += str_where
     str_query += str_where
     
-    if criteria_key and criteria_key not in dict_query:
-        raise HTTPException(status_code=404, detail=_(locale, "commun.invalid_param"))
-    
     if page and page > 0 and not per_page:
         raise HTTPException(status_code=404, detail=_(locale, "commun.invalid_param"))
-    
-    str_count += dict_query[criteria_key] if criteria_value else "" 
-    str_query += dict_query[criteria_key] if criteria_value else "" 
     
     result = get_result_count(page=page, per_page=per_page, str_count=str_count, db=db)
     
@@ -881,22 +880,35 @@ def get_generic_eventadmon_profile_by_id(request: Request, id: str, db: Session)
     
     api_uri = str(settings.api_uri)
     
-    str_query = "Select us.username, us.first_name, us.last_name, us.email, " +\
-        "pro.id profile_id, pro.city_id, us.photo, pro.receive_notifications, " +\
-        "city.name as city_name, city.country_id, co.name as country_name  " +\
-        "FROM enterprise.profile_member pro " +\
-        "inner join enterprise.profile_event_admon pa ON pa.profile_id = pro.id " +\
-        "JOIN enterprise.users us ON us.id = pa.profile_user_id " +\
-        "left join resources.city city ON city.id = pro.city_id " +\
-        "left join resources.country co ON co.id = city.country_id " +\
-        "Where pro.is_active = True AND pro.id='" + id + "' "
-
-    res_profile=db.execute(str_query)
+    one_profile = get_one(id, db=db)
+    if not one_profile:
+        raise HTTPException(status_code=404, detail=_(locale, "userprofile.not_found"))
     
+    if one_profile.profile_type != 'EVENTADMON':
+        raise HTTPException(status_code=404, detail=_(locale, "userprofile.profile_incorrect"))
+    
+    print('id dentro')
+    print(id)
+    print('**************')
+    
+    str_query = "Select pmem.name, pmem.email, pmem.id profile_id, pmem.photo, federation_id, fed.name as federation_name, " +\
+        "pmem.city_id, city.name city_name, city.country_id, co.name as country_name " +\
+        "FROM enterprise.profile_member pmem " +\
+        "JOIN enterprise.profile_event_admon pa ON pa.profile_id = pmem.id " +\
+        "JOIN federations.federations fed ON fed.id = pa.federation_id " +\
+        "left join resources.city city ON city.id = pmem.city_id " +\
+        "left join resources.country co ON co.id = city.country_id " +\
+        "Where pmem.is_active = True AND pmem.id='" + id + "' "
+        
+        
+        
+    res_profile=db.execute(str_query)
+    print(str_query)
     for item in res_profile:
-        result.data = {'id': item.profile_id, 'first_name': item.first_name, 'last_name': item.last_name, 
-                       'email': item.email, 'username': item.username, 'country_id': item.country_id if item.country_id else '', 
-                       'country': item.country_name if item.country_name else '', 
+        result.data = {'id': item.profile_id, 'name': item.name, 'email': item.email if item.email else '', 
+                       'country_id': item.country_id if item.country_id else '', 
+                       'federation_id': item.federation_id, 'federation_name': item.federation_name,
+                       'country_name': item.country_name if item.country_name else '', 
                        'city_id': item.city_id if item.city_id else '', 
                        'city_name': item.city_name if item.city_name else '',
                        'photo': get_url_avatar(item.profile_id, item.photo, api_uri=api_uri)
@@ -1595,10 +1607,9 @@ def update_generic_event_admon_profile(request: Request, id: str, eventadmonprof
     if not db_profile:
         raise HTTPException(status_code=400, detail=_(locale, "userprofile.not_found"))
     
-    email = eventadmonprofile['email'] if eventadmonprofile['email'] else None  
     name = eventadmonprofile['name'] if eventadmonprofile['name'] else db_profile.name  
     
-    update_profile(db_profile, file, currentUser, name, email, db_profile.city_id)
+    update_profile(db_profile, file, currentUser, name, db_profile.email, db_profile.city_id)
     
     db_profile.updated_by = currentUser['username']
     db_profile.updated_date = datetime.now()
