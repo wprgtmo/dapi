@@ -1480,7 +1480,7 @@ def update_one_default_profile(request: Request, id: str, defaultuserprofile: De
             raise HTTPException(status_code=400, detail=_(locale, "users.already_exist"))    
 
 def update_profile(profile_member: ProfileMember, file: File, currentUser, name: str, email: str, city_id: int, 
-                   receive_notifications: bool):
+                   receive_notifications: bool=None):
     
     if profile_member.name != name:
         profile_member.name = name
@@ -1490,8 +1490,9 @@ def update_profile(profile_member: ProfileMember, file: File, currentUser, name:
         
     if profile_member.city_id != city_id:
         profile_member.city_id = city_id
-        
-    profile_member.receive_notifications = receive_notifications
+  
+    if receive_notifications:      
+        profile_member.receive_notifications = receive_notifications
     
     path = create_dir(entity_type="USERPROFILE", user_id=str(currentUser['user_id']), entity_id=profile_member.id)  
     current_image = profile_member.photo
@@ -1584,7 +1585,7 @@ def update_one_event_admon_profile(request: Request, id: str, eventadmonprofile:
         if e.code == "gkpj":
             raise HTTPException(status_code=400, detail=_(locale, "userprofile.already_exist"))
 
-def update_generic_event_admon_profile(request: Request, id: str, eventadmonprofile: GenericProfileCreated, file: File, db: Session):
+def update_generic_event_admon_profile(request: Request, id: str, eventadmonprofile: EventAdmonProfileCreated, file: File, db: Session):
     locale = request.headers["accept-language"].split(",")[0].split("-")[0];
     
     result = ResultObject() 
@@ -1597,7 +1598,7 @@ def update_generic_event_admon_profile(request: Request, id: str, eventadmonprof
     email = eventadmonprofile['email'] if eventadmonprofile['email'] else None  
     name = eventadmonprofile['name'] if eventadmonprofile['name'] else db_profile.name  
     
-    update_profile(db_profile, file, currentUser, name, email, db_profile.city_id, eventadmonprofile['receive_notifications'])
+    update_profile(db_profile, file, currentUser, name, email, db_profile.city_id)
     
     db_profile.updated_by = currentUser['username']
     db_profile.updated_date = datetime.now()

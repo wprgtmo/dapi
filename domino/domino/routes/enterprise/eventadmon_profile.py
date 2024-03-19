@@ -41,12 +41,12 @@ def update_eventadmon_profile(
 
 @eventadmonprofile_route.post("/profile/generic/eventadmon/{profile_id}", response_model=ResultObject, summary="Create a Profile of Event Admon")
 def create_eventadmon_generic_profile(
-    request:Request, profile_id: str, eventadmonprofile: GenericProfileCreated = Depends(), image: UploadFile = None, db: Session = Depends(get_db)):
+    request:Request, profile_id: str, eventadmonprofile: EventAdmonProfileCreated = Depends(), image: UploadFile = None, db: Session = Depends(get_db)):
     return new_generic_event_admon(request=request, profile_id=profile_id, eventadmonprofile=eventadmonprofile.dict(), file=image, db=db)
 
 @eventadmonprofile_route.put("/profile/generic/eventadmon/{id}", response_model=ResultObject, summary="Update Event Admon Profile for your ID")
 def update_eventadmon_generic_profile(
-    request:Request, id: str, eventadmonprofile: GenericProfileCreated = Depends(), image: UploadFile = None, db: Session = Depends(get_db)):
+    request:Request, id: str, eventadmonprofile: EventAdmonProfileCreated = Depends(), image: UploadFile = None, db: Session = Depends(get_db)):
     return update_generic_event_admon_profile(request=request, db=db, id=str(id), eventadmonprofile=eventadmonprofile.dict(), file=image)
 
 @eventadmonprofile_route.get("/profile/generic/eventadmon/{id}", response_model=ResultObject, summary="Get a Event Admon Profile for your ID.")
