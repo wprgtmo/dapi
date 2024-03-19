@@ -887,10 +887,6 @@ def get_generic_eventadmon_profile_by_id(request: Request, id: str, db: Session)
     if one_profile.profile_type != 'EVENTADMON':
         raise HTTPException(status_code=404, detail=_(locale, "userprofile.profile_incorrect"))
     
-    print('id dentro')
-    print(id)
-    print('**************')
-    
     str_query = "Select pmem.name, pmem.email, pmem.id profile_id, pmem.photo, federation_id, fed.name as federation_name, " +\
         "pmem.city_id, city.name city_name, city.country_id, co.name as country_name " +\
         "FROM enterprise.profile_member pmem " +\
