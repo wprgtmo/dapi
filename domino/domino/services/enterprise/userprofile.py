@@ -624,20 +624,19 @@ def get_all_eventadmon_profile(request:Request, profile_id: str, page: int, per_
 
     str_from = "FROM enterprise.profile_member pmem " +\
         "JOIN enterprise.profile_event_admon pa ON pa.profile_id = pmem.id " +\
-        "JOIN enterprise.users us ON us.id = pa.profile_user_id " +\
         "left join resources.city city ON city.id = pmem.city_id " +\
         "left join resources.country co ON co.id = city.country_id "
     
     str_count = "Select count(*) " + str_from
-    str_query = "Select us.username, us.first_name, us.last_name, us.email, " +\
-        "pmem.id profile_id, us.photo, pmem.city_id, city.name city_name, city.country_id, co.name as country_name " + str_from
+    str_query = "Select pmem.name, pmem.email, pmem.id profile_id, pmem.photo, " +\
+        "pmem.city_id, city.name city_name, city.country_id, co.name as country_name " + str_from
     
-    str_where = " WHERE pmem.is_active = True "  
+    str_where = " WHERE pmem.is_active = True and pa.federation_id = " + str(federation_id)   
 
     str_search = ''
     if criteria_value:
-        str_search = "AND (us.first_name ilike '%" + criteria_value + "%' OR city.name ilike '%" + criteria_value +\
-            "%' OR us.last_name ilike '%" + criteria_value + "%' OR us.email ilike '%" + criteria_value + "%')"
+        str_search = "AND (pa.name ilike '%" + criteria_value + "%' OR city.name ilike '%" + criteria_value +\
+            "%' OR us.email ilike '%" + criteria_value + "%')"
         str_where += str_search
         
     str_count += str_where
@@ -654,7 +653,6 @@ def get_all_eventadmon_profile(request:Request, profile_id: str, page: int, per_
         str_query += "LIMIT " + str(per_page) + " OFFSET " + str(page*per_page-per_page)
      
     lst_data = db.execute(str_query)
-    print(str_query)
     result.data = [create_dict_row_federation_profile(item, db=db, api_uri=api_uri) for item in lst_data]
     return result
     
@@ -678,13 +676,12 @@ def create_dict_row_single_player(item, page, db: Session, api_uri="", profile_t
 
 def create_dict_row_federation_profile(item, db: Session, api_uri=""):
     
-    dict_row = {'profile_id': item['profile_id'], 'first_name': item['first_name'],
-                'last_name': item['last_name'] if item['last_name'] else '',  'email': item['email'] if item['email'] else '',
+    dict_row = {'profile_id': item['profile_id'], 'name': item['name'],
+                'email': item['email'] if item['email'] else '',
                 'city': item['city_id'] if item['city_id'] else '', 'city_name': item['city_name'] if item['city_name'] else '', 
                 'country_id': item['country_id'] if item['country_id'] else '', 
                 'country_name': item['country_name'] if item['country_name'] else '', 
-                'photo' : get_url_avatar(item['profile_id'], item['photo'], api_uri=api_uri),
-                'username': item['username']}
+                'photo' : get_url_avatar(item['profile_id'], item['photo'], api_uri=api_uri)}
     
     return dict_row
 
