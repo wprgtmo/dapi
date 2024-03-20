@@ -901,23 +901,20 @@ def get_one_pair_profile_by_id(request: Request, id: str, db: Session):
     single_profile_id = get_user_for_single_profile_by_user(currentUser['username'], db=db)
     
     str_query = "Select pro.id profile_id, pro.name, pro.email, pro.city_id, pro.photo, pro.receive_notifications, " +\
-        "eve.name as profile_type_name, eve.description as profile_type_description, " +\
+        "club.id as club_id, club.name as club_name, " +\
         "city.name as city_name, city.country_id, pa.name as country_name, sing.elo, sing.level  " +\
         "FROM enterprise.profile_member pro " +\
-        "inner join enterprise.profile_type eve ON eve.name = pro.profile_type " +\
         "inner join enterprise.profile_pair_player sing ON sing.profile_id = pro.id " +\
+        "JOIN federations.clubs club ON club.id = sing.club_id " +\
         "left join resources.city city ON city.id = pro.city_id " +\
         "left join resources.country pa ON pa.id = city.country_id " +\
         "Where pro.is_active = True AND  pro.id='" + id + "' "
     res_profile=db.execute(str_query)
     
     for item in res_profile:
-        photo = get_url_avatar(item.profile_id, item.photo, api_uri=api_uri)
         level_name = get_type_level(item.level) if item.level else '' 
         
         result.data = {'id': item.profile_id, 'name': item.name, 'email': item.email,
-                       'profile_type_name': item.profile_type_name, 
-                       'profile_type_description': item.profile_type_description, 'photo': photo,
                        'elo': item.elo if item.elo else '', 
                        'level': level_name, 
                        'country_id': item.country_id if item.country_id else '', 
@@ -925,6 +922,7 @@ def get_one_pair_profile_by_id(request: Request, id: str, db: Session):
                        'city_id': item.city_id if item.city_id else '', 
                        'city_name': item.city_name if item.city_name else '',
                        'receive_notifications': item.receive_notifications,
+                       'photo': get_url_avatar(item.profile_id, item.photo, api_uri=api_uri),
                        'lst_users': get_lst_users_pair_profile(item.profile_id, single_profile_id=single_profile_id, db=db)}
     
     if not result.data:
@@ -1137,7 +1135,7 @@ def get_lst_users_team_profile(profile_id: str, db: Session):
 
 def get_lst_users_pair_profile(profile_id: str, single_profile_id: str, db: Session): 
     
-    dict_data = {}
+    lst_data = []
     
     api_uri = str(settings.api_uri)
     
@@ -1151,18 +1149,18 @@ def get_lst_users_pair_profile(profile_id: str, single_profile_id: str, db: Sess
     res_profile=db.execute(str_query)
     
     for item in res_profile:
-        if item.profile_id == single_profile_id:
-            continue
+        # if item.profile_id == single_profile_id:
+        #     continue
         
-        dict_data = {'profile_id': item.profile_id, 'name': item.name, 
+        lst_data.append({'profile_id': item.profile_id, 'name': item.name, 
                      'is_principal': item.is_principal,
                      'photo': get_url_avatar(item.profile_id, item.photo, api_uri=api_uri),
                      'country_id': item.country_id if item.country_id else '', 
                      'country': item.country_name if item.country_name else '', 
                      'city_id': item.city_id if item.city_id else '', 
-                     'city_name': item.city_name if item.city_name else ''}
+                     'city_name': item.city_name if item.city_name else ''})
         
-    return dict_data
+    return lst_data
     
 def get_one_profile_id(id: str, db: Session): 
     str_query = "Select pro.id FROM enterprise.profile_member pro join enterprise.profile_users us ON us.profile_id = pro.id " +\
@@ -1360,25 +1358,17 @@ def update_elo_single_profile(request: Request, profile_id: str, elo: float, db:
         if e.code == "gkpj":
             raise HTTPException(status_code=400, detail=_(locale, "userprofile.already_exist"))
 
-def update_one_pair_profile(request: Request, id: str, pairprofile: PairProfileCreated, file: File, db: Session):
+def update_one_pair_profile(request: Request, id: str, pairprofile: GenericPairProfileCreated, file: File, db: Session):
     locale = request.headers["accept-language"].split(",")[0].split("-")[0];
     
     result = ResultObject() 
     currentUser = get_current_user(request)
     
-    me_profile_id = get_user_for_single_profile_by_user(currentUser['username'], db=db)
-    if not me_profile_id:
-        raise HTTPException(status_code=400, detail=_(locale, "userprofile.not_exist"))
-    
-    if pairprofile['other_profile_id'] and pairprofile['other_profile_id'] == me_profile_id: 
-        raise HTTPException(status_code=400, detail=_(locale, "userprofile.not_equal"))
-    
     db_profile = get_one(id, db=db)
     if not db_profile:
         raise HTTPException(status_code=400, detail=_(locale, "userprofile.not_found"))
     
-    update_profile(db_profile, file, currentUser, pairprofile['name'], pairprofile['email'], pairprofile['city_id'], 
-                   pairprofile['receive_notifications'])
+    update_profile(db_profile, file, currentUser, pairprofile['name'])
     
     db_pair_profile = get_one_pair_profile(db_profile.id, db=db)
     if not db_pair_profile:
@@ -1397,8 +1387,8 @@ def update_one_pair_profile(request: Request, id: str, pairprofile: PairProfileC
         if pairprofile['other_profile_id'] not in dicc_player:   # es nuevo
             # borrar el que esta
             for item_key in dicc_player:
-                if me_profile_id == item_key:
-                    continue   # el principal no se puede borrar
+                # if me_profile_id == item_key:
+                #     continue   # el principal no se puede borrar
                 
                 db_user = db.query(ProfileUsers).filter_by(profile_id = id, single_profile_id=item_key).first()
                 db.delete(db_user)
@@ -1630,16 +1620,16 @@ def update_one_default_profile(request: Request, id: str, defaultuserprofile: De
         if e and e.code == "gkpj":
             raise HTTPException(status_code=400, detail=_(locale, "users.already_exist"))    
 
-def update_profile(profile_member: ProfileMember, file: File, currentUser, name: str, email: str, city_id: int, 
+def update_profile(profile_member: ProfileMember, file: File, currentUser, name: str, email: str=None, city_id: int=None, 
                    receive_notifications: bool=None):
     
     if profile_member.name != name:
         profile_member.name = name
         
-    if profile_member.email != email:
+    if email and profile_member.email != email:
         profile_member.email = email
         
-    if profile_member.city_id != city_id:
+    if city_id and profile_member.city_id != city_id:
         profile_member.city_id = city_id
   
     if receive_notifications:      
