@@ -24,7 +24,7 @@ def create_pair_profile(
     request:Request, profile_id: str, pairprofile: GenericPairProfileCreated = Depends(), image: UploadFile = None, db: Session = Depends(get_db)):
     return new_profile_pair_player(request=request, profile_id=profile_id, pairprofile=pairprofile.dict(), file=image, db=db)
 
-@pairprofile_route.get("/profile/pairplayer/{id}", response_model=ResultObject, summary="Get a Pair Player Profile for your ID.")
+@pairprofile_route.get("/profile/pairplayer/one/{id}", response_model=ResultObject, summary="Get a Pair Player Profile for your ID.")
 def get_pair_profile(request: Request, id: str, db: Session = Depends(get_db)):
     return get_one_pair_profile_by_id(request, id=id, db=db)
 
