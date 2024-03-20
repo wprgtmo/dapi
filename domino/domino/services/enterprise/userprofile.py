@@ -21,7 +21,8 @@ from domino.models.enterprise.userprofile import ProfileMember, ProfileUsers, Si
     DefaultUserProfile, RefereeProfile, PairProfile, TeamProfile, EventAdmonProfile
     
 from domino.schemas.enterprise.userprofile import SingleProfileCreated, DefaultUserProfileBase, \
-    RefereeProfileCreated, PairProfileCreated, TeamProfileCreated, EventAdmonProfileCreated, GenericProfileCreated, GenericSingleProfileCreated
+    RefereeProfileCreated, PairProfileCreated, TeamProfileCreated, EventAdmonProfileCreated, GenericProfileCreated, \
+    GenericSingleProfileCreated, GenericPairProfileCreated
 from domino.schemas.resources.result_object import ResultObject, ResultData
 
 from domino.services.enterprise.profiletype import get_one as get_profile_type_by_id, get_one_by_name as get_profile_type_by_name
@@ -68,33 +69,68 @@ def new_profile_single_player(request: Request, profile_id:str, singleprofile: G
     if not profile_user_id:
         raise  HTTPException(status_code=400, detail=_(locale, "userprofile.not_found"))
     
-    default_profile = get_one(profile_user_id, db=db)
-    
-    id = str(uuid.uuid4())
-    one_profile = new_profile(profile_type, id, profile_user_id, singleprofile['username'], singleprofile['name'], 
-                              default_profile.email,  default_profile.city_id, False, True, True, "USERPROFILE", 
-                              currentUser['username'], currentUser['username'], file, is_confirmed=True,
-                              single_profile_id=profile_user_id)
-    
     if not singleprofile['club_id']:
         raise  HTTPException(status_code=400, detail=_(locale, "club.is_requiered"))
     
     one_club = get_one_club(singleprofile['club_id'], db=db)
+    if not one_club:
+        raise  HTTPException(status_code=400, detail=_(locale, "club.not_found"))
+    
+    default_profile = get_one(profile_user_id, db=db)
     
     # a solicitud de Senen cuando los jugadores se creen un perfil de jugador simple, va con un elo de 800
     elo = 800 if not  singleprofile['elo'] else singleprofile['elo']
-    one_single_player = SingleProfile(profile_id=id, elo=elo, level=singleprofile['level'], updated_by=currentUser['username'],
-                                      profile_user_id=profile_user_id, club_id=one_club.id if one_club else None)
+    
+    result_data = created_one_single_profile(
+        profile_type, profile_user_id, singleprofile['username'], singleprofile['name'],  default_profile.email,  
+        default_profile.city_id, False, currentUser['username'], file, profile_user_id, one_club.id, elo, 
+        singleprofile['level'], db=db)
+    
+    if not result_data:
+        raise HTTPException(status_code=400, detail=_(locale, "userprofile.errorinsert"))
+    else:
+        result.data = {'id': id}
+        return result
+    
+    # id = str(uuid.uuid4())
+    # one_profile = new_profile(profile_type, id, profile_user_id, singleprofile['username'], singleprofile['name'], 
+    #                           default_profile.email,  default_profile.city_id, False, True, True, "USERPROFILE", 
+    #                           currentUser['username'], currentUser['username'], file, is_confirmed=True,
+    #                           single_profile_id=profile_user_id)
+    
+    # one_single_player = SingleProfile(profile_id=id, elo=elo, level=singleprofile['level'], updated_by=currentUser['username'],
+    #                                   profile_user_id=profile_user_id, club_id=one_club.id if one_club else None)
+    # one_profile.profile_single_player.append(one_single_player)
+    
+    # try:   
+    #     db.add(one_profile)
+    #     db.commit()
+    #     result.data = {'id': id}
+    #     return result
+    # except (Exception, SQLAlchemyError) as e:
+    #     raise HTTPException(status_code=400, detail=_(locale, "userprofile.errorinsert"))
+
+def created_one_single_profile(profile_type, profile_user_id, username, name, email, city_id, rec_notifications, created_by, file, 
+                               club_id, elo, level, db:Session):
+    
+    id = str(uuid.uuid4())
+    one_profile = new_profile(profile_type, id, profile_user_id, username, name, email, city_id, rec_notifications, True, True, "USERPROFILE", 
+                              created_by, created_by, file, is_confirmed=True)
+    
+    # a solicitud de Senen cuando los jugadores se creen un perfil de jugador simple, va con un elo de 800
+    elo = 800 if not  elo else elo
+    one_single_player = SingleProfile(profile_id=id, elo=elo, level=level, updated_by=created_by,
+                                      profile_user_id=profile_user_id, club_id=club_id)
     one_profile.profile_single_player.append(one_single_player)
     
     try:   
         db.add(one_profile)
         db.commit()
-        result.data = {'id': id}
-        return result
+        data = {'id': id}
+        return data
     except (Exception, SQLAlchemyError) as e:
-        raise HTTPException(status_code=400, detail=_(locale, "userprofile.errorinsert"))
-
+        return None
+    
 def new_profile_referee(request: Request, refereeprofile: RefereeProfileCreated, file: File, db: Session): 
     locale = request.headers["accept-language"].split(",")[0].split("-")[0];
     
@@ -153,61 +189,96 @@ def new_profile_referee(request: Request, refereeprofile: RefereeProfileCreated,
     except (Exception, SQLAlchemyError) as e:
         raise HTTPException(status_code=400, detail=_(locale, "userprofile.errorinsert"))
 
-def verify_exist_pair_player(profile_principal_id: str, profile_secundary_id: str, db: Session):
+def verify_exist_pair_player(username_one: str, username_two: str, db: Session):
     
-    str_query = "Select count(*) from enterprise.profile_users Where single_profile_id = '" + \
-        profile_secundary_id + "' and is_principal=False AND profile_id IN (Select profile_id " +\
-        "from enterprise.profile_users where single_profile_id = '" + profile_principal_id + "' and is_principal=True) "
-        
+    str_query = "Select count(*) from enterprise.profile_users " +\
+        "join enterprise.profile_pair_player ON profile_pair_player.profile_id = profile_users.profile_id " +\
+        "JOIN enterprise.profile_member ON profile_member.id = profile_pair_player.profile_id " +\
+        "Where enterprise.profile_member.is_active = True and username = '" + \
+        username_one + "' AND profile_users.profile_id IN (Select profile_id " +\
+        "from enterprise.profile_users where username = '" + username_two + "') "
     amount = db.execute(str_query).fetchone()[0]
     return True if amount > 0 else False
     
-def new_profile_pair_player(request: Request, pairprofile: PairProfileCreated, file: File, db: Session): 
+def new_profile_pair_player(request: Request, profile_id: str, pairprofile: GenericPairProfileCreated, file: File, db: Session): 
     locale = request.headers["accept-language"].split(",")[0].split("-")[0];
     
     result = ResultObject() 
     currentUser = get_current_user(request)
     
+    # buscar el profile de quien lo esta creando, debe ser administrador, coger de aqui la federacion
+    one_profile_admon = get_one(profile_id, db=db)
+    if not one_profile_admon:
+        raise HTTPException(status_code=400, detail=_(locale, "userprofile.not_found"))
+    
+    if one_profile_admon.profile_type != 'EVENTADMON':
+        raise HTTPException(status_code=400, detail=_(locale, "userprofile.profile_incorrect"))
+    
+    if not pairprofile['club_id']:
+        raise HTTPException(status_code=400, detail=_(locale, "userprofile.clus_is_requiered"))
+    
+    # verificar si existe una pareja con esos dos perfles no creala..
+    exist_profile = verify_exist_pair_player(pairprofile['username_one'], pairprofile['username_two'], db=db)
+    if exist_profile:
+        raise HTTPException(status_code=400, detail=_(locale, "userprofile.already_exist"))
+    
     profile_type = get_profile_type_by_name("PAIR_PLAYER", db=db)
     if not profile_type:
         raise HTTPException(status_code=400, detail=_(locale, "profiletype.not_found"))
     
-    me_profile_id = get_user_for_single_profile_by_user(currentUser['username'], db=db)
-    if not me_profile_id:
-        raise  HTTPException(status_code=400, detail=_(locale, "userprofile.sigle_profile_not_exist"))
+    profile_type_single = get_profile_type_by_name("SINGLE_PLAYER", db=db)
+    if not profile_type_single:
+        raise HTTPException(status_code=400, detail=_(locale, "profiletype.not_found"))
     
-    # verificar si existe una pareja con esos dos perfles no creala..
-    if pairprofile['other_profile_id']: 
-        exist_profile = verify_exist_pair_player(me_profile_id, pairprofile['other_profile_id'], db=db)
-        if exist_profile:
-            raise HTTPException(status_code=400, detail=_(locale, "userprofile.already_exist"))
+    profile_user_one_id = get_one_profile_by_user(pairprofile['username_one'], "USER", db=db)
+    if not profile_user_one_id:
+        raise  HTTPException(status_code=400, detail=_(locale, "userprofile.not_found"))
+    
+    profile_user_two_id = get_one_profile_by_user(pairprofile['username_two'], "USER", db=db)
+    if not profile_user_two_id:
+        raise  HTTPException(status_code=400, detail=_(locale, "userprofile.not_found"))
+    
+    if profile_user_one_id == profile_user_two_id:
+        raise  HTTPException(status_code=400, detail=_(locale, "userprofile.not_equal"))
+    
+    default_profile_one = get_one(profile_user_one_id, db=db)
+    default_profile_two = get_one(profile_user_two_id, db=db)
+    
+    profile_single_one_id = get_one_profile_by_user(pairprofile['username_one'], "SINGLE_PLAYER", db=db)
+    if not profile_single_one_id:
+        result_prof_single_one = created_one_single_profile(
+            profile_type_single, profile_user_one_id, pairprofile['username_one'], default_profile_one.name,  
+            default_profile_one.email, default_profile_one.city_id, False, currentUser['username'], file,
+            pairprofile['club.id'], 800, pairprofile['level'], db=db)
+        if not result_prof_single_one:
+            raise HTTPException(status_code=400, detail=_(locale, "userprofile.errorinsert"))
+        profile_single_one_id = result_prof_single_one['id']
+        
+    profile_single_two_id = get_one_profile_by_user(pairprofile['username_two'], "SINGLE_PLAYER", db=db)
+    if not profile_single_two_id:
+        result_prof_single_two = created_one_single_profile(
+            profile_type_single, profile_user_two_id, pairprofile['username_two'], default_profile_two.name,  
+            default_profile_two.email, default_profile_two.city_id, False, currentUser['username'], file,
+            pairprofile['club.id'], 800, pairprofile['level'], db=db)
+        if not result_prof_single_two:
+            raise HTTPException(status_code=400, detail=_(locale, "userprofile.errorinsert"))
+        profile_single_two_id = result_prof_single_one['id']
     
     id = str(uuid.uuid4())
-    one_profile = new_profile(profile_type, id, currentUser['user_id'], currentUser['username'], pairprofile['name'], 
-                              pairprofile['email'], pairprofile['city_id'], pairprofile['receive_notifications'], 
-                              False, True, "USERPROFILE", currentUser['username'], currentUser['username'], file, 
-                              is_confirmed=True, single_profile_id=me_profile_id)
+    one_profile = new_profile(profile_type, id, profile_user_one_id, pairprofile['username_one'], pairprofile['name'], 
+                              default_profile_one.email, default_profile_one.city_id, False, True, True, 
+                              "USERPROFILE", currentUser['username'], currentUser['username'], file, is_confirmed=True,
+                              single_profile_id=profile_single_one_id)
     
-    one_pair_player = PairProfile(profile_id=id, level=pairprofile['level'], updated_by=currentUser['username'],
-                                  elo=1600)
+    elo = 800 if not pairprofile['elo'] else pairprofile['elo']
+    
+    one_pair_player = PairProfile(profile_id=id, level=pairprofile['level'], updated_by=currentUser['username'], elo=elo, club_id=pairprofile['club_id'])
     one_profile.profile_pair_player.append(one_pair_player)
     
-    if pairprofile['other_profile_id']:   # el segundo jugador de la pareja
-        # verificar que no sea el mismo perfil que lo está creando...
-        if not me_profile_id:
-            raise HTTPException(status_code=400, detail=_(locale, "userprofile.not_exist"))
-        
-        other_username = get_user_for_single_profile(pairprofile['other_profile_id'], db=db)
-        if other_username:
-            if me_profile_id == pairprofile['other_profile_id']:
-                raise HTTPException(status_code=400, detail=_(locale, "userprofile.not_equal"))
-            
-            other_user_member = ProfileUsers(profile_id=pairprofile['other_profile_id'], username=other_username, 
-                                            is_principal=False, created_by=currentUser['username'], is_confirmed=False,
-                                            single_profile_id=pairprofile['other_profile_id'])
-            one_profile.profile_users.append(other_user_member) 
-        else:
-            raise HTTPException(status_code=400, detail=_(locale, "userprofile.not_exist"))
+    other_user_member = ProfileUsers(profile_id=profile_user_two_id, username=pairprofile['username_two'], 
+                                    is_principal=False, created_by=currentUser['username'], is_confirmed=True,
+                                    single_profile_id=profile_single_two_id)
+    one_profile.profile_users.append(other_user_member) 
     
     try:   
         db.add(one_profile)
@@ -617,6 +688,64 @@ def get_all_single_profile(request:Request, profile_id: str, page: int, per_page
     result.data = [create_dict_row_single_player(item, db=db, api_uri=api_uri) for item in lst_data]
     return result
 
+def get_all_pair_profile(request:Request, profile_id: str, page: int, per_page: int, criteria_value: str, db: Session):  
+    locale = request.headers["accept-language"].split(",")[0].split("-")[0];
+    
+    api_uri = str(settings.api_uri)
+    
+    # por el perfil, buscar a que federacion pertenece
+    one_profile = get_one(profile_id, db=db)
+    if not one_profile:
+        raise HTTPException(status_code=404, detail=_(locale, "userprofile.not_found"))
+    
+    federation_id = None
+    if one_profile.profile_type == 'EVENTADMON':
+        federation_id = one_profile.profile_event_admon[0].federation_id if one_profile.profile_event_admon else None
+    elif one_profile.profile_type == 'FEDERATED':
+        federation_id = one_profile.profile_federated[0].federation_id if one_profile.profile_federated else None
+    else:
+        raise HTTPException(status_code=404, detail=_(locale, "userprofile.not_found"))
+    
+    if not federation_id:
+        raise HTTPException(status_code=404, detail=_(locale, "userprofile.not_found"))
+    
+    str_from = "FROM enterprise.profile_member pmem " +\
+        "JOIN enterprise.profile_pair_player pair ON pair.profile_id = pmem.id " +\
+        "JOIN federations.clubs club ON club.id = pair.club_id " +\
+        "left join resources.city city ON city.id = pmem.city_id " +\
+        "left join resources.country co ON co.id = city.country_id "
+    
+    str_count = "Select count(*) " + str_from
+    str_query = "Select pmem.name, pmem.id profile_id, pmem.photo, pair.elo, pair.level, club.name as club_name, " +\
+        "club.id as club_id, club.name as club_name, " +\
+        "pmem.city_id, city.name city_name, city.country_id, co.name as country_name " + str_from
+    
+    str_where = " WHERE pmem.is_active = True and club.federation_id = " + str(federation_id)   
+    
+    str_search = ''
+    if criteria_value:
+        str_search = " AND (pmem.name ilike '%" + criteria_value + "%' OR city.name ilike '%" + criteria_value +\
+            "%' OR pair.level ilike '%" + criteria_value + "%' OR club.name ilike '%" + criteria_value +\
+            "%' OR co.name ilike '%" + criteria_value + "%')"
+        str_where += str_search
+        
+    str_count += str_where
+    str_query += str_where
+    
+    if page and page > 0 and not per_page:
+        raise HTTPException(status_code=404, detail=_(locale, "commun.invalid_param"))
+    
+    result = get_result_count(page=page, per_page=per_page, str_count=str_count, db=db)
+    
+    str_query += " ORDER BY pmem.name " 
+    
+    if page != 0:
+        str_query += "LIMIT " + str(per_page) + " OFFSET " + str(page*per_page-per_page)
+    
+    lst_data = db.execute(str_query)
+    result.data = [create_dict_row_single_player(item, db=db, api_uri=api_uri) for item in lst_data]
+    return result
+
 def get_all_eventadmon_profile(request:Request, profile_id: str, page: int, per_page: int, criteria_value: str, db: Session):  
     locale = request.headers["accept-language"].split(",")[0].split("-")[0];
     
@@ -671,8 +800,8 @@ def get_all_eventadmon_profile(request:Request, profile_id: str, page: int, per_
 def create_dict_row_single_player(item, db: Session, api_uri="", profile_type='SINGLE_PLAYER'):
     
     dict_row = {'profile_id': item['profile_id'], 'name': item['name'], 
-               'city': item['city_id'], 'city_name': item['city_name'], 
-               'country_id': item['country_id'], 'country': item['country_name'], 
+               'city': item['city_id'] if item['city_id'] else '', 'city_name': item['city_name'] if item['city_name'] else '', 
+               'country_id': item['country_id'] if item['country_id'] else '', 'country': item['country_name'] if item['country_name'] else '', 
                'photo' : get_url_avatar(item['profile_id'], item['photo'], api_uri=api_uri)}
     
     level_name = get_type_level(item['level']) if item['level'] else '' 

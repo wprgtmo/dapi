@@ -5,7 +5,7 @@ from typing import List, Dict
 from starlette import status
 from domino.auth_bearer import JWTBearer
 
-from domino.schemas.enterprise.userprofile import SingleProfileCreated, GenericSingleProfileCreated
+from domino.schemas.enterprise.userprofile import GenericSingleProfileCreated
 from domino.schemas.resources.result_object import ResultObject, ResultData
 
 from domino.services.enterprise.userprofile import get_all_single_profile, new_profile_single_player, get_one_single_profile, update_one_single_profile, delete_one_profile

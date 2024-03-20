@@ -181,3 +181,13 @@ class GenericSingleProfileCreated(BaseModel):
     
     club_id: Optional[int]
     
+class GenericPairProfileCreated(BaseModel):
+    name: str
+    
+    username_one: Optional[str]
+    username_two: Optional[str]
+    
+    elo: Optional[float]
+    level: Optional[str]
+    
+    club_id: Optional[int]
