@@ -832,28 +832,23 @@ def get_one_single_profile(request: Request, id: str, db: Session):
     api_uri = str(settings.api_uri)
     
     str_query = "Select pro.id profile_id, pro.name, pro.city_id, pro.photo, " +\
-        "club.id as club_id, club.name as club_name, " +\
-        "city.name as city_name, city.country_id, co.name as country_name, sing.elo, sing.level  " +\
+        "club.id as club_id, club.name as club_name, pus.username, sing.elo, sing.level  " +\
         "FROM enterprise.profile_member pro " +\
         "join enterprise.profile_single_player sing ON sing.profile_id = pro.id " +\
         "JOIN federations.clubs club ON club.id = sing.club_id " +\
-        "left join resources.city city ON city.id = pro.city_id " +\
-        "left join resources.country co ON co.id = city.country_id " +\
+        "left JOIN enterprise.profile_users pus ON pus.profile_id = sing.profile_user_id " +\
         "Where pro.is_active = True AND pro.id='" + id + "' "
     res_profile=db.execute(str_query)
     
     for item in res_profile:
-        photo = get_url_avatar(item.profile_id, item.photo, api_uri=api_uri)
         level_name = get_type_level(item.level) if item.level else '' 
         
         result.data = {'id': item.profile_id, 'name': item.name, 
                        'elo': item.elo if item.elo else '', 
+                       'username': item.username,
                        'level': level_name, 
-                       'country_id': item.country_id if item.country_id else '', 
-                       'country_name': item.country_name if item.country_name else '', 
                        'club_id': item.club_id, 'club_name': item.club_name,
-                       'city_id': item.city_id if item.city_id else '', 
-                       'city_name': item.city_name if item.city_name else ''}
+                       'photo': get_url_avatar(item.profile_id, item.photo, api_uri=api_uri)}
         
     return result
 
