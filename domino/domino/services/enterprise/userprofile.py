@@ -83,8 +83,7 @@ def new_profile_single_player(request: Request, profile_id:str, singleprofile: G
     
     result_data = created_one_single_profile(
         profile_type, profile_user_id, singleprofile['username'], singleprofile['name'],  default_profile.email,  
-        default_profile.city_id, False, currentUser['username'], file, profile_user_id, one_club.id, elo, 
-        singleprofile['level'], db=db)
+        default_profile.city_id, False, currentUser['username'], file, one_club.id, elo, singleprofile['level'], db=db)
     
     if not result_data:
         raise HTTPException(status_code=400, detail=_(locale, "userprofile.errorinsert"))
