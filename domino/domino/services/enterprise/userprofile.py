@@ -501,7 +501,8 @@ def new_generic_event_admon(request: Request, profile_id: str, eventadmonprofile
                               single_profile_id=default_profile_id)
     
     one_eventadmon = EventAdmonProfile(profile_id=id, updated_by=currentUser['username'], 
-                                       federation_id=one_profile_admon.profile_event_admon[0].federation_id)
+                                       federation_id=one_profile_admon.profile_event_admon[0].federation_id,
+                                       profile_user_id=default_profile_id)
     one_profile.profile_event_admon.append(one_eventadmon)
     
     try:   
@@ -1024,9 +1025,10 @@ def get_generic_eventadmon_profile_by_id(request: Request, id: str, db: Session)
         raise HTTPException(status_code=404, detail=_(locale, "userprofile.profile_incorrect"))
     
     str_query = "Select pmem.name, pmem.email, pmem.id profile_id, pmem.photo, federation_id, fed.name as federation_name, " +\
-        "pmem.city_id, city.name city_name, city.country_id, co.name as country_name " +\
+        "pmem.city_id, city.name city_name, city.country_id, co.name as country_name, pus.username " +\
         "FROM enterprise.profile_member pmem " +\
         "JOIN enterprise.profile_event_admon pa ON pa.profile_id = pmem.id " +\
+        "left JOIN enterprise.profile_users pus ON pus.profile_id = pa.profile_user_id " +\
         "JOIN federations.federations fed ON fed.id = pa.federation_id " +\
         "left join resources.city city ON city.id = pmem.city_id " +\
         "left join resources.country co ON co.id = city.country_id " +\
@@ -1037,12 +1039,12 @@ def get_generic_eventadmon_profile_by_id(request: Request, id: str, db: Session)
         result.data = {'id': item.profile_id, 'name': item.name, 'email': item.email if item.email else '', 
                        'country_id': item.country_id if item.country_id else '', 
                        'federation_id': item.federation_id, 'federation_name': item.federation_name,
+                       'username': item.username,
                        'country_name': item.country_name if item.country_name else '', 
                        'city_id': item.city_id if item.city_id else '', 
                        'city_name': item.city_name if item.city_name else '',
                        'photo': get_url_avatar(item.profile_id, item.photo, api_uri=api_uri)
                        }
-    
     if not result.data:
         raise HTTPException(status_code=400, detail=_(locale, "userprofile.not_found"))
     
