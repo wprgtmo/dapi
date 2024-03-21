@@ -14,6 +14,7 @@ from domino.config.config import settings
 from domino.app import _
 
 from domino.models.federations.clubs import Federations, Clubs
+from domino.models.enterprise.userprofile import ProfileMember
 
 from domino.schemas.federations.federations import ClubsBase
 from domino.schemas.resources.result_object import ResultObject, ResultData
@@ -67,6 +68,36 @@ def get_all_by_federation(request:Request, federation_id: str, db: Session):
     locale = request.headers["accept-language"].split(",")[0].split("-")[0];
     
     result = ResultObject() 
+    
+    str_query = "Select club.id, club.name FROM federations.clubs club Where club.is_active = True " +\
+        "And federation_id = " + str(federation_id)
+    
+    lst_data = db.execute(str_query)
+    result.data = []
+    for item in lst_data:
+        result.data.append({'id': item.id, 'name': item.name})
+            
+    return result
+
+def get_all_by_profile_id(request:Request, profile_id: str, db: Session):  
+    locale = request.headers["accept-language"].split(",")[0].split("-")[0];
+    
+    result = ResultObject() 
+    
+    one_profile = db.query(ProfileMember).filter(ProfileMember.id == profile_id).first()
+    if not one_profile:
+        raise HTTPException(status_code=404, detail=_(locale, "userprofile.not_found"))
+    
+    federation_id = None
+    if one_profile.profile_type == 'EVENTADMON':
+        federation_id = one_profile.profile_event_admon[0].federation_id if one_profile.profile_event_admon else None
+    elif one_profile.profile_type == 'FEDERATED':
+        federation_id = one_profile.profile_federated[0].federation_id if one_profile.profile_federated else None
+    else:
+        raise HTTPException(status_code=404, detail=_(locale, "userprofile.not_found"))
+    
+    if not federation_id:
+        raise HTTPException(status_code=404, detail=_(locale, "userprofile.not_found"))
     
     str_query = "Select club.id, club.name FROM federations.clubs club Where club.is_active = True " +\
         "And federation_id = " + str(federation_id)
