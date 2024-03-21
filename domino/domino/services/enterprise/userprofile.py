@@ -846,7 +846,7 @@ def get_one_single_profile(request: Request, id: str, db: Session):
         result.data = {'id': item.profile_id, 'name': item.name, 
                        'elo': item.elo if item.elo else '', 
                        'username': item.username,
-                       'level': level_name, 
+                       'level': item.level, #level_name, 
                        'club_id': item.club_id, 'club_name': item.club_name,
                        'photo': get_url_avatar(item.profile_id, item.photo, api_uri=api_uri)}
         
