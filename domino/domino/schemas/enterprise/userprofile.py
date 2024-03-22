@@ -184,8 +184,8 @@ class GenericSingleProfileCreated(BaseModel):
 class GenericPairProfileCreated(BaseModel):
     name: str
     
-    username_one: Optional[str]
-    username_two: Optional[str]
+    profile_id_one: Optional[str]
+    profile_id_two: Optional[str]
     
     elo: Optional[float]
     level: Optional[str]
