@@ -826,8 +826,7 @@ def create_dict_row_federation_profile(item, db: Session, api_uri=""):
     
     dict_row = {'profile_id': item['profile_id'], 'name': item['name'],
                 'email': item['email'] if item['email'] else '',
-                'city': item['city_id'] if item['city_id'] else '', 'city_name': item['city_name'] if item['city_name'] else '', 
-                'country_id': item['country_id'] if item['country_id'] else '', 
+                'city_name': item['city_name'] if item['city_name'] else '', 
                 'country_name': item['country_name'] if item['country_name'] else '', 
                 'photo' : get_url_avatar(item['profile_id'], item['photo'], api_uri=api_uri)}
     
@@ -916,21 +915,25 @@ def get_one_pair_profile_by_id(request: Request, id: str, db: Session):
     res_profile=db.execute(str_query)
     
     for item in res_profile:
-        level_name = get_type_level(item.level) if item.level else '' 
+        # level_name = get_type_level(item.level) if item.level else '' 
         
         result.data = {'id': item.profile_id, 'name': item.name, 'email': item.email,
                        'elo': item.elo if item.elo else '', 
-                       'level': level_name, 
+                       'level': item.level, 
                        'country_id': item.country_id if item.country_id else '', 
-                       'country': item.country_name if item.country_name else '', 
+                       'country_name': item.country_name if item.country_name else '', 
                        'city_id': item.city_id if item.city_id else '', 
                        'city_name': item.city_name if item.city_name else '',
-                       'receive_notifications': item.receive_notifications,
-                       'photo': get_url_avatar(item.profile_id, item.photo, api_uri=api_uri),
-                       'lst_users': get_lst_users_pair_profile(item.profile_id, single_profile_id=single_profile_id, db=db)}
+                       'photo': get_url_avatar(item.profile_id, item.photo, api_uri=api_uri)}
     
     if not result.data:
         raise HTTPException(status_code=400, detail=_(locale, "userprofile.not_found"))
+    else:
+        profile_id_one, profile_id_two, profile_name_one, profile_name_two = get_info_users_pair_profile(profile_id=id, db=db)
+        result.data['profile_id_one'] = profile_id_one if profile_id_one else ""
+        result.data['profile_id_two'] = profile_id_two if profile_id_two else ""
+        result.data['profile_name_one'] = profile_name_one if profile_name_one else ""
+        result.data['profile_name_two'] = profile_name_two if profile_name_two else ""
     
     return result
 
@@ -1166,6 +1169,24 @@ def get_lst_users_pair_profile(profile_id: str, single_profile_id: str, db: Sess
                      'city_name': item.city_name if item.city_name else ''})
         
     return lst_data
+
+def get_info_users_pair_profile(profile_id: str, db: Session): 
+    
+    str_query = "Select pu.single_profile_id profile_id, pm.name from enterprise.profile_users pu " +\
+        "join enterprise.profile_member pm ON pm.id = pu.single_profile_id " +\
+        "Where pm.is_active = True AND profile_id='" + profile_id + "' "
+    res_profile=db.execute(str_query)
+    
+    profile_id_one, profile_id_two, profile_name_one, profile_name_two = "", "", "", "" 
+    for item in res_profile:
+        if not profile_id_one:
+            profile_id_one = item.profile_id
+            profile_name_one = item.name
+        else:
+            profile_id_two = item.profile_id
+            profile_name_two = item.name
+        
+    return profile_id_one, profile_id_two, profile_name_one, profile_name_two
     
 def get_one_profile_id(id: str, db: Session): 
     str_query = "Select pro.id FROM enterprise.profile_member pro join enterprise.profile_users us ON us.profile_id = pro.id " +\
@@ -1373,37 +1394,26 @@ def update_one_pair_profile(request: Request, id: str, pairprofile: GenericPairP
     if not db_profile:
         raise HTTPException(status_code=400, detail=_(locale, "userprofile.not_found"))
     
+    if pairprofile['name'] and pairprofile['name'] != db_profile.name:
+        db_profile.name = pairprofile['name']
+    
+    # llamo a este por si cambio la foto    
     update_profile(db_profile, file, currentUser, pairprofile['name'])
     
     db_pair_profile = get_one_pair_profile(db_profile.id, db=db)
     if not db_pair_profile:
         raise HTTPException(status_code=400, detail=_(locale, "userprofile.not_found"))
     
-    db_pair_profile.level = pairprofile['level']
+    if pairprofile['level'] and pairprofile['level'] != db_pair_profile.level:
+        db_pair_profile.level = pairprofile['level']
+    
+    if pairprofile['elo'] and pairprofile['elo'] != db_pair_profile.elo:    
+        db_pair_profile.elo = pairprofile['elo']
     
     db_profile.updated_by = currentUser['username']
     db_profile.updated_date = datetime.now()
     
-    # actualizando la pareja
-    dicc_player = get_dicc_users_team_profile(profile_id=id, db=db)
-    
-    if pairprofile['other_profile_id']:
-        # if el jugador que viene es distinto al que tengo ya salvado, borrar primero
-        if pairprofile['other_profile_id'] not in dicc_player:   # es nuevo
-            # borrar el que esta
-            for item_key in dicc_player:
-                # if me_profile_id == item_key:
-                #     continue   # el principal no se puede borrar
-                
-                db_user = db.query(ProfileUsers).filter_by(profile_id = id, single_profile_id=item_key).first()
-                db.delete(db_user)
-            
-            other_username = get_user_for_single_profile(pairprofile['other_profile_id'], db=db)
-            if other_username:
-                other_user_member = ProfileUsers(profile_id=id, username=other_username, 
-                                                is_principal=False, created_by=currentUser['username'],
-                                                is_confirmed=False, single_profile_id=pairprofile['other_profile_id'])
-                db_profile.profile_users.append(other_user_member) 
+    # NO se permitirá actualizar la pareja
                             
     try:
         db.add(db_profile)
