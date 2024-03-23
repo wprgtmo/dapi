@@ -35,50 +35,45 @@ def get_all(request:Request, tourney_id:str, page: int, per_page: int, criteria_
     
     api_uri = str(settings.api_uri)
     
-    str_from = "FROM events.events eve " +\
-        "JOIN resources.entities_status sta ON sta.id = eve.status_id " +\
-        "JOIN resources.city city ON city.id = eve.city_id " +\
-        "JOIN resources.country country ON country.id = city.country_id " 
-        
+    str_from = "FROM events.inscriptions ins " +\
+        "JOIN resources.entities_status sta ON sta.id = ins.status_id " +\
+        "JOIN enterprise.profile_member pm ON pm.id = ins.profile_id " 
+                
     str_count = "Select count(*) " + str_from
-    str_query = "Select eve.id, eve.name, start_date, close_date, registration_date, registration_price, city.name as city_name, " +\
-        "main_location, summary, image, eve.status_id, sta.name as status_name, country.id as country_id, city.id  as city_id, " +\
-        "eve.profile_id as profile_id " + str_from
+    str_query = "Select profile_id, pm.name, was_pay, payment_way, import_pay, pm.photo " + str_from
     
-    str_where = " WHERE sta.name != 'CANCELLED' "  
+    str_where = " WHERE sta.name != 'CANCELLED' AND tourney_id = '" + tourney_id + "' "  
     
-    if profile_id:
-        str_where += "AND profile_id = '" + profile_id + "' "
-    # debo incluir los de los perfiles que el sigue
-    
-    dict_query = {'name': " AND eve.name ilike '%" + criteria_value + "%'",
-                  'summary': " AND summary ilike '%" + criteria_value + "%'",
-                  'city_name': " AND city_name ilike '%" + criteria_value + "%'",
-                  'start_date': " AND start_date >= '%" + criteria_value + "%'",
-                  }
-    
+    str_search = ''
+    if criteria_value:
+        str_search = "AND (pm.name ilike '%" + criteria_value + "%' OR pm.payment_way ilike '%" + criteria_value + "%')"
+        str_where += str_search
+        
     str_count += str_where
     str_query += str_where
-    
-    if criteria_key and criteria_key not in dict_query:
-        raise HTTPException(status_code=404, detail=_(locale, "commun.invalid_param"))
     
     if page and page > 0 and not per_page:
         raise HTTPException(status_code=404, detail=_(locale, "commun.invalid_param"))
     
-    str_count += dict_query[criteria_key] if criteria_value else "" 
-    str_query += dict_query[criteria_key] if criteria_value else "" 
-    
     result = get_result_count(page=page, per_page=per_page, str_count=str_count, db=db)
     
-    str_query += " ORDER BY start_date DESC " 
+    str_query += " ORDER BY pm.name DESC " 
     if page != 0:
         str_query += "LIMIT " + str(per_page) + " OFFSET " + str(page*per_page-per_page)
     
     lst_data = db.execute(str_query)
-    result.data = [create_dict_row_invitation(item, page, db=db, incluye_tourney=True, api_uri=api_uri) for item in lst_data]
+    result.data = [create_dict_row_invitation(item, api_uri=api_uri) for item in lst_data]
     
     return result
+
+def create_dict_row_invitation(item, api_uri=""):
+    
+    dict_row = {'profile_id': item['profile_id'], 'name': item['name'], 
+               'was_pay': item['was_pay'], 'payment_way': item['payment_way'] if item['payment_way'] else '', 
+               'import_pay': item['import_pay'] if item['import_pay'] else '0.00', 
+               'photo' : get_url_avatar(item['profile_id'], item['photo'], api_uri=api_uri)}
+    
+    return dict_row
 
 def new(request: Request, profile_id:str, inscriptions: InscriptionsBase, db: Session):
     

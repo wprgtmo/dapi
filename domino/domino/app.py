@@ -75,6 +75,7 @@ from domino.routes.resources.playercategories import eventscategories_route
 from domino.routes.federations.federation import federation_route
 from domino.routes.federations.club import club_route
 from domino.routes.enterprise.federated import federative_route
+from domino.routes.events.inscriptions import inscriptions_route
 
 @app.get("/docs", include_in_schema=False)
 async def custom_swagger_ui_html():
@@ -191,6 +192,8 @@ app.include_router(eventscategories_route, prefix="/api")
 app.include_router(federation_route, prefix="/api")
 app.include_router(club_route, prefix="/api")
 app.include_router(federative_route, prefix="/api")
+app.include_router(inscriptions_route, prefix="/api")
+
 
 
 @app.post("/file")

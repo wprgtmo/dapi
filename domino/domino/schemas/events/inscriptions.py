@@ -30,3 +30,10 @@ class InscriptionsSchema(InscriptionsBase):
     class Config:
         orm_mode = True
         
+class InscriptionsCreated(BaseModel):
+    tourney_id: str
+    profile_id: str
+    was_pay: bool
+    payment_way = str
+    
+        
