@@ -209,7 +209,7 @@ def update(request: Request, inscription_id: str, inscriptions: InscriptionsUpda
     
     # buscar la inscripcion...
     # solo se cambiara los datos del pago.
-    one_inscription = get_one(inscription_id=inscription_id, db=db)
+    one_inscription = get_one(inscription_id, db=db)
     if not one_inscription:
         raise HTTPException(status_code=400, detail=_(locale, "inscriptions.not_found"))
     
@@ -222,7 +222,8 @@ def update(request: Request, inscription_id: str, inscriptions: InscriptionsUpda
         raise HTTPException(status_code=400, detail=_(locale, "tourney.status_incorrect"))
    
     one_inscription.was_pay = inscriptions.was_pay
-    one_inscription.payment_way = inscriptions.payment_way
+    if inscriptions.payment_way and inscriptions.payment_way != one_inscription.payment_way:
+        one_inscription.payment_way = inscriptions.payment_way
     
     try:
         db.add(one_inscription)
