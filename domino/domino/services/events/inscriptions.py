@@ -17,7 +17,7 @@ from domino.app import _
 from domino.models.resources.status import StatusElement
 from domino.models.events.inscriptions import Inscriptions
 
-from domino.schemas.events.inscriptions import InscriptionsBase, InscriptionsCreated
+from domino.schemas.events.inscriptions import InscriptionsBase, InscriptionsCreated, InscriptionsUpdated
 from domino.schemas.resources.result_object import ResultObject, ResultData
 
 from domino.services.resources.utils import get_result_count
@@ -200,7 +200,7 @@ def verify_exist_inscription(tourney_id:str, profile_id:str, db:Session):
     
     return True if amount != 0 else False
 
-def update(request: Request, inscription_id: str, inscriptions: InscriptionsCreated, db: Session):
+def update(request: Request, inscription_id: str, inscriptions: InscriptionsUpdated, db: Session):
     
     locale = request.headers["accept-language"].split(",")[0].split("-")[0];
     
