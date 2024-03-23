@@ -1,43 +1,38 @@
-ALTER TABLE IF EXISTS enterprise.users DROP COLUMN IF EXISTS sex;
-	ALTER TABLE IF EXISTS enterprise.users DROP COLUMN IF EXISTS birthdate;
-	ALTER TABLE IF EXISTS enterprise.users DROP COLUMN IF EXISTS alias;
-	ALTER TABLE IF EXISTS enterprise.users DROP COLUMN IF EXISTS job;
-	ALTER TABLE IF EXISTS enterprise.users DROP COLUMN IF EXISTS city_id;
-	ALTER TABLE IF EXISTS enterprise.users DROP COLUMN IF EXISTS photo;
-	ALTER TABLE IF EXISTS enterprise.users DROP COLUMN IF EXISTS elo;
-	ALTER TABLE IF EXISTS enterprise.users DROP COLUMN IF EXISTS receive_notifications;
+CREATE TABLE IF NOT EXISTS events.inscriptions
+(
+    id character varying COLLATE pg_catalog."default" NOT NULL,
+    tourney_id character varying COLLATE pg_catalog."default" NOT NULL,
+    profile_id character varying COLLATE pg_catalog."default" NOT NULL,
+    user_id character varying COLLATE pg_catalog."default",
+    modality character varying(30) COLLATE pg_catalog."default" NOT NULL,
+    was_pay boolean,
+    payment_way character varying COLLATE pg_catalog."default",
+    import_pay double precision,
+    status_name character varying COLLATE pg_catalog."default" NOT NULL,
+    created_by character varying COLLATE pg_catalog."default" NOT NULL,
+    created_date date NOT NULL,
+    updated_by character varying COLLATE pg_catalog."default",
+    updated_date date NOT NULL,
+    CONSTRAINT inscriptions_pkey PRIMARY KEY (id),
+    CONSTRAINT inscriptions_created_by_fkey FOREIGN KEY (created_by)
+        REFERENCES enterprise.users (username) MATCH SIMPLE
+        ON UPDATE NO ACTION
+        ON DELETE NO ACTION,
+    CONSTRAINT inscriptions_profile_id_fkey FOREIGN KEY (profile_id)
+        REFERENCES enterprise.profile_member (id) MATCH SIMPLE
+        ON UPDATE NO ACTION
+        ON DELETE NO ACTION,
+    CONSTRAINT inscriptions_status_name_fkey FOREIGN KEY (status_name)
+        REFERENCES resources.entities_status (name) MATCH SIMPLE
+        ON UPDATE NO ACTION
+        ON DELETE NO ACTION,
+    CONSTRAINT inscriptions_updated_by_fkey FOREIGN KEY (updated_by)
+        REFERENCES enterprise.users (username) MATCH SIMPLE
+        ON UPDATE NO ACTION
+        ON DELETE NO ACTION
+)
 
-----Sabado 16    
+TABLESPACE pg_default;
 
-ALTER TABLE IF EXISTS events.players_users
-ADD COLUMN position_number_at_end integer;
-
-*******
-
-
-ALTER TABLE IF EXISTS events.tourney DROP CONSTRAINT IF EXISTS tourney_event_id_fkey;
-ALTER TABLE IF EXISTS events.tourney DROP COLUMN IF EXISTS event_id;
-
-ALTER TABLE IF EXISTS events.tourney
-ADD COLUMN federation_id integer;
-ALTER TABLE IF EXISTS events.tourney
-    ADD CONSTRAINT tourney_federation_by_fley FOREIGN KEY (federation_id)
-    REFERENCES federations.federations (id) MATCH SIMPLE
-    ON UPDATE NO ACTION
-    ON DELETE NO ACTION
-    NOT VALID;
-
-ALTER TABLE IF EXISTS events.tourney
-ADD COLUMN main_location character varying(255);
-ALTER TABLE IF EXISTS events.tourney
-ADD COLUMN city_id integer;
-
-ALTER TABLE IF EXISTS events.tourney
-    ADD CONSTRAINT tourney_city_by_fkey FOREIGN KEY (city_id)
-    REFERENCES resources.city (id) MATCH SIMPLE
-    ON UPDATE NO ACTION
-    ON DELETE NO ACTION
-    NOT VALID;
-
-ALTER TABLE IF EXISTS events.tourney
-ADD COLUMN inscription_import double precision;
+ALTER TABLE IF EXISTS events.inscriptions
+    OWNER to postgres;

@@ -15,7 +15,7 @@ from domino.app import _
 from domino.models.resources.status import StatusElement
 from domino.models.events.inscriptions import Inscriptions
 
-from domino.schemas.events.inscriptions import InscriptionsBase
+from domino.schemas.events.inscriptions import InscriptionsBase, InscriptionsCreated
 from domino.schemas.resources.result_object import ResultObject, ResultData
 
 from domino.services.resources.utils import get_result_count
@@ -23,7 +23,7 @@ from domino.services.events.tourney import get_one as get_tourney_by_id
 from domino.services.enterprise.users import get_one_by_username
 from domino.services.resources.status import get_one_by_name as get_status_by_name
 from domino.services.resources.country import get_one_by_name as get_country_by_name
-from domino.services.enterprise.userprofile import get_type_level
+from domino.services.enterprise.userprofile import get_type_level, get_one as get_one_profile
 
 from domino.services.enterprise.auth import get_url_avatar
 
@@ -75,7 +75,7 @@ def create_dict_row_invitation(item, api_uri=""):
     
     return dict_row
 
-def new(request: Request, profile_id:str, inscriptions: InscriptionsBase, db: Session):
+def new(request: Request, profile_id:str, inscriptions: InscriptionsCreated, db: Session):
     
     locale = request.headers["accept-language"].split(",")[0].split("-")[0];
     
@@ -84,11 +84,11 @@ def new(request: Request, profile_id:str, inscriptions: InscriptionsBase, db: Se
     
     # si el perfil no es de administrador de eventos, no lo puede crear
     
-    db_member_profile = get_one_profile(id=profile_id, db=db)
-    if not db_member_profile:
+    db_one_profile = get_one_profile(id=inscriptions['profile_id'], db=db)
+    if not db_one_profile:
         raise HTTPException(status_code=400, detail=_(locale, "userprofile.not_found"))
    
-    if db_member_profile.profile_type != 'EVENTADMON':
+    if db_one_profile.profile_type not in ('SINGLE_PLAYER', ''):
         raise HTTPException(status_code=400, detail=_(locale, "userprofile.user_not_event_admon"))
     
     one_status = get_one_status_by_name('CREATED', db=db)
