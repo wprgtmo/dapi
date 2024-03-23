@@ -34,6 +34,10 @@ class InscriptionsCreated(BaseModel):
     tourney_id: str
     profile_id: str
     was_pay: bool
-    payment_way = str
+    payment_way: str
+    
+class InscriptionsUpdated(BaseModel):
+    was_pay: bool
+    payment_way: str
     
         

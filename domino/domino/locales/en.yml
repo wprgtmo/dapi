@@ -77,6 +77,8 @@ en:
     not_found: 'Invitation not found.'
     already_exist: 'Invitation exist'
     status_incorrect: 'Status of invitation incorrect.'
+  inscriptions:
+    already_exist: 'Inscripción ya existe.'
   profiletype:
     exist_name: 'There is type of profile'
     already_exist: 'Error creating profile type'

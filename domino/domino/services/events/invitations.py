@@ -285,7 +285,7 @@ def generate_for_tourney(db_tourney:Tourney, db_status: StatusElement, username:
     
     return True
     
-def update(request: Request, invitation_id: str, invitation: InvitationAccepted, db: Session):
+def update(request: Request, invitation_id: str, invitation: InscriptionsUpdated, db: Session):
     locale = request.headers["accept-language"].split(",")[0].split("-")[0];
     
     result = ResultObject() 

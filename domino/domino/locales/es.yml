@@ -114,6 +114,9 @@ es:
     not_found: 'Invitación no existe.'
     already_exist: 'Invitacion ya existe.'
     status.incorrect: 'Estado de la invitación incorrecta.'
+  inscriptions:
+    already_exist: 'Inscripción ya existe.'
+    not_found: 'Inscripción no existe.'
   profiletype:
     exist_name: 'Existe nombre de tipo de perfil'
     already_exist: 'Error creando tipo de perfil'
