@@ -30,13 +30,13 @@ from domino.services.enterprise.auth import get_url_avatar
 def get_one(inscriptions_id: str, db: Session):  
     return db.query(Inscriptions).filter(Inscriptions.id == inscriptions_id).first()
 
-def get_all(request:Request, tourney_id:str, page: int, per_page: int, criteria_key: str, criteria_value: str, db: Session):  
+def get_all(request:Request, tourney_id:str, page: int, per_page: int, criteria_value: str, db: Session):  
     locale = request.headers["accept-language"].split(",")[0].split("-")[0];
     
     api_uri = str(settings.api_uri)
     
     str_from = "FROM events.inscriptions ins " +\
-        "JOIN resources.entities_status sta ON sta.id = ins.status_id " +\
+        "JOIN resources.entities_status sta ON sta.name = ins.status_name " +\
         "JOIN enterprise.profile_member pm ON pm.id = ins.profile_id " 
                 
     str_count = "Select count(*) " + str_from
