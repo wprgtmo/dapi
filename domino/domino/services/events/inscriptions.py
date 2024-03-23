@@ -98,12 +98,12 @@ def get_all_players_not_registered(request:Request, tourney_id:str, page: int, p
                 
     str_count = "Select count(*) " + str_from
     str_query = "Select pm.id as profile_id, pm.name, pm.photo, pp.elo, pp.level, " +\
-        "club.name as club_name, federations.name as federation_name" + str_from
+        "club.name as club_name, federations.name as federation_name " + str_from
    
     str_ins = "Select profile_id FROM events.inscriptions ins " +\
         "WHERE ins.status_name != 'CANCELLED' AND tourney_id = '" + tourney_id + "' "
         
-    str_where = " WHERE pm.is_active = True AND pm.id NOT IN ('" + str_ins + ") "  
+    str_where = " WHERE pm.is_active = True AND pm.id NOT IN (" + str_ins + ") "  
     
     str_search = ''
     if criteria_value:
