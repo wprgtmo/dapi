@@ -38,17 +38,34 @@ def get_all(request:Request, tourney_id:str, page: int, per_page: int, criteria_
     
     api_uri = str(settings.api_uri)
     
+    db_one_tourney = get_tourney_by_id(tourney_id, db=db)
+    if not db_one_tourney:
+        raise HTTPException(status_code=400, detail=_(locale, "tourney.not_found"))
+    
     str_from = "FROM events.inscriptions ins " +\
         "JOIN enterprise.profile_member pm ON pm.id = ins.profile_id " 
+        
+    if db_one_tourney.modality == 'Individual':
+        str_from += "JOIN enterprise.profile_single_player pp ON pp.profile_id = pm.id "
+    elif db_one_tourney.modality == 'Parejas':
+        str_from += "JOIN enterprise.profile_pair_player pp ON pp.profile_id = pm.id "
+    else:
+        raise HTTPException(status_code=400, detail=_(locale, "tourney.not_implemented"))
+    
+    str_from += "JOIN federations.clubs club ON club.id = pp.club_id " +\
+        "JOIN federations.federations ON federations.id = club.federation_id "  
                 
     str_count = "Select count(*) " + str_from
-    str_query = "Select profile_id, pm.name, was_pay, payment_way, import_pay, pm.photo " + str_from
+    str_query = "Select ins.profile_id, pm.name, was_pay, payment_way, import_pay, pm.photo, pp.elo, pp.level, " +\
+        "club.name as club_name, federations.name as federation_name " + str_from
     
     str_where = " WHERE ins.status_name != 'CANCELLED' AND tourney_id = '" + tourney_id + "' "  
     
     str_search = ''
     if criteria_value:
-        str_search = "AND (pm.name ilike '%" + criteria_value + "%' OR ins.payment_way ilike '%" + criteria_value + "%')"
+        str_search = "AND (pm.name ilike '%" + criteria_value + "%' OR ins.payment_way ilike '%" + criteria_value +\
+            "%' OR pp.level ilike '%" + criteria_value + "%' OR club.name ilike '%" + criteria_value +\
+            "%' OR federations.name ilike '%" + criteria_value + "%')"
         str_where += str_search
         
     str_count += str_where
@@ -72,6 +89,9 @@ def create_dict_row_invitation(item, api_uri=""):
     dict_row = {'profile_id': item['profile_id'], 'name': item['name'], 
                'was_pay': item['was_pay'], 'payment_way': item['payment_way'] if item['payment_way'] else '', 
                'import_pay': item['import_pay'] if item['import_pay'] else '0.00', 
+               'elo': item['elo'], 'level': item['level'] if item['level'] else '', 
+               'club_name': item['club_name'] if item['club_name'] else '', 
+               'federation_name': item['federation_name'] if item['federation_name'] else '',
                'photo' : get_url_avatar(item['profile_id'], item['photo'], api_uri=api_uri)}
     
     return dict_row
