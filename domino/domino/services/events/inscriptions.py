@@ -26,6 +26,7 @@ from domino.services.enterprise.users import get_one_by_username
 from domino.services.resources.status import get_one_by_name as get_status_by_name
 from domino.services.resources.country import get_one_by_name as get_country_by_name
 from domino.services.enterprise.userprofile import get_type_level, get_one as get_one_profile
+from domino.services.events.player import new_player_from_inscription
 
 from domino.services.enterprise.auth import get_url_avatar
 
@@ -47,7 +48,7 @@ def get_all(request:Request, tourney_id:str, page: int, per_page: int, criteria_
     
     str_search = ''
     if criteria_value:
-        str_search = "AND (pm.name ilike '%" + criteria_value + "%' OR pm.payment_way ilike '%" + criteria_value + "%')"
+        str_search = "AND (pm.name ilike '%" + criteria_value + "%' OR ins.payment_way ilike '%" + criteria_value + "%')"
         str_where += str_search
         
     str_count += str_where
@@ -178,12 +179,17 @@ def new(request: Request, inscriptions: InscriptionsCreated, db: Session):
                                   created_date=datetime.today(), updated_date=datetime.today(),
                                   status_name=one_status.name)
     
-    #falta la parte de crearlo como jugador del torneo
+    one_player = new_player_from_inscription(db_one_tourney, db_one_profile, one_status, db_inscription, db=db) 
+    
+    # verificar el estado de la ultima ronda del torneo.
+    # Despues de Iniciada, no hago nada. En configurada o creada borrar todo y pongo la ronda en estado creada.
+    
+    # restar_round(one_invitation.tourney_id, db=db)
     
     try:
         db.add(db_inscription)
+        db.add(one_player)
         db.commit()
-        result.data = {'id': db_inscription.id}
         return result
        
     except (Exception, SQLAlchemyError, IntegrityError) as e:

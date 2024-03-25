@@ -123,6 +123,42 @@ def new_player_with_user(tourney_id, profile_id, invitation_id, created_by, stat
     
     return one_player
 
+def new_player_from_inscription(one_tourney, one_profile, one_status_acepted, one_inscription, db:Session):
+    
+    one_player = Players(id=str(uuid.uuid4()), tourney_id=one_tourney.id, profile_id=one_profile.id, 
+                         invitation_id=one_inscription.id, created_by=one_inscription.created_by, 
+                         updated_by=one_inscription.created_by, status_id=one_status_acepted.id)
+    # level_name = get_type_level(dict_player['level']) if dict_player['level'] else '' 
+    
+    if one_profile.profile_type == "SINGLE_PLAYER":
+        single_player = one_profile.profile_single_player[0]
+        one_player.elo = single_player.elo
+        one_player.level = single_player.level
+    elif one_profile.profile_type == "PAIR_PLAYER":
+        pair_player = one_profile.profile_pair_player[0]
+        one_player.elo = pair_player.elo
+        one_player.level = pair_player.level
+    elif one_profile.profile_type == "TEAM_PLAYER":
+        pair_player = one_profile.profile_team_player[0]
+        one_player.elo = pair_player.elo
+        one_player.level = pair_player.level
+    
+    for item in one_profile.profile_users:
+        if one_profile.profile_type == "SINGLE_PLAYER":
+            elo, level = one_player.elo, one_player.level
+        else:  # buscar el profile de jugador individual
+            one_single_player = get_one_profile(item.single_profile_id, db=db)
+            elo, level = one_single_player.elo, one_single_player.level
+        
+        one_player_user =  PlayersUser(
+            player_id=one_player.id, profile_id=item.single_profile_id, level=level,
+            elo=elo, elo_current=0, elo_at_end=0, games_played=0, games_won=0, games_lost=0,
+            points_positive=0, points_negative=0, points_difference=0, score_expected=0, score_obtained=0,
+            k_value=0, penalty_yellow=0, penalty_red=0, penalty_total=0, bonus_points=0)
+        one_player.users.append(one_player_user)
+        
+    return one_player
+
 #metodo para registrar un nuevo jugador, creandolo desde el usuario
 def register_new_player(request: Request, tourney_id: str, player_register: PlayerRegister, db: Session):
     locale = request.headers["accept-language"].split(",")[0].split("-")[0];
