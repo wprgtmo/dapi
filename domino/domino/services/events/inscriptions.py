@@ -58,10 +58,11 @@ def get_one_by_id(request:Request, inscriptions_id: str, db: Session):
         "JOIN federations.federations ON federations.id = club.federation_id "
     
     str_query = "Select ins.profile_id, pm.name, was_pay, payment_way, import_pay, pm.photo, pp.elo, pp.level, " +\
-        "club.name as club_name, federations.name as federation_name " + str_from + " WHERE ins.id = '" + inscriptions_id + "' "
+        "club.name as club_name, federations.name as federation_name, ins.tourney_id " + str_from + " WHERE ins.id = '" + inscriptions_id + "' "
     one_data = db.execute(str_query).fetchone()
     
-    result.data = {'profile_id': one_data.profile_id, 'name': one_data['name'], 
+    result.data = {'id': db_one_inscription.id, 'profile_id': one_data.profile_id, 'name': one_data['name'], 
+                   'tourney_id': one_data.tourney_id,
                'was_pay': one_data['was_pay'], 'payment_way': one_data['payment_way'] if one_data['payment_way'] else '', 
                'import_pay': one_data['import_pay'] if one_data['import_pay'] else '0.00', 
                'elo': one_data['elo'], 'level': one_data['level'] if one_data['level'] else '', 
@@ -94,7 +95,7 @@ def get_all(request:Request, tourney_id:str, page: int, per_page: int, criteria_
         "JOIN federations.federations ON federations.id = club.federation_id "  
                 
     str_count = "Select count(*) " + str_from
-    str_query = "Select ins.profile_id, pm.name, was_pay, payment_way, import_pay, pm.photo, pp.elo, pp.level, " +\
+    str_query = "Select ins.id, ins.profile_id, pm.name, was_pay, payment_way, import_pay, pm.photo, pp.elo, pp.level, " +\
         "club.name as club_name, federations.name as federation_name " + str_from
     
     str_where = " WHERE ins.status_name != 'CANCELLED' AND tourney_id = '" + tourney_id + "' "  
@@ -124,7 +125,8 @@ def get_all(request:Request, tourney_id:str, page: int, per_page: int, criteria_
 
 def create_dict_row_invitation(item, api_uri=""):
     
-    dict_row = {'profile_id': item['profile_id'], 'name': item['name'], 
+    dict_row = {'id': item['id'],
+               'profile_id': item['profile_id'], 'name': item['name'], 
                'was_pay': item['was_pay'], 'payment_way': item['payment_way'] if item['payment_way'] else '', 
                'import_pay': item['import_pay'] if item['import_pay'] else '0.00', 
                'elo': item['elo'], 'level': item['level'] if item['level'] else '', 
