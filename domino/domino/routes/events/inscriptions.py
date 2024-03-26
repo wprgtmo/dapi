@@ -8,7 +8,7 @@ from domino.auth_bearer import JWTBearer
 from domino.schemas.resources.result_object import ResultObject
 from domino.schemas.events.inscriptions import InscriptionsBase, InscriptionsCreated, InscriptionsUpdated
 
-from domino.services.events.inscriptions import get_all, new, get_all_players_not_registered, update
+from domino.services.events.inscriptions import get_all, new, get_all_players_not_registered, update, get_one_by_id
   
 inscriptions_route = APIRouter(
     tags=["Inscriptions"],
@@ -26,7 +26,11 @@ def get_inscriptions(
 ):
     return get_all(
         request=request, tourney_id=tourney_id, page=page, per_page=per_page, criteria_value=search, db=db)
-    
+
+@inscriptions_route.get("/inscriptions/one/{id}", response_model=ResultObject, summary="Get a Inscriptions for your ID.")
+def get_inscription_by_id(request: Request, id: str, db: Session = Depends(get_db)):
+    return get_one_by_id(request=request, inscriptions_id=id, db=db)
+        
 @inscriptions_route.post("/inscriptions/", response_model=ResultObject, summary="Create new player of tourney")
 def new_inscriptions(request:Request, inscriptions: InscriptionsCreated, db: Session = Depends(get_db)):
     return new(request=request, inscriptions=inscriptions, db=db)

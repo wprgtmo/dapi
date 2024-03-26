@@ -33,6 +33,44 @@ from domino.services.enterprise.auth import get_url_avatar
 def get_one(inscriptions_id: str, db: Session):  
     return db.query(Inscriptions).filter(Inscriptions.id == inscriptions_id).first()
 
+def get_one_by_id(request:Request, inscriptions_id: str, db: Session): 
+    locale = request.headers["accept-language"].split(",")[0].split("-")[0];
+    
+    result = ResultObject()  
+    
+    api_uri = str(settings.api_uri)
+    
+    db_one_inscription = get_one(inscriptions_id, db=db)
+    if not db_one_inscription:
+        raise HTTPException(status_code=400, detail=_(locale, "inscriptions.not_found"))
+    
+    str_from = "FROM events.inscriptions ins " +\
+        "JOIN enterprise.profile_member pm ON pm.id = ins.profile_id " 
+        
+    if db_one_inscription.modality == 'Individual':
+        str_from += "JOIN enterprise.profile_single_player pp ON pp.profile_id = pm.id "
+    elif db_one_inscription.modality == 'Parejas':
+        str_from += "JOIN enterprise.profile_pair_player pp ON pp.profile_id = pm.id "
+    else:
+        raise HTTPException(status_code=400, detail=_(locale, "tourney.not_implemented"))
+    
+    str_from += "JOIN federations.clubs club ON club.id = pp.club_id " +\
+        "JOIN federations.federations ON federations.id = club.federation_id "
+    
+    str_query = "Select ins.profile_id, pm.name, was_pay, payment_way, import_pay, pm.photo, pp.elo, pp.level, " +\
+        "club.name as club_name, federations.name as federation_name " + str_from + " WHERE ins.id = '" + inscriptions_id + "' "
+    one_data = db.execute(str_query).fetchone()
+    
+    result.data = {'profile_id': one_data.profile_id, 'name': one_data['name'], 
+               'was_pay': one_data['was_pay'], 'payment_way': one_data['payment_way'] if one_data['payment_way'] else '', 
+               'import_pay': one_data['import_pay'] if one_data['import_pay'] else '0.00', 
+               'elo': one_data['elo'], 'level': one_data['level'] if one_data['level'] else '', 
+               'club_name': one_data['club_name'] if one_data['club_name'] else '', 
+               'federation_name': one_data['federation_name'] if one_data['federation_name'] else '',
+               'photo' : get_url_avatar(one_data['profile_id'], one_data['photo'], api_uri=api_uri)}
+    
+    return result
+
 def get_all(request:Request, tourney_id:str, page: int, per_page: int, criteria_value: str, db: Session):  
     locale = request.headers["accept-language"].split(",")[0].split("-")[0];
     
