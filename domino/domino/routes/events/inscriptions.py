@@ -31,7 +31,7 @@ def get_inscriptions(
 def get_inscription_by_id(request: Request, id: str, db: Session = Depends(get_db)):
     return get_one_by_id(request=request, inscriptions_id=id, db=db)
         
-@inscriptions_route.post("/inscriptions/", response_model=ResultObject, summary="Create new player of tourney")
+@inscriptions_route.post("/inscriptions", response_model=ResultObject, summary="Create new player of tourney")
 def new_inscriptions(request:Request, inscriptions: InscriptionsCreated, db: Session = Depends(get_db)):
     return new(request=request, inscriptions=inscriptions, db=db)
 
