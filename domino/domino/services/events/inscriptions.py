@@ -54,21 +54,14 @@ def get_one_by_id(request:Request, inscriptions_id: str, db: Session):
     else:
         raise HTTPException(status_code=400, detail=_(locale, "tourney.not_implemented"))
     
-    str_from += "JOIN federations.clubs club ON club.id = pp.club_id " +\
-        "JOIN federations.federations ON federations.id = club.federation_id "
-    
-    str_query = "Select ins.profile_id, pm.name, was_pay, payment_way, import_pay, pm.photo, pp.elo, pp.level, " +\
-        "club.name as club_name, federations.name as federation_name, ins.tourney_id " + str_from + " WHERE ins.id = '" + inscriptions_id + "' "
+    str_query = "Select ins.profile_id, pm.name, was_pay, payment_way, ins.tourney_id " +\
+        str_from + " WHERE ins.id = '" + inscriptions_id + "' "
     one_data = db.execute(str_query).fetchone()
     
-    result.data = {'id': db_one_inscription.id, 'profile_id': one_data.profile_id, 'name': one_data['name'], 
-                   'tourney_id': one_data.tourney_id,
-               'was_pay': one_data['was_pay'], 'payment_way': one_data['payment_way'] if one_data['payment_way'] else '', 
-               'import_pay': one_data['import_pay'] if one_data['import_pay'] else '0.00', 
-               'elo': one_data['elo'], 'level': one_data['level'] if one_data['level'] else '', 
-               'club_name': one_data['club_name'] if one_data['club_name'] else '', 
-               'federation_name': one_data['federation_name'] if one_data['federation_name'] else '',
-               'photo' : get_url_avatar(one_data['profile_id'], one_data['photo'], api_uri=api_uri)}
+    result.data = {'id': db_one_inscription.id, 'profile_id': one_data.profile_id, 'profile_name': one_data['name'], 
+                   'tourney_id': one_data.tourney_id, 'was_pay': one_data['was_pay'], 
+                   'payment_way': one_data['payment_way'] if one_data['payment_way'] else '',
+                   }
     
     return result
 
