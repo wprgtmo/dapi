@@ -905,12 +905,10 @@ def get_one_pair_profile_by_id(request: Request, id: str, db: Session):
     
     str_query = "Select pro.id profile_id, pro.name, pro.email, pro.city_id, pro.photo, pro.receive_notifications, " +\
         "club.id as club_id, club.name as club_name, " +\
-        "city.name as city_name, city.country_id, pa.name as country_name, sing.elo, sing.level  " +\
+        "sing.elo, sing.level  " +\
         "FROM enterprise.profile_member pro " +\
         "inner join enterprise.profile_pair_player sing ON sing.profile_id = pro.id " +\
         "JOIN federations.clubs club ON club.id = sing.club_id " +\
-        "left join resources.city city ON city.id = pro.city_id " +\
-        "left join resources.country pa ON pa.id = city.country_id " +\
         "Where pro.is_active = True AND  pro.id='" + id + "' "
     res_profile=db.execute(str_query)
     
@@ -920,10 +918,8 @@ def get_one_pair_profile_by_id(request: Request, id: str, db: Session):
         result.data = {'id': item.profile_id, 'name': item.name, 'email': item.email,
                        'elo': item.elo if item.elo else '', 
                        'level': item.level, 
-                       'country_id': item.country_id if item.country_id else '', 
-                       'country_name': item.country_name if item.country_name else '', 
-                       'city_id': item.city_id if item.city_id else '', 
-                       'city_name': item.city_name if item.city_name else '',
+                       'club_id': item.club_id,
+                       'club_name':item.club_name,
                        'photo': get_url_avatar(item.profile_id, item.photo, api_uri=api_uri)}
     
     if not result.data:
