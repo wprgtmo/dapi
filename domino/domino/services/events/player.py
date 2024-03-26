@@ -432,7 +432,21 @@ def reject_one_invitation(request: Request, invitation_id: str, db: Session):
         return result
     except (Exception, SQLAlchemyError) as e:
         return False
-        
+
+def delete_player_from_inscription(one_inscription, one_status_cancel, updated_by, db:Session):
+    
+    one_player = get_one_by_inscription_id(one_inscription.id, db=db)
+    if not one_player:
+        return False
+    
+    one_player.status_id = one_status_cancel.id
+    one_player.updated_by = updated_by
+    one_player.updated_date = datetime.now()
+    
+    # tema estado de la ronda
+    
+    return True
+     
 def remove_player(request: Request, player_id: str, db: Session):
     
     locale = request.headers["accept-language"].split(",")[0].split("-")[0];
@@ -813,8 +827,6 @@ def get_all_players_by_tourney(request:Request, page: int, per_page: int, tourne
         str_query += "LIMIT " + str(per_page) + " OFFSET " + str(page*per_page-per_page)
         
     lst_data = db.execute(str_query)
-    print(str_query)
-    print('***********************')
     result.data = [create_dict_row(item, page, db=db, api_uri=api_uri) for item in lst_data]
     
     return result
@@ -836,6 +848,9 @@ def create_dict_row(item, page, db: Session, api_uri):
 
 def get_one_by_invitation_id(invitation_id: str, db: Session):  
     return db.query(Players).filter(Players.invitation_id == invitation_id).first()
+
+def get_one_by_inscription_id(inscription_id: str, db: Session):  
+    return db.query(Players).filter(Players.invitation_id == inscription_id).first()
 
 def get_one(id: str, db: Session):  
     return db.query(Players).filter(Players.id == id).first()

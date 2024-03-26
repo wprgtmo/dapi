@@ -26,7 +26,7 @@ from domino.services.enterprise.users import get_one_by_username
 from domino.services.resources.status import get_one_by_name as get_status_by_name
 from domino.services.resources.country import get_one_by_name as get_country_by_name
 from domino.services.enterprise.userprofile import get_type_level, get_one as get_one_profile
-from domino.services.events.player import new_player_from_inscription
+from domino.services.events.player import new_player_from_inscription, delete_player_from_inscription
 
 from domino.services.enterprise.auth import get_url_avatar
 
@@ -318,6 +318,7 @@ def delete(request: Request, inscription_id: str, db: Session):
     
     # en dependencia del estado del torneo y las rondas...
     # eliminar jugador..
+    result_del = delete_player_from_inscription(one_inscription, one_status, currentUser['username'], db=db) 
         
     db.commit()
     return result
