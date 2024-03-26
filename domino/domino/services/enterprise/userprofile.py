@@ -1331,7 +1331,13 @@ def update_one_single_profile(request: Request, id: str, singleprofile: SinglePr
     city_id = default_profile.city_id if default_profile and default_profile.city_id else None
     
     update_profile(db_member_profile, file, currentUser, singleprofile['name'], email, city_id, False)
-     
+    
+    if singleprofile['club_id'] and singleprofile['club_id'] != db_single_profile.club_id:
+        one_club = get_one_club(singleprofile['club_id'], db=db)
+        if not one_club:
+            raise  HTTPException(status_code=400, detail=_(locale, "club.not_found"))
+        db_single_profile.club_id =  one_club.id
+         
     try:
         db_single_profile.level = singleprofile['level'] if singleprofile['level'] else None
         
@@ -1406,11 +1412,19 @@ def update_one_pair_profile(request: Request, id: str, pairprofile: GenericPairP
     if pairprofile['elo'] and pairprofile['elo'] != db_pair_profile.elo:    
         db_pair_profile.elo = pairprofile['elo']
     
+    if pairprofile['club_id'] and pairprofile['club_id'] != db_pair_profile.club_id:
+        one_club = get_one_club(pairprofile['club_id'], db=db)
+        if not one_club:
+            raise  HTTPException(status_code=400, detail=_(locale, "club.not_found"))
+        db_pair_profile.club_id =  one_club.id
+        
     db_profile.updated_by = currentUser['username']
     db_profile.updated_date = datetime.now()
     
     # NO se permitirá actualizar la pareja
-                            
+    
+    # falta actualizar la fot de la pareja
+                          
     try:
         db.add(db_profile)
         db.add(db_pair_profile)

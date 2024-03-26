@@ -147,8 +147,7 @@ def new_player_from_inscription(one_tourney, one_profile, one_status_acepted, on
         if one_profile.profile_type == "SINGLE_PLAYER":
             elo, level = one_player.elo, one_player.level
         else:  # buscar el profile de jugador individual
-            one_single_player = get_one_profile(item.single_profile_id, db=db)
-            elo, level = one_single_player.elo, one_single_player.level
+            elo, level = pair_player.elo, pair_player.level
         
         one_player_user =  PlayersUser(
             player_id=one_player.id, profile_id=item.single_profile_id, level=level,
