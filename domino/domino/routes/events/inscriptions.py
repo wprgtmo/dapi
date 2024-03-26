@@ -15,7 +15,7 @@ inscriptions_route = APIRouter(
     dependencies=[Depends(JWTBearer())]   
 )
 
-@inscriptions_route.get("/inscriptions/{tourney_id}", response_model=ResultObject, summary="Get All Inscriptions for tourney.")
+@inscriptions_route.get("/inscriptions/{tourney_id}", response_model=Dict, summary="Get All Inscriptions for tourney.")
 def get_inscriptions(
     request: Request,
     tourney_id: str,
@@ -35,7 +35,7 @@ def new_inscriptions(request:Request, inscriptions: InscriptionsCreated, db: Ses
 def update_inscriptions(request:Request, id: str, inscriptions: InscriptionsUpdated, db: Session = Depends(get_db)):
     return update(request=request, inscription_id=id, inscriptions=inscriptions, db=db)
 
-@inscriptions_route.get("/inscriptions/notplayers/{tourney_id}", response_model=ResultObject, summary="Get players not registered in the tournament")
+@inscriptions_route.get("/inscriptions/notplayers/{tourney_id}", response_model=Dict, summary="Get players not registered in the tournament")
 def get_players_not_registered(
     request: Request,
     tourney_id: str,
