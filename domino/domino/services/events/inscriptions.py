@@ -294,3 +294,31 @@ def update(request: Request, inscription_id: str, inscriptions: InscriptionsUpda
         print(e)
         msg = _(locale, "event.error_new_event")               
         raise HTTPException(status_code=403, detail=msg)
+    
+def delete(request: Request, inscription_id: str, db: Session):
+    locale = request.headers["accept-language"].split(",")[0].split("-")[0];
+    
+    result = ResultObject() 
+    currentUser = get_current_user(request)
+    
+    one_inscription = get_one(inscription_id, db=db)
+    if not one_inscription:
+        raise HTTPException(status_code=400, detail=_(locale, "inscriptions.not_found"))
+    
+    if one_inscription.tourney.status.name == 'FINALIZED':
+        raise HTTPException(status_code=400, detail=_(locale, "tourney.status_incorrect"))
+    
+    one_status = get_status_by_name('CANCELLED', db=db)
+    if not one_status:
+        raise HTTPException(status_code=404, detail=_(locale, "status.not_found"))
+    
+    one_inscription.status_name = one_status.name
+    one_inscription.updated_by = currentUser['username']
+    one_inscription.updated_date = datetime.now()
+    
+    # en dependencia del estado del torneo y las rondas...
+    # eliminar jugador..
+        
+    db.commit()
+    return result
+    

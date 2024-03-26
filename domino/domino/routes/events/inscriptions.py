@@ -8,7 +8,7 @@ from domino.auth_bearer import JWTBearer
 from domino.schemas.resources.result_object import ResultObject
 from domino.schemas.events.inscriptions import InscriptionsBase, InscriptionsCreated, InscriptionsUpdated
 
-from domino.services.events.inscriptions import get_all, new, get_all_players_not_registered, update, get_one_by_id
+from domino.services.events.inscriptions import get_all, new, get_all_players_not_registered, update, get_one_by_id, delete
   
 inscriptions_route = APIRouter(
     tags=["Inscriptions"],
@@ -27,6 +27,18 @@ def get_inscriptions(
     return get_all(
         request=request, tourney_id=tourney_id, page=page, per_page=per_page, criteria_value=search, db=db)
 
+@inscriptions_route.get("/inscriptions/notplayers/{tourney_id}", response_model=Dict, summary="Get players not registered in the tournament")
+def get_players_not_registered(
+    request: Request,
+    tourney_id: str,
+    page: int = 1, 
+    per_page: int = 6, 
+    search: str = "",
+    db: Session = Depends(get_db)
+):
+    return get_all_players_not_registered(
+        request=request, tourney_id=tourney_id, page=page, per_page=per_page, criteria_value=search, db=db)
+    
 @inscriptions_route.get("/inscriptions/one/{id}", response_model=ResultObject, summary="Get a Inscriptions for your ID.")
 def get_inscription_by_id(request: Request, id: str, db: Session = Depends(get_db)):
     return get_one_by_id(request=request, inscriptions_id=id, db=db)
@@ -39,14 +51,7 @@ def new_inscriptions(request:Request, inscriptions: InscriptionsCreated, db: Ses
 def update_inscriptions(request:Request, id: str, inscriptions: InscriptionsUpdated, db: Session = Depends(get_db)):
     return update(request=request, inscription_id=id, inscriptions=inscriptions, db=db)
 
-@inscriptions_route.get("/inscriptions/notplayers/{tourney_id}", response_model=Dict, summary="Get players not registered in the tournament")
-def get_players_not_registered(
-    request: Request,
-    tourney_id: str,
-    page: int = 1, 
-    per_page: int = 6, 
-    search: str = "",
-    db: Session = Depends(get_db)
-):
-    return get_all_players_not_registered(
-        request=request, tourney_id=tourney_id, page=page, per_page=per_page, criteria_value=search, db=db)
+@inscriptions_route.delete("/inscriptions/{id}", response_model=ResultObject, summary="Deactivate a inscriptions by its ID.")
+def delete_inscriptions(request:Request, id: str, db: Session = Depends(get_db)):
+    return delete(request=request, inscription_id=str(id), db=db)
+
