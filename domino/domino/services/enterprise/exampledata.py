@@ -50,6 +50,20 @@ pwd_context = CryptContext(schemes=["bcrypt"], deprecated="auto")
 
 #region poblar BD de profiles user
 
+def insert_admon_user(request:Request, db: Session):
+    
+    # jugadores Federacion Cubana
+    cuba_federation = get_federation_by_name('Federación Cubana del Dominó', db=db)
+    
+    # Jugadores de la Federacion EUA
+    usa_federation = get_federation_by_name('USA Domino Federation', db=db)
+    
+    insert_profiles_federation(request=request, db=db, usa_federation=usa_federation, cuba_federation=cuba_federation)
+    
+    return True
+
+
+
 def insert_user_examples(request:Request, db: Session):
     
     # jugadores Federacion Cubana
@@ -61,8 +75,6 @@ def insert_user_examples(request:Request, db: Session):
     
     insert_user_examples_by_csv(request=request, db=db, federation=cuba_federation)
 
-    insert_profiles_federation(request=request, db=db, usa_federation=usa_federation, cuba_federation=cuba_federation)
-    
     return True
 
 def insert_profiles_federation(request:Request, db: Session, usa_federation=None, cuba_federation=None):

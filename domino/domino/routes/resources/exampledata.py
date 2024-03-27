@@ -8,7 +8,7 @@ from domino.auth_bearer import JWTBearer
 
 from domino.services.enterprise.exampledata import insert_user_examples, insert_others_profiles, \
     create_tourneys, created_invitations_tourneys, accepted_invitations_tourneys, created_players, update_elo, \
-    clear_all_bd, execute_script_in_BD
+    clear_all_bd, execute_script_in_BD, insert_admon_user
 
 from domino.services.events.domino_boletus import created_boletus_for_round
 from domino.services.events.domino_scale import calculate_score_expeted_of_pairs
@@ -22,7 +22,11 @@ exampledata_route = APIRouter(
 def insert_data(request:Request, db: Session = Depends(get_db)):
     return clear_all_bd(request, db=db)
 
-@exampledata_route.post("/exampledata/step_2_users", summary="Create generic users")
+@exampledata_route.post("/exampledata/step_2_users", summary="Create admon users")
+def insert_data(request:Request, db: Session = Depends(get_db)):
+    return insert_admon_user(request, db=db)
+
+@exampledata_route.post("/exampledata/step_3_users", summary="Create others users")
 def insert_data(request:Request, db: Session = Depends(get_db)):
     return insert_user_examples(request, db=db)
 
